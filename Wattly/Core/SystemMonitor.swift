@@ -85,7 +85,20 @@ final class SystemMonitor {
         }
     }
 
+    /// Previous AC-adapter connection state. A plug/unplug (`ExternalConnected` change)
+    /// clears the battery sparkline at once, so the prior regime doesn't linger on the
+    /// graph: the current register lags a plug-in by 30–60 s, so we key the reset off the
+    /// connection flag (which flips instantly) rather than the current-derived direction
+    /// (issue 07 §2). Held here, not in the provider, so `BatteryProvider` stays stateless.
+    private var lastExternalConnected: Bool?
+
     private func recordHistory(for kind: ProviderKind, sample: MetricSample, at instant: ContinuousClock.Instant) {
+        if case .battery(let s) = sample {
+            if let last = lastExternalConnected, last != s.externalConnected {
+                history[.battery] = HistoryBuffer()      // adapter plugged/unplugged → fresh graph
+            }
+            lastExternalConnected = s.externalConnected
+        }
         for card in CardKind.allCases where card.provider == kind {
             if let scalar = Self.scalar(of: card, from: sample) {
                 history[card, default: HistoryBuffer()].append(scalar, at: instant)

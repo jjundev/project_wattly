@@ -78,4 +78,26 @@ struct SystemMonitorTests {
         await monitor.pollOnce()
         #expect(monitor.isPresent(.battery) == false)
     }
+
+    @Test func batteryPlugInResetsHistory() async {
+        // On battery (discharging), then the adapter is plugged in → ExternalConnected
+        // flips → the battery sparkline resets at once (not when the lagging current
+        // catches up 30–60 s later). Issue 07 §2.
+        let onBattery = MetricSample.battery(BatterySample(
+            netW: 9.6, milliamps: 754, volts: 12.7, charging: false, externalConnected: false))
+        let pluggedIn = MetricSample.battery(BatterySample(
+            netW: -13.4, milliamps: 1098, volts: 12.2, charging: true, externalConnected: true))
+        let battery = ScriptedProvider(kind: .battery, [.value(onBattery), .value(onBattery), .value(pluggedIn)])
+        let clock = ManualClock()
+        let monitor = SystemMonitor(providers: [battery], clock: clock)
+
+        await monitor.pollOnce()                 // on battery → [9.6]
+        clock.advance(by: .seconds(2))
+        await monitor.pollOnce()                 // still on battery (no plug change) → [9.6, 9.6]
+        #expect(monitor.history[.battery]?.values == [9.6, 9.6])
+
+        clock.advance(by: .seconds(2))
+        await monitor.pollOnce()                 // plugged in (ExternalConnected flip) → reset → [-13.4]
+        #expect(monitor.history[.battery]?.values == [-13.4])
+    }
 }

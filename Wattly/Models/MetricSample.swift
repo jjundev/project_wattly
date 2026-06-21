@@ -61,11 +61,21 @@ struct PowerSample: Sendable, Equatable {
 }
 
 struct BatterySample: Sendable, Equatable {
-    /// Net system power. `> 0` discharging, `< 0` charging (prototype line 590).
+    /// Net system power. `> 0` discharging, `< 0` charging. Sourced from
+    /// AppleSmartBattery's directly-measured `BatteryPower` (PowerTelemetryData), which
+    /// tracks a plug/unplug within ~2 s — unlike the gas-gauge `InstantAmperage`, which
+    /// lags 30–60 s and reads the wrong sign under load (issue 07).
     var netW: Double
+    /// Effective battery-current magnitude (abs), derived from `netW`/`volts`; the view
+    /// prepends the sign.
     var milliamps: Int
     var volts: Double
+    /// Charging — net power flowing into the battery (`netW < −0.2`). Drives the +/− sign
+    /// and the 충전/방전 label.
     var charging: Bool
+    /// Hardware `ExternalConnected` (AC adapter present). Flips immediately on
+    /// plug/unplug; `SystemMonitor` resets the battery sparkline when it changes.
+    var externalConnected: Bool
 }
 
 // MARK: - Temperature (the partial-failure boundary, PRD line 74)

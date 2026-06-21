@@ -314,7 +314,11 @@ struct MetricCardView: View {
         guard case .value(let sample) = state else { return "—" }
         switch (card, sample) {
         case (.power, .power(let s)): return f1(s.totalW)
-        case (.battery, .battery(let s)): return (s.charging ? "+" : "−") + f1(abs(s.netW))
+        case (.battery, .battery(let s)):
+            // #17: drop the sign when the magnitude rounds to 0.0 (AC 연결·완충 등 net≈0)
+            // so the card shows "0.0", never a meaningless "−0.0".
+            let mag = abs(s.netW)
+            return (mag < 0.05 ? "" : (s.charging ? "+" : "−")) + f1(mag)
         case (.cpu, .cpu(let s)): return String(Int(s.overall.rounded()))
         case (.mem, .memory(let s)): return f1(s.usedGB)
         case (.cpuTemp, .temperature(let s)): return tempText(s.cpu)
@@ -330,7 +334,9 @@ struct MetricCardView: View {
         case .power(let s):
             return "CPU \(f1(s.cpuW)) W · GPU \(f1(s.gpuW)) W · NPU \(f1(s.npuW)) W"
         case .battery(let s):
-            return "\(s.charging ? "+" : "−")\(s.milliamps) mA · \(f1(s.volts)) V · \(s.charging ? "충전 중" : "방전 중")"
+            // #17: same zero-magnitude → no-sign rule as the value (keeps mA in step).
+            let sign = abs(s.netW) < 0.05 ? "" : (s.charging ? "+" : "−")
+            return "\(sign)\(s.milliamps) mA · \(f1(s.volts)) V · \(s.charging ? "충전 중" : "방전 중")"
         case .cpu(let s):
             // Order-based (not name-coupled): runtime perf-level names ("Performance"/
             // "Efficiency" → "P"/"E") differ from the prototype's "S". Guard
