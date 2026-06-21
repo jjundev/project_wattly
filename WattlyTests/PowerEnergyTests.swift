@@ -39,29 +39,18 @@ struct PowerEnergyTests {
         #expect(classifyEngine("DRAM") == nil)          // counts toward total, not an engine breakout
     }
 
-    // MARK: isTotalChannel — aggregates + "… Energy" sweep, sub-components excluded
-
-    @Test func totalChannelSelection() {
-        for name in ["CPU Energy", "GPU Energy", "GPU", "ANE", "DRAM", "DCS", "SOC_AON",
-                     "PCIe Port 0 Energy", "apciec0 Energy"] {
-            #expect(isTotalChannel(name), "\(name) should count toward total")
-        }
-        for name in ["ECPU0", "PCPU3", "PCPU0_SRAM", "ECPUDTL07", "ECPM", "ECPU", "PCPU"] {
-            #expect(!isTotalChannel(name), "\(name) is a sub-component, must be excluded")
-        }
-    }
-
-    // MARK: powerSample — the J/s → W math, dedup, and "total > breakout" property
+    // MARK: powerSample — the J/s → W math, dedup, and "total == Combined" property
 
     @Test func wattsFromEnergyDelta() {
+        // DRAM is present but must NOT inflate totalW — Combined = CPU+GPU+ANE only.
         let prev = ["CPU Energy": 1.0, "GPU Energy": 0.5, "ANE": 0.0, "DRAM": 0.2]
         let curr = ["CPU Energy": 3.0, "GPU Energy": 1.0, "ANE": 0.0, "DRAM": 0.6]
         let s = powerSample(prev: prev, curr: curr, dt: 2.0)
         #expect(s.cpuW == 1.0)                   // (3-1)/2
         #expect(s.gpuW == 0.25)                  // (1-0.5)/2
         #expect(s.npuW == 0.0)                   // idle NPU (HW "ANE") is a valid zero, not unavailable
-        #expect(abs(s.totalW - 1.45) < 1e-9)     // (2+0.5+0.4)/2 — includes DRAM beyond the breakout
-        #expect(s.totalW > s.cpuW + s.gpuW + s.npuW)   // headline folds in DRAM/SoC
+        #expect(abs(s.totalW - 1.25) < 1e-9)     // (2+0.5)/2 — CPU+GPU+ANE, DRAM excluded
+        #expect(s.totalW == s.cpuW + s.gpuW + s.npuW)   // headline == Combined breakout
     }
 
     @Test func gpuAliasesCountedOnce() {

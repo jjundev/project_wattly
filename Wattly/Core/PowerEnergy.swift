@@ -11,7 +11,9 @@ import Foundation
 /// of them double-counts ~4×. Units are mixed *within one sample* (`CPU Energy`=mJ,
 /// `GPU Energy`=nJ, PCIe=µJ), so every value must be unit-decoded, not assumed mJ.
 
-/// Engines broken out in the card sub-line. (Total includes more — see `isTotalChannel`.)
+/// Engines that make up "Combined Power": CPU + GPU + ANE. `totalW` is exactly their
+/// sum — the same quantity `powermetrics` labels "Combined Power", so Wattly's headline
+/// lines up with other tools instead of running high.
 enum PowerEngine: Equatable {
     case cpu, gpu, npu          // npu == Apple Neural Engine; HW channel is named "ANE"
 }
@@ -42,17 +44,6 @@ func classifyEngine(_ name: String) -> PowerEngine? {
     }
 }
 
-/// Whether a channel contributes to `totalW`. The curated aggregates plus a generic
-/// sweep of any `"… Energy"` channel (PCIe ports, apciec), which catches per-board
-/// variance without hardcoding port counts. Per-core/SRAM/DTL/cluster sub-channels
-/// have none of these names, so they are excluded — no double counting. (보류 #26:
-/// validated on M-series/macOS 26; unrecognized engines on other chips undercount
-/// *visibly*, never double-count.)
-func isTotalChannel(_ name: String) -> Bool {
-    let aggregates: Set<String> = ["CPU Energy", "GPU Energy", "GPU", "ANE", "DRAM", "DCS", "SOC_AON"]
-    return aggregates.contains(name) || name.hasSuffix(" Energy")
-}
-
 /// Any monotonic energy counter going backwards ⇒ counter reset / rollover (sleep,
 /// wake, very long uptime). `PowerProvider` re-baselines instead of emitting a bogus
 /// spike or a clamped zero.
@@ -65,10 +56,12 @@ func hasCounterReset(prev: [String: Double], curr: [String: Double]) -> Bool {
 
 /// Watts from two absolute-energy snapshots (joules) and the elapsed seconds.
 /// Per-engine breakout via `classifyEngine`; `GPU`/`GPU Energy` are the *same*
-/// quantity (coarse mJ vs precise nJ) so exactly one is counted. `totalW` sums every
-/// `isTotalChannel`, GPU once — so it is honestly larger than CPU+GPU+NPU (it folds
-/// in DRAM/DCS/SoC). Assumes a normal interval; negative deltas are floored at 0 as
-/// defence (anomalies are caught upstream).
+/// quantity (coarse mJ vs precise nJ) so exactly one is counted. `totalW` is the
+/// "Combined Power" sum CPU+GPU+ANE — exactly what `powermetrics` headlines, so the
+/// card matches other tools and equals its own CPU·GPU·NPU sub-line. (DRAM/DCS/SoC
+/// fabric/PCIe are deliberately NOT folded in: those are real draw but no comparison
+/// app counts them, so including them made Wattly read high.) Assumes a normal
+/// interval; negative deltas are floored at 0 as defence (anomalies caught upstream).
 func powerSample(prev: [String: Double], curr: [String: Double], dt: Double) -> PowerSample {
     func deltaJ(_ name: String) -> Double { max(0, (curr[name] ?? 0) - (prev[name] ?? 0)) }
     func watts(_ j: Double) -> Double { dt > 0 ? j / dt : 0 }
@@ -85,12 +78,7 @@ func powerSample(prev: [String: Double], curr: [String: Double], dt: Double) -> 
         }
     }
     let gpuJ = gpuChannel.map(deltaJ) ?? 0
-
-    var totalJ = gpuJ                     // GPU counted exactly once
-    for name in curr.keys where isTotalChannel(name) {
-        if name == "GPU" || name == "GPU Energy" { continue }
-        totalJ += deltaJ(name)
-    }
+    let totalJ = cpuJ + gpuJ + npuJ      // Combined Power — CPU+GPU+ANE, GPU counted once
 
     return PowerSample(totalW: watts(totalJ), cpuW: watts(cpuJ), gpuW: watts(gpuJ), npuW: watts(npuJ))
 }

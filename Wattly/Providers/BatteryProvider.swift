@@ -66,7 +66,9 @@ actor BatteryProvider: MetricProvider {
         } else {
             return .pending
         }
-        let netW = netWatts(batteryMilliwatts: milliwatts)
+        // BatteryPower/InstantAmperage signs are unreliable here (observed flipping while
+        // discharging) — resolve direction from ExternalConnected, keep only the magnitude.
+        let netW = fallbackNetWatts(batteryMilliwatts: milliwatts, externalConnected: externalConnected)
         return .value(.battery(BatterySample(
             netW: netW, milliamps: abs(batteryMilliamps(batteryMilliwatts: milliwatts, volts: volts)),
             volts: volts, charging: isCharging(netW: netW), externalConnected: externalConnected)))

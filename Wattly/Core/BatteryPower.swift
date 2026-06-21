@@ -24,6 +24,18 @@ func netWatts(batteryMilliwatts mw: Int) -> Double {
     -Double(mw) / 1000.0
 }
 
+/// Net watts for the **AppleSmartBattery fallback only**, where the signed source is
+/// unreliable: `BatteryPower` was observed flipping sign while discharging (and
+/// `InstantAmperage` reads the wrong sign on AC). When on battery
+/// (`externalConnected == false`) charging is physically impossible, so we keep only the
+/// magnitude and force the discharge direction (`netW > 0`); on AC we trust the field's
+/// sign as a best effort. The SMC primary path is sign-reliable and does NOT use this —
+/// it calls `netWatts` directly.
+func fallbackNetWatts(batteryMilliwatts mw: Int, externalConnected: Bool) -> Double {
+    let net = netWatts(batteryMilliwatts: mw)
+    return externalConnected ? net : abs(net)
+}
+
 /// Charging iff net is meaningfully negative (> 0.2 W into the battery). The dead-zone
 /// keeps an idle/full battery on AC from flickering. Now lag-free because `netW` comes
 /// from the fast `BatteryPower` (the old `InstantAmperage`-derived sign lagged, issue 07).

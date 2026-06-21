@@ -9,6 +9,9 @@ struct PopoverContentView: View {
     @Environment(\.tokens) private var t
     @Environment(\.openSettings) private var openSettings
     @AppStorage(StorageKey.cardOrder) private var cardOrder = Defaults.cardOrder
+    /// Power-type cards (프로세서 전력 + 배터리): show the EMA-smoothed value/sparkline
+    /// (steady, tracks the real sustained draw) vs the raw 1-second reading. Default on.
+    @AppStorage(StorageKey.powerSmoothed) private var powerSmoothed = Defaults.powerSmoothed
 
     @State private var editMode = false
     // Persisted across popover opens (#12). @AppStorage can't hold a Set, so it's
@@ -91,8 +94,8 @@ struct PopoverContentView: View {
                     }
                     MetricCardView(
                         card: card,
-                        state: monitor.cardState(card),
-                        historyValues: monitor.history[card]?.values ?? [],
+                        state: smoothedState(for: card),
+                        historyValues: smoothedHistory(for: card),
                         isExpanded: expanded.contains(card),
                         onToggleExpand: (card == .cpu || card == .mem) ? { toggleExpand(card) } : nil
                     )
@@ -100,6 +103,24 @@ struct PopoverContentView: View {
             }
         }
         .padding(.vertical, 1)
+    }
+
+    /// Power and battery cards apply display smoothing (shared `powerSmoothed` toggle);
+    /// every other card passes its raw state/history straight through.
+    private func smoothedState(for card: CardKind) -> MetricState {
+        switch card {
+        case .power:   return monitor.powerCardState(smoothed: powerSmoothed)
+        case .battery: return monitor.batteryCardState(smoothed: powerSmoothed)
+        default:       return monitor.cardState(card)
+        }
+    }
+
+    private func smoothedHistory(for card: CardKind) -> [Double] {
+        switch card {
+        case .power:   return monitor.powerHistoryValues(smoothed: powerSmoothed)
+        case .battery: return monitor.batteryHistoryValues(smoothed: powerSmoothed)
+        default:       return monitor.history[card]?.values ?? []
+        }
     }
 
     // MARK: Visibility (prototype `card.visible`, line 638)

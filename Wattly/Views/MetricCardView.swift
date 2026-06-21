@@ -289,7 +289,7 @@ struct MetricCardView: View {
 
     private var label: String {
         switch card {
-        case .power: "SoC 전력"
+        case .power: "프로세서 전력"
         case .battery: "배터리"
         case .cpu: "CPU"
         case .mem: "메모리"
