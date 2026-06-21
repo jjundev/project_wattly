@@ -77,11 +77,13 @@ actor FakeProvider: MetricProvider {
         case .battery:
             let net = v("batteryW")
             let mag = abs(net)
+            let charging = net < -0.2
             return .battery(BatterySample(
                 netW: net,
                 milliamps: Int((mag / 12.0 * 1000).rounded()),
                 volts: 12.0,
-                charging: net < -0.2))
+                charging: charging,
+                externalConnected: charging))   // synthetic dev harness — AC iff charging
         case .cpu:
             let c = v("cpu")
             // Real M-series names (issue 04): drives the same prefix logic ("P"/"E")
@@ -146,12 +148,14 @@ actor FakeProvider: MetricProvider {
 }
 
 /// Builds the providers the app runs on: the real `CPUProvider` (issue 04),
-/// `MemoryProvider` (issue 05), and `PowerProvider` (issue 06) plus fakes for the
-/// not-yet-implemented metrics. The dev `-WattlyScenario` harness only shapes the
-/// fakes; the real providers ignore it (so `-WattlyScenario desktop` shows real RAM,
-/// not the fake 64 GB — §M21). The sole exception is `fail`, which keeps the fake
-/// power provider so the orange "channel unreadable" card stays demoable on a working
-/// Mac (issue 06 §R4) — the only fault-injection path with no real equivalent.
+/// `MemoryProvider` (issue 05), `PowerProvider` (issue 06), and `BatteryProvider`
+/// (issue 07) plus fakes for the not-yet-implemented metrics. The dev `-WattlyScenario`
+/// harness only shapes the fakes; the real providers ignore it (so `-WattlyScenario
+/// desktop` shows real RAM, not the fake 64 GB — §M21). Two fault/shape-injection paths
+/// keep their fake: `fail` keeps the fake power provider so the orange "channel
+/// unreadable" card stays demoable on a working Mac (issue 06 §R4), and `desktop` keeps
+/// the fake battery so the "no battery" hide stays demoable on a laptop (a real desktop
+/// hides it anyway via `BatteryProvider`'s `.notPresent`).
 enum FakeProviders {
     static func all(scenario: Scenario) -> [any MetricProvider] {
         ProviderKind.allCases.map { kind -> any MetricProvider in
@@ -159,6 +163,7 @@ enum FakeProviders {
             case .cpu:    return CPUProvider()
             case .memory: return MemoryProvider()
             case .power where scenario != .fail: return PowerProvider()
+            case .battery where scenario != .desktop: return BatteryProvider()
             default:      return FakeProvider(kind: kind, scenario: scenario)
             }
         }
