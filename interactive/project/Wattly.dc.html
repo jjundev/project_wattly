@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<style>
+  * { box-sizing: border-box; }
+  .wa-tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1, "cv01" 1; }
+  .wa-spark { width: 100%; height: 28px; display: block; overflow: visible; }
+</style>
+</helmet>
+
+<div style="min-width:100%;min-height:100vh;width:max-content;box-sizing:border-box;padding:48px;background:#e7e5df;font-family:'Pretendard JP Variable','Pretendard Variable',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Helvetica Neue',sans-serif;display:flex;flex-direction:column;gap:52px;color:#171719">
+
+  <!-- ===================== HEADER ===================== -->
+  <div style="display:flex;flex-direction:column;gap:14px;max-width:760px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:34px;height:34px;border-radius:9px;background:#171719;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(23,23,23,0.18)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+      </div>
+      <div style="font-weight:700;font-size:22px;letter-spacing:-0.02em">Wattly</div>
+      <div style="font-weight:600;font-size:12px;color:rgba(46,47,51,0.61);background:#fff;border:1px solid rgba(112,115,124,0.22);padding:4px 9px;border-radius:999px">macOS 메뉴바 시스템 모니터</div>
+    </div>
+    <div style="font-size:14px;line-height:1.6;color:rgba(46,47,51,0.7)">PRD 기반 예상 화면 — 메뉴바 라벨, 클릭 시 팝오버 패널(SoC 전력·배터리 방전·CPU·메모리 + 60초 추이), 설정 창. <span style="color:rgba(46,47,51,0.5)">상태 모델(콜드 스타트·데스크톱·부분 실패)과 라이트/다크, 레이아웃 변형을 함께 정리했습니다.</span></div>
+  </div>
+
+  <!-- ===================== ROW 1 — 메뉴바 라벨 ===================== -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div style="font-weight:700;font-size:15px;letter-spacing:-0.01em">메뉴바 라벨</div>
+      <div style="font-size:13px;color:rgba(46,47,51,0.55)">Agent 앱 · Dock 아이콘 없음. 아이콘 전용 또는 "CPU 42%" 텍스트 옵션(#8).</div>
+    </div>
+    <div style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap">
+
+      <!-- icon only · light -->
+      <div style="flex:none;display:flex;flex-direction:column;gap:10px">
+        <div style="font-weight:600;font-size:11px;color:rgba(46,47,51,0.5)">아이콘 전용 · 라이트</div>
+        <div style="width:320px;height:30px;border-radius:8px;background:rgba(255,255,255,0.7);backdrop-filter:blur(20px);border:1px solid rgba(112,115,124,0.14);box-shadow:0 1px 3px rgba(23,23,23,0.08);display:flex;align-items:center;justify-content:flex-end;gap:16px;padding:0 12px">
+          <span style="font-size:12px;color:rgba(46,47,51,0.55)">􀙋</span>
+          <span style="display:flex;align-items:center;justify-content:center;width:24px;height:22px;border-radius:5px;background:rgba(0,0,0,0.06)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#171719" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></span>
+          <span style="font-size:11px;color:rgba(46,47,51,0.5)">100%</span>
+          <span style="font-size:11px;color:rgba(46,47,51,0.5)">금 14:32</span>
+        </div>
+      </div>
+
+      <!-- text · light -->
+      <div style="flex:none;display:flex;flex-direction:column;gap:10px">
+        <div style="font-weight:600;font-size:11px;color:rgba(46,47,51,0.5)">텍스트 ON · 라이트</div>
+        <div style="width:320px;height:30px;border-radius:8px;background:rgba(255,255,255,0.7);backdrop-filter:blur(20px);border:1px solid rgba(112,115,124,0.14);box-shadow:0 1px 3px rgba(23,23,23,0.08);display:flex;align-items:center;justify-content:flex-end;gap:16px;padding:0 12px">
+          <span style="font-size:12px;color:rgba(46,47,51,0.55)">􀙋</span>
+          <span aria-label="CPU 42 퍼센트" style="display:flex;align-items:center;gap:5px;height:22px;padding:0 7px;border-radius:5px;background:rgba(0,0,0,0.06)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#171719" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span class="wa-tnum" style="font-size:11px;font-weight:600;color:#171719">CPU 42%</span></span>
+          <span style="font-size:11px;color:rgba(46,47,51,0.5)">금 14:32</span>
+        </div>
+      </div>
+
+      <!-- icon only · dark -->
+      <div style="flex:none;display:flex;flex-direction:column;gap:10px">
+        <div style="font-weight:600;font-size:11px;color:rgba(46,47,51,0.5)">아이콘 전용 · 다크</div>
+        <div style="width:320px;height:30px;border-radius:8px;background:rgba(40,40,42,0.82);backdrop-filter:blur(20px);border:1px solid rgba(174,176,182,0.18);box-shadow:0 1px 3px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:flex-end;gap:16px;padding:0 12px">
+          <span style="font-size:12px;color:rgba(247,247,248,0.6)">􀙋</span>
+          <span style="display:flex;align-items:center;justify-content:center;width:24px;height:22px;border-radius:5px;background:rgba(255,255,255,0.12)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f7f7f8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></span>
+          <span style="font-size:11px;color:rgba(247,247,248,0.55)">100%</span>
+          <span style="font-size:11px;color:rgba(247,247,248,0.55)">금 14:32</span>
+        </div>
+      </div>
+
+      <!-- text · dark -->
+      <div style="flex:none;display:flex;flex-direction:column;gap:10px">
+        <div style="font-weight:600;font-size:11px;color:rgba(46,47,51,0.5)">텍스트 ON · 다크</div>
+        <div style="width:320px;height:30px;border-radius:8px;background:rgba(40,40,42,0.82);backdrop-filter:blur(20px);border:1px solid rgba(174,176,182,0.18);box-shadow:0 1px 3px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:flex-end;gap:16px;padding:0 12px">
+          <span style="font-size:12px;color:rgba(247,247,248,0.6)">􀙋</span>
+          <span aria-label="CPU 42 퍼센트" style="display:flex;align-items:center;gap:5px;height:22px;padding:0 7px;border-radius:5px;background:rgba(255,255,255,0.16)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f7f7f8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span class="wa-tnum" style="font-size:11px;font-weight:600;color:#f7f7f8">CPU 42%</span></span>
+          <span style="font-size:11px;color:rgba(247,247,248,0.55)">금 14:32</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================== ROW 2 — 레이아웃 변형 ===================== -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div style="font-weight:700;font-size:15px;letter-spacing:-0.01em">팝오버 패널 — 레이아웃 변형</div>
+      <div style="font-size:13px;color:rgba(46,47,51,0.55)">정상 상태 · 노트북 · 라이트. 동일 데이터의 세 가지 구성을 비교.</div>
+    </div>
+    <div style="display:flex;gap:36px;align-items:flex-start">
+
+      <!-- ===== VARIATION A — 스택 행 ===== -->
+      <div style="flex:none;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-weight:700;font-size:13px">A · 스택 행</span><span style="font-size:11px;color:rgba(46,47,51,0.5)">밀도 높음, 네이티브</span></div>
+        <div style="width:340px;background:#fff;border:1px solid rgba(112,115,124,0.22);border-radius:16px;box-shadow:0px 4px 8px -2px rgba(23,23,23,0.10),0px 12px 24px 0px rgba(23,23,23,0.12);padding:14px;position:relative">
+          <div style="position:absolute;top:-7px;right:26px;width:13px;height:13px;background:#fff;border-left:1px solid rgba(112,115,124,0.22);border-top:1px solid rgba(112,115,124,0.22);transform:rotate(45deg)"></div>
+          <!-- header -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 4px 12px">
+            <div style="display:flex;align-items:center;gap:7px"><svg width="14" height="14" viewBox="0 0 24 24" fill="#171719"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span style="font-weight:700;font-size:13px;letter-spacing:-0.01em">Wattly</span><span style="width:6px;height:6px;border-radius:50%;background:#00bf40;margin-left:1px"></span></div>
+            <div style="display:flex;align-items:center;gap:2px">
+              <span style="display:flex;width:24px;height:24px;align-items:center;justify-content:center;border-radius:6px;color:rgba(46,47,51,0.5)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
+            </div>
+          </div>
+          <!-- SoC power -->
+          <div style="padding:11px 12px;border-radius:12px;background:rgba(112,115,124,0.06);display:flex;flex-direction:column;gap:8px;margin-bottom:8px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(46,47,51,0.6)">SoC 전력 · IOReport</span><span style="display:flex;align-items:baseline;gap:3px"><span class="wa-tnum" style="font-weight:700;font-size:19px;letter-spacing:-0.01em">8.4</span><span style="font-weight:600;font-size:12px;color:rgba(46,47,51,0.55)">W</span></span></div>
+            <svg class="wa-spark" viewBox="0 0 120 30" preserveAspectRatio="none"><polygon points="0,30 0,19 8,11 16,22 24,8 32,16 40,10 48,21 56,12 64,17 72,7 80,20 88,13 96,21 104,10 112,16 120,13 120,30" fill="rgba(0,102,255,0.08)"></polygon><polyline points="0,19 8,11 16,22 24,8 32,16 40,10 48,21 56,12 64,17 72,7 80,20 88,13 96,21 104,10 112,16 120,13" fill="none" stroke="#0066ff" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+            <div class="wa-tnum" style="display:flex;gap:10px;font-size:11px;color:rgba(46,47,51,0.55)"><span><b style="color:rgba(46,47,51,0.8);font-weight:600">CPU</b> 3.1</span><span style="color:rgba(46,47,51,0.28)">·</span><span><b style="color:rgba(46,47,51,0.8);font-weight:600">GPU</b> 2.0</span><span style="color:rgba(46,47,51,0.28)">·</span><span><b style="color:rgba(46,47,51,0.8);font-weight:600">ANE</b> 0.2</span></div>
+          </div>
+          <!-- battery -->
+          <div style="padding:11px 12px;border-radius:12px;background:rgba(112,115,124,0.06);display:flex;flex-direction:column;gap:8px;margin-bottom:8px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(46,47,51,0.6)">배터리 방전 · 전체 시스템</span><span style="display:flex;align-items:baseline;gap:3px"><span class="wa-tnum" style="font-weight:700;font-size:19px;letter-spacing:-0.01em">11.3</span><span style="font-weight:600;font-size:12px;color:rgba(46,47,51,0.55)">W</span></span></div>
+            <svg class="wa-spark" viewBox="0 0 120 30" preserveAspectRatio="none"><polyline points="0,16 10,18 20,15 30,17 40,14 50,16 60,13 70,15 80,14 90,16 100,13 110,15 120,14" fill="none" stroke="rgba(46,47,51,0.5)" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+            <div class="wa-tnum" style="display:flex;gap:10px;font-size:11px;color:rgba(46,47,51,0.55)"><span>−938 mA</span><span style="color:rgba(46,47,51,0.28)">·</span><span>12.03 V</span><span style="color:rgba(46,47,51,0.28)">·</span><span style="color:#00bf40;font-weight:600">방전 중</span></div>
+          </div>
+          <!-- cpu -->
+          <div style="padding:11px 12px;border-radius:12px;background:rgba(112,115,124,0.06);display:flex;flex-direction:column;gap:8px;margin-bottom:8px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(46,47,51,0.6)">CPU</span><span style="display:flex;align-items:baseline;gap:3px"><span class="wa-tnum" style="font-weight:700;font-size:19px;letter-spacing:-0.01em">42</span><span style="font-weight:600;font-size:12px;color:rgba(46,47,51,0.55)">%</span></span></div>
+            <svg class="wa-spark" viewBox="0 0 120 30" preserveAspectRatio="none"><polygon points="0,30 0,21 9,19 18,23 27,12 36,17 45,9 54,15 63,11 72,19 81,8 90,16 99,10 108,14 117,12 120,13 120,30" fill="rgba(112,115,124,0.10)"></polygon><polyline points="0,21 9,19 18,23 27,12 36,17 45,9 54,15 63,11 72,19 81,8 90,16 99,10 108,14 117,12 120,13" fill="none" stroke="rgba(46,47,51,0.6)" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+            <div class="wa-tnum" style="display:flex;gap:10px;font-size:11px;color:rgba(46,47,51,0.55)"><span><b style="color:rgba(46,47,51,0.8);font-weight:600">S</b> 58%</span><span style="color:rgba(46,47,51,0.28)">·</span><span><b style="color:rgba(46,47,51,0.8);font-weight:600">E</b> 21%</span><span style="color:rgba(46,47,51,0.28)">·</span><span style="color:rgba(46,47,51,0.4)">10코어</span></div>
+          </div>
+          <!-- memory -->
+          <div style="padding:11px 12px;border-radius:12px;background:rgba(112,115,124,0.06);display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(46,47,51,0.6)">메모리</span><span style="display:flex;align-items:baseline;gap:3px"><span class="wa-tnum" style="font-weight:700;font-size:19px;letter-spacing:-0.01em">9.2</span><span style="font-weight:600;font-size:12px;color:rgba(46,47,51,0.55)">/ 16 GB</span></span></div>
+            <svg class="wa-spark" viewBox="0 0 120 30" preserveAspectRatio="none"><polygon points="0,30 0,23 12,22 24,21 36,21 48,20 60,19 72,19 84,18 96,18 108,17 120,17 120,30" fill="rgba(112,115,124,0.10)"></polygon><polyline points="0,23 12,22 24,21 36,21 48,20 60,19 72,19 84,18 96,18 108,17 120,17" fill="none" stroke="rgba(46,47,51,0.6)" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+            <div class="wa-tnum" style="display:flex;gap:10px;font-size:11px;color:rgba(46,47,51,0.55)"><span>와이어드 2.4 GB</span><span style="color:rgba(46,47,51,0.28)">·</span><span>압축 1.1 GB</span><span style="color:rgba(46,47,51,0.28)">·</span><span style="color:#00bf40;font-weight:600">압력 정상</span></div>
+          </div>
+          <!-- 온도 섹션 -->
+          <div style="display:flex;align-items:center;gap:8px;padding:14px 4px 8px"><span style="font-weight:700;font-size:11px;color:rgba(46,47,51,0.45);letter-spacing:0.02em">온도</span><span style="flex:1;height:1px;background:rgba(112,115,124,0.14)"></span></div>
+          <!-- CPU temp -->
+          <div style="padding:11px 12px;border-radius:12px;background:rgba(112,115,124,0.06);display:flex;flex-direction:column;gap:8px;margin-bottom:8px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(46,47,51,0.6)">CPU 최고 온도</span><span style="display:flex;align-items:baseline;gap:3px"><span class="wa-tnum" style="font-weight:700;font-size:19px;letter-spacing:-0.01em">54.3</span><span style="font-weight:600;font-size:12px;color:rgba(46,47,51,0.55)">°C</span></span></div>
+            <svg class="wa-spark" viewBox="0 0 120 30" preserveAspectRatio="none"><polygon points="0,30 0,20 12,19 24,21 36,17 48,18 60,15 72,16 84,13 96,14 108,12 120,13 120,30" fill="rgba(112,115,124,0.10)"></polygon><polyline points="0,20 12,19 24,21 36,17 48,18 60,15 72,16 84,13 96,14 108,12 120,13" fill="none" stroke="rgba(46,47,51,0.6)" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+          </div>
+          <!-- GPU temp -->
+          <div style="padding:11px 12px;border-radius:12px;background:rgba(112,115,124,0.06);display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(46,47,51,0.6)">GPU 최고 온도</span><span style="display:flex;align-items:baseline;gap:3px"><span class="wa-tnum" style="font-weight:700;font-size:19px;letter-spacing:-0.01em">48.1</span><span style="font-weight:600;font-size:12px;color:rgba(46,47,51,0.55)">°C</span></span></div>
+            <svg class="wa-spark" viewBox="0 0 120 30" preserveAspectRatio="none"><polygon points="0,30 0,22 12,21 24,22 36,20 48,21 60,19 72,20 84,18 96,19 108,18 120,17 120,30" fill="rgba(112,115,124,0.10)"></polygon><polyline points="0,22 12,21 24,22 36,20 48,21 60,19 72,20 84,18 96,19 108,18 120,17" fill="none" stroke="rgba(46,47,51,0.6)" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== VARIATION B — 카드 그리드 ===== -->
+      <div style="flex:none;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-weight:700;font-size:13px">B · 카드 그리드</span><span style="font-size:11px;color:rgba(46,47,51,0.5)">한눈에 스캔</span></div>
+        <div style="width:340px;background:#fff;border:1px solid rgba(112,115,124,0.22);border-radius:16px;box-shadow:0px 4px 8px -2px rgba(23,23,23,0.10),0px 12px 24px 0px rgba(23,23,23,0.12);padding:14px;position:relative">
+          <div style="position:absolute;top:-7px;right:26px;width:13px;height:13px;background:#fff;border-left:1px solid rgba(112,115,124,0.22);border-top:1px solid rgba(112,115,124,0.22);transform:rotate(45deg)"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 4px 12px">
+            <div style="display:flex;align-items:center;gap:7px"><svg width="14" height="14" viewBox="0 0 24 24" fill="#171719"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span style="font-weight:700;font-size:13px;letter-spacing:-0.01em">Wattly</span><span style="width:6px;height:6px;border-radius:50%;background:#00bf40"></span></div>
+            <span style="display:flex;width:24px;height:24px;align-items:center;justify-content:center;color:rgba(46,47,51,0.5)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <!-- power card -->
+            <div style="padding:12px;border-radius:12px;border:1px solid rgba(112,115,124,0.16);display:flex;flex-direction:column;gap:6px">
+              <span style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.55)">SoC 전력</span>
+              <span style="display:flex;align-items:baseline;gap:2px"><span class="wa-tnum" style="font-weight:700;font-size:24px;letter-spacing:-0.02em;color:#0066ff">8.4</span><span style="font-weight:600;font-size:12px;color:rgba(46,47,51,0.5)">W</span></span>
+              <svg class="wa-spark" viewBox="0 0 120 30" preserveAspectRatio="none" style="height:24px"><polyline points="0,19 8,11 16,22 24,8 32,16 40,10 48,21 56,12 64,17 72,7 80,20 88,13 96,21 104,10 112,16 120,13" fill="none" stroke="#0066ff" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+            </div>
+            <!-- battery card -->
+            <div style="padding:12px;border-radius:12px;border:1px solid rgba(112,115,124,0.16);display:flex;flex-direction:column;gap:6px">
+              <span style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.55)">배터리 방전</span>
+              <span style="display:flex;align-items:baseline;gap:2px"><span class="wa-tnum" style="font-weight:700;font-size:24px;letter-spacing:-0.02em">11.3</span><span style="font-weight:600;font-size:12px;color:rgba(46,47,51,0.5)">W</span></span>
+              <svg class="wa-spark" viewBox="0 0 120 30" preserveAspectRatio="none" style="height:24px"><polyline points="0,16 10,18 20,15 30,17 40,14 50,16 60,13 70,15 80,14 90,16 100,13 110,15 120,14" fill="none" stroke="rgba(46,47,51,0.5)" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+            </div>
+            <!-- cpu card -->
+            <div style="padding:12px;border-radius:12px;border:1px solid rgba(112,115,124,0.16);display:flex;flex-direction:column;gap:6px">
+              <span style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.55)">CPU · S58 E21</span>
+              <span style="display:flex;align-items:baseline;gap:2px"><span class="wa-tnum" style="font-weight:700;font-size:24px;letter-spacing:-0.02em">42</span><span style="font-weight:600;font-size:12px;color:rgba(46,47,51,0.5)">%</span></span>
+              <svg class="wa-spark" viewBox="0 0 120 30" preserveAspectRatio="none" style="height:24px"><polyline points="0,21 9,19 18,23 27,12 36,17 45,9 54,15 63,11 72,19 81,8 90,16 99,10 108,14 117,12 120,13" fill="none" stroke="rgba(46,47,51,0.6)" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+            </div>
+            <!-- mem card -->
+            <div style="padding:12px;border-radius:12px;border:1px solid rgba(112,115,124,0.16);display:flex;flex-direction:column;gap:6px">
+              <span style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.55)">메모리 · 57%</span>
+              <span style="display:flex;align-items:baseline;gap:2px"><span class="wa-tnum" style="font-weight:700;font-size:24px;letter-spacing:-0.02em">9.2</span><span style="font-weight:600;font-size:12px;color:rgba(46,47,51,0.5)">GB</span></span>
+              <svg class="wa-spark" viewBox="0 0 120 30" preserveAspectRatio="none" style="height:24px"><polyline points="0,23 12,22 24,21 36,21 48,20 60,19 72,19 84,18 96,18 108,17 120,17" fill="none" stroke="rgba(46,47,51,0.6)" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+            </div>
+            <!-- cpu temp card -->
+            <div style="padding:12px;border-radius:12px;border:1px solid rgba(112,115,124,0.16);display:flex;flex-direction:column;gap:6px">
+              <span style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.55)">CPU 온도 · 최고</span>
+              <span style="display:flex;align-items:baseline;gap:2px"><span class="wa-tnum" style="font-weight:700;font-size:24px;letter-spacing:-0.02em">54.3</span><span style="font-weight:600;font-size:12px;color:rgba(46,47,51,0.5)">°C</span></span>
+              <svg class="wa-spark" viewBox="0 0 120 30" preserveAspectRatio="none" style="height:24px"><polyline points="0,20 12,19 24,21 36,17 48,18 60,15 72,16 84,13 96,14 108,12 120,13" fill="none" stroke="rgba(46,47,51,0.6)" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+            </div>
+            <!-- gpu temp card -->
+            <div style="padding:12px;border-radius:12px;border:1px solid rgba(112,115,124,0.16);display:flex;flex-direction:column;gap:6px">
+              <span style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.55)">GPU 온도 · 최고</span>
+              <span style="display:flex;align-items:baseline;gap:2px"><span class="wa-tnum" style="font-weight:700;font-size:24px;letter-spacing:-0.02em">48.1</span><span style="font-weight:600;font-size:12px;color:rgba(46,47,51,0.5)">°C</span></span>
+              <svg class="wa-spark" viewBox="0 0 120 30" preserveAspectRatio="none" style="height:24px"><polyline points="0,22 12,21 24,22 36,20 48,21 60,19 72,20 84,18 96,19 108,18 120,17" fill="none" stroke="rgba(46,47,51,0.6)" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== VARIATION C — 히어로 + 리스트 ===== -->
+      <div style="flex:none;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-weight:700;font-size:13px">C · 히어로 + 리스트</span><span style="font-size:11px;color:rgba(46,47,51,0.5)">전력 강조</span></div>
+        <div style="width:340px;background:#fff;border:1px solid rgba(112,115,124,0.22);border-radius:16px;box-shadow:0px 4px 8px -2px rgba(23,23,23,0.10),0px 12px 24px 0px rgba(23,23,23,0.12);padding:14px;position:relative">
+          <div style="position:absolute;top:-7px;right:26px;width:13px;height:13px;background:#fff;border-left:1px solid rgba(112,115,124,0.22);border-top:1px solid rgba(112,115,124,0.22);transform:rotate(45deg)"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 4px 12px">
+            <div style="display:flex;align-items:center;gap:7px"><svg width="14" height="14" viewBox="0 0 24 24" fill="#171719"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span style="font-weight:700;font-size:13px;letter-spacing:-0.01em">Wattly</span><span style="width:6px;height:6px;border-radius:50%;background:#00bf40"></span></div>
+            <span style="display:flex;width:24px;height:24px;align-items:center;justify-content:center;color:rgba(46,47,51,0.5)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
+          </div>
+          <!-- hero -->
+          <div style="padding:16px;border-radius:14px;background:#171719;display:flex;flex-direction:column;gap:10px;margin-bottom:8px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(247,247,248,0.6)">SoC 전력 · IOReport</span><span style="font-weight:600;font-size:11px;color:rgba(247,247,248,0.45)">실시간</span></div>
+            <div style="display:flex;align-items:baseline;gap:4px"><span class="wa-tnum" style="font-weight:700;font-size:40px;line-height:0.95;letter-spacing:-0.03em;color:#fff">8.4</span><span style="font-weight:600;font-size:16px;color:rgba(247,247,248,0.6)">W</span></div>
+            <svg class="wa-spark" viewBox="0 0 120 30" preserveAspectRatio="none" style="height:34px"><polygon points="0,30 0,19 8,11 16,22 24,8 32,16 40,10 48,21 56,12 64,17 72,7 80,20 88,13 96,21 104,10 112,16 120,13 120,30" fill="rgba(51,133,255,0.18)"></polygon><polyline points="0,19 8,11 16,22 24,8 32,16 40,10 48,21 56,12 64,17 72,7 80,20 88,13 96,21 104,10 112,16 120,13" fill="none" stroke="#3385ff" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+            <div class="wa-tnum" style="display:flex;gap:10px;font-size:11px;color:rgba(247,247,248,0.55)"><span>CPU 3.1</span><span style="color:rgba(247,247,248,0.3)">·</span><span>GPU 2.0</span><span style="color:rgba(247,247,248,0.3)">·</span><span>ANE 0.2 W</span></div>
+          </div>
+          <!-- list -->
+          <div style="display:flex;flex-direction:column">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 6px;border-bottom:1px solid rgba(112,115,124,0.12)"><span style="font-weight:600;font-size:13px;color:rgba(46,47,51,0.85)">배터리 방전</span><span class="wa-tnum" style="font-weight:600;font-size:14px">11.3 W</span></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 6px;border-bottom:1px solid rgba(112,115,124,0.12)"><span style="font-weight:600;font-size:13px;color:rgba(46,47,51,0.85)">CPU <span style="color:rgba(46,47,51,0.45);font-weight:500">S58 · E21</span></span><span class="wa-tnum" style="font-weight:600;font-size:14px">42%</span></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 6px;border-bottom:1px solid rgba(112,115,124,0.12)"><span style="font-weight:600;font-size:13px;color:rgba(46,47,51,0.85)">메모리 <span style="color:rgba(46,47,51,0.45);font-weight:500">압력 정상</span></span><span class="wa-tnum" style="font-weight:600;font-size:14px">9.2 / 16 GB</span></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 6px;border-bottom:1px solid rgba(112,115,124,0.12)"><span style="font-weight:600;font-size:13px;color:rgba(46,47,51,0.85)">CPU 최고 온도</span><span class="wa-tnum" style="font-weight:600;font-size:14px">54.3 °C</span></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 6px"><span style="font-weight:600;font-size:13px;color:rgba(46,47,51,0.85)">GPU 최고 온도</span><span class="wa-tnum" style="font-weight:600;font-size:14px">48.1 °C</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================== ROW 3 — 상태 갤러리 ===================== -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div style="font-weight:700;font-size:15px;letter-spacing:-0.01em">상태 갤러리 <span style="font-weight:500;font-size:13px;color:rgba(46,47,51,0.5)">— 변형 A 기준</span></div>
+      <div style="font-size:13px;color:rgba(46,47,51,0.55)">MetricState: loading · value · unavailable(reason). 한 지표 실패가 나머지를 막지 않음.</div>
+    </div>
+    <div style="display:flex;gap:36px;align-items:flex-start">
+
+      <!-- COLD START -->
+      <div style="flex:none;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-weight:700;font-size:13px">콜드 스타트</span><span style="font-size:11px;color:rgba(46,47,51,0.5)">첫 샘플 전</span></div>
+        <div style="width:340px;background:#fff;border:1px solid rgba(112,115,124,0.22);border-radius:16px;box-shadow:0px 4px 8px -2px rgba(23,23,23,0.10),0px 12px 24px 0px rgba(23,23,23,0.12);padding:14px;position:relative">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 4px 12px">
+            <div style="display:flex;align-items:center;gap:7px"><svg width="14" height="14" viewBox="0 0 24 24" fill="#171719"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span style="font-weight:700;font-size:13px;letter-spacing:-0.01em">Wattly</span><span style="width:6px;height:6px;border-radius:50%;background:#ff9200"></span></div>
+            <span style="font-weight:600;font-size:11px;color:rgba(46,47,51,0.45)">측정 시작 중…</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="padding:11px 12px;border-radius:12px;background:rgba(112,115,124,0.06);display:flex;align-items:center;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(46,47,51,0.6)">SoC 전력</span><span class="wa-tnum" style="font-weight:700;font-size:19px;color:rgba(46,47,51,0.28)">—</span></div>
+            <div style="padding:11px 12px;border-radius:12px;background:rgba(112,115,124,0.06);display:flex;align-items:center;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(46,47,51,0.6)">배터리 방전</span><span class="wa-tnum" style="font-weight:700;font-size:19px;color:rgba(46,47,51,0.28)">—</span></div>
+            <div style="padding:11px 12px;border-radius:12px;background:rgba(112,115,124,0.06);display:flex;align-items:center;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(46,47,51,0.6)">CPU</span><span class="wa-tnum" style="font-weight:700;font-size:19px;color:rgba(46,47,51,0.28)">—</span></div>
+            <div style="padding:11px 12px;border-radius:12px;background:rgba(112,115,124,0.06);display:flex;align-items:center;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(46,47,51,0.6)">메모리</span><span class="wa-tnum" style="font-weight:700;font-size:19px;color:rgba(46,47,51,0.28)">—</span></div>
+          </div>
+          <div style="padding:10px 6px 2px;font-size:11px;color:rgba(46,47,51,0.45);text-align:center">첫 샘플이 도착하면 값이 채워집니다</div>
+        </div>
+      </div>
+
+      <!-- DESKTOP -->
+      <div style="flex:none;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-weight:700;font-size:13px">데스크톱 Mac</span><span style="font-size:11px;color:rgba(46,47,51,0.5)">배터리 없음</span></div>
+        <div style="width:340px;background:#fff;border:1px solid rgba(112,115,124,0.22);border-radius:16px;box-shadow:0px 4px 8px -2px rgba(23,23,23,0.10),0px 12px 24px 0px rgba(23,23,23,0.12);padding:14px;position:relative">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 4px 12px">
+            <div style="display:flex;align-items:center;gap:7px"><svg width="14" height="14" viewBox="0 0 24 24" fill="#171719"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span style="font-weight:700;font-size:13px;letter-spacing:-0.01em">Wattly</span><span style="width:6px;height:6px;border-radius:50%;background:#00bf40"></span></div>
+            <span style="font-weight:600;font-size:11px;color:rgba(46,47,51,0.45)">Mac Studio</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="padding:11px 12px;border-radius:12px;background:rgba(112,115,124,0.06);display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(46,47,51,0.6)">SoC 전력 · IOReport</span><span style="display:flex;align-items:baseline;gap:3px"><span class="wa-tnum" style="font-weight:700;font-size:19px;letter-spacing:-0.01em;color:#0066ff">14.7</span><span style="font-weight:600;font-size:12px;color:rgba(46,47,51,0.55)">W</span></span></div>
+              <svg class="wa-spark" viewBox="0 0 120 30" preserveAspectRatio="none"><polygon points="0,30 0,16 8,9 16,20 24,6 32,14 40,8 48,19 56,10 64,15 72,5 80,18 88,11 96,19 104,8 112,14 120,11 120,30" fill="rgba(0,102,255,0.08)"></polygon><polyline points="0,16 8,9 16,20 24,6 32,14 40,8 48,19 56,10 64,15 72,5 80,18 88,11 96,19 104,8 112,14 120,11" fill="none" stroke="#0066ff" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+              <div class="wa-tnum" style="display:flex;gap:10px;font-size:11px;color:rgba(46,47,51,0.55)"><span><b style="color:rgba(46,47,51,0.8);font-weight:600">CPU</b> 6.2</span><span style="color:rgba(46,47,51,0.28)">·</span><span><b style="color:rgba(46,47,51,0.8);font-weight:600">GPU</b> 7.8</span><span style="color:rgba(46,47,51,0.28)">·</span><span><b style="color:rgba(46,47,51,0.8);font-weight:600">ANE</b> 0.4</span></div>
+            </div>
+            <!-- battery unavailable -->
+            <div style="padding:11px 12px;border-radius:12px;background:rgba(112,115,124,0.04);border:1px dashed rgba(112,115,124,0.28);display:flex;align-items:center;gap:9px">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(46,47,51,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"></line></svg>
+              <div style="display:flex;flex-direction:column;gap:1px"><span style="font-weight:600;font-size:11.5px;color:rgba(46,47,51,0.6)">배터리 방전</span><span style="font-size:11px;color:rgba(46,47,51,0.45)">배터리 없음 — 데스크톱 Mac</span></div>
+            </div>
+            <div style="padding:11px 12px;border-radius:12px;background:rgba(112,115,124,0.06);display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(46,47,51,0.6)">CPU</span><span style="display:flex;align-items:baseline;gap:3px"><span class="wa-tnum" style="font-weight:700;font-size:19px;letter-spacing:-0.01em">28</span><span style="font-weight:600;font-size:12px;color:rgba(46,47,51,0.55)">%</span></span></div>
+              <svg class="wa-spark" viewBox="0 0 120 30" preserveAspectRatio="none"><polyline points="0,22 12,20 24,23 36,18 48,21 60,17 72,20 84,19 96,21 108,18 120,20" fill="none" stroke="rgba(46,47,51,0.6)" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+            </div>
+            <div style="padding:11px 12px;border-radius:12px;background:rgba(112,115,124,0.06);display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(46,47,51,0.6)">메모리</span><span style="display:flex;align-items:baseline;gap:3px"><span class="wa-tnum" style="font-weight:700;font-size:19px;letter-spacing:-0.01em">22.4</span><span style="font-weight:600;font-size:12px;color:rgba(46,47,51,0.55)">/ 64 GB</span></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- UNAVAILABLE -->
+      <div style="flex:none;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-weight:700;font-size:13px">부분 실패</span><span style="font-size:11px;color:rgba(46,47,51,0.5)">IOReport unavailable</span></div>
+        <div style="width:340px;background:#fff;border:1px solid rgba(112,115,124,0.22);border-radius:16px;box-shadow:0px 4px 8px -2px rgba(23,23,23,0.10),0px 12px 24px 0px rgba(23,23,23,0.12);padding:14px;position:relative">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 4px 12px">
+            <div style="display:flex;align-items:center;gap:7px"><svg width="14" height="14" viewBox="0 0 24 24" fill="#171719"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span style="font-weight:700;font-size:13px;letter-spacing:-0.01em">Wattly</span><span style="width:6px;height:6px;border-radius:50%;background:#ff9200"></span></div>
+            <span style="font-weight:600;font-size:11px;color:rgba(46,47,51,0.45)">일부 지표 제한</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <!-- power unavailable with reason -->
+            <div style="padding:11px 12px;border-radius:12px;background:rgba(255,146,0,0.07);border:1px solid rgba(255,146,0,0.22);display:flex;align-items:flex-start;gap:9px">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#d47800" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-top:1px;flex:none"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600;font-size:11.5px;color:rgba(46,47,51,0.7)">SoC 전력 · IOReport</span><span style="font-size:11px;line-height:1.4;color:rgba(46,47,51,0.55)">Energy Model 그룹을 읽을 수 없음. 이 macOS 버전에서 채널이 변경됐을 수 있습니다.</span></div>
+            </div>
+            <!-- others still work -->
+            <div style="padding:11px 12px;border-radius:12px;background:rgba(112,115,124,0.06);display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(46,47,51,0.6)">배터리 방전 · 전체 시스템</span><span style="display:flex;align-items:baseline;gap:3px"><span class="wa-tnum" style="font-weight:700;font-size:19px;letter-spacing:-0.01em">14.1</span><span style="font-weight:600;font-size:12px;color:rgba(46,47,51,0.55)">W</span></span></div>
+              <svg class="wa-spark" viewBox="0 0 120 30" preserveAspectRatio="none"><polyline points="0,14 10,16 20,13 30,15 40,12 50,14 60,11 70,13 80,12 90,14 100,11 110,13 120,12" fill="none" stroke="rgba(46,47,51,0.5)" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+              <div class="wa-tnum" style="display:flex;gap:10px;font-size:11px;color:rgba(46,47,51,0.55)"><span>−1175 mA</span><span style="color:rgba(46,47,51,0.28)">·</span><span>11.99 V</span></div>
+            </div>
+            <div style="padding:11px 12px;border-radius:12px;background:rgba(112,115,124,0.06);display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(46,47,51,0.6)">CPU</span><span class="wa-tnum" style="font-weight:700;font-size:19px">63%</span></div>
+            <div style="padding:11px 12px;border-radius:12px;background:rgba(112,115,124,0.06);display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(46,47,51,0.6)">메모리</span><span class="wa-tnum" style="font-weight:700;font-size:19px">9.2 <span style="font-size:12px;font-weight:600;color:rgba(46,47,51,0.5)">/ 16 GB</span></span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================== ROW 4 — 다크 + CPU 펼침 ===================== -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div style="font-weight:700;font-size:15px;letter-spacing:-0.01em">다크 테마 · CPU 펼침 · 온도 상태</div>
+      <div style="font-size:13px;color:rgba(46,47,51,0.55)">팝오버는 보통 다크/반투명. CPU 행을 펼치면 10코어(4 Super + 6 Efficiency) 개별 사용률. 온도(#13)는 칩별 검증 프로파일 기반으로 부분 실패를 격리.</div>
+    </div>
+    <div style="display:flex;gap:36px;align-items:flex-start">
+
+      <!-- DARK NORMAL (A) -->
+      <div style="flex:none;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-weight:700;font-size:13px">변형 A · 다크</span><span style="font-size:11px;color:rgba(46,47,51,0.5)">정상 · 노트북</span></div>
+        <div style="width:380px;padding:24px;border-radius:18px;background:#0e0e10;display:flex;justify-content:center">
+        <div style="width:340px;background:#212225;border:1px solid rgba(174,176,182,0.18);border-radius:16px;box-shadow:0px 12px 24px 0px rgba(0,0,0,0.55);padding:14px;position:relative">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 4px 12px">
+            <div style="display:flex;align-items:center;gap:7px"><svg width="14" height="14" viewBox="0 0 24 24" fill="#f7f7f8"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span style="font-weight:700;font-size:13px;letter-spacing:-0.01em;color:#f7f7f8">Wattly</span><span style="width:6px;height:6px;border-radius:50%;background:#1ed45a"></span></div>
+            <span style="display:flex;width:24px;height:24px;align-items:center;justify-content:center;color:rgba(247,247,248,0.5)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="padding:11px 12px;border-radius:12px;background:rgba(174,176,182,0.10);display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(247,247,248,0.6)">SoC 전력 · IOReport</span><span style="display:flex;align-items:baseline;gap:3px"><span class="wa-tnum" style="font-weight:700;font-size:19px;letter-spacing:-0.01em;color:#f7f7f8">8.4</span><span style="font-weight:600;font-size:12px;color:rgba(247,247,248,0.55)">W</span></span></div>
+              <svg class="wa-spark" viewBox="0 0 120 30" preserveAspectRatio="none"><polygon points="0,30 0,19 8,11 16,22 24,8 32,16 40,10 48,21 56,12 64,17 72,7 80,20 88,13 96,21 104,10 112,16 120,13 120,30" fill="rgba(51,133,255,0.16)"></polygon><polyline points="0,19 8,11 16,22 24,8 32,16 40,10 48,21 56,12 64,17 72,7 80,20 88,13 96,21 104,10 112,16 120,13" fill="none" stroke="#3385ff" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+              <div class="wa-tnum" style="display:flex;gap:10px;font-size:11px;color:rgba(247,247,248,0.55)"><span><b style="color:rgba(247,247,248,0.85);font-weight:600">CPU</b> 3.1</span><span style="color:rgba(247,247,248,0.3)">·</span><span><b style="color:rgba(247,247,248,0.85);font-weight:600">GPU</b> 2.0</span><span style="color:rgba(247,247,248,0.3)">·</span><span><b style="color:rgba(247,247,248,0.85);font-weight:600">ANE</b> 0.2</span></div>
+            </div>
+            <div style="padding:11px 12px;border-radius:12px;background:rgba(174,176,182,0.10);display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(247,247,248,0.6)">배터리 방전</span><span class="wa-tnum" style="font-weight:700;font-size:19px;color:#f7f7f8">11.3 <span style="font-size:12px;font-weight:600;color:rgba(247,247,248,0.5)">W</span></span></div>
+            <div style="padding:11px 12px;border-radius:12px;background:rgba(174,176,182,0.10);display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(247,247,248,0.6)">CPU <span style="color:rgba(247,247,248,0.4);font-weight:500">S58 · E21</span></span><span class="wa-tnum" style="font-weight:700;font-size:19px;color:#f7f7f8">42 <span style="font-size:12px;font-weight:600;color:rgba(247,247,248,0.5)">%</span></span></div>
+            <div style="padding:11px 12px;border-radius:12px;background:rgba(174,176,182,0.10);display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(247,247,248,0.6)">메모리</span><span class="wa-tnum" style="font-weight:700;font-size:19px;color:#f7f7f8">9.2 <span style="font-size:12px;font-weight:600;color:rgba(247,247,248,0.5)">/ 16 GB</span></span></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 4px 0"><span style="font-weight:700;font-size:11px;color:rgba(247,247,248,0.4);letter-spacing:0.02em">온도</span><span style="flex:1;height:1px;background:rgba(174,176,182,0.16)"></span></div>
+            <div style="padding:11px 12px;border-radius:12px;background:rgba(174,176,182,0.10);display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(247,247,248,0.6)">CPU 최고 온도</span><span class="wa-tnum" style="font-weight:700;font-size:19px;color:#f7f7f8">54.3 <span style="font-size:12px;font-weight:600;color:rgba(247,247,248,0.5)">°C</span></span></div>
+            <div style="padding:11px 12px;border-radius:12px;background:rgba(174,176,182,0.10);display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(247,247,248,0.6)">GPU 최고 온도</span><span class="wa-tnum" style="font-weight:700;font-size:19px;color:#f7f7f8">48.1 <span style="font-size:12px;font-weight:600;color:rgba(247,247,248,0.5)">°C</span></span></div>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <!-- CPU EXPANDED -->
+      <div style="flex:none;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-weight:700;font-size:13px">CPU 코어별 펼침</span><span style="font-size:11px;color:rgba(46,47,51,0.5)">10코어 · 4 Super + 6 Efficiency</span></div>
+        <div style="width:340px;background:#fff;border:1px solid rgba(112,115,124,0.22);border-radius:16px;box-shadow:0px 4px 8px -2px rgba(23,23,23,0.10),0px 12px 24px 0px rgba(23,23,23,0.12);padding:14px;position:relative">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 4px 12px">
+            <div style="display:flex;align-items:center;gap:7px"><svg width="14" height="14" viewBox="0 0 24 24" fill="#171719"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span style="font-weight:700;font-size:13px;letter-spacing:-0.01em">Wattly</span></div>
+            <span style="display:flex;align-items:center;gap:5px;font-weight:600;font-size:11px;color:rgba(46,47,51,0.5)">접기<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg></span>
+          </div>
+          <!-- summary header -->
+          <div style="padding:12px;border-radius:12px;background:rgba(112,115,124,0.06);display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px">
+            <span style="font-weight:600;font-size:12px;color:rgba(46,47,51,0.7)">CPU 전체</span>
+            <span style="display:flex;align-items:baseline;gap:3px"><span class="wa-tnum" style="font-weight:700;font-size:22px;letter-spacing:-0.02em">42</span><span style="font-weight:600;font-size:12px;color:rgba(46,47,51,0.55)">%</span></span>
+          </div>
+          <!-- Super cores -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><span style="font-weight:700;font-size:11px;color:rgba(46,47,51,0.55);letter-spacing:0.02em">고성능 코어 · Super</span><span class="wa-tnum" style="font-weight:700;font-size:12px;color:#0066ff">58%</span></div>
+          <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:14px">
+            <div style="display:flex;align-items:center;gap:9px"><span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.45);width:22px">S0</span><div style="flex:1;height:6px;border-radius:3px;background:rgba(112,115,124,0.12);overflow:hidden"><div style="width:71%;height:100%;border-radius:3px;background:#0066ff"></div></div><span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.6);width:26px;text-align:right">71%</span></div>
+            <div style="display:flex;align-items:center;gap:9px"><span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.45);width:22px">S1</span><div style="flex:1;height:6px;border-radius:3px;background:rgba(112,115,124,0.12);overflow:hidden"><div style="width:64%;height:100%;border-radius:3px;background:#0066ff"></div></div><span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.6);width:26px;text-align:right">64%</span></div>
+            <div style="display:flex;align-items:center;gap:9px"><span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.45);width:22px">S2</span><div style="flex:1;height:6px;border-radius:3px;background:rgba(112,115,124,0.12);overflow:hidden"><div style="width:52%;height:100%;border-radius:3px;background:#0066ff"></div></div><span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.6);width:26px;text-align:right">52%</span></div>
+            <div style="display:flex;align-items:center;gap:9px"><span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.45);width:22px">S3</span><div style="flex:1;height:6px;border-radius:3px;background:rgba(112,115,124,0.12);overflow:hidden"><div style="width:45%;height:100%;border-radius:3px;background:#0066ff"></div></div><span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.6);width:26px;text-align:right">45%</span></div>
+          </div>
+          <!-- Efficiency cores -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><span style="font-weight:700;font-size:11px;color:rgba(46,47,51,0.55);letter-spacing:0.02em">효율 코어 · Efficiency</span><span class="wa-tnum" style="font-weight:700;font-size:12px;color:rgba(46,47,51,0.6)">21%</span></div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <div style="display:flex;align-items:center;gap:9px"><span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.45);width:22px">E0</span><div style="flex:1;height:6px;border-radius:3px;background:rgba(112,115,124,0.12);overflow:hidden"><div style="width:28%;height:100%;border-radius:3px;background:rgba(46,47,51,0.5)"></div></div><span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.6);width:26px;text-align:right">28%</span></div>
+            <div style="display:flex;align-items:center;gap:9px"><span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.45);width:22px">E1</span><div style="flex:1;height:6px;border-radius:3px;background:rgba(112,115,124,0.12);overflow:hidden"><div style="width:18%;height:100%;border-radius:3px;background:rgba(46,47,51,0.5)"></div></div><span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.6);width:26px;text-align:right">18%</span></div>
+            <div style="display:flex;align-items:center;gap:9px"><span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.45);width:22px">E2</span><div style="flex:1;height:6px;border-radius:3px;background:rgba(112,115,124,0.12);overflow:hidden"><div style="width:23%;height:100%;border-radius:3px;background:rgba(46,47,51,0.5)"></div></div><span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.6);width:26px;text-align:right">23%</span></div>
+            <div style="display:flex;align-items:center;gap:9px"><span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.45);width:22px">E3</span><div style="flex:1;height:6px;border-radius:3px;background:rgba(112,115,124,0.12);overflow:hidden"><div style="width:15%;height:100%;border-radius:3px;background:rgba(46,47,51,0.5)"></div></div><span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.6);width:26px;text-align:right">15%</span></div>
+            <div style="display:flex;align-items:center;gap:9px"><span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.45);width:22px">E4</span><div style="flex:1;height:6px;border-radius:3px;background:rgba(112,115,124,0.12);overflow:hidden"><div style="width:26%;height:100%;border-radius:3px;background:rgba(46,47,51,0.5)"></div></div><span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.6);width:26px;text-align:right">26%</span></div>
+            <div style="display:flex;align-items:center;gap:9px"><span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.45);width:22px">E5</span><div style="flex:1;height:6px;border-radius:3px;background:rgba(112,115,124,0.12);overflow:hidden"><div style="width:16%;height:100%;border-radius:3px;background:rgba(46,47,51,0.5)"></div></div><span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:rgba(46,47,51,0.6);width:26px;text-align:right">16%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 온도 카드 상태 -->
+      <div style="flex:none;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-weight:700;font-size:13px">온도 카드 상태</span><span style="font-size:11px;color:rgba(46,47,51,0.5)">#13 · 부분 실패</span></div>
+        <div style="width:340px;background:#fff;border:1px solid rgba(112,115,124,0.22);border-radius:16px;box-shadow:0px 4px 8px -2px rgba(23,23,23,0.10),0px 12px 24px 0px rgba(23,23,23,0.12);padding:14px;position:relative">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 4px 12px">
+            <div style="display:flex;align-items:center;gap:7px"><svg width="14" height="14" viewBox="0 0 24 24" fill="#171719"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span style="font-weight:700;font-size:13px;letter-spacing:-0.01em">Wattly</span><span style="width:6px;height:6px;border-radius:50%;background:#ff9200"></span></div>
+            <span style="font-weight:600;font-size:11px;color:rgba(46,47,51,0.45)">온도 · M5</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:0 4px 10px"><span style="font-weight:700;font-size:11px;color:rgba(46,47,51,0.45);letter-spacing:0.02em">온도</span><span style="flex:1;height:1px;background:rgba(112,115,124,0.14)"></span></div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <!-- CPU value -->
+            <div style="padding:11px 12px;border-radius:12px;background:rgba(112,115,124,0.06);display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(46,47,51,0.6)">CPU 최고 온도</span><span style="display:flex;align-items:baseline;gap:3px"><span class="wa-tnum" style="font-weight:700;font-size:19px;letter-spacing:-0.01em">54.3</span><span style="font-weight:600;font-size:12px;color:rgba(46,47,51,0.55)">°C</span></span></div>
+              <svg class="wa-spark" viewBox="0 0 120 30" preserveAspectRatio="none"><polygon points="0,30 0,20 12,19 24,21 36,17 48,18 60,15 72,16 84,13 96,14 108,12 120,13 120,30" fill="rgba(112,115,124,0.10)"></polygon><polyline points="0,20 12,19 24,21 36,17 48,18 60,15 72,16 84,13 96,14 108,12 120,13" fill="none" stroke="rgba(46,47,51,0.6)" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+            </div>
+            <!-- GPU terminal unavailable -->
+            <div style="padding:11px 12px;border-radius:12px;background:rgba(112,115,124,0.04);border:1px dashed rgba(112,115,124,0.28);display:flex;align-items:flex-start;gap:9px">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(46,47,51,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-top:1px;flex:none"><circle cx="12" cy="12" r="10"></circle><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"></line></svg>
+              <div style="display:flex;flex-direction:column;gap:1px"><span style="font-weight:600;font-size:11.5px;color:rgba(46,47,51,0.6)">GPU 최고 온도</span><span style="font-size:11px;line-height:1.4;color:rgba(46,47,51,0.45)">미지원 — 검증된 센서 프로파일 없음</span></div>
+            </div>
+          </div>
+          <div style="margin-top:11px;padding-top:11px;border-top:1px solid rgba(112,115,124,0.12);display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:rgba(46,47,51,0.55)"><span class="wa-tnum" style="font-weight:700;color:rgba(46,47,51,0.35);width:34px">—</span><span>첫 샘플 전 (loading)</span></div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:rgba(46,47,51,0.55)"><span style="font-weight:600;font-size:10px;color:#d47800;width:34px">재시도 중</span><span>일시 오류만 backoff 재시도</span></div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:rgba(46,47,51,0.55)"><span style="font-weight:600;font-size:10px;color:rgba(46,47,51,0.45);width:34px">미지원</span><span>오래된 값을 현재값으로 가장하지 않음</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================== ROW 5 — 설정 창 ===================== -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div style="font-weight:700;font-size:15px;letter-spacing:-0.01em">설정 창</div>
+      <div style="font-size:13px;color:rgba(46,47,51,0.55)">SwiftUI Settings scene · @AppStorage. 표시 지표 토글 · 메뉴바 텍스트 · 폴링 주기 · 로그인 항목.</div>
+    </div>
+    <div style="display:flex;gap:36px;align-items:flex-start">
+
+      <!-- SETTINGS LIGHT -->
+      <div style="flex:none;display:flex;flex-direction:column;gap:12px">
+        <div style="font-weight:700;font-size:13px">라이트</div>
+        <div style="width:460px;background:#f7f7f8;border:1px solid rgba(112,115,124,0.22);border-radius:12px;box-shadow:0px 12px 24px 0px rgba(23,23,23,0.14);overflow:hidden">
+          <!-- titlebar -->
+          <div style="height:40px;display:flex;align-items:center;padding:0 14px;gap:8px;border-bottom:1px solid rgba(112,115,124,0.14);background:#ececee">
+            <span style="width:12px;height:12px;border-radius:50%;background:#ff5f57"></span><span style="width:12px;height:12px;border-radius:50%;background:#febc2e"></span><span style="width:12px;height:12px;border-radius:50%;background:#28c840"></span>
+            <span style="font-weight:600;font-size:13px;margin-left:8px;color:rgba(46,47,51,0.75)">Wattly 설정</span>
+          </div>
+          <div style="padding:22px;display:flex;flex-direction:column;gap:22px">
+            <!-- 표시 지표 -->
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font-weight:700;font-size:11px;letter-spacing:0.03em;color:rgba(46,47,51,0.45)">표시 지표</span>
+              <div style="background:#fff;border:1px solid rgba(112,115,124,0.18);border-radius:10px;overflow:hidden">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid rgba(112,115,124,0.12)"><span style="font-weight:600;font-size:13.5px">SoC 전력 (IOReport)</span><span style="width:38px;height:22px;border-radius:11px;background:#0066ff;position:relative;flex:none"><span style="position:absolute;top:2px;left:18px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.25)"></span></span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid rgba(112,115,124,0.12)"><span style="font-weight:600;font-size:13.5px">배터리 방전</span><span style="width:38px;height:22px;border-radius:11px;background:#0066ff;position:relative;flex:none"><span style="position:absolute;top:2px;left:18px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.25)"></span></span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid rgba(112,115,124,0.12)"><span style="font-weight:600;font-size:13.5px">CPU</span><span style="width:38px;height:22px;border-radius:11px;background:#0066ff;position:relative;flex:none"><span style="position:absolute;top:2px;left:18px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.25)"></span></span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid rgba(112,115,124,0.12)"><span style="font-weight:600;font-size:13.5px">메모리</span><span style="width:38px;height:22px;border-radius:11px;background:rgba(112,115,124,0.28);position:relative;flex:none"><span style="position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.25)"></span></span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid rgba(112,115,124,0.12)"><span style="font-weight:600;font-size:13.5px">CPU 온도 <span style="font-weight:500;font-size:11.5px;color:rgba(46,47,51,0.45)">· 최고값</span></span><span style="width:38px;height:22px;border-radius:11px;background:#0066ff;position:relative;flex:none"><span style="position:absolute;top:2px;left:18px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.25)"></span></span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px"><span style="font-weight:600;font-size:13.5px">GPU 온도 <span style="font-weight:500;font-size:11.5px;color:rgba(46,47,51,0.45)">· 최고값</span></span><span style="width:38px;height:22px;border-radius:11px;background:#0066ff;position:relative;flex:none"><span style="position:absolute;top:2px;left:18px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.25)"></span></span></div>
+              </div>
+            </div>
+            <!-- 메뉴바 -->
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font-weight:700;font-size:11px;letter-spacing:0.03em;color:rgba(46,47,51,0.45)">메뉴바</span>
+              <div style="background:#fff;border:1px solid rgba(112,115,124,0.18);border-radius:10px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between">
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600;font-size:13.5px">CPU% 텍스트 표시</span><span style="font-size:11.5px;color:rgba(46,47,51,0.5)">아이콘 옆에 "CPU 42%"를 함께 표시</span></div>
+                <span style="width:38px;height:22px;border-radius:11px;background:#0066ff;position:relative;flex:none"><span style="position:absolute;top:2px;left:18px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.25)"></span></span>
+              </div>
+            </div>
+            <!-- 업데이트 주기 -->
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font-weight:700;font-size:11px;letter-spacing:0.03em;color:rgba(46,47,51,0.45)">업데이트 주기</span>
+              <div style="background:#fff;border:1px solid rgba(112,115,124,0.18);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;gap:4px;padding:3px;background:rgba(112,115,124,0.10);border-radius:8px">
+                  <span style="flex:1;text-align:center;padding:6px 0;font-weight:600;font-size:12.5px;border-radius:6px;background:#fff;color:#171719;box-shadow:0 1px 2px rgba(23,23,23,0.1)">자동</span>
+                  <span style="flex:1;text-align:center;padding:6px 0;font-weight:600;font-size:12.5px;border-radius:6px;color:rgba(46,47,51,0.55)">1초</span>
+                  <span style="flex:1;text-align:center;padding:6px 0;font-weight:600;font-size:12.5px;border-radius:6px;color:rgba(46,47,51,0.55)">2초</span>
+                  <span style="flex:1;text-align:center;padding:6px 0;font-weight:600;font-size:12.5px;border-radius:6px;color:rgba(46,47,51,0.55)">5초</span>
+                </div>
+                <span style="font-size:11.5px;line-height:1.45;color:rgba(46,47,51,0.5)">자동: 패널 열림 1–2초, 닫힘 5초(텍스트 ON 시 2초)로 낮춰 배터리를 아낍니다.</span>
+              </div>
+            </div>
+            <!-- 일반 -->
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font-weight:700;font-size:11px;letter-spacing:0.03em;color:rgba(46,47,51,0.45)">일반</span>
+              <div style="background:#fff;border:1px solid rgba(112,115,124,0.18);border-radius:10px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between">
+                <span style="font-weight:600;font-size:13.5px">로그인 시 자동 실행</span>
+                <span style="width:38px;height:22px;border-radius:11px;background:#0066ff;position:relative;flex:none"><span style="position:absolute;top:2px;left:18px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.25)"></span></span>
+              </div>
+            </div>
+            <!-- about -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding-top:2px">
+              <span style="font-size:11.5px;color:rgba(46,47,51,0.5)">Wattly 1.0 · 자체 소비 <b class="wa-tnum" style="color:rgba(46,47,51,0.7)">0.04 W</b></span>
+              <span style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:#00bf40;font-weight:600"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>공증됨</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS DARK -->
+      <div style="flex:none;display:flex;flex-direction:column;gap:12px">
+        <div style="font-weight:700;font-size:13px">다크</div>
+        <div style="width:460px;background:#1b1c1e;border:1px solid rgba(174,176,182,0.18);border-radius:12px;box-shadow:0px 12px 24px 0px rgba(0,0,0,0.55);overflow:hidden">
+          <div style="height:40px;display:flex;align-items:center;padding:0 14px;gap:8px;border-bottom:1px solid rgba(174,176,182,0.14);background:#242527">
+            <span style="width:12px;height:12px;border-radius:50%;background:#ff5f57"></span><span style="width:12px;height:12px;border-radius:50%;background:#febc2e"></span><span style="width:12px;height:12px;border-radius:50%;background:#28c840"></span>
+            <span style="font-weight:600;font-size:13px;margin-left:8px;color:rgba(247,247,248,0.75)">Wattly 설정</span>
+          </div>
+          <div style="padding:22px;display:flex;flex-direction:column;gap:22px">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font-weight:700;font-size:11px;letter-spacing:0.03em;color:rgba(247,247,248,0.4)">표시 지표</span>
+              <div style="background:#212225;border:1px solid rgba(174,176,182,0.14);border-radius:10px;overflow:hidden">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid rgba(174,176,182,0.1)"><span style="font-weight:600;font-size:13.5px;color:#f7f7f8">SoC 전력 (IOReport)</span><span style="width:38px;height:22px;border-radius:11px;background:#0066ff;position:relative;flex:none"><span style="position:absolute;top:2px;left:18px;width:18px;height:18px;border-radius:50%;background:#fff"></span></span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid rgba(174,176,182,0.1)"><span style="font-weight:600;font-size:13.5px;color:#f7f7f8">배터리 방전</span><span style="width:38px;height:22px;border-radius:11px;background:#0066ff;position:relative;flex:none"><span style="position:absolute;top:2px;left:18px;width:18px;height:18px;border-radius:50%;background:#fff"></span></span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid rgba(174,176,182,0.1)"><span style="font-weight:600;font-size:13.5px;color:#f7f7f8">CPU</span><span style="width:38px;height:22px;border-radius:11px;background:#0066ff;position:relative;flex:none"><span style="position:absolute;top:2px;left:18px;width:18px;height:18px;border-radius:50%;background:#fff"></span></span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid rgba(174,176,182,0.1)"><span style="font-weight:600;font-size:13.5px;color:#f7f7f8">메모리</span><span style="width:38px;height:22px;border-radius:11px;background:rgba(174,176,182,0.24);position:relative;flex:none"><span style="position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#f7f7f8"></span></span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid rgba(174,176,182,0.1)"><span style="font-weight:600;font-size:13.5px;color:#f7f7f8">CPU 온도 <span style="font-weight:500;font-size:11.5px;color:rgba(247,247,248,0.45)">· 최고값</span></span><span style="width:38px;height:22px;border-radius:11px;background:#0066ff;position:relative;flex:none"><span style="position:absolute;top:2px;left:18px;width:18px;height:18px;border-radius:50%;background:#fff"></span></span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px"><span style="font-weight:600;font-size:13.5px;color:#f7f7f8">GPU 온도 <span style="font-weight:500;font-size:11.5px;color:rgba(247,247,248,0.45)">· 최고값</span></span><span style="width:38px;height:22px;border-radius:11px;background:#0066ff;position:relative;flex:none"><span style="position:absolute;top:2px;left:18px;width:18px;height:18px;border-radius:50%;background:#fff"></span></span></div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font-weight:700;font-size:11px;letter-spacing:0.03em;color:rgba(247,247,248,0.4)">메뉴바</span>
+              <div style="background:#212225;border:1px solid rgba(174,176,182,0.14);border-radius:10px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between">
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600;font-size:13.5px;color:#f7f7f8">CPU% 텍스트 표시</span><span style="font-size:11.5px;color:rgba(247,247,248,0.5)">아이콘 옆에 "CPU 42%"를 함께 표시</span></div>
+                <span style="width:38px;height:22px;border-radius:11px;background:#0066ff;position:relative;flex:none"><span style="position:absolute;top:2px;left:18px;width:18px;height:18px;border-radius:50%;background:#fff"></span></span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font-weight:700;font-size:11px;letter-spacing:0.03em;color:rgba(247,247,248,0.4)">업데이트 주기</span>
+              <div style="background:#212225;border:1px solid rgba(174,176,182,0.14);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;gap:4px;padding:3px;background:rgba(174,176,182,0.12);border-radius:8px">
+                  <span style="flex:1;text-align:center;padding:6px 0;font-weight:600;font-size:12.5px;border-radius:6px;background:#3a3b3e;color:#f7f7f8">자동</span>
+                  <span style="flex:1;text-align:center;padding:6px 0;font-weight:600;font-size:12.5px;border-radius:6px;color:rgba(247,247,248,0.55)">1초</span>
+                  <span style="flex:1;text-align:center;padding:6px 0;font-weight:600;font-size:12.5px;border-radius:6px;color:rgba(247,247,248,0.55)">2초</span>
+                  <span style="flex:1;text-align:center;padding:6px 0;font-weight:600;font-size:12.5px;border-radius:6px;color:rgba(247,247,248,0.55)">5초</span>
+                </div>
+                <span style="font-size:11.5px;line-height:1.45;color:rgba(247,247,248,0.5)">자동: 패널 열림 1–2초, 닫힘 5초(텍스트 ON 시 2초)로 낮춰 배터리를 아낍니다.</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font-weight:700;font-size:11px;letter-spacing:0.03em;color:rgba(247,247,248,0.4)">일반</span>
+              <div style="background:#212225;border:1px solid rgba(174,176,182,0.14);border-radius:10px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between">
+                <span style="font-weight:600;font-size:13.5px;color:#f7f7f8">로그인 시 자동 실행</span>
+                <span style="width:38px;height:22px;border-radius:11px;background:#0066ff;position:relative;flex:none"><span style="position:absolute;top:2px;left:18px;width:18px;height:18px;border-radius:50%;background:#fff"></span></span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding-top:2px">
+              <span style="font-size:11.5px;color:rgba(247,247,248,0.5)">Wattly 1.0 · 자체 소비 <b class="wa-tnum" style="color:rgba(247,247,248,0.75)">0.04 W</b></span>
+              <span style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:#1ed45a;font-weight:600"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>공증됨</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

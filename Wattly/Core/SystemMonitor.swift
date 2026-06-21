@@ -1,0 +1,172 @@
+import Foundation
+import Observation
+
+/// The one model SwiftUI views observe. Polls the injected providers off the
+/// MainActor, keeps per-provider `MetricState`, derives the 7 card states (with
+/// the temperature fan-out), and maintains per-card history.
+@MainActor
+@Observable
+final class SystemMonitor {
+    /// Per-provider state (5 keys). The 7 cards derive from these.
+    private(set) var states: [ProviderKind: MetricState]
+    /// Per-card sparkline history (7 keys).
+    private(set) var history: [CardKind: HistoryBuffer]
+
+    private let providers: [any MetricProvider]
+    /// The provider (if any) that supports on-demand process enumeration — the
+    /// memory provider (issue 05 §M18). Extracted once at init.
+    private let memEnumerator: (any ProcessEnumerating)?
+    private let clock: MonotonicClock
+    private let interval: Duration
+    private var pollTask: Task<Void, Never>?
+
+    init(providers: [any MetricProvider],
+         clock: MonotonicClock = LiveClock(),
+         interval: Duration = .seconds(2)) {
+        self.providers = providers
+        self.memEnumerator = providers.compactMap { $0 as? ProcessEnumerating }.first
+        self.clock = clock
+        self.interval = interval
+        self.states = Dictionary(uniqueKeysWithValues: ProviderKind.allCases.map { ($0, .loading) })
+        self.history = Dictionary(uniqueKeysWithValues: CardKind.allCases.map { ($0, HistoryBuffer()) })
+    }
+
+    // MARK: Lifecycle
+
+    /// Fixed-interval polling (L8). Adaptive intervals, timer tolerance, QoS and
+    /// stop-on-close are issue 09 — this is the working baseline.
+    func start() {
+        guard pollTask == nil else { return }
+        pollTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                await self.pollOnce()
+                try? await Task.sleep(for: self.interval)
+            }
+        }
+    }
+
+    func stop() {
+        pollTask?.cancel()
+        pollTask = nil
+    }
+
+    /// Enable/disable top-process enumeration on the memory provider (issue 05
+    /// §M11). The popover calls this when the memory expand appears/disappears.
+    /// Enabling fires an immediate poll so the list shows without waiting for the
+    /// next interval (§M15). No-op when no provider supports enumeration (tests).
+    func setMemoryProcessEnumeration(_ on: Bool) {
+        guard let memEnumerator else { return }
+        Task { [weak self] in
+            await memEnumerator.setEnumerating(on)
+            if on { await self?.pollOnce() }
+        }
+    }
+
+    // MARK: One poll cycle (called directly by tests — the seam)
+
+    func pollOnce() async {
+        let instant = clock.now()
+        for provider in providers {
+            let reading = await provider.read(at: instant)   // off-main hop
+            apply(reading, from: provider.kind, at: instant) // back on MainActor
+        }
+    }
+
+    private func apply(_ reading: ProviderReading, from kind: ProviderKind, at instant: ContinuousClock.Instant) {
+        switch reading {
+        case .pending:
+            states[kind] = .loading
+        case .unavailable(let reason):
+            states[kind] = .unavailable(reason)
+        case .value(let sample):
+            states[kind] = .value(sample)
+            recordHistory(for: kind, sample: sample, at: instant)
+        }
+    }
+
+    private func recordHistory(for kind: ProviderKind, sample: MetricSample, at instant: ContinuousClock.Instant) {
+        for card in CardKind.allCases where card.provider == kind {
+            if let scalar = Self.scalar(of: card, from: sample) {
+                history[card, default: HistoryBuffer()].append(scalar, at: instant)
+            }
+        }
+    }
+
+    // MARK: Derivation — the 7-card fan-out
+
+    /// State for a single card, derived from its provider's state. Temperature
+    /// cards split the snapshot per category, so one failing sensor only darkens
+    /// its own card (partial-failure isolation).
+    func cardState(_ card: CardKind) -> MetricState {
+        guard let providerState = states[card.provider] else { return .loading }
+        switch card {
+        case .cpuTemp, .gpuTemp, .batTemp:
+            return temperatureCardState(card, from: providerState)
+        default:
+            return providerState
+        }
+    }
+
+    private func temperatureCardState(_ card: CardKind, from providerState: MetricState) -> MetricState {
+        switch providerState {
+        case .loading: return .loading
+        case .unavailable(let r): return .unavailable(r)
+        case .value(let sample):
+            guard case .temperature(let snap) = sample else { return .loading }
+            let category: CategoryReading = switch card {
+                case .cpuTemp: snap.cpu
+                case .gpuTemp: snap.gpu
+                default: snap.battery
+            }
+            switch category {
+            case .reading: return .value(sample)
+            case .unavailable(let e): return .unavailable(.temperature(e))
+            case .notPresent(let s): return .unavailable(.notPresent(s))
+            }
+        }
+    }
+
+    /// Whether the card should appear at all. Battery and battery-temperature
+    /// vanish on a desktop Mac — modelled uniformly as their provider/category
+    /// being `.notPresent`, which also covers a real laptop with no battery.
+    func isPresent(_ card: CardKind) -> Bool {
+        if case .unavailable(let r) = cardState(card), case .notPresent = r { return false }
+        return true
+    }
+
+    /// Header status dot: green only when every shown card has a value; orange
+    /// while anything is still loading or unavailable (prototype line 739).
+    var aggregateHealthy: Bool {
+        CardKind.allCases.allSatisfy { card in
+            guard isPresent(card) else { return true } // hidden cards don't count
+            if case .value = cardState(card) { return true }
+            return false
+        }
+    }
+
+    // MARK: Scalars for sparklines
+
+    /// The single number a card plots. The temperature cards pull their category's
+    /// celsius out of the shared snapshot.
+    static func scalar(of card: CardKind, from sample: MetricSample) -> Double? {
+        switch (card, sample) {
+        case (.power, .power(let s)): return s.totalW
+        case (.battery, .battery(let s)): return s.netW
+        case (.cpu, .cpu(let s)): return s.overall
+        case (.mem, .memory(let s)): return s.usedGB
+        case (.cpuTemp, .temperature(let s)): return s.cpu.celsius
+        case (.gpuTemp, .temperature(let s)): return s.gpu.celsius
+        case (.batTemp, .temperature(let s)): return s.battery.celsius
+        default: return nil
+        }
+    }
+}
+
+extension CategoryReading {
+    /// Celsius if this category produced a reading, else nil.
+    var celsius: Double? {
+        if case .reading(let r) = self { return r.celsius }
+        return nil
+    }
+}

@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<style>
+  * { box-sizing: border-box; }
+  .wa-tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+  .wa-spark { width: 100%; height: 26px; display: block; overflow: visible; }
+  @keyframes wapulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+  .wa-dot { animation: wapulse 2.4s ease-in-out infinite; }
+</style>
+</helmet>
+
+<div style="min-width:100%;min-height:100vh;width:100%;box-sizing:border-box;padding:48px;background:#e7e5df;font-family:'Pretendard JP Variable','Pretendard Variable',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Helvetica Neue',sans-serif;display:flex;flex-direction:column;gap:28px;color:#171719">
+
+  <!-- HEADER -->
+  <div style="display:flex;flex-direction:column;gap:12px;max-width:760px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:34px;height:34px;border-radius:9px;background:#171719;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(23,23,23,0.18)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+      </div>
+      <div style="font-weight:700;font-size:22px;letter-spacing:-0.02em">Wattly</div>
+      <div style="font-weight:600;font-size:12px;color:rgba(46,47,51,0.61);background:#fff;border:1px solid rgba(112,115,124,0.22);padding:4px 9px;border-radius:999px">인터랙티브 프로토타입</div>
+    </div>
+    <div style="font-size:14px;line-height:1.6;color:rgba(46,47,51,0.7)">메뉴바의 Wattly 아이콘을 <b>클릭</b>하면 팝오버가 열립니다. 수치·스파크라인은 1초마다 실시간 갱신됩니다. CPU 카드를 누르면 코어별로 펼쳐지고, ⚙︎로 설정을 열어 표시 지표를 토글하면 패널에 즉시 반영됩니다. 아래 컨트롤로 테마·시나리오를 바꿔 상태 모델을 확인하세요.</div>
+  </div>
+
+  <!-- INTERACTIVE FRAME -->
+  <div style="flex:none;display:flex;flex-direction:column;gap:10px">
+    <div style="font-weight:600;font-size:11px;color:rgba(46,47,51,0.5)">데스크톱 · 메뉴바 + 팝오버</div>
+    <div onClick="{{ closeAll }}" style="position:relative;width:100%;max-width:1000px;height:680px;border-radius:12px;overflow:hidden;box-shadow:0px 8px 24px rgba(23,23,23,0.22);background:linear-gradient(160deg,#33445a 0%,#46596e 38%,#6c7f8e 78%,#8a9aa6 100%);cursor:default">
+
+      <!-- desktop subtle vignette -->
+      <div style="position:absolute;inset:0;background:radial-gradient(120% 90% at 70% 18%,rgba(255,255,255,0.10),transparent 60%);pointer-events:none"></div>
+
+      <!-- MENUBAR -->
+      <div style="position:absolute;top:0;left:0;right:0;height:28px;background:rgba(18,20,24,0.34);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;padding:0 12px;gap:18px;z-index:5">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(255,255,255,0.92)"><path d="M16.36 12.5c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.78-3.32-1.8-1.41-.14-2.76.83-3.47.83-.71 0-1.82-.81-3-.79-1.54.02-2.96.9-3.75 2.28-1.6 2.78-.41 6.89 1.15 9.14.76 1.1 1.67 2.34 2.86 2.29 1.15-.05 1.58-.74 2.97-.74 1.39 0 1.78.74 3 .72 1.24-.02 2.02-1.12 2.78-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.65zM14.13 5.4c.63-.77 1.06-1.83.94-2.9-.91.04-2.02.61-2.67 1.37-.58.68-1.1 1.77-.96 2.81 1.02.08 2.06-.52 2.69-1.28z"></path></svg>
+        <span style="font-weight:700;font-size:13px;color:rgba(255,255,255,0.95)">Finder</span>
+        <span style="font-weight:500;font-size:13px;color:rgba(255,255,255,0.82)">파일</span>
+        <span style="font-weight:500;font-size:13px;color:rgba(255,255,255,0.82)">편집</span>
+        <span style="font-weight:500;font-size:13px;color:rgba(255,255,255,0.82)">보기</span>
+        <span style="flex:1"></span>
+        <!-- wattly item -->
+        <span onClick="{{ togglePanel }}" style="display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:6px;cursor:pointer;transition:background 120ms;background:{{ wattlyBtnBg }}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          <sc-if value="{{ showMenuText }}" hint-placeholder-val="{{ true }}"><span class="wa-tnum" style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.95)">{{ menuMetricText }}</span></sc-if>
+        </span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="18" height="10" rx="2.4"></rect><line x1="22" y1="11" x2="22" y2="13"></line><rect x="4" y="9" width="13" height="6" rx="1" fill="rgba(255,255,255,0.9)" stroke="none"></rect></svg>
+        <span class="wa-tnum" style="font-size:12px;font-weight:500;color:rgba(255,255,255,0.92)">100%</span>
+        <span class="wa-tnum" style="font-size:12px;font-weight:500;color:rgba(255,255,255,0.92)">{{ clock }}</span>
+      </div>
+
+      <!-- POPOVER PANEL -->
+      <sc-if value="{{ panelOpen }}" hint-placeholder-val="{{ true }}">
+      <div onClick="{{ stop }}" style="position:absolute;top:34px;right:12px;width:320px;z-index:10;border-radius:16px;padding:14px;border:1px solid {{ c.panelBorder }};background:{{ c.panelBg }};box-shadow:0px 4px 8px -2px rgba(23,23,23,0.18),0px 16px 32px rgba(23,23,23,0.28);display:flex;flex-direction:column;max-height:calc(100% - 50px)">
+        <div style="position:absolute;top:-7px;right:30px;width:13px;height:13px;background:{{ c.panelBg }};border-left:1px solid {{ c.panelBorder }};border-top:1px solid {{ c.panelBorder }};transform:rotate(45deg)"></div>
+        <!-- header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 4px 12px">
+          <div style="display:flex;align-items:center;gap:7px"><svg width="14" height="14" viewBox="0 0 24 24" fill="{{ c.text }}"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span style="font-weight:700;font-size:13px;letter-spacing:-0.01em;color:{{ c.text }}">Wattly</span><span class="wa-dot" style="width:6px;height:6px;border-radius:50%;background:{{ statusColor }};margin-left:1px"></span></div>
+          <div style="display:flex;align-items:center;gap:2px">
+            <span onClick="{{ toggleEdit }}" style="display:flex;width:26px;height:26px;align-items:center;justify-content:center;border-radius:7px;cursor:pointer;background:{{ editBtnBg }};color:{{ editBtnColor }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></span>
+            <span onClick="{{ openSettings }}" style="display:flex;width:26px;height:26px;align-items:center;justify-content:center;border-radius:7px;cursor:pointer;color:{{ c.faint }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
+          </div>
+        </div>
+
+        <div style="overflow-y:auto;overflow-x:hidden;margin:0 -4px;padding:0 4px;min-height:0">
+        <sc-if value="{{ modeA }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <sc-for list="{{ orderedCards }}" as="card" hint-placeholder-count="4">
+          <sc-if value="{{ card.visible }}" hint-placeholder-val="{{ true }}">
+          <div draggable="{{ card.draggable }}" onDragStart="{{ card.onDragStart }}" onDragEnd="{{ card.onDragEnd }}" onDragOver="{{ card.onDragOver }}" onDrop="{{ card.onDrop }}" style="display:flex;align-items:stretch;gap:5px;opacity:{{ card.opacity }}">
+            <div style="display:{{ gripDisplay }};align-items:center;justify-content:center;width:14px;flex:none;cursor:grab;color:{{ c.faint }}"><svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor"><circle cx="2" cy="2.5" r="1.2"></circle><circle cx="8" cy="2.5" r="1.2"></circle><circle cx="2" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="2" cy="13.5" r="1.2"></circle><circle cx="8" cy="13.5" r="1.2"></circle></svg></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:7px">
+              <!-- SoC POWER -->
+              <sc-if value="{{ card.showPowerC }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:11px 12px;border-radius:12px;display:flex;flex-direction:column;gap:8px;background:{{ c.cardBg }}">
+                <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:{{ c.sub }};white-space:nowrap">SoC 전력</span><span style="display:flex;align-items:baseline;gap:3px"><span class="wa-tnum" style="font-weight:700;font-size:19px;letter-spacing:-0.01em;color:{{ accent }}">{{ pwr.val }}</span><span style="font-weight:600;font-size:12px;color:{{ c.sub }}">W</span></span></div>
+                <svg class="wa-spark" viewBox="0 0 120 28" preserveAspectRatio="none"><polygon points="{{ pwr.area }}" fill="rgba(0,102,255,0.10)"></polygon><polyline points="{{ pwr.poly }}" fill="none" stroke="{{ accent }}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+                <div class="wa-tnum" style="font-size:11px;color:{{ c.sub }}">{{ pwr.sub }}</div>
+              </div>
+              </sc-if>
+              <sc-if value="{{ card.unavailPowerC }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:11px 12px;border-radius:12px;display:flex;align-items:flex-start;gap:9px;background:rgba(255,146,0,0.07);border:1px solid rgba(255,146,0,0.22)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#d47800" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-top:1px;flex:none"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600;font-size:11.5px;color:{{ c.text }}">SoC 전력</span><span style="font-size:11px;line-height:1.4;color:{{ c.sub }}">{{ powerReason }}</span></div>
+              </div>
+              </sc-if>
+              <!-- BATTERY -->
+              <sc-if value="{{ card.showBatteryC }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:11px 12px;border-radius:12px;display:flex;flex-direction:column;gap:8px;background:{{ c.cardBg }}">
+                <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:{{ c.sub }};white-space:nowrap">배터리</span><span style="display:flex;align-items:baseline;gap:3px"><span class="wa-tnum" style="font-weight:700;font-size:19px;letter-spacing:-0.01em;color:{{ c.text }}">{{ bat.val }}</span><span style="font-weight:600;font-size:12px;color:{{ c.sub }}">W</span></span></div>
+                <svg class="wa-spark" viewBox="0 0 120 28" preserveAspectRatio="none"><polyline points="{{ bat.poly }}" fill="none" stroke="{{ c.spark }}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+                <div class="wa-tnum" style="font-size:11px;color:{{ c.sub }}">{{ bat.sub }}</div>
+              </div>
+              </sc-if>
+              <sc-if value="{{ card.unavailBatteryC }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:11px 12px;border-radius:12px;display:flex;align-items:flex-start;gap:9px;background:transparent;border:1px dashed {{ c.panelBorder }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{ c.faint }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-top:1px;flex:none"><circle cx="12" cy="12" r="10"></circle><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"></line></svg>
+                <div style="display:flex;flex-direction:column;gap:1px"><span style="font-weight:600;font-size:11.5px;color:{{ c.sub }}">배터리</span><span style="font-size:11px;color:{{ c.faint }}">{{ batteryReason }}</span></div>
+              </div>
+              </sc-if>
+              <!-- CPU (clickable to expand) -->
+              <sc-if value="{{ card.showCpuC }}" hint-placeholder-val="{{ false }}">
+              <div onClick="{{ toggleCpuExpand }}" style="padding:11px 12px;border-radius:12px;display:flex;flex-direction:column;gap:8px;cursor:pointer;background:{{ c.cardBg }}">
+                <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="display:flex;align-items:center;gap:5px;font-weight:600;font-size:11.5px;color:{{ c.sub }}">CPU<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span><span style="display:flex;align-items:baseline;gap:3px"><span class="wa-tnum" style="font-weight:700;font-size:19px;letter-spacing:-0.01em;color:{{ c.text }}">{{ cpu.val }}</span><span style="font-weight:600;font-size:12px;color:{{ c.sub }}">%</span></span></div>
+                <svg class="wa-spark" viewBox="0 0 120 28" preserveAspectRatio="none"><polygon points="{{ cpu.area }}" fill="{{ cpu.fill }}"></polygon><polyline points="{{ cpu.poly }}" fill="none" stroke="{{ cpu.stroke }}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+                <div class="wa-tnum" style="font-size:11px;color:{{ c.sub }}">{{ cpu.sub }}</div>
+                <sc-if value="{{ cpuExpanded }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:4px 0 2px;display:flex;flex-direction:column;gap:7px">
+                  <sc-for list="{{ cores }}" as="core" hint-placeholder-count="10">
+                    <div style="display:flex;align-items:center;gap:9px">
+                      <span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:{{ c.faint }};width:22px">{{ core.label }}</span>
+                      <div style="flex:1;height:6px;border-radius:3px;overflow:hidden;background:{{ c.sparkFill }}"><div style="height:100%;border-radius:3px;width:{{ core.width }};background:{{ core.color }}"></div></div>
+                      <span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:{{ c.sub }};width:26px;text-align:right">{{ core.pctText }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+                </sc-if>
+              </div>
+              </sc-if>
+              <!-- MEMORY (clickable to expand) -->
+              <sc-if value="{{ card.showMemC }}" hint-placeholder-val="{{ false }}">
+              <div onClick="{{ toggleMemExpand }}" style="padding:11px 12px;border-radius:12px;display:flex;flex-direction:column;gap:8px;cursor:pointer;background:{{ c.cardBg }}">
+                <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="display:flex;align-items:center;gap:5px;font-weight:600;font-size:11.5px;color:{{ c.sub }}">메모리<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span><span style="display:flex;align-items:baseline;gap:3px"><span class="wa-tnum" style="font-weight:700;font-size:19px;letter-spacing:-0.01em;color:{{ c.text }}">{{ mem.val }}</span><span style="font-weight:600;font-size:12px;color:{{ c.sub }}">/ {{ mem.total }} GB</span></span></div>
+                <svg class="wa-spark" viewBox="0 0 120 28" preserveAspectRatio="none"><polygon points="{{ mem.area }}" fill="{{ mem.fill }}"></polygon><polyline points="{{ mem.poly }}" fill="none" stroke="{{ mem.stroke }}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+                <div class="wa-tnum" style="font-size:11px;color:{{ c.sub }}">{{ mem.sub }}</div>
+                <sc-if value="{{ memExpanded }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:4px 0 2px;display:flex;flex-direction:column;gap:8px">
+                  <sc-for list="{{ memApps }}" as="app" hint-placeholder-count="3">
+                    <div style="display:flex;align-items:center;gap:9px">
+                      <span style="font-weight:600;font-size:11px;color:{{ c.cText }};width:74px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ app.name }}</span>
+                      <div style="flex:1;height:6px;border-radius:3px;overflow:hidden;background:{{ c.sparkFill }}"><div style="height:100%;border-radius:3px;width:{{ app.width }};background:{{ mem.stroke }}"></div></div>
+                      <span class="wa-tnum" style="font-weight:600;font-size:10.5px;color:{{ c.sub }};width:46px;text-align:right">{{ app.gbText }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+                </sc-if>
+              </div>
+              </sc-if>
+              <!-- CPU TEMP -->
+              <sc-if value="{{ card.showCpuTempC }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:11px 12px;border-radius:12px;display:flex;flex-direction:column;gap:8px;background:{{ c.cardBg }}">
+                <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:{{ c.sub }};white-space:nowrap">CPU 온도</span><span style="display:flex;align-items:baseline;gap:3px"><span class="wa-tnum" style="font-weight:700;font-size:19px;letter-spacing:-0.01em;color:{{ c.text }}">{{ ctemp.val }}</span><span style="font-weight:600;font-size:12px;color:{{ c.sub }}">°C</span></span></div>
+                <svg class="wa-spark" viewBox="0 0 120 28" preserveAspectRatio="none"><polygon points="{{ ctemp.area }}" fill="{{ ctemp.fill }}"></polygon><polyline points="{{ ctemp.poly }}" fill="none" stroke="{{ ctemp.stroke }}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+              </div>
+              </sc-if>
+              <!-- GPU TEMP -->
+              <sc-if value="{{ card.showGpuTempC }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:11px 12px;border-radius:12px;display:flex;flex-direction:column;gap:8px;background:{{ c.cardBg }}">
+                <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:{{ c.sub }};white-space:nowrap">GPU 온도</span><span style="display:flex;align-items:baseline;gap:3px"><span class="wa-tnum" style="font-weight:700;font-size:19px;letter-spacing:-0.01em;color:{{ c.text }}">{{ gtemp.val }}</span><span style="font-weight:600;font-size:12px;color:{{ c.sub }}">°C</span></span></div>
+                <svg class="wa-spark" viewBox="0 0 120 28" preserveAspectRatio="none"><polygon points="{{ gtemp.area }}" fill="{{ gtemp.fill }}"></polygon><polyline points="{{ gtemp.poly }}" fill="none" stroke="{{ gtemp.stroke }}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+              </div>
+              </sc-if>
+              <!-- BATTERY TEMP -->
+              <sc-if value="{{ card.showBatTempC }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:11px 12px;border-radius:12px;display:flex;flex-direction:column;gap:8px;background:{{ c.cardBg }}">
+                <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:{{ c.sub }};white-space:nowrap">배터리 온도</span><span style="display:flex;align-items:baseline;gap:3px"><span class="wa-tnum" style="font-weight:700;font-size:19px;letter-spacing:-0.01em;color:{{ c.text }}">{{ btemp.val }}</span><span style="font-weight:600;font-size:12px;color:{{ c.sub }}">°C</span></span></div>
+                <svg class="wa-spark" viewBox="0 0 120 28" preserveAspectRatio="none"><polygon points="{{ btemp.area }}" fill="{{ btemp.fill }}"></polygon><polyline points="{{ btemp.poly }}" fill="none" stroke="{{ btemp.stroke }}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg>
+              </div>
+              </sc-if>
+            </div>
+          </div>
+          </sc-if>
+          </sc-for>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ modeB }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <sc-if value="{{ showPower }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:12px;border-radius:12px;border:1px solid {{ c.gridBorder }};display:flex;flex-direction:column;gap:6px"><span style="font-weight:600;font-size:10.5px;color:{{ c.sub }}">SoC 전력</span><span style="display:flex;align-items:baseline;gap:2px"><span class="wa-tnum" style="font-weight:700;font-size:24px;letter-spacing:-0.02em;color:{{ accent }}">{{ pwr.val }}</span><span style="font-weight:600;font-size:12px;color:{{ c.sub }}">W</span></span><svg class="wa-spark" viewBox="0 0 120 28" preserveAspectRatio="none" style="height:22px"><polyline points="{{ pwr.poly }}" fill="none" stroke="{{ accent }}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg></div>
+          </sc-if>
+          <sc-if value="{{ unavailPower }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:12px;border-radius:12px;border:1px dashed {{ c.panelBorder }};display:flex;flex-direction:column;gap:4px;justify-content:center"><span style="font-weight:600;font-size:10.5px;color:{{ c.sub }}">SoC 전력</span><span style="font-size:10.5px;line-height:1.35;color:{{ c.faint }}">{{ powerReasonShort }}</span></div>
+          </sc-if>
+          <sc-if value="{{ showBattery }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:12px;border-radius:12px;border:1px solid {{ c.gridBorder }};display:flex;flex-direction:column;gap:6px"><span style="font-weight:600;font-size:10.5px;color:{{ c.sub }}">배터리</span><span style="display:flex;align-items:baseline;gap:2px"><span class="wa-tnum" style="font-weight:700;font-size:24px;letter-spacing:-0.02em;color:{{ c.text }}">{{ bat.val }}</span><span style="font-weight:600;font-size:12px;color:{{ c.sub }}">W</span></span><svg class="wa-spark" viewBox="0 0 120 28" preserveAspectRatio="none" style="height:22px"><polyline points="{{ bat.poly }}" fill="none" stroke="{{ c.spark }}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg></div>
+          </sc-if>
+          <sc-if value="{{ unavailBattery }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:12px;border-radius:12px;border:1px dashed {{ c.panelBorder }};display:flex;flex-direction:column;gap:4px;justify-content:center"><span style="font-weight:600;font-size:10.5px;color:{{ c.sub }}">배터리</span><span style="font-size:10.5px;line-height:1.35;color:{{ c.faint }}">{{ batteryShort }}</span></div>
+          </sc-if>
+          <sc-if value="{{ showCpu }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:12px;border-radius:12px;border:1px solid {{ c.gridBorder }};display:flex;flex-direction:column;gap:6px"><span style="font-weight:600;font-size:10.5px;color:{{ c.sub }}">CPU (%)</span><span style="display:flex;align-items:baseline;gap:2px"><span class="wa-tnum" style="font-weight:700;font-size:24px;letter-spacing:-0.02em;color:{{ c.text }}">{{ cpu.val }}</span><span style="font-weight:600;font-size:12px;color:{{ c.sub }}">%</span></span><svg class="wa-spark" viewBox="0 0 120 28" preserveAspectRatio="none" style="height:22px"><polyline points="{{ cpu.poly }}" fill="none" stroke="{{ cpu.stroke }}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg></div>
+          </sc-if>
+          <sc-if value="{{ showMem }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:12px;border-radius:12px;border:1px solid {{ c.gridBorder }};display:flex;flex-direction:column;gap:6px"><span style="font-weight:600;font-size:10.5px;color:{{ c.sub }}">메모리 (GB)</span><span style="display:flex;align-items:baseline;gap:2px"><span class="wa-tnum" style="font-weight:700;font-size:24px;letter-spacing:-0.02em;color:{{ c.text }}">{{ mem.val }}</span><span style="font-weight:600;font-size:12px;color:{{ c.sub }}">GB</span></span><svg class="wa-spark" viewBox="0 0 120 28" preserveAspectRatio="none" style="height:22px"><polyline points="{{ mem.poly }}" fill="none" stroke="{{ mem.stroke }}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg></div>
+          </sc-if>
+          <sc-if value="{{ showCpuTemp }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:12px;border-radius:12px;border:1px solid {{ c.gridBorder }};display:flex;flex-direction:column;gap:6px"><span style="font-weight:600;font-size:10.5px;color:{{ c.sub }}">CPU 온도 (°C)</span><span style="display:flex;align-items:baseline;gap:2px"><span class="wa-tnum" style="font-weight:700;font-size:24px;letter-spacing:-0.02em;color:{{ c.text }}">{{ ctemp.val }}</span><span style="font-weight:600;font-size:12px;color:{{ c.sub }}">°C</span></span><svg class="wa-spark" viewBox="0 0 120 28" preserveAspectRatio="none" style="height:22px"><polyline points="{{ ctemp.poly }}" fill="none" stroke="{{ ctemp.stroke }}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg></div>
+          </sc-if>
+          <sc-if value="{{ showGpuTemp }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:12px;border-radius:12px;border:1px solid {{ c.gridBorder }};display:flex;flex-direction:column;gap:6px"><span style="font-weight:600;font-size:10.5px;color:{{ c.sub }}">GPU 온도 (°C)</span><span style="display:flex;align-items:baseline;gap:2px"><span class="wa-tnum" style="font-weight:700;font-size:24px;letter-spacing:-0.02em;color:{{ c.text }}">{{ gtemp.val }}</span><span style="font-weight:600;font-size:12px;color:{{ c.sub }}">°C</span></span><svg class="wa-spark" viewBox="0 0 120 28" preserveAspectRatio="none" style="height:22px"><polyline points="{{ gtemp.poly }}" fill="none" stroke="{{ gtemp.stroke }}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg></div>
+          </sc-if>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ modeC }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column">
+          <sc-if value="{{ heroAvail }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:16px;border-radius:14px;background:#171719;display:flex;flex-direction:column;gap:10px;margin-bottom:8px"><div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:600;font-size:11.5px;color:rgba(247,247,248,0.6)">{{ heroLabel }}</span></div><div style="display:flex;align-items:baseline;gap:4px"><span class="wa-tnum" style="font-weight:700;font-size:40px;line-height:0.95;letter-spacing:-0.03em;color:#fff">{{ heroValStr }}</span><span style="font-weight:600;font-size:16px;color:rgba(247,247,248,0.6)">{{ heroUnit }}</span></div><svg class="wa-spark" viewBox="0 0 120 28" preserveAspectRatio="none" style="height:32px"><polygon points="{{ heroArea }}" fill="{{ heroFill }}"></polygon><polyline points="{{ heroPoly }}" fill="none" stroke="{{ heroStroke }}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></polyline></svg><div class="wa-tnum" style="font-size:11px;color:rgba(247,247,248,0.55)">{{ heroSub }}</div></div>
+          </sc-if>
+          <sc-if value="{{ heroUnavail }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:16px;border-radius:14px;background:#171719;display:flex;flex-direction:column;gap:6px;margin-bottom:8px"><span style="font-weight:600;font-size:11.5px;color:rgba(247,247,248,0.6)">{{ heroLabel }}</span><span style="font-size:12px;line-height:1.45;color:rgba(247,247,248,0.5)">{{ heroReason }}</span></div>
+          </sc-if>
+          <div style="display:flex;flex-direction:column">
+            <sc-for list="{{ listItems }}" as="item" hint-placeholder-count="4">
+              <div onClick="{{ item.promote }}" style="display:flex;align-items:center;justify-content:space-between;padding:11px 6px;border-bottom:1px solid {{ c.line }};cursor:pointer" style-hover="background:{{ c.cardBg }}">
+                <span style="font-weight:600;font-size:13px;color:{{ c.cText }}">{{ item.label }}</span>
+                <span class="wa-tnum" style="font-weight:600;font-size:14px;color:{{ item.rowColor }}">{{ item.rowText }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- SETTINGS WINDOW -->
+      <sc-if value="{{ settingsOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ stop }}" style="position:absolute;top:52px;left:50%;transform:translateX(-50%);width:440px;max-width:calc(100% - 32px);max-height:calc(100% - 64px);z-index:20;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;border:1px solid {{ c.panelBorder }};background:{{ c.settingsBg }};box-shadow:0px 16px 40px rgba(0,0,0,0.4)">
+        <div style="height:40px;flex:none;display:flex;align-items:center;padding:0 14px;gap:8px;border-bottom:1px solid {{ c.line }};background:{{ c.titlebar }}">
+          <span onClick="{{ closeSettings }}" style="width:12px;height:12px;border-radius:50%;background:#ff5f57;cursor:pointer"></span><span style="width:12px;height:12px;border-radius:50%;background:#febc2e"></span><span style="width:12px;height:12px;border-radius:50%;background:#28c840"></span>
+          <span style="font-weight:600;font-size:13px;margin-left:8px;color:{{ c.sub }}">Wattly 설정</span>
+        </div>
+        <div style="padding:18px;display:flex;flex-direction:column;gap:18px;overflow-y:auto;min-height:0">
+          <!-- 일반 -->
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <span style="font-weight:700;font-size:11px;letter-spacing:0.03em;color:{{ c.faint }}">일반</span>
+            <div style="border:1px solid {{ c.rowBorder }};border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;background:{{ c.rowBg }}">
+              <span style="font-weight:600;font-size:13.5px;color:{{ c.text }}">로그인 시 자동 실행</span>
+              <span onClick="{{ toggleLogin }}" style="width:38px;height:22px;border-radius:11px;position:relative;flex:none;cursor:pointer;background:{{ swLogin.bg }}"><span style="position:absolute;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.25);left:{{ swLogin.left }}"></span></span>
+            </div>
+          </div>
+          <!-- 테마 -->
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <span style="font-weight:700;font-size:11px;letter-spacing:0.03em;color:{{ c.faint }}">테마</span>
+            <div style="display:flex;gap:4px;padding:3px;background:{{ c.segTrack }};border-radius:8px">
+              <span onClick="{{ toLight }}" style="flex:1;text-align:center;padding:7px 0;font-weight:600;font-size:12.5px;border-radius:6px;cursor:pointer;background:{{ segThemeLight.bg }};color:{{ segThemeLight.color }};box-shadow:{{ segThemeLight.shadow }}">라이트</span>
+              <span onClick="{{ toDark }}" style="flex:1;text-align:center;padding:7px 0;font-weight:600;font-size:12.5px;border-radius:6px;cursor:pointer;background:{{ segThemeDark.bg }};color:{{ segThemeDark.color }};box-shadow:{{ segThemeDark.shadow }}">다크</span>
+              <span onClick="{{ toSystem }}" style="flex:1;text-align:center;padding:7px 0;font-weight:600;font-size:12.5px;border-radius:6px;cursor:pointer;background:{{ segThemeSystem.bg }};color:{{ segThemeSystem.color }};box-shadow:{{ segThemeSystem.shadow }}">시스템 설정</span>
+            </div>
+          </div>
+          <!-- 표시 지표 -->
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <span style="font-weight:700;font-size:11px;letter-spacing:0.03em;color:{{ c.faint }}">표시 지표</span>
+            <div style="border:1px solid {{ c.rowBorder }};border-radius:10px;overflow:hidden;background:{{ c.rowBg }}">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid {{ c.line }}"><span style="font-weight:600;font-size:13.5px;color:{{ c.text }}">SoC 전력 (IOReport)</span><span onClick="{{ togglePower }}" style="width:38px;height:22px;border-radius:11px;position:relative;flex:none;cursor:pointer;background:{{ swPower.bg }}"><span style="position:absolute;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.25);left:{{ swPower.left }}"></span></span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid {{ c.line }}"><span style="font-weight:600;font-size:13.5px;color:{{ c.text }}">배터리</span><span onClick="{{ toggleBattery }}" style="width:38px;height:22px;border-radius:11px;position:relative;flex:none;cursor:pointer;background:{{ swBattery.bg }}"><span style="position:absolute;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.25);left:{{ swBattery.left }}"></span></span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid {{ c.line }}"><span style="font-weight:600;font-size:13.5px;color:{{ c.text }}">CPU 사용률</span><span onClick="{{ toggleCpu }}" style="width:38px;height:22px;border-radius:11px;position:relative;flex:none;cursor:pointer;background:{{ swCpu.bg }}"><span style="position:absolute;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.25);left:{{ swCpu.left }}"></span></span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid {{ c.line }}"><span style="font-weight:600;font-size:13.5px;color:{{ c.text }}">메모리</span><span onClick="{{ toggleMem }}" style="width:38px;height:22px;border-radius:11px;position:relative;flex:none;cursor:pointer;background:{{ swMem.bg }}"><span style="position:absolute;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.25);left:{{ swMem.left }}"></span></span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid {{ c.line }}"><span style="font-weight:600;font-size:13.5px;color:{{ c.text }}">CPU 온도 <span style="font-weight:500;font-size:11.5px;color:{{ c.faint }}">· 최고값</span></span><span onClick="{{ toggleCpuTemp }}" style="width:38px;height:22px;border-radius:11px;position:relative;flex:none;cursor:pointer;background:{{ swCpuTemp.bg }}"><span style="position:absolute;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.25);left:{{ swCpuTemp.left }}"></span></span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid {{ c.line }}"><span style="font-weight:600;font-size:13.5px;color:{{ c.text }}">GPU 온도 <span style="font-weight:500;font-size:11.5px;color:{{ c.faint }}">· 최고값</span></span><span onClick="{{ toggleGpuTemp }}" style="width:38px;height:22px;border-radius:11px;position:relative;flex:none;cursor:pointer;background:{{ swGpuTemp.bg }}"><span style="position:absolute;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.25);left:{{ swGpuTemp.left }}"></span></span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px"><span style="font-weight:600;font-size:13.5px;color:{{ c.text }}">배터리 온도</span><span onClick="{{ toggleBatTemp }}" style="width:38px;height:22px;border-radius:11px;position:relative;flex:none;cursor:pointer;background:{{ swBatTemp.bg }}"><span style="position:absolute;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.25);left:{{ swBatTemp.left }}"></span></span></div>
+            </div>
+          </div>
+          <!-- 그래프 임곗값 -->
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <span style="font-weight:700;font-size:11px;letter-spacing:0.03em;color:{{ c.faint }}">그래프 임곗값</span>
+            <div style="border:1px solid {{ c.rowBorder }};border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:16px;background:{{ c.rowBg }}">
+              <!-- CPU 사용률 -->
+              <div style="display:flex;flex-direction:column;gap:9px">
+                <span style="font-weight:600;font-size:12.5px;color:{{ c.text }}">CPU 사용률 (%)</span>
+                <div style="display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:50%;background:#ff9200;flex:none"></span><span style="font-size:12px;color:{{ c.sub }};width:30px">주의</span><input type="range" min="10" max="95" value="{{ th.cpu.warn }}" onInput="{{ onCpuWarn }}" style="flex:1;accent-color:#ff9200;height:4px;cursor:pointer"><span class="wa-tnum" style="font-size:12px;font-weight:700;color:{{ c.text }};width:38px;text-align:right">{{ th.cpu.warn }}%</span></div>
+                <div style="display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:50%;background:#ff4242;flex:none"></span><span style="font-size:12px;color:{{ c.sub }};width:30px">부족</span><input type="range" min="20" max="100" value="{{ th.cpu.crit }}" onInput="{{ onCpuCrit }}" style="flex:1;accent-color:#ff4242;height:4px;cursor:pointer"><span class="wa-tnum" style="font-size:12px;font-weight:700;color:{{ c.text }};width:38px;text-align:right">{{ th.cpu.crit }}%</span></div>
+              </div>
+              <div style="height:1px;background:{{ c.line }}"></div>
+              <!-- 메모리 -->
+              <div style="display:flex;flex-direction:column;gap:9px">
+                <span style="font-weight:600;font-size:12.5px;color:{{ c.text }}">메모리 (%)</span>
+                <div style="display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:50%;background:#ff9200;flex:none"></span><span style="font-size:12px;color:{{ c.sub }};width:30px">주의</span><input type="range" min="10" max="95" value="{{ th.mem.warn }}" onInput="{{ onMemWarn }}" style="flex:1;accent-color:#ff9200;height:4px;cursor:pointer"><span class="wa-tnum" style="font-size:12px;font-weight:700;color:{{ c.text }};width:38px;text-align:right">{{ th.mem.warn }}%</span></div>
+                <div style="display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:50%;background:#ff4242;flex:none"></span><span style="font-size:12px;color:{{ c.sub }};width:30px">부족</span><input type="range" min="20" max="100" value="{{ th.mem.crit }}" onInput="{{ onMemCrit }}" style="flex:1;accent-color:#ff4242;height:4px;cursor:pointer"><span class="wa-tnum" style="font-size:12px;font-weight:700;color:{{ c.text }};width:38px;text-align:right">{{ th.mem.crit }}%</span></div>
+              </div>
+              <div style="height:1px;background:{{ c.line }}"></div>
+              <!-- 온도 -->
+              <div style="display:flex;flex-direction:column;gap:9px">
+                <span style="font-weight:600;font-size:12.5px;color:{{ c.text }}">온도 · CPU·GPU (°C)</span>
+                <div style="display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:50%;background:#ff9200;flex:none"></span><span style="font-size:12px;color:{{ c.sub }};width:30px">주의</span><input type="range" min="40" max="100" value="{{ th.temp.warn }}" onInput="{{ onTempWarn }}" style="flex:1;accent-color:#ff9200;height:4px;cursor:pointer"><span class="wa-tnum" style="font-size:12px;font-weight:700;color:{{ c.text }};width:38px;text-align:right">{{ th.temp.warn }}°</span></div>
+                <div style="display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:50%;background:#ff4242;flex:none"></span><span style="font-size:12px;color:{{ c.sub }};width:30px">과열</span><input type="range" min="50" max="110" value="{{ th.temp.crit }}" onInput="{{ onTempCrit }}" style="flex:1;accent-color:#ff4242;height:4px;cursor:pointer"><span class="wa-tnum" style="font-size:12px;font-weight:700;color:{{ c.text }};width:38px;text-align:right">{{ th.temp.crit }}°</span></div>
+              </div>
+            </div>
+          </div>
+          <!-- 메뉴바 -->
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <span style="font-weight:700;font-size:11px;letter-spacing:0.03em;color:{{ c.faint }}">메뉴바</span>
+            <div style="border:1px solid {{ c.rowBorder }};border-radius:10px;overflow:hidden;background:{{ c.rowBg }}">
+              <div style="padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid {{ c.line }}">
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600;font-size:13.5px;color:{{ c.text }}">텍스트 표시</span><span style="font-size:11.5px;color:{{ c.faint }}">아이콘 옆에 선택한 지표를 함께 표시</span></div>
+                <span onClick="{{ toggleMenuText }}" style="width:38px;height:22px;border-radius:11px;position:relative;flex:none;cursor:pointer;background:{{ swMenuText.bg }}"><span style="position:absolute;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.25);left:{{ swMenuText.left }}"></span></span>
+              </div>
+              <div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+                <span style="font-size:11.5px;color:{{ c.faint }}">표시할 지표 (복수 선택)</span>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;padding:3px;background:{{ c.segTrack }};border-radius:8px">
+                  <span onClick="{{ setMenuCpu }}" style="flex:1 1 30%;text-align:center;padding:6px 0;font-weight:600;font-size:12px;border-radius:6px;cursor:pointer;background:{{ segMCpu.bg }};color:{{ segMCpu.color }};box-shadow:{{ segMCpu.shadow }}">CPU (%)</span>
+                  <span onClick="{{ setMenuPower }}" style="flex:1 1 30%;text-align:center;padding:6px 0;font-weight:600;font-size:12px;border-radius:6px;cursor:pointer;background:{{ segMPower.bg }};color:{{ segMPower.color }};box-shadow:{{ segMPower.shadow }}">전력 (W)</span>
+                  <span onClick="{{ setMenuMem }}" style="flex:1 1 30%;text-align:center;padding:6px 0;font-weight:600;font-size:12px;border-radius:6px;cursor:pointer;background:{{ segMMem.bg }};color:{{ segMMem.color }};box-shadow:{{ segMMem.shadow }}">메모리 (GB)</span>
+                  <span onClick="{{ setMenuTemp }}" style="flex:1 1 30%;text-align:center;padding:6px 0;font-weight:600;font-size:12px;border-radius:6px;cursor:pointer;background:{{ segMTemp.bg }};color:{{ segMTemp.color }};box-shadow:{{ segMTemp.shadow }}">CPU 온도 (°C)</span>
+                  <span onClick="{{ setMenuGpuTemp }}" style="flex:1 1 30%;text-align:center;padding:6px 0;font-weight:600;font-size:12px;border-radius:6px;cursor:pointer;background:{{ segMGpuTemp.bg }};color:{{ segMGpuTemp.color }};box-shadow:{{ segMGpuTemp.shadow }}">GPU 온도 (°C)</span>
+                  <span onClick="{{ setMenuBatTemp }}" style="flex:1 1 30%;text-align:center;padding:6px 0;font-weight:600;font-size:12px;border-radius:6px;cursor:pointer;background:{{ segMBatTemp.bg }};color:{{ segMBatTemp.color }};box-shadow:{{ segMBatTemp.shadow }}">배터리 온도 (°C)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- 업데이트 주기 -->
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <span style="font-weight:700;font-size:11px;letter-spacing:0.03em;color:{{ c.faint }}">업데이트 주기</span>
+            <div style="border:1px solid {{ c.rowBorder }};border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px;background:{{ c.rowBg }}">
+              <div style="display:flex;gap:4px;padding:3px;background:{{ c.segTrack }};border-radius:8px">
+                <span onClick="{{ setAuto }}" style="flex:1;text-align:center;padding:6px 0;font-weight:600;font-size:12.5px;border-radius:6px;cursor:pointer;background:{{ segAuto.bg }};color:{{ segAuto.color }};box-shadow:{{ segAuto.shadow }}">자동</span>
+                <span onClick="{{ set1 }}" style="flex:1;text-align:center;padding:6px 0;font-weight:600;font-size:12.5px;border-radius:6px;cursor:pointer;background:{{ seg1.bg }};color:{{ seg1.color }};box-shadow:{{ seg1.shadow }}">1초</span>
+                <span onClick="{{ set2 }}" style="flex:1;text-align:center;padding:6px 0;font-weight:600;font-size:12.5px;border-radius:6px;cursor:pointer;background:{{ seg2.bg }};color:{{ seg2.color }};box-shadow:{{ seg2.shadow }}">2초</span>
+                <span onClick="{{ set5 }}" style="flex:1;text-align:center;padding:6px 0;font-weight:600;font-size:12.5px;border-radius:6px;cursor:pointer;background:{{ seg5.bg }};color:{{ seg5.color }};box-shadow:{{ seg5.shadow }}">5초</span>
+              </div>
+              <span style="font-size:11.5px;line-height:1.45;color:{{ c.faint }}">자동: 패널 열림 1–2초, 닫힘 5초(텍스트 ON 시 2초)로 낮춰 배터리를 아낍니다.</span>
+            </div>
+          </div>
+          <!-- 일반 (최상단으로 이동) -->
+          <div onClick="{{ resetDefaults }}" style="display:flex;align-items:center;justify-content:center;gap:7px;padding:11px;border-radius:10px;border:1px solid {{ c.rowBorder }};background:{{ c.rowBg }};cursor:pointer;font-weight:600;font-size:13px;color:{{ c.text }}" style-hover="background:{{ c.cardBg }}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v6h6"></path><path d="M3 13a9 9 0 1 0 3-7.7L3 8"></path></svg>
+            기본값으로 되돌리기
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;padding-top:2px">
+            <span style="font-size:11.5px;color:{{ c.faint }}">Wattly 1.0 · 자체 소비 <b class="wa-tnum" style="color:{{ c.sub }}">{{ selfWatt }} W</b></span>
+          </div>
+          <div style="text-align:center;font-size:11px;color:{{ c.faint }};padding-top:6px">Created by jjundev</div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- closed hint -->
+      <sc-if value="{{ showClosedHint }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;top:38px;right:14px;z-index:8;display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:9px;background:rgba(18,20,24,0.5);backdrop-filter:blur(12px);box-shadow:0 4px 12px rgba(0,0,0,0.25)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11V7a5 5 0 0 1 10 0v4"></path><polyline points="12 16 12 16"></polyline></svg>
+        <span style="font-size:12px;font-weight:500;color:rgba(255,255,255,0.92)">메뉴바의 Wattly 아이콘을 클릭해 다시 여세요</span>
+      </div>
+      </sc-if>
+
+    </div>
+  </div>
+
+  <!-- CONTROL STRIP -->
+  <div style="flex:none;display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap;padding:16px 18px;background:#fff;border:1px solid rgba(112,115,124,0.18);border-radius:12px;box-shadow:0 1px 3px rgba(23,23,23,0.06)">
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <span style="font-weight:700;font-size:11px;letter-spacing:0.03em;color:rgba(46,47,51,0.45)">시나리오</span>
+      <div style="display:flex;gap:8px">
+        <span onClick="{{ scenarioLaptop }}" style="padding:8px 14px;border-radius:8px;font-weight:600;font-size:12.5px;cursor:pointer;border:1px solid {{ btnLaptop.border }};background:{{ btnLaptop.bg }};color:{{ btnLaptop.color }}">노트북</span>
+        <span onClick="{{ scenarioDesktop }}" style="padding:8px 14px;border-radius:8px;font-weight:600;font-size:12.5px;cursor:pointer;border:1px solid {{ btnDesktop.border }};background:{{ btnDesktop.bg }};color:{{ btnDesktop.color }}">데스크톱</span>
+        <span onClick="{{ scenarioCold }}" style="padding:8px 14px;border-radius:8px;font-weight:600;font-size:12.5px;cursor:pointer;border:1px solid {{ btnCold.border }};background:{{ btnCold.bg }};color:{{ btnCold.color }}">콜드 스타트</span>
+        <span onClick="{{ scenarioFail }}" style="padding:8px 14px;border-radius:8px;font-weight:600;font-size:12.5px;cursor:pointer;border:1px solid {{ btnFail.border }};background:{{ btnFail.bg }};color:{{ btnFail.color }}">부분 실패</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <span style="font-weight:700;font-size:11px;letter-spacing:0.03em;color:rgba(46,47,51,0.45)">배터리 · 노트북</span>
+      <div style="display:flex;gap:8px">
+        <span onClick="{{ setBatAuto }}" style="padding:8px 14px;border-radius:8px;font-weight:600;font-size:12.5px;cursor:pointer;border:1px solid {{ btnBatAuto.border }};background:{{ btnBatAuto.bg }};color:{{ btnBatAuto.color }}">자동</span>
+        <span onClick="{{ setBatCharge }}" style="padding:8px 14px;border-radius:8px;font-weight:600;font-size:12.5px;cursor:pointer;border:1px solid {{ btnBatCharge.border }};background:{{ btnBatCharge.bg }};color:{{ btnBatCharge.color }}">충전</span>
+        <span onClick="{{ setBatDischarge }}" style="padding:8px 14px;border-radius:8px;font-weight:600;font-size:12.5px;cursor:pointer;border:1px solid {{ btnBatDischarge.border }};background:{{ btnBatDischarge.bg }};color:{{ btnBatDischarge.color }}">방전</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <span style="font-weight:700;font-size:11px;letter-spacing:0.03em;color:rgba(46,47,51,0.45)">테마</span>
+      <div style="display:flex;gap:8px">
+        <span onClick="{{ toLight }}" style="padding:8px 14px;border-radius:8px;font-weight:600;font-size:12.5px;cursor:pointer;border:1px solid {{ btnLight.border }};background:{{ btnLight.bg }};color:{{ btnLight.color }}">라이트</span>
+        <span onClick="{{ toDark }}" style="padding:8px 14px;border-radius:8px;font-weight:600;font-size:12.5px;cursor:pointer;border:1px solid {{ btnDark.border }};background:{{ btnDark.bg }};color:{{ btnDark.color }}">다크</span>
+        <span onClick="{{ toSystem }}" style="padding:8px 14px;border-radius:8px;font-weight:600;font-size:12.5px;cursor:pointer;border:1px solid {{ btnSystem.border }};background:{{ btnSystem.bg }};color:{{ btnSystem.color }}">시스템</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <span style="font-weight:700;font-size:11px;letter-spacing:0.03em;color:rgba(46,47,51,0.45)">팝오버 모드</span>
+      <div style="display:flex;gap:8px">
+        <span onClick="{{ setModeA }}" style="padding:8px 14px;border-radius:8px;font-weight:600;font-size:12.5px;cursor:pointer;border:1px solid {{ btnModeA.border }};background:{{ btnModeA.bg }};color:{{ btnModeA.color }}">A · 스택 행</span>
+        <span onClick="{{ setModeB }}" style="padding:8px 14px;border-radius:8px;font-weight:600;font-size:12.5px;cursor:pointer;border:1px solid {{ btnModeB.border }};background:{{ btnModeB.bg }};color:{{ btnModeB.color }}">B · 카드 그리드</span>
+        <span onClick="{{ setModeC }}" style="padding:8px 14px;border-radius:8px;font-weight:600;font-size:12.5px;cursor:pointer;border:1px solid {{ btnModeC.border }};background:{{ btnModeC.bg }};color:{{ btnModeC.color }}">C · 히어로 + 리스트</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <span style="font-weight:700;font-size:11px;letter-spacing:0.03em;color:rgba(46,47,51,0.45)">히어로 강조 항목 · 모드 C</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <sc-for list="{{ heroOptions }}" as="opt" hint-placeholder-count="6">
+          <span onClick="{{ opt.onClick }}" style="padding:8px 14px;border-radius:8px;font-weight:600;font-size:12.5px;cursor:pointer;border:1px solid {{ opt.border }};background:{{ opt.bg }};color:{{ opt.color }}">{{ opt.short }}</span>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;max-width:300px">
+      <span style="font-weight:700;font-size:11px;letter-spacing:0.03em;color:rgba(46,47,51,0.45)">조작</span>
+      <span style="font-size:12px;line-height:1.5;color:rgba(46,47,51,0.6)">메뉴바 아이콘 = 팝오버 토글 · ⚙︎ = 설정 · CPU 카드 = 코어 펼침 · 바탕화면 클릭 = 닫기</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;scenario&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;laptop&quot;,&quot;desktop&quot;,&quot;cold&quot;,&quot;fail&quot;],&quot;default&quot;:&quot;laptop&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;panelMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;A&quot;,&quot;B&quot;,&quot;C&quot;],&quot;default&quot;:&quot;A&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  cur = {};
+  hist = {};
+  systemDark = false;
+  state = {
+    themeMode: 'dark', scenario: 'laptop', warm: true,
+    panelOpen: true, settingsOpen: false, cpuExpanded: false, memExpanded: false,
+    poll: 'auto', tick: 0, panelMode: 'A',
+    toggles: { power: true, battery: true, cpu: true, mem: true, cpuTemp: true, gpuTemp: true, batTemp: true },
+    menuText: true, login: true,
+    menuMetrics: { cpu: true, power: false, mem: false, cpuTemp: false, gpuTemp: false, batTemp: false },
+    heroMetric: 'power',
+    cardOrder: ['power', 'battery', 'cpu', 'mem', 'cpuTemp', 'gpuTemp', 'batTemp'],
+    dragKey: null,
+    editMode: false,
+    thresholds: { cpu: { warn: 70, crit: 90 }, mem: { warn: 70, crit: 85 }, temp: { warn: 70, crit: 90 } },
+    batteryMode: 'auto'
+  };
+
+  resetDefaults() {
+    this.setState({
+      toggles: { power: true, battery: true, cpu: true, mem: true, cpuTemp: true, gpuTemp: true, batTemp: true },
+      menuText: true,
+      menuMetrics: { cpu: true, power: false, mem: false, cpuTemp: false, gpuTemp: false, batTemp: false },
+      poll: 'auto',
+      login: true,
+      thresholds: { cpu: { warn: 70, crit: 90 }, mem: { warn: 70, crit: 85 }, temp: { warn: 70, crit: 90 } },
+      cardOrder: ['power', 'battery', 'cpu', 'mem', 'cpuTemp', 'gpuTemp', 'batTemp'],
+      batteryMode: 'auto'
+    });
+  }
+
+  setThreshold(metric, level, v) {
+    v = Math.round(+v);
+    this.setState(s => {
+      const m = { ...s.thresholds[metric], [level]: v };
+      if (level === 'warn' && m.warn > m.crit) m.crit = m.warn;
+      if (level === 'crit' && m.crit < m.warn) m.warn = m.crit;
+      return { thresholds: { ...s.thresholds, [metric]: m } };
+    });
+  }
+
+  toggleMenuMetric(k) { this.setState(s => ({ menuMetrics: { ...s.menuMetrics, [k]: !s.menuMetrics[k] } })); }
+
+  setBatteryMode(mode) {
+    if (this.state.batteryMode === mode) return;
+    // 충전↔방전 등 방향 전환 시 배터리 그래프를 처음부터 다시 그림
+    this.hist.batteryW = [];
+    this.cur.batteryW = undefined;
+    this.setState({ batteryMode: mode });
+  }
+
+  reorderCards(targetKey) {
+    const from = this._dragKey;
+    if (!from || from === targetKey) return;
+    this.setState(s => {
+      const arr = s.cardOrder.slice();
+      const fi = arr.indexOf(from);
+      const ti = arr.indexOf(targetKey);
+      if (fi < 0 || ti < 0) return null;
+      const down = fi < ti;
+      arr.splice(fi, 1);
+      const newTi = arr.indexOf(targetKey);
+      arr.splice(down ? newTi + 1 : newTi, 0, from);
+      return { cardOrder: arr };
+    });
+  }
+
+  componentDidMount() {
+    this.cur = {}; this.hist = {};
+    const p = this.props || {};
+    if (p.theme) this.setState({ themeMode: p.theme });
+    if (p.panelMode) this.setState({ panelMode: p.panelMode });
+    this.setScenario(p.scenario || this.state.scenario);
+    this._timer = setInterval(() => this.tick(), 1000);
+    try {
+      this._mq = window.matchMedia('(prefers-color-scheme: dark)');
+      this.systemDark = this._mq.matches;
+      this._mqHandler = () => { this.systemDark = this._mq.matches; if (this.state.themeMode === 'system') this.forceUpdate(); };
+      this._mq.addEventListener('change', this._mqHandler);
+    } catch (e) {}
+  }
+  componentWillUnmount() {
+    clearInterval(this._timer); clearTimeout(this._cold);
+    if (this._mq && this._mqHandler) this._mq.removeEventListener('change', this._mqHandler);
+  }
+
+  basesFor(s) {
+    if (s === 'desktop') return {
+      power: { b: 14.7, step: 2.2, min: 6, max: 42 }, cpu: { b: 28, step: 9, min: 5, max: 99 },
+      mem: { b: 22.4, step: 0.8, min: 14, max: 60, total: 64 },
+      cpuTemp: { b: 51, step: 2.4, min: 40, max: 92 }, gpuTemp: { b: 57, step: 2.2, min: 40, max: 88 },
+      batteryW: { b: 0, step: 0, min: 0, max: 0 }
+    };
+    return {
+      power: { b: 8.4, step: 1.6, min: 3, max: 22 }, cpu: { b: 42, step: 10, min: 6, max: 99 },
+      mem: { b: 9.2, step: 0.5, min: 6, max: 15.6, total: 16 },
+      cpuTemp: { b: 54.3, step: 2.5, min: 42, max: 94 }, gpuTemp: { b: 48.1, step: 2, min: 38, max: 86 },
+      batteryW: { b: 6, step: 1.2, min: -10, max: 20 }, batTemp: { b: 31, step: 0.7, min: 22, max: 46 }
+    };
+  }
+
+  seed(s) {
+    const b = this.basesFor(s); this.cur = {}; this.hist = {};
+    for (const k of Object.keys(b)) {
+      const cfg = b[k]; const arr = [];
+      for (let i = 0; i < 26; i++) {
+        const v = Math.max(cfg.min, Math.min(cfg.max, cfg.b + (Math.random() - 0.5) * cfg.step * 1.4));
+        arr.push(v);
+      }
+      this.cur[k] = arr[arr.length - 1]; this.hist[k] = arr;
+    }
+  }
+
+  setScenario(s) {
+    const memScen = s === 'desktop' ? 'desktop' : 'laptop';
+    clearTimeout(this._cold);
+    if (s === 'cold') {
+      this.cur = {}; this.hist = {};
+      this.setState({ scenario: s, warm: false, panelOpen: true, settingsOpen: false, cpuExpanded: false });
+      this._cold = setTimeout(() => { this.seed('laptop'); this.setState({ warm: true }); }, 1700);
+    } else {
+      this.seed(memScen);
+      this.setState({ scenario: s, warm: true, cpuExpanded: false });
+    }
+  }
+
+  tick() {
+    if (this.state.warm) {
+      const s = this.state.scenario;
+      const b = this.basesFor(s === 'cold' ? 'laptop' : s);
+      for (const k of Object.keys(b)) {
+        const cfg = b[k];
+        let v = this.cur[k]; if (v == null) v = cfg.b;
+        v = v + (Math.random() - 0.5) * cfg.step;
+        v = Math.max(cfg.min, Math.min(cfg.max, v));
+        if (k === 'batteryW') {
+          if (this.state.batteryMode === 'charge') v = -Math.abs(v) - 1;
+          else if (this.state.batteryMode === 'discharge') v = Math.abs(v) + 1;
+        }
+        this.cur[k] = v;
+        (this.hist[k] = this.hist[k] || []).push(v);
+        if (this.hist[k].length > 30) this.hist[k].shift();
+      }
+    }
+    this.setState(st => ({ tick: st.tick + 1 }));
+  }
+
+  spark(key) {
+    if (!this.state.warm) return { poly: '', area: '' };
+    const h = this.hist[key] || [];
+    if (h.length < 2) return { poly: '', area: '' };
+    const n = h.length, w = 120, ht = 28, pad = 3;
+    let mn = Math.min.apply(null, h), mx = Math.max.apply(null, h);
+    if (mx - mn < 1e-6) mx = mn + 1;
+    const pts = h.map((v, i) => {
+      const x = (i / (n - 1)) * w;
+      const y = pad + (1 - (v - mn) / (mx - mn)) * (ht - 2 * pad);
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    });
+    const poly = pts.join(' ');
+    const area = '0,' + ht + ' ' + poly + ' ' + w + ',' + ht;
+    return { poly, area };
+  }
+
+  fmt(k, d) { const v = this.cur[k]; if (v == null) return '—'; return v.toFixed(d); }
+
+  toggleMetric(k) { this.setState(s => ({ toggles: { ...s.toggles, [k]: !s.toggles[k] } })); }
+
+  renderVals() {
+    const st = this.state, warm = st.warm, sc = st.scenario, tg = st.toggles;
+    const dark = st.themeMode === 'system' ? this.systemDark : (st.themeMode === 'dark');
+    const accent = '#0066ff';
+    const pickColor = (v, warn, crit) => {
+      if (v >= crit) return { stroke: '#ff4242', fill: 'rgba(255,66,66,0.12)' };
+      if (v >= warn) return { stroke: '#ff9200', fill: 'rgba(255,146,0,0.12)' };
+      return { stroke: '#00bf40', fill: 'rgba(0,191,64,0.12)' };
+    };
+    const th = st.thresholds;
+    const c = dark
+      ? { panelBg: '#212225', panelBorder: 'rgba(174,176,182,0.18)', text: '#f7f7f8', sub: 'rgba(247,247,248,0.6)', faint: 'rgba(247,247,248,0.45)', cardBg: 'rgba(174,176,182,0.10)', line: 'rgba(174,176,182,0.16)', spark: 'rgba(247,247,248,0.6)', sparkFill: 'rgba(174,176,182,0.12)', settingsBg: '#1b1c1e', titlebar: '#242527', rowBg: '#212225', rowBorder: 'rgba(174,176,182,0.14)', segTrack: 'rgba(174,176,182,0.12)' }
+      : { panelBg: '#fff', panelBorder: 'rgba(112,115,124,0.22)', text: '#171719', sub: 'rgba(46,47,51,0.6)', faint: 'rgba(46,47,51,0.45)', cardBg: 'rgba(112,115,124,0.06)', line: 'rgba(112,115,124,0.14)', spark: 'rgba(46,47,51,0.6)', sparkFill: 'rgba(112,115,124,0.10)', settingsBg: '#f7f7f8', titlebar: '#ececee', rowBg: '#fff', rowBorder: 'rgba(112,115,124,0.18)', segTrack: 'rgba(112,115,124,0.10)' };
+    c.gridBorder = dark ? 'rgba(174,176,182,0.16)' : 'rgba(112,115,124,0.16)';
+    c.cText = dark ? 'rgba(247,247,248,0.85)' : 'rgba(46,47,51,0.85)';
+
+    const powerW = this.cur.power || 0;
+    const selfWatt = warm ? (0.034 + 0.012 * Math.abs(Math.sin(st.tick * 0.6 + 1)) + powerW * 0.0008).toFixed(2) : '—';
+    const pwr = { val: warm ? this.fmt('power', 1) : '—', sub: warm ? ('CPU ' + (powerW * 0.37).toFixed(1) + ' W · GPU ' + (powerW * 0.24).toFixed(1) + ' W · ANE ' + (powerW * 0.03 + 0.05).toFixed(1) + ' W') : '', ...this.spark('power') };
+
+    const batNet = this.cur.batteryW || 0; // >0 방전, <0 충전
+    const charging = batNet < -0.2;
+    const batMag = Math.abs(batNet);
+    const batMA = Math.round(batMag / 12.0 * 1000);
+    const batSign = charging ? '+' : '−';
+    const batState = charging ? '충전 중' : '방전 중';
+    const bat = { val: warm ? (batSign + batMag.toFixed(1)) : '—', sub: warm ? (batSign + batMA + ' mA · 12.0 V · ' + batState) : '', ...this.spark('batteryW') };
+
+    const cpuV = this.cur.cpu || 0;
+    const superAvg = Math.round(Math.min(99, cpuV * 1.25));
+    const effAvg = Math.round(cpuV * 0.5);
+    const cpuCol = pickColor(cpuV, th.cpu.warn, th.cpu.crit);
+    const cpu = { val: warm ? String(Math.round(cpuV)) : '—', sub: warm ? ('S ' + superAvg + '% · E ' + effAvg + '%') : '', stroke: warm ? cpuCol.stroke : c.spark, fill: warm ? cpuCol.fill : c.sparkFill, ...this.spark('cpu') };
+
+    const b = this.basesFor(sc === 'cold' ? 'laptop' : sc);
+    const memPct = ((this.cur.mem || 0) / b.mem.total) * 100;
+    const memC = pickColor(memPct, th.mem.warn, th.mem.crit);
+    const memColor = memC.stroke, memFill = memC.fill;
+    const mem = { val: warm ? this.fmt('mem', 1) : '—', total: b.mem.total, sub: warm ? '고정 2.4 GB · 압축 1.1 GB' : '', stroke: warm ? memColor : c.spark, fill: warm ? memFill : c.sparkFill, ...this.spark('mem') };
+    // 메모리 점유 상위 3개 앱 (현재 사용량 기준 비례 배분)
+    const memUsed = this.cur.mem || 0;
+    const appDefs = [{ name: 'Chrome', f: 0.30 }, { name: 'Xcode', f: 0.21 }, { name: 'Figma', f: 0.13 }];
+    const memApps = (warm && memUsed > 0) ? appDefs.map(a => {
+      const gb = memUsed * a.f;
+      return { name: a.name, gbText: gb.toFixed(1) + ' GB', width: Math.round((a.f / appDefs[0].f) * 100) + '%' };
+    }) : [];
+    const ctempCol = pickColor(this.cur.cpuTemp || 0, th.temp.warn, th.temp.crit);
+    const gtempCol = pickColor(this.cur.gpuTemp || 0, th.temp.warn, th.temp.crit);
+    const ctemp = { val: warm ? this.fmt('cpuTemp', 1) : '—', stroke: warm ? ctempCol.stroke : c.spark, fill: warm ? ctempCol.fill : c.sparkFill, ...this.spark('cpuTemp') };
+    const gtemp = { val: warm ? this.fmt('gpuTemp', 1) : '—', stroke: warm ? gtempCol.stroke : c.spark, fill: warm ? gtempCol.fill : c.sparkFill, ...this.spark('gpuTemp') };
+    const btempCol = pickColor(this.cur.batTemp || 0, th.temp.warn, th.temp.crit);
+    const btemp = { val: warm ? this.fmt('batTemp', 1) : '—', stroke: warm ? btempCol.stroke : c.spark, fill: warm ? btempCol.fill : c.sparkFill, ...this.spark('batTemp') };
+
+    const sOff = [14, -3, -8, 2], eOff = [6, -10, -2, -14, 4, -7];
+    const cores = [];
+    if (st.cpuExpanded && warm) {
+      for (let i = 0; i < 4; i++) { const p = Math.max(2, Math.min(99, Math.round(superAvg + sOff[i]))); cores.push({ label: 'S' + i, pctText: p + '%', width: p + '%', color: accent }); }
+      for (let i = 0; i < 6; i++) { const p = Math.max(2, Math.min(99, Math.round(effAvg + eOff[i]))); cores.push({ label: 'E' + i, pctText: p + '%', width: p + '%', color: dark ? 'rgba(247,247,248,0.55)' : 'rgba(46,47,51,0.5)' }); }
+    }
+
+    const showPower = tg.power && sc !== 'fail';
+    const unavailPower = tg.power && sc === 'fail';
+    const showBattery = tg.battery && sc !== 'desktop';
+    const unavailBattery = false;
+
+    // ---- drag-reorderable cards (mode A) ----
+    const orderedCards = st.cardOrder.map(k => ({
+      key: k,
+      visible: (k === 'battery' || k === 'batTemp') ? (tg[k] && sc !== 'desktop') : !!tg[k],
+      opacity: st.dragKey === k ? 0.45 : 1,
+      showPowerC: k === 'power' && showPower,
+      unavailPowerC: k === 'power' && unavailPower,
+      showBatteryC: k === 'battery' && showBattery,
+      unavailBatteryC: k === 'battery' && unavailBattery,
+      showCpuC: k === 'cpu' && tg.cpu,
+      showMemC: k === 'mem' && tg.mem,
+      showCpuTempC: k === 'cpuTemp' && tg.cpuTemp,
+      showGpuTempC: k === 'gpuTemp' && tg.gpuTemp,
+      showBatTempC: k === 'batTemp' && tg.batTemp && sc !== 'desktop',
+      editable: st.editMode,
+      draggable: st.editMode,
+      onDragStart: () => { if (!this.state.editMode) return; this._dragKey = k; this.setState({ dragKey: k }); },
+      onDragEnd: () => { this._dragKey = null; this.setState({ dragKey: null }); },
+      onDragOver: (e) => { if (!this.state.editMode) return; if (e && e.preventDefault) e.preventDefault(); },
+      onDrop: (e) => { if (!this.state.editMode) return; if (e && e.preventDefault) e.preventDefault(); this.reorderCards(k); this._dragKey = null; this.setState({ dragKey: null }); }
+    }));
+    const editBtnBg = st.editMode ? (dark ? 'rgba(10,132,255,0.22)' : 'rgba(0,102,255,0.12)') : 'transparent';
+    const editBtnColor = st.editMode ? accent : c.faint;
+    const gripDisplay = st.editMode ? 'flex' : 'none';
+
+    const d = new Date();
+    const clock = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+    const mm = st.menuMetrics, mParts = [];
+    if (mm.cpu) mParts.push(warm ? ('CPU ' + Math.round(cpuV) + '%') : 'CPU —');
+    if (mm.power) mParts.push(warm ? (showPower ? this.fmt('power', 1) + ' W' : '전력 —') : '전력 —');
+    if (mm.mem) mParts.push(warm ? this.fmt('mem', 1) + ' GB' : '메모리 —');
+    if (mm.cpuTemp) mParts.push(warm ? 'CPU ' + Math.round(this.cur.cpuTemp || 0) + '°C' : 'CPU 온도 —');
+    if (mm.gpuTemp) mParts.push(warm ? 'GPU ' + Math.round(this.cur.gpuTemp || 0) + '°C' : 'GPU 온도 —');
+    if (mm.batTemp) mParts.push((warm && sc !== 'desktop') ? '배터리 ' + Math.round(this.cur.batTemp || 0) + '°C' : '배터리 온도 —');
+    const menuMetricText = mParts.join('  ·  ');
+    const hasMenuMetric = mParts.length > 0;
+
+    const sw = (on) => ({ bg: on ? accent : (dark ? 'rgba(174,176,182,0.24)' : 'rgba(112,115,124,0.28)'), left: on ? '18px' : '2px' });
+    const seg = (a) => ({ bg: a ? (dark ? '#3a3b3e' : '#fff') : 'transparent', color: a ? (dark ? '#f7f7f8' : '#171719') : (dark ? 'rgba(247,247,248,0.55)' : 'rgba(46,47,51,0.55)'), shadow: a && !dark ? '0 1px 2px rgba(23,23,23,0.1)' : 'none' });
+    const sBtn = (a) => ({ bg: a ? '#171719' : '#fff', color: a ? '#fff' : 'rgba(46,47,51,0.72)', border: a ? '#171719' : 'rgba(112,115,124,0.22)' });
+
+    // ---- metric model for hero+list (mode C) ----
+    const rowOf = (m) => {
+      if (m.key === 'cpu') return m.valStr + '%';
+      if (m.key === 'mem') return m.valStr + ' / ' + mem.total + ' GB';
+      if (m.key === 'cpuTemp' || m.key === 'gpuTemp') return m.valStr + ' °C';
+      return m.valStr + ' W';
+    };
+    const metricMeta = [
+      { key: 'power', label: 'SoC 전력', short: '전력', heroLabel: 'SoC 전력', unit: 'W', valStr: pwr.val, sub: pwr.sub, poly: pwr.poly, area: pwr.area, on: tg.power, unavail: unavailPower, reason: 'Energy Model 그룹을 읽을 수 없음 — 이 macOS에서 채널이 바뀌었을 수 있습니다.', reasonShort: '읽기 불가' },
+      { key: 'battery', label: '배터리', short: '배터리', heroLabel: '배터리', unit: 'W', valStr: bat.val, sub: bat.sub, poly: bat.poly, area: bat.area, on: tg.battery && sc !== 'desktop', unavail: false, reason: '배터리 없음 — 데스크톱 Mac', reasonShort: '배터리 없음' },
+      { key: 'cpu', label: 'CPU', short: 'CPU', heroLabel: 'CPU 사용률', unit: '%', valStr: cpu.val, sub: cpu.sub, poly: cpu.poly, area: cpu.area, on: tg.cpu, unavail: false },
+      { key: 'mem', label: '메모리', short: '메모리', heroLabel: '메모리', unit: '/ ' + mem.total + ' GB', valStr: mem.val, sub: mem.sub, poly: mem.poly, area: mem.area, on: tg.mem, unavail: false },
+      { key: 'cpuTemp', label: 'CPU 최고 온도', short: 'CPU 온도', heroLabel: 'CPU 최고 온도', unit: '°C', valStr: ctemp.val, sub: '', poly: ctemp.poly, area: ctemp.area, on: tg.cpuTemp, unavail: false },
+      { key: 'gpuTemp', label: 'GPU 최고 온도', short: 'GPU 온도', heroLabel: 'GPU 최고 온도', unit: '°C', valStr: gtemp.val, sub: '', poly: gtemp.poly, area: gtemp.area, on: tg.gpuTemp, unavail: false },
+      { key: 'batTemp', label: '배터리 온도', short: '배터리 온도', heroLabel: '배터리 온도', unit: '°C', valStr: btemp.val, sub: '', poly: btemp.poly, area: btemp.area, on: tg.batTemp && sc !== 'desktop', unavail: false }
+    ];
+    const visibleMetrics = metricMeta.filter(m => m.on);
+    let heroKey = st.heroMetric;
+    if (!visibleMetrics.some(m => m.key === heroKey)) heroKey = visibleMetrics.length ? visibleMetrics[0].key : null;
+    const heroM = metricMeta.find(m => m.key === heroKey) || null;
+    const heroAvail = !!heroM && !heroM.unavail;
+    const heroUnavail = !!heroM && heroM.unavail;
+    const heroLabel = heroM ? heroM.heroLabel : '';
+    const heroValStr = heroM && warm ? heroM.valStr : '—';
+    const heroUnit = heroM ? heroM.unit : '';
+    const heroSub = heroM ? heroM.sub : '';
+    const heroPoly = heroM ? heroM.poly : '';
+    const heroArea = heroM ? heroM.area : '';
+    const heroReason = heroM ? heroM.reason : '';
+    const heroColorMap = {
+      power: { stroke: '#3385ff', fill: 'rgba(51,133,255,0.18)' },
+      mem: { stroke: memColor, fill: memFill },
+      cpu: { stroke: cpuCol.stroke, fill: cpuCol.fill },
+      cpuTemp: { stroke: ctempCol.stroke, fill: ctempCol.fill },
+      gpuTemp: { stroke: gtempCol.stroke, fill: gtempCol.fill },
+      batTemp: { stroke: btempCol.stroke, fill: btempCol.fill }
+    };
+    const hc = heroColorMap[heroKey] || { stroke: 'rgba(247,247,248,0.85)', fill: 'rgba(247,247,248,0.12)' };
+    const heroStroke = hc.stroke;
+    const heroFill = hc.fill;
+    const listItems = visibleMetrics.filter(m => m.key !== heroKey).map(m => ({
+      key: m.key, label: m.label,
+      rowText: m.unavail ? m.reasonShort : rowOf(m),
+      rowColor: m.unavail ? c.faint : c.cText,
+      promote: () => this.setState({ heroMetric: m.key })
+    }));
+    const heroOptions = metricMeta.map(m => {
+      const bt = sBtn(heroKey === m.key);
+      return { key: m.key, short: m.short, bg: bt.bg, color: bt.color, border: bt.border, onClick: () => this.setState({ heroMetric: m.key }) };
+    });
+
+    return {
+      c, accent, dark, warm,
+      selfWatt,
+      panelOpen: st.panelOpen, settingsOpen: st.settingsOpen, cpuExpanded: st.cpuExpanded, memExpanded: st.memExpanded, memApps,
+      toggleMemExpand: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.setState(s => ({ memExpanded: !s.memExpanded })); },
+      modeA: st.panelMode === 'A', modeB: st.panelMode === 'B', modeC: st.panelMode === 'C',
+      showClosedHint: !st.panelOpen && !st.settingsOpen,
+      showMenuText: st.menuText && hasMenuMetric, menuMetricText, clock,
+      segMCpu: seg(mm.cpu), segMPower: seg(mm.power), segMMem: seg(mm.mem), segMTemp: seg(mm.cpuTemp), segMGpuTemp: seg(mm.gpuTemp), segMBatTemp: seg(mm.batTemp),
+      setMenuGpuTemp: () => this.toggleMenuMetric('gpuTemp'), setMenuBatTemp: () => this.toggleMenuMetric('batTemp'),
+      setMenuCpu: () => this.toggleMenuMetric('cpu'), setMenuPower: () => this.toggleMenuMetric('power'), setMenuMem: () => this.toggleMenuMetric('mem'), setMenuTemp: () => this.toggleMenuMetric('cpuTemp'),
+      wattlyBtnBg: st.panelOpen ? 'rgba(255,255,255,0.20)' : 'transparent',
+      statusColor: (sc === 'fail' || !warm) ? '#ff9200' : '#00bf40',
+      showPower, unavailPower, showBattery, unavailBattery,
+      showCpu: tg.cpu, showMem: tg.mem, showCpuTemp: tg.cpuTemp, showGpuTemp: tg.gpuTemp, showBatTemp: tg.batTemp && sc !== 'desktop',
+      swBatTemp: sw(tg.batTemp), toggleBatTemp: () => this.toggleMetric('batTemp'),
+      showTemp: tg.cpuTemp || tg.gpuTemp,
+      powerReason: 'Energy Model 그룹을 읽을 수 없음 — 이 macOS에서 채널이 바뀌었을 수 있습니다.',
+      batteryReason: '배터리 없음 — 데스크톱 Mac',
+      powerReasonShort: '채널 변경 — 읽기 불가', batteryShort: '배터리 없음',
+      pwr, bat, cpu, mem, ctemp, gtemp, btemp, cores, orderedCards, th,
+      editBtnBg, editBtnColor, gripDisplay,
+      onCpuWarn: (e) => this.setThreshold('cpu', 'warn', e.target.value),
+      onCpuCrit: (e) => this.setThreshold('cpu', 'crit', e.target.value),
+      onMemWarn: (e) => this.setThreshold('mem', 'warn', e.target.value),
+      onMemCrit: (e) => this.setThreshold('mem', 'crit', e.target.value),
+      onTempWarn: (e) => this.setThreshold('temp', 'warn', e.target.value),
+      onTempCrit: (e) => this.setThreshold('temp', 'crit', e.target.value),
+      resetDefaults: () => this.resetDefaults(),
+      heroAvail, heroUnavail, heroLabel, heroValStr, heroUnit, heroSub, heroPoly, heroArea, heroReason, heroStroke, heroFill, listItems, heroOptions,
+      closeAll: () => this.setState({ panelOpen: false, settingsOpen: false }),
+      stop: (e) => { if (e && e.stopPropagation) e.stopPropagation(); },
+      togglePanel: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.setState(s => ({ panelOpen: !s.panelOpen, settingsOpen: false })); },
+      editMode: st.editMode,
+      toggleEdit: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.setState(s => ({ editMode: !s.editMode })); },
+      openSettings: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.setState({ settingsOpen: true, editMode: false }); },
+      closeSettings: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.setState({ settingsOpen: false }); },
+      toggleCpuExpand: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.setState(s => ({ cpuExpanded: !s.cpuExpanded })); },
+      scenarioLaptop: () => this.setScenario('laptop'),
+      scenarioDesktop: () => this.setScenario('desktop'),
+      scenarioCold: () => this.setScenario('cold'),
+      scenarioFail: () => this.setScenario('fail'),
+      setBatAuto: () => this.setBatteryMode('auto'),
+      setBatCharge: () => this.setBatteryMode('charge'),
+      setBatDischarge: () => this.setBatteryMode('discharge'),
+      btnBatAuto: sBtn(st.batteryMode === 'auto'), btnBatCharge: sBtn(st.batteryMode === 'charge'), btnBatDischarge: sBtn(st.batteryMode === 'discharge'),
+      toLight: () => this.setState({ themeMode: 'light' }),
+      toDark: () => this.setState({ themeMode: 'dark' }),
+      toSystem: () => this.setState({ themeMode: 'system' }),
+      segThemeLight: seg(st.themeMode === 'light'), segThemeDark: seg(st.themeMode === 'dark'), segThemeSystem: seg(st.themeMode === 'system'),
+      togglePower: () => this.toggleMetric('power'),
+      toggleBattery: () => this.toggleMetric('battery'),
+      toggleCpu: () => this.toggleMetric('cpu'),
+      toggleMem: () => this.toggleMetric('mem'),
+      toggleCpuTemp: () => this.toggleMetric('cpuTemp'),
+      toggleGpuTemp: () => this.toggleMetric('gpuTemp'),
+      toggleMenuText: () => this.setState(s => ({ menuText: !s.menuText })),
+      toggleLogin: () => this.setState(s => ({ login: !s.login })),
+      setAuto: () => this.setState({ poll: 'auto' }), set1: () => this.setState({ poll: '1' }), set2: () => this.setState({ poll: '2' }), set5: () => this.setState({ poll: '5' }),
+      swPower: sw(tg.power), swBattery: sw(tg.battery), swCpu: sw(tg.cpu), swMem: sw(tg.mem), swCpuTemp: sw(tg.cpuTemp), swGpuTemp: sw(tg.gpuTemp), swMenuText: sw(st.menuText), swLogin: sw(st.login),
+      segAuto: seg(st.poll === 'auto'), seg1: seg(st.poll === '1'), seg2: seg(st.poll === '2'), seg5: seg(st.poll === '5'),
+      btnLaptop: sBtn(sc === 'laptop'), btnDesktop: sBtn(sc === 'desktop'), btnCold: sBtn(sc === 'cold'), btnFail: sBtn(sc === 'fail'),
+      btnLight: sBtn(st.themeMode === 'light'), btnDark: sBtn(st.themeMode === 'dark'), btnSystem: sBtn(st.themeMode === 'system'),
+      btnModeA: sBtn(st.panelMode === 'A'), btnModeB: sBtn(st.panelMode === 'B'), btnModeC: sBtn(st.panelMode === 'C'),
+      setModeA: () => this.setState({ panelMode: 'A' }), setModeB: () => this.setState({ panelMode: 'B' }), setModeC: () => this.setState({ panelMode: 'C' })
+    };
+  }
+}
+</script>
+</body>
+</html>

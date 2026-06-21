@@ -1,0 +1,33 @@
+@import url("../colors_and_type.css");
+html, body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+body {
+  padding: 16px;
+  box-sizing: border-box;
+}
+.row { display: flex; gap: 12px; align-items: center; }
+.col { display: flex; flex-direction: column; gap: 4px; }
+.swatch {
+  width: 56px; height: 56px;
+  border-radius: 12px;
+  border: 1px solid var(--color-line-normal);
+}
+.swatch.lg { width: 100px; height: 64px; }
+.tok-name {
+  font: var(--type-caption-2);
+  letter-spacing: 0.031em;
+  color: var(--color-label-alternative);
+  text-transform: uppercase;
+}
+.tok-val {
+  font: var(--type-caption-1);
+  font-family: var(--font-mono);
+  color: var(--color-label-neutral);
+}
+.tok-label {
+  font: var(--type-label-2);
+  color: var(--color-label-normal);
+}

@@ -1,0 +1,357 @@
+/* ============================================================
+ * Wanted Design System — Color & Type Tokens
+ * Source: Wanted Design System (Community) — Figma file
+ * License: CC BY 4.0
+ * ============================================================ */
+
+/* ---------- Fonts ---------- */
+/* Pretendard JP — primary UI/text face (Korean + Japanese + Latin). */
+/* Wanted Sans — display/brand face. */
+/* Both are open-source. We load via CDN; .ttf in /fonts/ for offline. */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css");
+@import url("https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.4/packages/wanted-sans/fonts/webfonts/variable/complete/WantedSansVariable.css");
+
+:root {
+  /* ============ ATOMIC PALETTE — Common (gray axis) ============ */
+  --w-common-100: #ffffff;
+  --w-common-99:  #f7f7f7;
+  --w-common-95:  #dcdcdc;
+  --w-common-90:  #c4c4c4;
+  --w-common-80:  #b0b0b0;
+  --w-common-70:  #9b9b9b;
+  --w-common-60:  #8a8a8a;
+  --w-common-50:  #737373;
+  --w-common-40:  #5c5c5c;
+  --w-common-30:  #474747;
+  --w-common-20:  #303030;
+  --w-common-15:  #2a2a2a;
+  --w-common-10:  #1c1c1c;
+  --w-common-5:   #171717;
+  --w-common-3:   #0f0f0f;
+  --w-common-0:   #000000;
+
+  /* ============ ATOMIC PALETTE — Cool Neutral (the workhorse) ============ */
+  --w-coolneutral-99: #f7f7f8;
+  --w-coolneutral-98: #f4f4f5;
+  --w-coolneutral-95: #eaebec;
+  --w-coolneutral-90: #e1e2e4;
+  --w-coolneutral-85: #dbdcdf;
+  --w-coolneutral-80: #c2c4c8;
+  --w-coolneutral-70: #aeb0b6;
+  --w-coolneutral-60: #989ba2;
+  --w-coolneutral-55: #878a93;
+  --w-coolneutral-50: #70737c;
+  --w-coolneutral-40: #5a5c63;
+  --w-coolneutral-35: #46474c;
+  --w-coolneutral-30: #37383c;
+  --w-coolneutral-28: #333438;
+  --w-coolneutral-25: #2e2f33;
+  --w-coolneutral-20: #292a2d;
+  --w-coolneutral-15: #212225;
+  --w-coolneutral-10: #1b1c1e;
+  --w-coolneutral-5:  #171719;
+  --w-coolneutral-3:  #141415;
+  --w-coolneutral-1:  #0f0f10;
+
+  /* ============ ATOMIC PALETTE — Blue (primary brand) ============ */
+  --w-blue-99: #f7fbff;
+  --w-blue-95: #eaf2fe;
+  --w-blue-90: #c9defe;
+  --w-blue-80: #9ec5ff;
+  --w-blue-70: #69a5ff;
+  --w-blue-65: #4f95ff;
+  --w-blue-60: #3385ff;
+  --w-blue-55: #1a75ff;
+  --w-blue-50: #0066ff;     /* ⭐ primary */
+  --w-blue-45: #005eeb;
+  --w-blue-40: #0054d1;
+  --w-blue-30: #003e9c;
+  --w-blue-20: #002966;
+  --w-blue-10: #001536;
+
+  /* ============ ATOMIC PALETTE — Red (negative / error) ============ */
+  --w-red-99: #fffafa;
+  --w-red-95: #feecec;
+  --w-red-90: #fed5d5;
+  --w-red-80: #ffb5b5;
+  --w-red-70: #ff8c8c;
+  --w-red-60: #ff6363;
+  --w-red-50: #ff4242;
+  --w-red-45: #e52222;
+  --w-red-30: #b20c0c;
+  --w-red-20: #750404;
+  --w-red-10: #3b0101;
+
+  /* ============ ATOMIC PALETTE — Green (positive / success) ============ */
+  --w-green-99: #f2fff6;
+  --w-green-95: #d9ffe6;
+  --w-green-90: #acfcc7;
+  --w-green-80: #7df5a5;
+  --w-green-70: #49e57d;
+  --w-green-60: #1ed45a;
+  --w-green-50: #00bf40;
+  --w-green-40: #009632;
+  --w-green-30: #006e25;
+  --w-green-20: #004517;
+  --w-green-10: #00240c;
+
+  /* ============ ATOMIC PALETTE — Yellow / Warning ============ */
+  --w-yellow-99: #fffcf7;
+  --w-yellow-95: #fef4e6;
+  --w-yellow-90: #fee6c6;
+  --w-yellow-80: #ffd49c;
+  --w-yellow-70: #ffc06e;
+  --w-yellow-60: #ffa938;
+  --w-yellow-50: #ff9200;
+  --w-yellow-45: #d47800;
+  --w-yellow-30: #9c5800;
+  --w-yellow-20: #663a00;
+  --w-yellow-10: #361e00;
+
+  /* ============ ATOMIC PALETTE — Red Orange (accent) ============ */
+  --w-redorange-99: #fffaf7;
+  --w-redorange-95: #feeee5;
+  --w-redorange-90: #fedbc6;
+  --w-redorange-80: #ffc09c;
+  --w-redorange-70: #ff9c63;
+  --w-redorange-60: #ff7b2e;
+  --w-redorange-50: #ff5e00;     /* accent */
+  --w-redorange-45: #f55a00;
+  --w-redorange-40: #cc4b00;
+  --w-redorange-30: #943600;
+  --w-redorange-20: #5c2200;
+  --w-redorange-10: #2e1100;
+
+  /* ============ ATOMIC PALETTE — Lime ============ */
+  --w-lime-50: #58cf04;
+  --w-lime-60: #6be016;
+  --w-lime-70: #88f03e;
+
+  /* ============ ATOMIC PALETTE — Cyan ============ */
+  --w-cyan-50: #00bdde;
+  --w-cyan-60: #28d0ed;
+
+  /* ============ ATOMIC PALETTE — Cobalt (sky) ============ */
+  --w-cobalt-50: #00aeff;
+  --w-cobalt-60: #3dc2ff;
+
+  /* ============ ATOMIC PALETTE — Purple ============ */
+  --w-purple-50: #6541f2;
+  --w-purple-60: #7d5ef7;
+  --w-purple-70: #9e86fc;
+
+  /* ============================================================
+   * SEMANTIC TOKENS — LIGHT THEME (the default)
+   * Names lifted directly from the Figma file so they can be
+   * referenced 1:1 from the source.
+   * ============================================================ */
+
+  /* Primary */
+  --color-primary-normal:        var(--w-blue-50);
+  --color-primary-strong:        var(--w-blue-45);
+  --color-primary-heavy:         var(--w-blue-40);
+
+  /* Label / foreground text */
+  --color-label-normal:          rgba(23, 23, 25, 1);          /* coolneutral-5 */
+  --color-label-strong:          rgba(0, 0, 0, 1);
+  --color-label-neutral:         rgba(46, 47, 51, 0.88);       /* coolneutral-25 88% */
+  --color-label-alternative:     rgba(46, 47, 51, 0.61);       /* secondary text */
+  --color-label-assistive:       rgba(46, 47, 51, 0.28);       /* tertiary text */
+  --color-label-disable:         rgba(46, 47, 51, 0.16);
+  --color-label-inverse:         #ffffff;
+
+  /* Static (theme-independent) */
+  --color-static-white:          #ffffff;
+  --color-static-black:          #000000;
+
+  /* Background */
+  --color-background-normal:     #ffffff;
+  --color-background-alternative:#f7f7f8;
+  --color-background-elevated:   #ffffff;
+  --color-background-elevated-alt:#fafafa;
+  --color-background-inverse:    #171719;
+
+  /* Lines / borders */
+  --color-line-normal:           rgba(112, 115, 124, 0.22);
+  --color-line-neutral:          rgba(112, 115, 124, 0.16);
+  --color-line-alternative:      rgba(112, 115, 124, 0.08);
+  --color-line-strong:           rgba(112, 115, 124, 0.40);
+
+  /* Status */
+  --color-status-positive:       var(--w-green-50);
+  --color-status-cautionary:     var(--w-yellow-50);
+  --color-status-negative:       #ff4242;
+
+  /* Accents */
+  --color-accent-redorange:      var(--w-redorange-50);
+  --color-accent-yellow:         var(--w-yellow-50);
+  --color-accent-violet:         var(--w-purple-50);
+
+  /* Inverse / on-dark */
+  --color-inverse-primary:       #3385ff;
+
+  /* Component fills */
+  --color-fill-normal:           rgba(112, 115, 124, 0.08);
+  --color-fill-strong:           rgba(112, 115, 124, 0.16);
+  --color-fill-neutral:          rgba(112, 115, 124, 0.05);
+
+  /* Interaction */
+  --color-interaction-inactive:  rgba(46, 47, 51, 0.28);
+  --color-interaction-disable:   rgba(112, 115, 124, 0.22);
+  --color-interaction-hover:     rgba(0, 0, 0, 0.04);
+  --color-interaction-pressed:   rgba(0, 0, 0, 0.08);
+
+  /* ============ ELEVATION / SHADOWS ============ */
+  /* Light: shadows are tinted near-black. */
+  --shadow-emphasize-xsmall:  0px 1px 2px -1px rgba(23, 23, 23, 0.10);
+  --shadow-emphasize-small:   0px 1px 2px 0px  rgba(23, 23, 23, 0.07), 0px 1px 3px 0px rgba(23,23,23,0.10);
+  --shadow-emphasize-medium:  0px 1px 4px -1px rgba(23, 23, 23, 0.07), 0px 4px 8px 0px rgba(23,23,23,0.10);
+  --shadow-emphasize-large:   0px 4px 8px -2px rgba(23, 23, 23, 0.10), 0px 12px 24px 0px rgba(23,23,23,0.12);
+  --shadow-emphasize-xlarge:  0px 8px 16px -4px rgba(23,23,23,0.10), 0px 24px 48px 0px rgba(23,23,23,0.12);
+
+  /* ============ SPACING ============ */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-32: 128px;
+
+  /* ============ RADII ============ */
+  --radius-2:    2px;
+  --radius-4:    4px;
+  --radius-6:    6px;
+  --radius-8:    8px;
+  --radius-10:  10px;
+  --radius-12:  12px;
+  --radius-16:  16px;
+  --radius-20:  20px;
+  --radius-24:  24px;
+  --radius-32:  32px;
+  --radius-pill: 999px;
+  --radius-circle: 50%;
+
+  /* ============ MOTION ============ */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0, 1);
+  --ease-accelerate: cubic-bezier(0.3, 0, 1, 1);
+  --duration-fast: 120ms;
+  --duration-normal: 200ms;
+  --duration-slow: 320ms;
+
+  /* ============ TYPOGRAPHY — Fonts ============ */
+  --font-sans:    "Pretendard JP Variable", "Pretendard Variable", "Pretendard JP",
+                  -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+                  "Helvetica Neue", "Segoe UI", Roboto, sans-serif;
+  --font-display: "Wanted Sans Variable", "Wanted Sans", var(--font-sans);
+  --font-mono:    ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+
+  /* ============ TYPOGRAPHY — Type scale (Pretendard JP) ============ */
+  /* Sizes/letter-spacing/line-heights match the Figma source. */
+  --type-display-1: 700 64px/1.20  var(--font-sans); /* -2.7% tracking */
+  --type-display-2: 700 56px/1.25  var(--font-sans);
+  --type-title-1:   700 36px/1.334 var(--font-sans); /* -2.7% tracking */
+  --type-title-2:   700 32px/1.30  var(--font-sans);
+  --type-title-3:   700 28px/1.358 var(--font-sans);
+  --type-heading-1: 700 24px/1.334 var(--font-sans); /* -2.3% */
+  --type-heading-2: 700 20px/1.40  var(--font-sans);
+  --type-headline-1:600 17px/1.412 var(--font-sans);
+  --type-headline-2:600 16px/1.50  var(--font-sans);
+  --type-body-1-r:  500 16px/1.50  var(--font-sans); /* +0.6% tracking */
+  --type-body-1-b:  600 16px/1.50  var(--font-sans);
+  --type-body-2-r:  500 14px/1.50  var(--font-sans);
+  --type-body-2-b:  600 14px/1.50  var(--font-sans);
+  --type-label-1:   600 14px/1.42  var(--font-sans);
+  --type-label-2:   600 13px/1.42  var(--font-sans);
+  --type-caption-1: 500 12px/1.33  var(--font-sans);
+  --type-caption-2: 700 11px/1.27  var(--font-sans);
+
+  /* ============ BREAKPOINTS ============ */
+  --bp-sm: 600px;
+  --bp-md: 900px;
+  --bp-lg: 1200px;
+  --bp-xl: 1440px;
+}
+
+/* ============================================================
+ * DARK THEME — applied with [data-theme="dark"] on a parent.
+ * Inverts label / background / line tokens; atomic palette stays.
+ * ============================================================ */
+[data-theme="dark"] {
+  --color-label-normal:          rgba(247, 247, 248, 1);
+  --color-label-strong:          #ffffff;
+  --color-label-neutral:         rgba(247, 247, 248, 0.88);
+  --color-label-alternative:     rgba(247, 247, 248, 0.61);
+  --color-label-assistive:       rgba(247, 247, 248, 0.28);
+  --color-label-disable:         rgba(247, 247, 248, 0.16);
+  --color-label-inverse:         #171719;
+
+  --color-background-normal:     #171719;
+  --color-background-alternative:#1b1c1e;
+  --color-background-elevated:   #212225;
+  --color-background-elevated-alt:#292a2d;
+  --color-background-inverse:    #ffffff;
+
+  --color-line-normal:           rgba(174, 176, 182, 0.22);
+  --color-line-neutral:          rgba(174, 176, 182, 0.16);
+  --color-line-alternative:      rgba(174, 176, 182, 0.08);
+  --color-line-strong:           rgba(174, 176, 182, 0.40);
+
+  --color-fill-normal:           rgba(174, 176, 182, 0.10);
+  --color-fill-strong:           rgba(174, 176, 182, 0.20);
+  --color-fill-neutral:          rgba(174, 176, 182, 0.05);
+
+  --color-interaction-hover:     rgba(255, 255, 255, 0.06);
+  --color-interaction-pressed:   rgba(255, 255, 255, 0.10);
+
+  /* In dark, the "inverse" primary is the light-blue 60. */
+  --color-inverse-primary:       var(--w-blue-50);
+
+  /* Shadows in dark mode: shorter, rely on borders too. */
+  --shadow-emphasize-xsmall: 0px 1px 2px -1px rgba(0, 0, 0, 0.40);
+  --shadow-emphasize-small:  0px 1px 3px 0px  rgba(0, 0, 0, 0.50);
+  --shadow-emphasize-medium: 0px 4px 8px 0px  rgba(0, 0, 0, 0.50);
+  --shadow-emphasize-large:  0px 12px 24px 0px rgba(0,0,0,0.55);
+}
+
+/* ============================================================
+ * SEMANTIC ELEMENT STYLES
+ * ============================================================ */
+html, body {
+  font: var(--type-body-1-r);
+  letter-spacing: 0.006em;
+  color: var(--color-label-normal);
+  background: var(--color-background-normal);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1 { font: var(--type-title-1);   letter-spacing: -0.027em; color: var(--color-label-strong); margin: 0; }
+h2 { font: var(--type-title-3);   letter-spacing: -0.024em; color: var(--color-label-strong); margin: 0; }
+h3 { font: var(--type-heading-1); letter-spacing: -0.023em; color: var(--color-label-strong); margin: 0; }
+h4 { font: var(--type-heading-2); letter-spacing: -0.018em; color: var(--color-label-strong); margin: 0; }
+h5 { font: var(--type-headline-1); color: var(--color-label-strong); margin: 0; }
+h6 { font: var(--type-headline-2); color: var(--color-label-strong); margin: 0; }
+
+p  { font: var(--type-body-1-r); letter-spacing: 0.006em; color: var(--color-label-neutral); margin: 0 0 12px; }
+small { font: var(--type-caption-1); color: var(--color-label-alternative); }
+code, pre { font-family: var(--font-mono); font-size: 0.93em; }
+a  { color: var(--color-primary-normal); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ============================================================
+ * UTILITY HELPERS used by the design-system cards
+ * ============================================================ */
+.w-card {
+  background: var(--color-background-elevated);
+  border: 1px solid var(--color-line-normal);
+  border-radius: var(--radius-16);
+  padding: 16px 20px;
+}
