@@ -12,6 +12,25 @@ final class SystemMonitor {
     /// Per-card sparkline history (7 keys).
     private(set) var history: [CardKind: HistoryBuffer]
 
+    /// Display-smoothed SoC power (EMA of the raw `.power` sample). The raw sample
+    /// still lives in `states[.power]`/`history[.power]`; this is a *presentation*
+    /// overlay so the headline reads as steady as MX Power Gadget's moving average,
+    /// without touching the (exact) measurement. nil until the first power value.
+    private(set) var smoothedPower: PowerSample?
+    private var smoothedPowerInstant: ContinuousClock.Instant?
+    /// Sparkline series for the smoothed total — parallel to the raw `history[.power]`,
+    /// so the graph can show either (user-selectable) and the headline matches whichever.
+    private(set) var smoothedPowerHistory = HistoryBuffer()
+
+    /// Same display-smoothing for the battery card's net watts: the charge % drains at
+    /// the *average* power, so a spiky raw watt misleads. Only `netW` (and its derived
+    /// mA / charge direction) is smoothed; `externalConnected` is a discrete state and
+    /// is taken from the raw sample. Reset across a plug/unplug so charge and discharge
+    /// never blend (mirrors the raw `history[.battery]` reset).
+    private(set) var smoothedBattery: BatterySample?
+    private var smoothedBatteryInstant: ContinuousClock.Instant?
+    private(set) var smoothedBatteryHistory = HistoryBuffer()
+
     private let providers: [any MetricProvider]
     /// The provider (if any) that supports on-demand process enumeration — the
     /// memory provider (issue 05 §M18). Extracted once at init.
@@ -96,14 +115,45 @@ final class SystemMonitor {
         if case .battery(let s) = sample {
             if let last = lastExternalConnected, last != s.externalConnected {
                 history[.battery] = HistoryBuffer()      // adapter plugged/unplugged → fresh graph
+                smoothedBattery = nil                    // …and restart smoothing: don't blend regimes
+                smoothedBatteryInstant = nil
+                smoothedBatteryHistory = HistoryBuffer()
             }
             lastExternalConnected = s.externalConnected
+
+            let dt = smoothedBatteryInstant.map { Self.seconds(from: $0, to: instant) } ?? 0
+            let netW = PowerSmoothing.emaStep(previous: smoothedBattery?.netW, raw: s.netW, dt: dt)
+            smoothedBattery = Self.batterySmoothed(from: s, netW: netW)
+            smoothedBatteryInstant = instant
+            smoothedBatteryHistory.append(netW, at: instant)
+        }
+        if case .power(let s) = sample {
+            let dt = smoothedPowerInstant.map { Self.seconds(from: $0, to: instant) } ?? 0
+            let smoothed = PowerSmoothing.step(previous: smoothedPower, raw: s, dt: dt)
+            smoothedPower = smoothed
+            smoothedPowerInstant = instant
+            smoothedPowerHistory.append(smoothed.totalW, at: instant)
         }
         for card in CardKind.allCases where card.provider == kind {
             if let scalar = Self.scalar(of: card, from: sample) {
                 history[card, default: HistoryBuffer()].append(scalar, at: instant)
             }
         }
+    }
+
+    private static func seconds(from a: ContinuousClock.Instant, to b: ContinuousClock.Instant) -> Double {
+        let d = a.duration(to: b)
+        return Double(d.components.seconds) + Double(d.components.attoseconds) * 1e-18
+    }
+
+    /// A battery sample whose displayed fields are all consistent with the smoothed
+    /// `netW`: mA and the charge/discharge direction are re-derived from it (so the
+    /// value, the mA, and the 충전/방전 label never disagree); `volts`/`externalConnected`
+    /// pass through from the raw sample (volts is stable; connection is a discrete state).
+    private static func batterySmoothed(from raw: BatterySample, netW: Double) -> BatterySample {
+        let mA = raw.volts > 0 ? Int((abs(netW) * 1000 / raw.volts).rounded()) : raw.milliamps
+        return BatterySample(netW: netW, milliamps: mA, volts: raw.volts,
+                             charging: isCharging(netW: netW), externalConnected: raw.externalConnected)
     }
 
     // MARK: Derivation — the 7-card fan-out
@@ -119,6 +169,35 @@ final class SystemMonitor {
         default:
             return providerState
         }
+    }
+
+    /// Power card state with optional display smoothing (issue: match MX Power
+    /// Gadget's damped readout). Only swaps in the smoothed sample when the raw
+    /// state is itself a power value — so a loading/unavailable power card is never
+    /// masked by a stale smoothed number.
+    func powerCardState(smoothed: Bool) -> MetricState {
+        let raw = cardState(.power)
+        guard smoothed, case .value(.power) = raw, let s = smoothedPower else { return raw }
+        return .value(.power(s))
+    }
+
+    /// Sparkline values for the power card — the smoothed series or the raw one.
+    func powerHistoryValues(smoothed: Bool) -> [Double] {
+        smoothed ? smoothedPowerHistory.values : (history[.power]?.values ?? [])
+    }
+
+    /// Battery card state with optional display smoothing — same contract as
+    /// `powerCardState`: only swaps in the smoothed sample when the raw state is a
+    /// battery value, so loading/unavailable/notPresent are never masked.
+    func batteryCardState(smoothed: Bool) -> MetricState {
+        let raw = cardState(.battery)
+        guard smoothed, case .value(.battery) = raw, let s = smoothedBattery else { return raw }
+        return .value(.battery(s))
+    }
+
+    /// Sparkline values for the battery card — the smoothed netW series or the raw one.
+    func batteryHistoryValues(smoothed: Bool) -> [Double] {
+        smoothed ? smoothedBatteryHistory.values : (history[.battery]?.values ?? [])
     }
 
     private func temperatureCardState(_ card: CardKind, from providerState: MetricState) -> MetricState {

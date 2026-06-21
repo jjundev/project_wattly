@@ -36,6 +36,27 @@ struct BatteryPowerTests {
         #expect(netWatts(batteryMilliwatts: 0) == 0)
     }
 
+    // MARK: fallbackNetWatts — AppleSmartBattery sign is unreliable; pin direction by ExternalConnected
+
+    @Test func fallbackOnBatteryForcesDischarge() {
+        // On battery, charging is impossible → discharge (netW > 0) regardless of the
+        // field's (flipping) sign. Both signed inputs map to the same +magnitude.
+        #expect(fallbackNetWatts(batteryMilliwatts: -20680, externalConnected: false) == 20.68)
+        #expect(fallbackNetWatts(batteryMilliwatts: 29428, externalConnected: false) == 29.428) // spurious + sign corrected
+    }
+
+    @Test func fallbackOnACTrustsSign() {
+        // On AC the direction is genuinely ambiguous, so the (best-effort) field sign stands.
+        #expect(fallbackNetWatts(batteryMilliwatts: 15191, externalConnected: true) == -15.191)  // charging
+        #expect(fallbackNetWatts(batteryMilliwatts: -9926, externalConnected: true) == 9.926)    // discharging on weak adapter
+    }
+
+    @Test func fallbackOnBatteryNeverReadsAsCharging() {
+        // The whole point: a discharging battery must never show 충전 중 via the fallback.
+        let net = fallbackNetWatts(batteryMilliwatts: 29428, externalConnected: false)
+        #expect(isCharging(netW: net) == false)
+    }
+
     // MARK: isCharging — net < −0.2 dead-zone, now on the fast BatteryPower-derived net
 
     @Test func isChargingThreshold() {
