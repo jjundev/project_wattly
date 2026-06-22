@@ -51,6 +51,38 @@ struct ThresholdTests {
         #expect(changed != Defaults.thresholds)
     }
 
+    @Test func memoryColorsByPressureWhenEnabled() {
+        // Toggle ON (Defaults.thresholds.memColorByPressure == true): pressure wins over
+        // occupancy — 50% used but kernel says CRITICAL → crit; 90% used but NORMAL → normal.
+        let th = Defaults.thresholds
+        #expect(th.memColorByPressure)
+        #expect(CardPresentation.thresholdLevel(.mem, mem(used: 8, total: 16, pressure: .critical), th) == .crit)
+        #expect(CardPresentation.thresholdLevel(.mem, mem(used: 14, total: 16, pressure: .normal), th) == .normal)
+        #expect(CardPresentation.thresholdLevel(.mem, mem(used: 8, total: 16, pressure: .warn), th) == .warn)
+    }
+
+    @Test func memoryPressureFallsBackToPercentWhenNilOrDisabled() {
+        // Toggle ON but pressure unavailable (sysctl failed) → occupancy band. 87.5% → crit.
+        let on = Defaults.thresholds
+        #expect(CardPresentation.thresholdLevel(.mem, mem(used: 14, total: 16, pressure: nil), on) == .crit)
+        // Toggle OFF → occupancy band even when pressure is present. 50% used → normal,
+        // ignoring the CRITICAL pressure reading.
+        var off = Defaults.thresholds
+        off.memColorByPressure = false
+        #expect(CardPresentation.thresholdLevel(.mem, mem(used: 8, total: 16, pressure: .critical), off) == .normal)
+    }
+
+    @Test func thresholdsRawValueRoundTripsMemColorByPressure() {
+        // The toggle rides the Thresholds JSON. Round-trip preserves it…
+        var off = Defaults.thresholds
+        off.memColorByPressure = false
+        #expect(Thresholds(rawValue: off.rawValue)?.memColorByPressure == false)
+        #expect(Thresholds(rawValue: off.rawValue) == off)
+        // …and older persisted JSON (no key) decodes to true (backward-compat default).
+        let legacy = #"{"cpu":{"warn":70,"crit":90},"mem":{"warn":70,"crit":85},"temp":{"warn":70,"crit":90}}"#
+        #expect(Thresholds(rawValue: legacy)?.memColorByPressure == true)
+    }
+
     @Test func memoryZeroTotalIsNormalNotNil() {
         // A value with totalGB=0 is still a value → 0%, not nil (nil is reserved for no-value).
         #expect(CardPresentation.thresholdLevel(.mem, mem(used: 5, total: 0), Defaults.thresholds) == .normal)
@@ -129,7 +161,7 @@ struct ThresholdTests {
     // MARK: helpers
 
     private func cpu(_ v: Double) -> MetricState { .value(.cpu(CPUSample(overall: v, perfLevels: []))) }
-    private func mem(used: Double, total: Double) -> MetricState {
-        .value(.memory(MemorySample(usedGB: used, totalGB: total, wiredGB: 0, compressedGB: 0)))
+    private func mem(used: Double, total: Double, pressure: MemoryPressure? = nil) -> MetricState {
+        .value(.memory(MemorySample(usedGB: used, totalGB: total, wiredGB: 0, compressedGB: 0, pressure: pressure)))
     }
 }

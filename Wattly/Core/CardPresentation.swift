@@ -45,8 +45,10 @@ enum CardPresentation {
     /// to the **sparkline + memory process bars only** — the headline `valueColor` keeps
     /// its neutral/accent color, matching the prototype (which colors only the spark).
     ///
-    /// Memory compares **used%** (`usedGB/totalGB*100`, the prototype `memPct`), not the GB
-    /// the headline shows; the mem sparkline series itself stays in GB. Temperature compares
+    /// Memory colors by the kernel's **memory pressure** when `thresholds.memColorByPressure`
+    /// is on (the macOS "활성 상태 보기" model), else by **used%** (`usedGB/totalGB*100`, the
+    /// prototype `memPct`); either way the headline GB and the GB sparkline series are
+    /// unaffected — only the band/color changes. Temperature compares
     /// the category **average** (`celsius`) — the same number the card displays (the
     /// prototype fed the max; the average is the steadier, self-consistent input). The three
     /// temperature cards share the one `thresholds.temp` pair (prototype lines 616–620).
@@ -56,6 +58,12 @@ enum CardPresentation {
         case (.cpu, .cpu(let s)):
             return thresholds.cpu.level(s.overall)
         case (.mem, .memory(let s)):
+            // Pressure mode (macOS "활성 상태 보기" 모델): color by the kernel's pressure
+            // verdict, not occupancy. Falls back to the used% band when the toggle is off OR
+            // the sysctl was unavailable this poll (`pressure == nil`).
+            if thresholds.memColorByPressure, let p = s.pressure {
+                return p.thresholdLevel
+            }
             let pct = s.totalGB > 0 ? s.usedGB / s.totalGB * 100 : 0
             return thresholds.mem.level(pct)
         case (.cpuTemp, .temperature(let s)): return tempLevel(s.cpu, thresholds.temp)

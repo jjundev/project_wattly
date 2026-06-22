@@ -42,6 +42,34 @@ struct MemoryUsageTests {
         #expect(abs(s.usedGB - 3.0) < 1e-9)      // active 0 + wire 2 + compressor 1
     }
 
+    // MARK: MemoryPressure — kernel sysctl mapping (issue: pressure coloring)
+
+    @Test func memoryPressureMapsSysctlLevels() {
+        // kern.memorystatus_vm_pressure_level: 1 NORMAL / 2 WARN / 4 CRITICAL.
+        #expect(MemoryPressure(fromSysctl: 1) == .normal)
+        #expect(MemoryPressure(fromSysctl: 2) == .warn)
+        #expect(MemoryPressure(fromSysctl: 4) == .critical)
+        // Defensive: 0 and unknown future values fall to normal (never crashes/over-alarms).
+        #expect(MemoryPressure(fromSysctl: 0) == .normal)
+        #expect(MemoryPressure(fromSysctl: 99) == .normal)
+    }
+
+    @Test func memoryPressureMapsToThresholdLevel() {
+        #expect(MemoryPressure.normal.thresholdLevel == .normal)
+        #expect(MemoryPressure.warn.thresholdLevel == .warn)
+        #expect(MemoryPressure.critical.thresholdLevel == .crit)
+    }
+
+    @Test func memorySampleCarriesPressureWhenGiven() {
+        let s = memorySample(active: 0, wire: 0, compressor: 0,
+                             pageSize: 16384, memsize: 16 * gib, processes: [], pressure: .warn)
+        #expect(s.pressure == .warn)
+        // Default is nil — the occupancy-only path (sysctl unavailable / not requested).
+        let bare = memorySample(active: 0, wire: 0, compressor: 0,
+                                pageSize: 16384, memsize: 16 * gib, processes: [])
+        #expect(bare.pressure == nil)
+    }
+
     // MARK: topProcesses
 
     @Test func topProcessesSortsDescAndCapsAtThree() {

@@ -33,28 +33,38 @@ struct Thresholds: Equatable, Sendable, RawRepresentable {
     var cpu: ThresholdPair
     var mem: ThresholdPair
     var temp: ThresholdPair
+    /// Color the memory card by the kernel's memory pressure (the macOS "활성 상태 보기"
+    /// model) instead of by the `mem` warn/crit occupancy band. Rides along the existing
+    /// `Thresholds` value so every `thresholdLevel`/`stateWord` call site — and `SettingsReset`
+    /// — picks it up with no signature change. Defaults true (absent in older persisted JSON
+    /// → `init?(rawValue:)` falls back to true).
+    var memColorByPressure: Bool
 
-    init(cpu: ThresholdPair, mem: ThresholdPair, temp: ThresholdPair) {
+    init(cpu: ThresholdPair, mem: ThresholdPair, temp: ThresholdPair,
+         memColorByPressure: Bool = true) {
         self.cpu = cpu; self.mem = mem; self.temp = temp
+        self.memColorByPressure = memColorByPressure
     }
 
     init?(rawValue: String) {
         guard let data = rawValue.data(using: .utf8),
-              let o = try? JSONSerialization.jsonObject(with: data) as? [String: [String: Double]]
+              let o = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else { return nil }
         func pair(_ k: String) -> ThresholdPair? {
-            guard let p = o[k], let w = p["warn"], let c = p["crit"] else { return nil }
+            guard let p = o[k] as? [String: Double], let w = p["warn"], let c = p["crit"] else { return nil }
             return ThresholdPair(warn: w, crit: c)
         }
         guard let c = pair("cpu"), let m = pair("mem"), let t = pair("temp") else { return nil }
-        self.init(cpu: c, mem: m, temp: t)
+        let byPressure = o["memColorByPressure"] as? Bool ?? true
+        self.init(cpu: c, mem: m, temp: t, memColorByPressure: byPressure)
     }
 
     var rawValue: String {
-        let o: [String: [String: Double]] = [
+        let o: [String: Any] = [
             "cpu": ["warn": cpu.warn, "crit": cpu.crit],
             "mem": ["warn": mem.warn, "crit": mem.crit],
             "temp": ["warn": temp.warn, "crit": temp.crit],
+            "memColorByPressure": memColorByPressure,
         ]
         guard let data = try? JSONSerialization.data(withJSONObject: o),
               let s = String(data: data, encoding: .utf8) else { return "{}" }
@@ -64,9 +74,10 @@ struct Thresholds: Equatable, Sendable, RawRepresentable {
     /// Explicit memberwise equality. Without this, `==` resolves to a `rawValue`-string
     /// comparison (the `RawRepresentable` path), and `rawValue`'s JSON dictionary has a
     /// non-deterministic key order — so two value-equal `Thresholds` compare unequal almost
-    /// every time. Compare the pairs directly instead.
+    /// every time. Compare the fields directly instead.
     static func == (lhs: Thresholds, rhs: Thresholds) -> Bool {
         lhs.cpu == rhs.cpu && lhs.mem == rhs.mem && lhs.temp == rhs.temp
+            && lhs.memColorByPressure == rhs.memColorByPressure
     }
 }
 

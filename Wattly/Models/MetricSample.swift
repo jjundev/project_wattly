@@ -37,6 +37,11 @@ struct MemorySample: Sendable, Equatable {
     /// otherwise. MUST stay `Equatable` — the whole `MetricSample`/`MetricState`
     /// chain synthesises `Equatable` through this field.
     var processes: [ProcessUsage] = []
+    /// The kernel's memory-pressure verdict (`kern.memorystatus_vm_pressure_level`).
+    /// Drives the card color when `Thresholds.memColorByPressure` is on (the macOS
+    /// "활성 상태 보기" model: color by pressure, not occupancy). `nil` = sysctl
+    /// unavailable → the card falls back to the used% threshold band.
+    var pressure: MemoryPressure? = nil
 }
 
 /// One process row in the memory card's expand (issue 05). `footprintBytes` is

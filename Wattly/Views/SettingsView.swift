@@ -148,8 +148,7 @@ struct SettingsView: View {
                     thresholdBlock(title: "CPU 사용률 (%)", keyPath: \.cpu,
                                    warnRange: 10...95, critRange: 20...100, suffix: "%")
                     thresholdDivider
-                    thresholdBlock(title: "메모리 (%)", keyPath: \.mem,
-                                   warnRange: 10...95, critRange: 20...100, suffix: "%")
+                    memoryThresholdBlock
                     thresholdDivider
                     thresholdBlock(title: "온도 · CPU·GPU·배터리 (°C)", keyPath: \.temp,
                                    warnRange: 40...100, critRange: 50...110, suffix: "°")
@@ -160,6 +159,45 @@ struct SettingsView: View {
 
     private var thresholdDivider: some View {
         Rectangle().fill(t.line).frame(height: 1)
+    }
+
+    /// Memory block: a pressure toggle on top, and the occupancy warn/crit sliders only when
+    /// the toggle is off (in pressure mode the % thresholds don't drive the color, so showing
+    /// them would be a tombstoned knob).
+    private var memoryThresholdBlock: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text("메모리")
+                .font(WattlyFont.at(12.5, weight: .semibold))
+                .foregroundStyle(t.text)
+            SettingsToggleRow(isOn: memPressureBinding, divider: false) {
+                VStack(alignment: .leading, spacing: 2) {
+                    rowTitle("압력 기준 색상")
+                    Text("macOS '활성 상태 보기'처럼 점유율이 아닌 시스템 메모리 압력으로 색을 정합니다")
+                        .font(WattlyFont.at(11.5, weight: .regular))
+                        .foregroundStyle(t.faint)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            if !thresholds.memColorByPressure {
+                thresholdRow(dot: Tokens.statusOrange, label: "주의",
+                             binding: thresholdBinding(\.mem, .warn), range: 10...95, suffix: "%")
+                thresholdRow(dot: Tokens.statusRed, label: "위험",
+                             binding: thresholdBinding(\.mem, .crit), range: 20...100, suffix: "%")
+            }
+        }
+    }
+
+    /// Toggle binding into `thresholds.memColorByPressure`. Reassigns the whole `thresholds`
+    /// so the `@AppStorage` re-encodes (same idiom as `thresholdBinding`).
+    private var memPressureBinding: Binding<Bool> {
+        Binding(
+            get: { thresholds.memColorByPressure },
+            set: { newValue in
+                var next = thresholds
+                next.memColorByPressure = newValue
+                thresholds = next
+            }
+        )
     }
 
     private func thresholdBlock(title: String, keyPath: WritableKeyPath<Thresholds, ThresholdPair>,
