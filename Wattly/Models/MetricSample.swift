@@ -96,8 +96,25 @@ enum CategoryReading: Sendable, Equatable {
 }
 
 struct TemperatureReading: Sendable, Equatable {
-    /// Hottest verified sensor in the category, °C (PRD line 68).
+    /// Headline temperature shown on the card, °C — the **average** of the category's
+    /// verified in-range die sensors (issue 08 follow-up; the prototype showed the max,
+    /// but the average is the steadier headline and matches the expand breakdown).
     var celsius: Double
+    /// Per-cluster breakdown for the expand (issue 08 follow-up). CPU → P-코어 / E-코어;
+    /// GPU → one GPU group. Empty for battery (a single sensor, not expandable). These
+    /// are cluster *summaries* (average + hottest), not raw per-sensor lists — the SMC
+    /// exposes die-region sensors, not 1:1 cores, so a cluster average is the honest unit.
+    var groups: [TemperatureGroup] = []
+}
+
+/// One cluster's temperature summary for the card expand (issue 08 follow-up). `name`
+/// is a static cluster label ("P-코어"/"E-코어"/"GPU"), NOT the runtime `hw.perflevel`
+/// name the CPU-usage card uses. `average`/`hottest` are over that cluster's in-range
+/// sensors, °C.
+struct TemperatureGroup: Sendable, Equatable {
+    var name: String
+    var average: Double
+    var hottest: Double
 }
 
 /// Retryable-vs-terminal taxonomy is a PRD concept (lines 83–84), realised in the

@@ -9,8 +9,11 @@ struct WattlyApp: App {
 
     init() {
         FontRegistration.register()   // bundle Pretendard before any view renders (A17)
-        // CPU (issue 04) and memory (issue 05) are real; power/battery/temperature
-        // remain fakes until 06–08. Dev scenario shapes only the fakes.
+        #if DEBUG
+        ThermalProbe.runIfRequested()  // -WattlyThermalProbe: dump live temps and exit (plan 08 Phase 0)
+        #endif
+        // CPU/memory/power/battery/temperature are all real providers now; the dev
+        // `-WattlyScenario` harness shapes only the remaining fault/desktop-demo fakes.
         let scenario = Scenario.fromLaunchArguments()
         // TEMP: faster refresh (1s instead of the 2s default) to eyeball live values.
         // Revert by dropping `interval:` (back to the .seconds(2) default) once the

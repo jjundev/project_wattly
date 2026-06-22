@@ -108,8 +108,17 @@ actor FakeProvider: MetricProvider {
             ]
             return .memory(MemorySample(usedGB: used, totalGB: total, wiredGB: 2.4, compressedGB: 1.1, processes: procs))
         case .temperature:
-            let cpu = CategoryReading.reading(TemperatureReading(celsius: v("cpuTemp")))
-            let gpu = CategoryReading.reading(TemperatureReading(celsius: v("gpuTemp")))
+            // Synthetic cluster groups so the expand demo works (P-코어 a touch hotter
+            // than the E-코어; headline ≈ their blend, mirroring the real average).
+            let c = v("cpuTemp")
+            let cpu = CategoryReading.reading(TemperatureReading(celsius: c, groups: [
+                TemperatureGroup(name: "P-코어", average: c + 4, hottest: c + 8),
+                TemperatureGroup(name: "E-코어", average: c - 4, hottest: c - 1),
+            ]))
+            let g = v("gpuTemp")
+            let gpu = CategoryReading.reading(TemperatureReading(celsius: g, groups: [
+                TemperatureGroup(name: "GPU", average: g, hottest: g + 5),
+            ]))
             let bat: CategoryReading = effectiveScenario == .desktop
                 ? .notPresent("배터리 없음 — 데스크톱 Mac")
                 : .reading(TemperatureReading(celsius: v("batTemp")))
@@ -148,14 +157,15 @@ actor FakeProvider: MetricProvider {
 }
 
 /// Builds the providers the app runs on: the real `CPUProvider` (issue 04),
-/// `MemoryProvider` (issue 05), `PowerProvider` (issue 06), and `BatteryProvider`
-/// (issue 07) plus fakes for the not-yet-implemented metrics. The dev `-WattlyScenario`
-/// harness only shapes the fakes; the real providers ignore it (so `-WattlyScenario
-/// desktop` shows real RAM, not the fake 64 GB — §M21). Two fault/shape-injection paths
-/// keep their fake: `fail` keeps the fake power provider so the orange "channel
-/// unreadable" card stays demoable on a working Mac (issue 06 §R4), and `desktop` keeps
-/// the fake battery so the "no battery" hide stays demoable on a laptop (a real desktop
-/// hides it anyway via `BatteryProvider`'s `.notPresent`).
+/// `MemoryProvider` (issue 05), `PowerProvider` (issue 06), `BatteryProvider`
+/// (issue 07), and `TemperatureProvider` (issue 08) plus fakes for the not-yet-implemented
+/// metrics. The dev `-WattlyScenario` harness only shapes the fakes; the real providers
+/// ignore it (so `-WattlyScenario desktop` shows real RAM, not the fake 64 GB — §M21).
+/// Fault/shape-injection paths keep their fake: `fail` keeps the fake power provider so the
+/// orange "channel unreadable" card stays demoable on a working Mac (issue 06 §R4), and
+/// `desktop` keeps the fake battery AND fake temperature so the "no battery / no battery
+/// temp" hide stays demoable on a laptop (a real desktop hides them anyway via the real
+/// providers' `.notPresent`).
 enum FakeProviders {
     static func all(scenario: Scenario) -> [any MetricProvider] {
         ProviderKind.allCases.map { kind -> any MetricProvider in
@@ -164,6 +174,7 @@ enum FakeProviders {
             case .memory: return MemoryProvider()
             case .power where scenario != .fail: return PowerProvider()
             case .battery where scenario != .desktop: return BatteryProvider()
+            case .temperature where scenario != .desktop: return TemperatureProvider()
             default:      return FakeProvider(kind: kind, scenario: scenario)
             }
         }

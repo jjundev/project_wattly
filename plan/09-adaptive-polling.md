@@ -17,7 +17,7 @@
    - `Timer`에 `tolerance` 부여(코얼레싱). 폴링 Task QoS `.utility`.
 3. **렌더/IO 생략**
    - 패널 닫힘 → 그래프 렌더 정지([03](03-sparkline-history.md)).
-   - CPU/GPU 온도 둘 다 OFF → `TemperatureProvider` 호출·sensor I/O 생략([08](08-temperature-cpu-gpu-battery.md)).
+   - CPU/GPU 온도 둘 다 OFF → **여기서** `TemperatureProvider.setEnabled(false)` 호출·폴링 제외(훅 제공은 [08](08-temperature-cpu-gpu-battery.md), 호출 결정·`SystemMonitor` 배선·call-count 테스트는 09 소유).
    - 가시 토글이 꺼진 지표는 폴링에서 제외.
 4. **설정 힌트 카피**(프로토타입 그대로) — "자동: 패널 열림 1–2초, 닫힘 5초(텍스트 ON 시 2초)로 낮춰 배터리를 아낍니다."
 
