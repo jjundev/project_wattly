@@ -78,6 +78,8 @@ struct MetricCardView: View {
             cpuExpand(s)
         } else if card == .mem, case .value(.memory(let s)) = state {
             memExpand(s)
+        } else if card == .cpuTemp, case .value(.temperature(let s)) = state, case .reading(let r) = s.cpu {
+            tempExpand(r.groups)
         }
     }
 
@@ -206,6 +208,55 @@ struct MetricCardView: View {
         }
     }
 
+    // MARK: Temperature expand — per-cluster summary (issue 08 follow-up)
+
+    /// One row per cluster (P-코어 / E-코어 / GPU): a bar on a fixed 0–110 °C scale plus
+    /// the cluster average and hottest sensor. The SMC exposes die-region sensors, not
+    /// 1:1 cores, so a per-cluster average is the honest unit (not "per core").
+    private func tempExpand(_ groups: [TemperatureGroup]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if groups.isEmpty {
+                Text("센서를 읽을 수 없음")
+                    .font(WattlyFont.at(10.5, weight: .semibold))
+                    .foregroundStyle(t.faint)
+            } else {
+                ForEach(groups, id: \.name) { tempGroupRow($0) }
+            }
+        }
+        .padding(.top, 8)
+    }
+
+    private func tempGroupRow(_ g: TemperatureGroup) -> some View {
+        HStack(spacing: 9) {
+            Text(g.name)
+                .font(WattlyFont.at(10.5, weight: .semibold))
+                .foregroundStyle(t.faint)
+                .frame(width: 44, alignment: .leading)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3).fill(t.sparkFill)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(t.spark)
+                        .frame(width: geo.size.width * Self.tempBarFraction(g.average))
+                }
+            }
+            .frame(height: 6)
+            Text("\(f1(g.average))° · 최고 \(f1(g.hottest))°")
+                .font(WattlyFont.at(10.5, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(t.sub)
+                .frame(width: 104, alignment: .trailing)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(g.name), 평균 \(f1(g.average))도, 최고 \(f1(g.hottest))도")
+    }
+
+    /// Bar fill fraction on a fixed 0–110 °C display scale (issue 08 §8; neutral color —
+    /// threshold coloring is issue 10).
+    private static func tempBarFraction(_ celsius: Double) -> Double {
+        min(1, max(0, celsius / 110.0))
+    }
+
     // MARK: Unavailable cards
 
     @ViewBuilder
@@ -278,7 +329,7 @@ struct MetricCardView: View {
 
     // MARK: Card-family attributes
 
-    private var isExpandable: Bool { card == .cpu || card == .mem }
+    private var isExpandable: Bool { card == .cpu || card == .mem || card == .cpuTemp }
     private var hasChevron: Bool { isExpandable }
     private var hasSparkArea: Bool { card != .battery }   // battery: polyline only (line 100)
     private var hasValue: Bool { if case .value = state { return true }; return false }
