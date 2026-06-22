@@ -15,11 +15,9 @@ struct WattlyApp: App {
         // CPU/memory/power/battery/temperature are all real providers now; the dev
         // `-WattlyScenario` harness shapes only the remaining fault/desktop-demo fakes.
         let scenario = Scenario.fromLaunchArguments()
-        // TEMP: faster refresh (1s instead of the 2s default) to eyeball live values.
-        // Revert by dropping `interval:` (back to the .seconds(2) default) once the
-        // PollInterval setting is wired in (plan 09).
-        _monitor = State(initialValue: SystemMonitor(providers: FakeProviders.all(scenario: scenario),
-                                                     interval: .seconds(1)))
+        // Cadence is adaptive now (issue 09): `PollPolicyBridge` seeds the user's PollInterval
+        // setting + starts the loop, which runs at 1 s open / 2–5 s closed under `.auto`.
+        _monitor = State(initialValue: SystemMonitor(providers: FakeProviders.all(scenario: scenario)))
     }
 
     var body: some Scene {
@@ -29,7 +27,9 @@ struct WattlyApp: App {
             }
         } label: {
             MenuBarLabel(monitor: monitor)
-                .task { monitor.start() }   // begin polling at launch
+                // The bridge is always alive (the label never unmounts), so it owns seeding
+                // the poll policy AND starting the loop — start() lives here, nowhere else.
+                .background(PollPolicyBridge(monitor: monitor))
         }
         .menuBarExtraStyle(.window)
 

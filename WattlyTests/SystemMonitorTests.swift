@@ -160,4 +160,55 @@ struct SystemMonitorTests {
         await monitor.pollOnce()                 // plugged in (ExternalConnected flip) → reset → [-13.4]
         #expect(monitor.historyValues(for: .battery, smoothed: false) == [-13.4])
     }
+
+    // MARK: Issue 09 — adaptive polling / low power
+
+    @Test func hiddenTemperatureCardsDoNoCPUGPUSensorIO() async {
+        // 수용 #2: both temperature toggles OFF → zero CPU/GPU SMC I/O, but the provider
+        // still runs for battery temp (independent source). Driven at the SystemMonitor
+        // level via the real provider + a fake transport that counts I/O. `model:"Mac17,2"`
+        // is pinned so the SMC path is genuinely live (else it's terminal → vacuous green).
+        let tx = FakeTempTransport()
+        tx.cpuCelsius = 80; tx.gpuCelsius = 70; tx.battery = .centiCelsius(3000)
+        let temp = TemperatureProvider(transport: tx, model: "Mac17,2")
+        let monitor = SystemMonitor(providers: [temp], clock: ManualClock())
+
+        // Baseline: temp cards shown → the SMC path actually opens + reads (non-vacuous).
+        await monitor.setShownCards(Set(CardKind.allCases))
+        await monitor.pollOnce()
+        #expect(tx.openCalls >= 1)
+        #expect(tx.readCalls >= 1)
+
+        // Hide both CPU/GPU temp cards (batTemp stays) → setEnabled(false) → no new SMC I/O.
+        let openBefore = tx.openCalls, readBefore = tx.readCalls, batBefore = tx.batteryCalls
+        await monitor.setShownCards(Set(CardKind.allCases).subtracting([.cpuTemp, .gpuTemp]))
+        for _ in 0..<3 { await monitor.pollOnce() }
+
+        #expect(tx.openCalls == openBefore)         // zero further SMC opens
+        #expect(tx.readCalls == readBefore)         // zero further SMC key reads
+        #expect(tx.batteryCalls == batBefore + 3)   // battery temp still read each poll
+    }
+
+    @Test func historyIsContinuousAcrossACadenceChange() async {
+        // 수용 #3: cadence (open 1 s → closed 5 s) only changes the sleep between polls;
+        // history is instant-keyed, so a full 60 s window survives the change with no reset
+        // or gap. Simulated by advancing the clock 1 s then 5 s between direct polls.
+        let provider = ScriptedProvider(kind: .cpu, [.value(.cpu(CPUSample(overall: 10, perfLevels: [])))])
+        let clock = ManualClock()
+        let monitor = SystemMonitor(providers: [provider], clock: clock)
+
+        var elapsed = Duration.zero
+        while elapsed < .seconds(30) {                       // 30 s at the open (1 s) cadence
+            await monitor.pollOnce(); clock.advance(by: .seconds(1)); elapsed += .seconds(1)
+        }
+        while elapsed < .seconds(60) {                       // then 30 s at the closed (5 s) cadence
+            await monitor.pollOnce(); clock.advance(by: .seconds(5)); elapsed += .seconds(5)
+        }
+        await monitor.pollOnce()                             // a final sample at t = 60 s
+
+        let values = monitor.historyValues(for: .cpu, smoothed: false)
+        #expect(values.count >= 2)                           // enough to draw
+        #expect(values.count <= HistoryBuffer.cap)           // never over the cap
+        #expect(values.allSatisfy { $0 == 10 })              // continuous — no reset/gap injected
+    }
 }

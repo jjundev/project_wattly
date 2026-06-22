@@ -25,34 +25,67 @@ final class SystemMonitor {
     /// The provider (if any) that supports on-demand process enumeration — the
     /// memory provider (issue 05 §M18). Extracted once at init.
     private let memEnumerator: (any ProcessEnumerating)?
+    /// The provider (if any) whose sensor I/O can be gated when its cards are hidden — the
+    /// temperature provider (issue 08 supplies the `setEnabled` hook; issue 09 decides when
+    /// to call it). Extracted once at init, mirroring `memEnumerator`.
+    private let tempGater: (any TemperatureGating)?
     private let clock: MonotonicClock
-    private let interval: Duration
     private var pollTask: Task<Void, Never>?
 
+    // MARK: Adaptive-poll policy (issue 09) — pushed in from the views, never read from
+    // `UserDefaults` here, so the cadence and gating stay deterministically testable.
+
+    /// The user's cadence choice; only `.auto` adapts to panel/menubar state.
+    private var pollSetting: PollInterval = Defaults.pollInterval
+    /// Whether the popover is on-screen (pushed by `PopoverContentView`'s lifecycle).
+    private var panelVisible = false
+    /// Whether the menubar shows a metric number (keeps a closed panel at 2 s, not 5 s).
+    private var menubarTextEnabled = Defaults.menubarTextEnabled
+    /// The cards currently shown. Providers feeding no shown (or menubar-needed) card drop
+    /// out of the poll. Seeded to every card so the filter is a no-op until a card is hidden
+    /// (issue 13's toggles) — never empty, which would skip every provider at launch.
+    private var shownCards = Set(CardKind.allCases)
+    /// Derived from `shownCards` (via the pure `activeProviders(shown:menubarNeeds:)`) — the
+    /// providers `pollOnce` actually reads.
+    private var activeProviderKinds = Set(ProviderKind.allCases)
+    /// Last value pushed to `tempGater.setEnabled`, to detect an off→on transition.
+    private var tempEnabled = true
+
     init(providers: [any MetricProvider],
-         clock: MonotonicClock = LiveClock(),
-         interval: Duration = .seconds(2)) {
+         clock: MonotonicClock = LiveClock()) {
         self.providers = providers
         self.memEnumerator = providers.compactMap { $0 as? ProcessEnumerating }.first
+        self.tempGater = providers.compactMap { $0 as? TemperatureGating }.first
         self.clock = clock
-        self.interval = interval
         self.states = Dictionary(uniqueKeysWithValues: ProviderKind.allCases.map { ($0, .loading) })
         self.history = Dictionary(uniqueKeysWithValues: CardKind.allCases.map { ($0, HistoryBuffer()) })
     }
 
     // MARK: Lifecycle
 
-    /// Fixed-interval polling (L8). Adaptive intervals, timer tolerance, QoS and
-    /// stop-on-close are issue 09 — this is the working baseline.
+    /// Adaptive-interval polling (issue 09). The interval is re-resolved every cycle from
+    /// the current panel / menubar / setting state (`currentInterval`), and a state change
+    /// reschedules at once (`reschedule`) so a freshly-opened panel doesn't wait out a 5 s
+    /// idle sleep. `tolerance` lets the OS coalesce wake-ups; `.utility` keeps the loop off
+    /// the high-priority lane. The loop polls first, so every (re)start yields an immediate
+    /// read.
     func start() {
         guard pollTask == nil else { return }
-        pollTask = Task { [weak self] in
+        pollTask = Task(priority: .utility) { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
                 await self.pollOnce()
-                try? await Task.sleep(for: self.interval)
+                let interval = self.currentInterval
+                try? await Task.sleep(for: interval, tolerance: interval / 5)
             }
         }
+    }
+
+    /// The interval for the next cycle, from the current policy state (pure `resolvePollInterval`).
+    private var currentInterval: Duration {
+        resolvePollInterval(setting: pollSetting,
+                            panelVisible: panelVisible,
+                            menubarTextEnabled: menubarTextEnabled)
     }
 
     func stop() {
@@ -72,11 +105,79 @@ final class SystemMonitor {
         }
     }
 
+    // MARK: Adaptive-poll control (issue 09)
+
+    // Pushed from the always-alive policy bridge (`PollPolicyBridge`) and the popover
+    // lifecycle. Cadence setters reschedule only on a real interval change; the
+    // visibility / gating setters are `async` so a test can `await` the gate to land
+    // before counting sensor I/O (no detached Task to race).
+
+    /// The popover opened/closed. For `.auto` this flips the cadence (open 1 s ⇄ closed
+    /// 2/5 s); the reschedule's entry poll gives a freshly-opened panel current data.
+    func setPanelVisible(_ visible: Bool) {
+        guard visible != panelVisible else { return }
+        let before = currentInterval
+        panelVisible = visible
+        if currentInterval != before { reschedule() }
+    }
+
+    /// The user picked a cadence in settings.
+    func setPollInterval(_ setting: PollInterval) {
+        guard setting != pollSetting else { return }
+        let before = currentInterval
+        pollSetting = setting
+        if currentInterval != before { reschedule() }
+    }
+
+    /// The menubar metric text was turned on/off — affects both the closed-panel cadence
+    /// and which providers the menubar needs (so it is a gating input too).
+    func setMenubarTextEnabled(_ enabled: Bool) async {
+        guard enabled != menubarTextEnabled else { return }
+        let before = currentInterval
+        menubarTextEnabled = enabled
+        await recomputeGating()
+        if currentInterval != before { reschedule() }
+    }
+
+    /// The set of shown cards changed (issue 13's visibility toggles). Re-derives the
+    /// active-provider set and the temperature CPU/GPU gate. Not a cadence input, so it
+    /// never reschedules — which is what keeps "card hidden ⇒ zero poll" deterministic.
+    func setShownCards(_ cards: Set<CardKind>) async {
+        guard cards != shownCards else { return }
+        shownCards = cards
+        await recomputeGating()
+    }
+
+    /// Recompute which providers to poll and whether the temperature SMC path is enabled,
+    /// then fire a single immediate poll iff something turned ON (a provider became active,
+    /// or CPU/GPU temp re-enabled), so a re-shown card fills without waiting a cycle.
+    /// Turning OFF polls nothing — the determinism the call-count test (issue 09 §수용) relies on.
+    private func recomputeGating() async {
+        let menubarNeeds: Set<CardKind> = menubarTextEnabled ? [.cpu] : []
+        let needed = activeProviders(shown: shownCards, menubarNeeds: menubarNeeds)
+        let newlyActivated = !needed.subtracting(activeProviderKinds).isEmpty
+        activeProviderKinds = needed
+
+        let neededCards = shownCards.union(menubarNeeds)
+        let want = neededCards.contains(.cpuTemp) || neededCards.contains(.gpuTemp)
+        let tempTurnedOn = want && !tempEnabled
+        tempEnabled = want
+        await tempGater?.setEnabled(want)
+
+        if newlyActivated || tempTurnedOn { await pollOnce() }
+    }
+
+    /// Restart the poll loop so a cadence change takes effect now (the loop polls on entry).
+    private func reschedule() {
+        stop()
+        start()
+    }
+
     // MARK: One poll cycle (called directly by tests — the seam)
 
     func pollOnce() async {
         let instant = clock.now()
-        for provider in providers {
+        for provider in providers where activeProviderKinds.contains(provider.kind) {
             let reading = await provider.read(at: instant)   // off-main hop
             apply(reading, from: provider.kind, at: instant) // back on MainActor
         }
