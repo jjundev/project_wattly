@@ -23,13 +23,17 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
             return .unavailable(.providerError("메모리 통계를 읽을 수 없음"))
         }
         let procs = enumerating ? Self.topMemoryProcesses(limit: 3) : []
+        // Kernel memory-pressure verdict — cheap scalar read every poll (no gating). nil on
+        // failure → the card falls back to the used% band (CardPresentation).
+        let pressure = Self.sysctlInt32("kern.memorystatus_vm_pressure_level").map(MemoryPressure.init(fromSysctl:))
         return .value(.memory(memorySample(
             active: UInt64(vm.active_count),
             wire: UInt64(vm.wire_count),
             compressor: UInt64(vm.compressor_page_count),
             pageSize: pageSize == 0 ? 16384 : pageSize,
             memsize: memsize,
-            processes: procs)))
+            processes: procs,
+            pressure: pressure)))
     }
 
     // MARK: VM statistics + constants (host_statistics64 fills a caller struct — no free)
@@ -54,6 +58,17 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
     private static func sysctlUInt64(_ name: String) -> UInt64? {
         var value: UInt64 = 0
         var size = MemoryLayout<UInt64>.size
+        guard sysctlbyname(name, &value, &size, nil, 0) == 0 else { return nil }
+        return value
+    }
+
+    /// Read a 4-byte `Int32` sysctl (e.g. `kern.memorystatus_vm_pressure_level`). A separate
+    /// helper from `sysctlUInt64` because that one passes an 8-byte buffer — wrong width for a
+    /// 32-bit sysctl. Size-probes first (mirrors `CPUProvider.sysctlInt`).
+    private static func sysctlInt32(_ name: String) -> Int32? {
+        var size = 0
+        guard sysctlbyname(name, nil, &size, nil, 0) == 0, size == MemoryLayout<Int32>.size else { return nil }
+        var value: Int32 = 0
         guard sysctlbyname(name, &value, &size, nil, 0) == 0 else { return nil }
         return value
     }

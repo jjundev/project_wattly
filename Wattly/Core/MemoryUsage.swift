@@ -6,6 +6,35 @@ import Foundation
 
 private let bytesPerGiB = 1024.0 * 1024.0 * 1024.0
 
+/// The kernel's own memory-pressure verdict (macOS "활성 상태 보기" 메모리 압력) — what
+/// Activity Monitor colors the pressure graph by, NOT raw occupancy. Sourced from
+/// `kern.memorystatus_vm_pressure_level`, whose values match `dispatch/source.h`'s
+/// `DISPATCH_MEMORYPRESSURE_*` (NORMAL 0x01 / WARN 0x02 / CRITICAL 0x04).
+enum MemoryPressure: Sendable, Equatable {
+    case normal, warn, critical
+
+    /// Map the raw sysctl int to a level. Defensive: 4→critical, 2→warn, anything else
+    /// (1 = NORMAL, 0, or an unknown future value) → normal.
+    init(fromSysctl raw: Int32) {
+        switch raw {
+        case 4: self = .critical
+        case 2: self = .warn
+        default: self = .normal
+        }
+    }
+
+    /// Pressure → the shared color band the sparkline/bars resolve. Keeps `MemoryPressure`
+    /// (a kernel fact) and `ThresholdLevel` (a presentation band) separate but trivially
+    /// aligned, so the memory card can color by pressure without a special case in the view.
+    var thresholdLevel: ThresholdLevel {
+        switch self {
+        case .normal: .normal
+        case .warn: .warn
+        case .critical: .crit
+        }
+    }
+}
+
 /// "Used" memory = (active + wired + compressed) pages × page size, in bytes
 /// (plan 05 §In-2 — matches the `HOST_VM_INFO64` fields the provider reads).
 func usedBytes(active: UInt64, wire: UInt64, compressor: UInt64, pageSize: UInt64) -> UInt64 {
@@ -17,13 +46,15 @@ func usedBytes(active: UInt64, wire: UInt64, compressor: UInt64, pageSize: UInt6
 /// (plan 05 §M5). The process list is reduced to the top-N here.
 func memorySample(active: UInt64, wire: UInt64, compressor: UInt64,
                   pageSize: UInt64, memsize: UInt64,
-                  processes: [ProcessUsage]) -> MemorySample {
+                  processes: [ProcessUsage],
+                  pressure: MemoryPressure? = nil) -> MemorySample {
     MemorySample(
         usedGB: Double(usedBytes(active: active, wire: wire, compressor: compressor, pageSize: pageSize)) / bytesPerGiB,
         totalGB: Double(memsize) / bytesPerGiB,
         wiredGB: Double(wire * pageSize) / bytesPerGiB,
         compressedGB: Double(compressor * pageSize) / bytesPerGiB,
-        processes: topProcesses(processes))
+        processes: topProcesses(processes),
+        pressure: pressure)
 }
 
 /// Top-N processes by physical footprint, descending (plan 05 §M8).
