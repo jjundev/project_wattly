@@ -18,9 +18,11 @@ struct MenuBarLabel: View {
     }
 
     private var cpuText: String {
-        if case .value(.cpu(let s)) = monitor.cardState(.cpu) {
-            return "CPU \(Int(s.overall.rounded()))%"
-        }
-        return "CPU —"
+        // Reuse the card's presentation rules (rounding/format) — the menubar just
+        // composes them into its compact form; "CPU 42%" / "CPU —" preserved.
+        let state = monitor.cardState(.cpu)
+        let d = CardPresentation.display(.cpu, state)
+        if case .value = state { return "\(d.label) \(d.valueText)\(d.unitText)" }
+        return "\(d.label) \(d.valueText)"
     }
 }

@@ -97,7 +97,7 @@ struct PopoverContentView: View {
                         state: smoothedState(for: card),
                         historyValues: smoothedHistory(for: card),
                         isExpanded: expanded.contains(card),
-                        onToggleExpand: (card == .cpu || card == .mem || card == .cpuTemp) ? { toggleExpand(card) } : nil
+                        onToggleExpand: card.isExpandable ? { toggleExpand(card) } : nil
                     )
                 }
             }
