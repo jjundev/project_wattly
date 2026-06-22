@@ -6,7 +6,7 @@ import Foundation
 /// desktop Macs alike (SoC-level, not battery-derived). Only the Sendable
 /// `PowerSample` crosses the actor boundary; the IOReport handles never leave the
 /// `IOReportEnergySubscription` wrapper. All arithmetic lives in pure `PowerEnergy`.
-actor PowerProvider: MetricProvider {
+actor PowerProvider: MetricProvider, ProcessEnumerating {
     let kind: ProviderKind = .power
 
     /// One-shot lazy setup (like `CPUProvider`'s topology). A nil subscription after
@@ -17,6 +17,13 @@ actor PowerProvider: MetricProvider {
     /// plain Sendable values — no Core Foundation object lives across polls.
     private var prev: [String: Double]?
     private var prevInstant: ContinuousClock.Instant?
+
+    /// Per-app power (issue 16 follow-up). Swept ONLY while the power card's expand is
+    /// on-screen (gated like `MemoryProvider`'s Top-3), so the routine poll stays cheap.
+    /// Prev per-pid energy snapshot (nanojoules) + its instant; nil ⇒ baseline only.
+    private var enumerating = false
+    private var prevProcEnergy: [Int32: UInt64]?
+    private var prevProcInstant: ContinuousClock.Instant?
 
     /// Above this the reading is implausible (unit-decode error or a transient
     /// spike) → re-baseline rather than emit. Generous enough never to reject a real
@@ -30,6 +37,13 @@ actor PowerProvider: MetricProvider {
     /// Matches the existing copy in `MetricState`/`FakeProvider` (the orange card).
     static let unreadableMessage =
         "Energy Model 그룹을 읽을 수 없음 — 이 macOS에서 채널이 바뀌었을 수 있습니다."
+
+    /// Gate the per-app power sweep to when the power card's expand is visible (issue 16
+    /// follow-up). Clearing the baseline on disable means a re-open re-baselines cleanly.
+    func setEnumerating(_ enabled: Bool) {
+        enumerating = enabled
+        if !enabled { prevProcEnergy = nil; prevProcInstant = nil }
+    }
 
     func read(at instant: ContinuousClock.Instant) async -> ProviderReading {
         if !setupAttempted {
@@ -49,16 +63,68 @@ actor PowerProvider: MetricProvider {
         if dt <= 0 || dt > Self.maxPlausibleDt || hasCounterReset(prev: prev, curr: curr) {
             return .pending                                  // anomaly → drop interval, re-baseline
         }
-        let sample = powerSample(prev: prev, curr: curr, dt: dt)
+        var sample = powerSample(prev: prev, curr: curr, dt: dt)
         guard sample.totalW.isFinite, sample.totalW <= Self.sanityCeilingW else {
             return .pending                                  // implausible → re-baseline
         }
+        sample.processes = enumerating ? processPower(at: instant) : nil
         return .value(.power(sample))
     }
 
     private static func seconds(from a: ContinuousClock.Instant, to b: ContinuousClock.Instant) -> Double {
         let d = a.duration(to: b)
         return Double(d.components.seconds) + Double(d.components.attoseconds) * 1e-18
+    }
+
+    // MARK: Per-app power (issue 16 follow-up) — gated per-pid energy sweep
+
+    /// Top-3 power-consuming APPS, or nil when not yet measurable (the first sweep after
+    /// enable has no delta, or a dt anomaly → re-baseline + "측정 중…"). `[]` = measured but
+    /// nothing readable consuming. Per-pid watts are coalesced into the owning `.app` so an
+    /// Electron app's helpers (Claude, Chrome, …) sum into one row instead of each being
+    /// buried. The executable path is resolved only for CONSUMING pids (positive delta —
+    /// dozens, not all ~560), keeping the per-poll cost bounded.
+    private func processPower(at instant: ContinuousClock.Instant) -> [ProcessPower]? {
+        let curr = Self.currentProcessEnergies()
+        defer { prevProcEnergy = curr; prevProcInstant = instant }
+        guard let prevE = prevProcEnergy, let prevI = prevProcInstant else { return nil }
+        let dt = Self.seconds(from: prevI, to: instant)
+        guard dt > 0, dt <= Self.maxPlausibleDt else { return nil }   // gap → re-baseline
+
+        let perPid = processWatts(prev: prevE, curr: curr, dt: dt)
+        var appKey: [Int32: String] = [:]
+        appKey.reserveCapacity(perPid.count)
+        for (pid, _) in perPid {
+            appKey[pid] = appBundlePath(forExecutable: pidPath(pid)) ?? "PID \(pid)"
+        }
+        return topAppPower(perPidWatts: perPid, appKey: appKey, limit: 3).map { group in
+            ProcessPower(id: group.key,
+                         name: appDisplayName(forKey: group.key),
+                         watts: group.watts,
+                         iconPath: group.key.hasPrefix("/") ? group.key : nil)
+        }
+    }
+
+    /// Absolute per-pid energy (nanojoules) for every readable pid, from `ri_energy_nj`.
+    /// Own-user pids only — others return a nonzero rc and are skipped (≈75% readable).
+    private static func currentProcessEnergies() -> [Int32: UInt64] {
+        let pids = listPIDs()
+        var out: [Int32: UInt64] = [:]
+        out.reserveCapacity(pids.count)
+        for pid in pids where pid > 0 {
+            if let nj = procEnergyNanojoules(pid) { out[pid] = nj }
+        }
+        return out
+    }
+
+    private static func procEnergyNanojoules(_ pid: Int32) -> UInt64? {
+        var info = rusage_info_v6()
+        let rc = withUnsafeMutablePointer(to: &info) { ptr -> Int32 in
+            ptr.withMemoryRebound(to: rusage_info_t?.self, capacity: 1) {
+                proc_pid_rusage(pid, RUSAGE_INFO_V6, $0)
+            }
+        }
+        return rc == 0 ? info.ri_energy_nj : nil
     }
 }
 

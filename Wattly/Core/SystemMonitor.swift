@@ -21,16 +21,31 @@ final class SystemMonitor {
     private(set) var powerOverlay = SmoothingOverlay<PowerSample>()
     private(set) var batteryOverlay = SmoothingOverlay<BatterySample>()
 
+    /// Wattly's own EMA-smoothed power draw in watts (issue 16), or nil until the first
+    /// valid interval (the settings footer shows "—"). Doubles as the EMA's previous
+    /// value, so it is never blanked by a transient anomaly — only the cold start is nil.
+    private(set) var selfPower: Double?
+
     private let providers: [any MetricProvider]
-    /// The provider (if any) that supports on-demand process enumeration — the
-    /// memory provider (issue 05 §M18). Extracted once at init.
+    /// The providers (if any) that support on-demand process enumeration — the memory
+    /// provider's Top-3 (issue 05 §M18) and the power provider's per-app Top-3 (issue 16
+    /// follow-up). Extracted once at init BY KIND: both conform to `ProcessEnumerating`, so
+    /// a `.first` extraction would always pick memory (it precedes power in `allCases`) and
+    /// the power gate would be wired to nil — each must be looked up by its own kind.
     private let memEnumerator: (any ProcessEnumerating)?
+    private let powerEnumerator: (any ProcessEnumerating)?
     /// The provider (if any) whose sensor I/O can be gated when its cards are hidden — the
     /// temperature provider (issue 08 supplies the `setEnabled` hook; issue 09 decides when
     /// to call it). Extracted once at init, mirroring `memEnumerator`.
     private let tempGater: (any TemperatureGating)?
     private let clock: MonotonicClock
     private var pollTask: Task<Void, Never>?
+
+    /// Self-power measurement state (issue 16). The injected energy source plus the prior
+    /// nanojoule counter + its instant; `sampleSelfPower` diffs them into `selfPower`.
+    private let selfEnergy: any SelfEnergySampling
+    private var prevSelfNJ: UInt64?
+    private var prevSelfInstant: ContinuousClock.Instant?
 
     // MARK: Adaptive-poll policy (issue 09) — pushed in from the views, never read from
     // `UserDefaults` here, so the cadence and gating stay deterministically testable.
@@ -58,11 +73,14 @@ final class SystemMonitor {
     private var tempEnabled = true
 
     init(providers: [any MetricProvider],
-         clock: MonotonicClock = LiveClock()) {
+         clock: MonotonicClock = LiveClock(),
+         selfEnergy: any SelfEnergySampling = LiveSelfEnergy()) {
         self.providers = providers
-        self.memEnumerator = providers.compactMap { $0 as? ProcessEnumerating }.first
+        self.memEnumerator = providers.first { $0.kind == .memory } as? ProcessEnumerating
+        self.powerEnumerator = providers.first { $0.kind == .power } as? ProcessEnumerating
         self.tempGater = providers.compactMap { $0 as? TemperatureGating }.first
         self.clock = clock
+        self.selfEnergy = selfEnergy
         self.states = Dictionary(uniqueKeysWithValues: ProviderKind.allCases.map { ($0, .loading) })
         self.history = Dictionary(uniqueKeysWithValues: CardKind.allCases.map { ($0, HistoryBuffer()) })
     }
@@ -81,6 +99,10 @@ final class SystemMonitor {
             while !Task.isCancelled {
                 guard let self else { return }
                 await self.pollOnce()
+                // Self-power (issue 16) is sampled here, on the timer cadence only — NOT
+                // inside `pollOnce`, whose 3 out-of-band callers would otherwise inject
+                // spurious sub-interval-dt samples.
+                self.sampleSelfPower(at: self.clock.now())
                 let interval = self.currentInterval
                 try? await Task.sleep(for: interval, tolerance: interval / 5)
             }
@@ -107,6 +129,18 @@ final class SystemMonitor {
         guard let memEnumerator else { return }
         Task { [weak self] in
             await memEnumerator.setEnumerating(on)
+            if on { await self?.pollOnce() }
+        }
+    }
+
+    /// Enable/disable per-app power enumeration on the power provider (issue 16 follow-up).
+    /// The popover calls this when the power card's expand appears/disappears. Mirrors
+    /// `setMemoryProcessEnumeration`: enabling fires an immediate poll to baseline at once
+    /// (per-app watts then appear on the next interval, the energy counter being cumulative).
+    func setPowerProcessEnumeration(_ on: Bool) {
+        guard let powerEnumerator else { return }
+        Task { [weak self] in
+            await powerEnumerator.setEnumerating(on)
             if on { await self?.pollOnce() }
         }
     }
@@ -188,6 +222,28 @@ final class SystemMonitor {
     private func reschedule() {
         stop()
         start()
+    }
+
+    // MARK: Self-power (issue 16) — called by the timer loop, and directly by tests
+
+    /// Diff the per-process energy counter into `selfPower` (EMA-smoothed watts). Driven by
+    /// the timer loop on its cadence; tests call it directly with a `ManualClock` + a fake
+    /// `SelfEnergySampling`, exactly as they drive `pollOnce`. On the first sample (or an
+    /// anomaly — gap / counter reset) it only re-baselines and leaves the displayed value
+    /// untouched, so a transient never blanks a working footer.
+    func sampleSelfPower(at instant: ContinuousClock.Instant) {
+        guard let curr = selfEnergy.energyNanojoules() else { return }   // unreadable → keep last
+        defer { prevSelfNJ = curr; prevSelfInstant = instant }          // re-baseline on every kept path
+        guard let prevNJ = prevSelfNJ, let prevInstant = prevSelfInstant else { return }  // first sample
+        let dt = Self.seconds(from: prevInstant, to: instant)
+        guard let raw = SelfPower.watts(prevNanojoules: prevNJ, currNanojoules: curr, dt: dt) else { return }
+        // selfPower is its own EMA previous → cold start (nil) re-seeds to raw, then blends.
+        selfPower = PowerSmoothing.emaStep(previous: selfPower, raw: raw, dt: dt)
+    }
+
+    private static func seconds(from a: ContinuousClock.Instant, to b: ContinuousClock.Instant) -> Double {
+        let d = a.duration(to: b)
+        return Double(d.components.seconds) + Double(d.components.attoseconds) * 1e-18
     }
 
     // MARK: One poll cycle (called directly by tests — the seam)

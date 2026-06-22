@@ -58,6 +58,32 @@ struct PowerSample: Sendable, Equatable {
     var cpuW: Double
     var gpuW: Double
     var npuW: Double   // Apple Neural Engine; sourced from the HW "ANE" energy channel
+    /// Top power-consuming processes (issue 16 follow-up). Three-state:
+    /// `nil` = not measured this poll (card not expanded, OR the first sweep after expand
+    /// has no delta yet / a dt anomaly → "측정 중…"); `[]` = measured but no readable
+    /// consuming process → "프로세스를 읽을 수 없음"; non-empty = the Top-N rows. Carried
+    /// through display smoothing UNCHANGED (smoothing damps only the headline watts).
+    /// MUST stay `Equatable` — the `MetricSample`/`MetricState` chain synthesises through it.
+    var processes: [ProcessPower]? = nil
+}
+
+/// One APP row in the power card's expand (issue 16 follow-up). `watts` is the app's
+/// summed per-process average power over the last interval, from `ri_energy_nj` deltas
+/// coalesced across helper pids by their owning `.app` (Electron apps like Claude/Chrome
+/// fragment across helpers — per-pid would bury them). CPU+GPU compute energy only — ANE is
+/// not attributed per-process, and only readable apps are counted, so these rows don't sum
+/// to the card's Combined headline. `id` is the coalescing key (the `.app` bundle path, or
+/// a per-pid fallback for non-app processes), which is also the icon path.
+struct ProcessPower: Sendable, Equatable, Identifiable {
+    /// Coalescing key — the `.app` bundle path (or a per-pid fallback). Stable across polls
+    /// for SwiftUI diffing, and the path `NSWorkspace` resolves the icon from.
+    var id: String
+    var name: String
+    var watts: Double
+    /// App-bundle (or executable) path for the row icon — usually the same as `id`. A
+    /// `String` (not `NSImage`) so the sample stays `Sendable`; the view turns it into an
+    /// icon with `NSWorkspace`. nil → no icon (a per-pid fallback group).
+    var iconPath: String? = nil
 }
 
 struct BatterySample: Sendable, Equatable {

@@ -165,6 +165,11 @@ enum CardPresentation {
         String(format: "%.1f GB", Double(bytes) / (1024.0 * 1024.0 * 1024.0))
     }
 
+    /// Watts → "X.XX W" for the power card's per-app rows (issue 16 follow-up). 2 decimals:
+    /// per-app watts are small (sub-watt to a few W), so the headline's 1-decimal `f1`
+    /// would lose resolution.
+    static func wattText(_ watts: Double) -> String { String(format: "%.2f W", watts) }
+
     /// Bar fill fraction on the fixed 0–110 °C display scale (issue 08 §8). Clamped.
     static func tempBarFraction(_ celsius: Double) -> Double {
         min(1, max(0, celsius / 110.0))
