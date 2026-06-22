@@ -39,6 +39,38 @@ enum CardPresentation {
                     tint: card.isAccented ? .accent : .neutral)
     }
 
+    /// Warn/crit color level for a card's current value, or `nil` when the card is
+    /// threshold-free (processor power = accent, battery = neutral) or has no value
+    /// (loading/unavailable). The view resolves the level to status tokens and applies it
+    /// to the **sparkline + memory process bars only** — the headline `valueColor` keeps
+    /// its neutral/accent color, matching the prototype (which colors only the spark).
+    ///
+    /// Memory compares **used%** (`usedGB/totalGB*100`, the prototype `memPct`), not the GB
+    /// the headline shows; the mem sparkline series itself stays in GB. Temperature compares
+    /// the category **average** (`celsius`) — the same number the card displays (the
+    /// prototype fed the max; the average is the steadier, self-consistent input). The three
+    /// temperature cards share the one `thresholds.temp` pair (prototype lines 616–620).
+    static func thresholdLevel(_ card: CardKind, _ state: MetricState, _ thresholds: Thresholds) -> ThresholdLevel? {
+        guard case .value(let sample) = state else { return nil }
+        switch (card, sample) {
+        case (.cpu, .cpu(let s)):
+            return thresholds.cpu.level(s.overall)
+        case (.mem, .memory(let s)):
+            let pct = s.totalGB > 0 ? s.usedGB / s.totalGB * 100 : 0
+            return thresholds.mem.level(pct)
+        case (.cpuTemp, .temperature(let s)): return tempLevel(s.cpu, thresholds.temp)
+        case (.gpuTemp, .temperature(let s)): return tempLevel(s.gpu, thresholds.temp)
+        case (.batTemp, .temperature(let s)): return tempLevel(s.battery, thresholds.temp)
+        default: return nil   // power/battery (fixed) + any state/sample mismatch
+        }
+    }
+
+    /// A temperature category's level, or `nil` when it isn't a live reading.
+    private static func tempLevel(_ c: CategoryReading, _ pair: ThresholdPair) -> ThresholdLevel? {
+        if case .reading(let r) = c { return pair.level(r.celsius) }
+        return nil
+    }
+
     /// Header label. Shared with the in-view unavailable cards, which keep their own
     /// layout but the same copy.
     static func label(_ card: CardKind) -> String {

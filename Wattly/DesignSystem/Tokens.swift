@@ -81,6 +81,29 @@ extension Tokens {
     )
 }
 
+// MARK: - Threshold level → status colors (issue 10)
+
+extension ThresholdLevel {
+    /// Sparkline stroke for this level — the theme-independent status tokens (prototype
+    /// `pickColor`). Applied to the sparkline and, via `sparkStroke`, the memory process bars.
+    var stroke: Color {
+        switch self {
+        case .normal: Tokens.statusGreen
+        case .warn: Tokens.statusOrange
+        case .crit: Tokens.statusRed
+        }
+    }
+
+    /// Sparkline area fill for this level — the same hue at 12% (prototype `pickColor`).
+    var fill: Color {
+        switch self {
+        case .normal: .rgba(0, 191, 64, 0.12)
+        case .warn: .rgba(255, 146, 0, 0.12)
+        case .crit: .rgba(255, 66, 66, 0.12)
+        }
+    }
+}
+
 // MARK: - Environment injection
 
 private struct TokensKey: EnvironmentKey {

@@ -62,6 +62,54 @@ struct Thresholds: Equatable, Sendable, RawRepresentable {
     }
 }
 
+// MARK: - Threshold level (warn/crit classification)
+
+/// Which band a metric value falls in, given its `ThresholdPair`. A pure semantic role
+/// (no `Color`) — the view resolves it to status tokens, mirroring `CardDisplay.Tint`.
+enum ThresholdLevel: String, CaseIterable, Sendable, Equatable {
+    case normal, warn, crit
+
+    /// Color-independent severity word for the non-color accessibility channel (issue 10
+    /// §5; full VoiceOver copy is issue 15). `nil` for `.normal` — nothing to announce.
+    var stateWord: String? {
+        switch self {
+        case .normal: nil
+        case .warn: "주의"
+        case .crit: "위험"
+        }
+    }
+}
+
+extension ThresholdPair {
+    /// Which control a slider edits — drives the clamp direction (issue 10 §6).
+    enum Control { case warn, crit }
+
+    /// Classify a value: `v >= crit` → `.crit`, `v >= warn` → `.warn`, else `.normal`
+    /// (inclusive, verbatim from the prototype `pickColor`).
+    func level(_ v: Double) -> ThresholdLevel {
+        if v >= crit { return .crit }
+        if v >= warn { return .warn }
+        return .normal
+    }
+
+    /// Apply a slider edit with the prototype's clamp (`setThreshold`): the edited control
+    /// is authoritative and drags the other so `warn <= crit` always holds. Values round to
+    /// whole numbers (the sliders step by 1).
+    func setting(_ control: Control, to value: Double) -> ThresholdPair {
+        let v = value.rounded()
+        var p = self
+        switch control {
+        case .warn:
+            p.warn = v
+            if p.warn > p.crit { p.crit = p.warn }
+        case .crit:
+            p.crit = v
+            if p.crit < p.warn { p.warn = p.crit }
+        }
+        return p
+    }
+}
+
 // MARK: - Card order
 
 /// `@AppStorage`-storable card order, persisted as a comma-separated list of card
