@@ -13,24 +13,13 @@ final class SystemMonitor {
     /// `historyValues(for:smoothed:)`, never the dict directly.
     private var history: [CardKind: HistoryBuffer]
 
-    /// Display-smoothed SoC power (EMA of the raw `.power` sample). The raw sample
-    /// still lives in `states[.power]`/`history[.power]`; this is a *presentation*
-    /// overlay so the headline reads as steady as MX Power Gadget's moving average,
-    /// without touching the (exact) measurement. nil until the first power value.
-    private(set) var smoothedPower: PowerSample?
-    private var smoothedPowerInstant: ContinuousClock.Instant?
-    /// Sparkline series for the smoothed total — parallel to the raw `history[.power]`,
-    /// so the graph can show either (user-selectable) and the headline matches whichever.
-    private(set) var smoothedPowerHistory = HistoryBuffer()
-
-    /// Same display-smoothing for the battery card's net watts: the charge % drains at
-    /// the *average* power, so a spiky raw watt misleads. Only `netW` (and its derived
-    /// mA / charge direction) is smoothed; `externalConnected` is a discrete state and
-    /// is taken from the raw sample. Reset across a plug/unplug so charge and discharge
-    /// never blend (mirrors the raw `history[.battery]` reset).
-    private(set) var smoothedBattery: BatterySample?
-    private var smoothedBatteryInstant: ContinuousClock.Instant?
-    private(set) var smoothedBatteryHistory = HistoryBuffer()
+    /// Display-smoothing overlays for the two smoothable cards. Each holds the
+    /// EMA-smoothed sample + its sparkline series, kept parallel to the raw
+    /// `states`/`history` so the headline reads as steady as MX Power Gadget's moving
+    /// average without touching the (exact) measurement. Value types, so each
+    /// `ingest`/`reset` is a tracked `@Observable` write (see `SmoothingOverlay`).
+    private(set) var powerOverlay = SmoothingOverlay<PowerSample>()
+    private(set) var batteryOverlay = SmoothingOverlay<BatterySample>()
 
     private let providers: [any MetricProvider]
     /// The provider (if any) that supports on-demand process enumeration — the
@@ -115,36 +104,29 @@ final class SystemMonitor {
     private func recordHistory(for kind: ProviderKind, sample: MetricSample, at instant: ContinuousClock.Instant) {
         if case .battery(let s) = sample {
             if let last = lastExternalConnected, last != s.externalConnected {
-                history[.battery] = HistoryBuffer()      // adapter plugged/unplugged → fresh graph
-                smoothedBattery = nil                    // …and restart smoothing: don't blend regimes
-                smoothedBatteryInstant = nil
-                smoothedBatteryHistory = HistoryBuffer()
+                history[.battery] = HistoryBuffer()      // adapter plugged/unplugged → fresh raw graph
+                batteryOverlay.reset()                   // …and restart smoothing: don't blend regimes
             }
             lastExternalConnected = s.externalConnected
-
-            let dt = smoothedBatteryInstant.map { Self.seconds(from: $0, to: instant) } ?? 0
-            let netW = PowerSmoothing.emaStep(previous: smoothedBattery?.netW, raw: s.netW, dt: dt)
-            smoothedBattery = Self.batterySmoothed(from: s, netW: netW)
-            smoothedBatteryInstant = instant
-            smoothedBatteryHistory.append(netW, at: instant)
+            // Smooth only netW, then re-derive mA + charge direction from it (so the value,
+            // the mA, and the 충전/방전 label never disagree). Policy stays here, by the card.
+            batteryOverlay.ingest(at: instant,
+                smooth: { previous, dt in
+                    let netW = PowerSmoothing.emaStep(previous: previous?.netW, raw: s.netW, dt: dt)
+                    return Self.batterySmoothed(from: s, netW: netW)
+                },
+                series: \.netW)
         }
         if case .power(let s) = sample {
-            let dt = smoothedPowerInstant.map { Self.seconds(from: $0, to: instant) } ?? 0
-            let smoothed = PowerSmoothing.step(previous: smoothedPower, raw: s, dt: dt)
-            smoothedPower = smoothed
-            smoothedPowerInstant = instant
-            smoothedPowerHistory.append(smoothed.totalW, at: instant)
+            powerOverlay.ingest(at: instant,
+                smooth: { previous, dt in PowerSmoothing.step(previous: previous, raw: s, dt: dt) },
+                series: \.totalW)
         }
         for card in CardKind.allCases where card.provider == kind {
             if let scalar = Self.scalar(of: card, from: sample) {
                 history[card, default: HistoryBuffer()].append(scalar, at: instant)
             }
         }
-    }
-
-    private static func seconds(from a: ContinuousClock.Instant, to b: ContinuousClock.Instant) -> Double {
-        let d = a.duration(to: b)
-        return Double(d.components.seconds) + Double(d.components.attoseconds) * 1e-18
     }
 
     /// A battery sample whose displayed fields are all consistent with the smoothed
@@ -182,10 +164,10 @@ final class SystemMonitor {
         guard smoothed, card.isSmoothable else { return raw }
         switch card {
         case .power:
-            guard case .value(.power) = raw, let s = smoothedPower else { return raw }
+            guard case .value(.power) = raw, let s = powerOverlay.sample else { return raw }
             return .value(.power(s))
         case .battery:
-            guard case .value(.battery) = raw, let s = smoothedBattery else { return raw }
+            guard case .value(.battery) = raw, let s = batteryOverlay.sample else { return raw }
             return .value(.battery(s))
         default:
             return raw
@@ -198,8 +180,8 @@ final class SystemMonitor {
     func historyValues(for card: CardKind, smoothed: Bool) -> [Double] {
         if smoothed, card.isSmoothable {
             switch card {
-            case .power: return smoothedPowerHistory.values
-            case .battery: return smoothedBatteryHistory.values
+            case .power: return powerOverlay.history.values
+            case .battery: return batteryOverlay.history.values
             default: break
             }
         }
