@@ -37,5 +37,8 @@ struct WattlyApp: App {
                 SettingsView()
             }
         }
+        // Lock the prefs window to its 440-wide content (issue 13 §1) — a Settings NSWindow
+        // is user-resizable by default, which would break the fixed-width layout.
+        .windowResizability(.contentSize)
     }
 }

@@ -36,6 +36,21 @@ struct ThresholdTests {
         #expect(CardPresentation.thresholdLevel(.mem, mem(used: 14, total: 16), th) == .crit)   // 87.5%
     }
 
+    @Test func thresholdsEqualityIsMemberwiseNotRawValue() {
+        // Regression (issue 13): `Thresholds` is RawRepresentable, so without an explicit `==`
+        // it compares its JSON `rawValue` — whose dictionary key order is non-deterministic —
+        // and two value-equal thresholds compare unequal almost every time. A round-trip must
+        // stay equal regardless of how the rawValue's keys happened to be ordered.
+        for _ in 0..<200 {
+            let decoded = Thresholds(rawValue: Defaults.thresholds.rawValue)
+            #expect(decoded == Defaults.thresholds)
+        }
+        // A genuine value difference must still register as unequal.
+        var changed = Defaults.thresholds
+        changed.cpu.warn += 1
+        #expect(changed != Defaults.thresholds)
+    }
+
     @Test func memoryZeroTotalIsNormalNotNil() {
         // A value with totalGB=0 is still a value → 0%, not nil (nil is reserved for no-value).
         #expect(CardPresentation.thresholdLevel(.mem, mem(used: 5, total: 0), Defaults.thresholds) == .normal)

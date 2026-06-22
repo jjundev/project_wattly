@@ -42,6 +42,18 @@ struct PopoverContentView: View {
     // a sorted CSV of card raw values. Shared by CPU and memory expand state.
     @AppStorage(StorageKey.expandedCards) private var expandedRaw = ""
 
+    // Per-card visibility (issue 13). Observed as `@AppStorage` (NOT read straight from
+    // `UserDefaults`) so a settings-toggle write re-renders `visibleCards` live while the
+    // popover is open — otherwise the panel would only pick up the change on its next open
+    // (grill F1). Mirrors `PollPolicyBridge`'s set; gating still flows through that bridge.
+    @AppStorage(StorageKey.show(.power))   private var showPower   = Defaults.show[.power]   ?? true
+    @AppStorage(StorageKey.show(.battery)) private var showBattery = Defaults.show[.battery] ?? true
+    @AppStorage(StorageKey.show(.cpu))     private var showCPU     = Defaults.show[.cpu]     ?? true
+    @AppStorage(StorageKey.show(.mem))     private var showMem     = Defaults.show[.mem]     ?? true
+    @AppStorage(StorageKey.show(.cpuTemp)) private var showCpuTemp = Defaults.show[.cpuTemp] ?? true
+    @AppStorage(StorageKey.show(.gpuTemp)) private var showGpuTemp = Defaults.show[.gpuTemp] ?? true
+    @AppStorage(StorageKey.show(.batTemp)) private var showBatTemp = Defaults.show[.batTemp] ?? true
+
     private var expanded: Set<CardKind> {
         Set(expandedRaw.split(separator: ",").compactMap { CardKind(rawValue: String($0)) })
     }
@@ -284,7 +296,15 @@ struct PopoverContentView: View {
     }
 
     private func isShown(_ card: CardKind) -> Bool {
-        UserDefaults.standard.object(forKey: StorageKey.show(card)) as? Bool ?? (Defaults.show[card] ?? true)
+        switch card {
+        case .power: showPower
+        case .battery: showBattery
+        case .cpu: showCPU
+        case .mem: showMem
+        case .cpuTemp: showCpuTemp
+        case .gpuTemp: showGpuTemp
+        case .batTemp: showBatTemp
+        }
     }
 
     private func toggleExpand(_ card: CardKind) {

@@ -60,6 +60,14 @@ struct Thresholds: Equatable, Sendable, RawRepresentable {
               let s = String(data: data, encoding: .utf8) else { return "{}" }
         return s
     }
+
+    /// Explicit memberwise equality. Without this, `==` resolves to a `rawValue`-string
+    /// comparison (the `RawRepresentable` path), and `rawValue`'s JSON dictionary has a
+    /// non-deterministic key order — so two value-equal `Thresholds` compare unequal almost
+    /// every time. Compare the pairs directly instead.
+    static func == (lhs: Thresholds, rhs: Thresholds) -> Bool {
+        lhs.cpu == rhs.cpu && lhs.mem == rhs.mem && lhs.temp == rhs.temp
+    }
 }
 
 // MARK: - Threshold level (warn/crit classification)
