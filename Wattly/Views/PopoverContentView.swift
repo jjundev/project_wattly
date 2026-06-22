@@ -101,6 +101,9 @@ struct PopoverContentView: View {
                 StatusDot(color: monitor.aggregateHealthy ? Tokens.statusGreen : Tokens.statusOrange)
                     .padding(.leading, 1)
             }
+            // The status dot is color-only; speak the aggregate health for VoiceOver (issue 15 §5).
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Wattly, " + (monitor.aggregateHealthy ? "정상" : "주의"))
             Spacer(minLength: 8)
             HStack(spacing: 2) {
                 iconButton("pencil", active: editMode, activeColor: Tokens.accent,
@@ -127,6 +130,8 @@ struct PopoverContentView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(system == "pencil" ? "편집" : "설정")
+        // The pencil is a toggle (edit mode); speak its on/off state (issue 15 §5).
+        .accessibilityValue(system == "pencil" ? (active ? "켜짐" : "꺼짐") : "")
     }
 
     /// Open (or focus) the settings window AND raise it above other apps. In an

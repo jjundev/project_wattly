@@ -36,7 +36,23 @@ struct MenuBarLabel: View {
                     .monospacedDigit()
             }
         }
-        .accessibilityLabel("Wattly" + (label.map { " · " + $0 } ?? ""))
+        // a11y label is computed from the selection REGARDLESS of `textEnabled` (issue 15 §1):
+        // a VoiceOver user hears the selected metrics even when the visible text is off; an
+        // empty selection reads just "Wattly" (decision A). Reuses the #14 assembler so the
+        // spoken copy matches the menubar text exactly.
+        // NOTE: MenuBarExtra renders this label as an NSStatusItem, so this SwiftUI
+        // `.accessibilityLabel` may not surface to VoiceOver — verify on-device; if it does
+        // not announce, set the status button's accessibility label via AppKit (issue 15 §메모).
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    /// The VoiceOver label for the status item — selected metrics in canonical order, always
+    /// assembled (unlike `assembled`, which gates on `textEnabled`). "Wattly" when nothing is
+    /// selected (decision A).
+    private var accessibilityLabel: String {
+        let states = Dictionary(uniqueKeysWithValues:
+            selected.map { ($0, monitor.cardState($0, smoothed: powerSmoothed)) })
+        return Accessibility.menuBarLabel(selected: selected, states: states)
     }
 
     /// The composed menubar string, or nil → icon only (text off, or no metric selected).

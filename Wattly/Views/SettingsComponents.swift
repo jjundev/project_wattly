@@ -6,6 +6,25 @@ import SwiftUI
 /// which is the scheme `ThemedRoot` has already forced — so `light`/`dark`/`system` all
 /// resolve correctly here.
 
+// MARK: - Focus ring (DS README §148, issue 15 §5)
+
+extension View {
+    /// The DS keyboard-focus ring: a 2px accent stroke offset 2px from the surface, shown
+    /// while this control holds focus. `.focusEffectDisabled()` suppresses the default system
+    /// ring so only ours draws. NOTE: macOS gates Tab focus to non-text controls behind
+    /// System Settings › Keyboard › "Keyboard Navigation", so the ring is visible only while
+    /// that setting is on (issue 15 수용 기준). VoiceOver reachability is independent of it.
+    func wattlyFocusRing(_ focused: Bool, cornerRadius: CGFloat) -> some View {
+        overlay(
+            RoundedRectangle(cornerRadius: cornerRadius + 2, style: .continuous)
+                .strokeBorder(Tokens.accent, lineWidth: 2)
+                .padding(-2)
+                .opacity(focused ? 1 : 0)
+        )
+        .focusEffectDisabled()
+    }
+}
+
 // MARK: - Theme-dependent chrome colors (prototype `sw`/`seg`)
 
 private extension ColorScheme {
@@ -32,6 +51,7 @@ private extension ColorScheme {
 struct WattlyToggle: View {
     @Binding var isOn: Bool
     @Environment(\.colorScheme) private var scheme
+    @FocusState private var focused: Bool
 
     var body: some View {
         ZStack(alignment: isOn ? .trailing : .leading) {
@@ -46,10 +66,18 @@ struct WattlyToggle: View {
         }
         .frame(width: 38, height: 22)
         .contentShape(Rectangle())
-        .onTapGesture { withAnimation(.easeOut(duration: 0.16)) { isOn.toggle() } }
-        .accessibilityElement()
-        .accessibilityAddTraits(isOn ? [.isButton, .isSelected] : .isButton)
+        .onTapGesture { toggle() }
+        .focusable()
+        .focused($focused)
+        .onKeyPress(.space) { toggle(); return .handled }
+        .onKeyPress(.return) { toggle(); return .handled }
+        .wattlyFocusRing(focused, cornerRadius: 11)
+        // The combined `SettingsToggleRow` owns the VoiceOver element (label + 켜짐/꺼짐 +
+        // actuation, issue 15 §11) — the bare switch is hidden so it isn't a duplicate stop.
+        .accessibilityHidden(true)
     }
+
+    private func toggle() { withAnimation(.easeOut(duration: 0.16)) { isOn.toggle() } }
 }
 
 // MARK: - Segmented control (single-select pills on a track)
@@ -61,6 +89,7 @@ struct WattlySegment<T: Hashable>: View {
     var pillVPadding: CGFloat = 7
     @Environment(\.colorScheme) private var scheme
     @Environment(\.tokens) private var t
+    @FocusState private var focusedValue: T?
 
     var body: some View {
         HStack(spacing: 4) {
@@ -86,6 +115,11 @@ struct WattlySegment<T: Hashable>: View {
             )
             .contentShape(Rectangle())
             .onTapGesture { selection = value }
+            .focusable()
+            .focused($focusedValue, equals: value)
+            .onKeyPress(.space) { selection = value; return .handled }
+            .onKeyPress(.return) { selection = value; return .handled }
+            .wattlyFocusRing(focusedValue == value, cornerRadius: 6)
             .accessibilityAddTraits(active ? [.isButton, .isSelected] : .isButton)
     }
 }
@@ -98,6 +132,7 @@ struct WattlyChip: View {
     let action: () -> Void
     @Environment(\.colorScheme) private var scheme
     @Environment(\.tokens) private var t
+    @FocusState private var focused: Bool
 
     var body: some View {
         Text(label)
@@ -112,6 +147,11 @@ struct WattlyChip: View {
             )
             .contentShape(Rectangle())
             .onTapGesture(perform: action)
+            .focusable()
+            .focused($focused)
+            .onKeyPress(.space) { action(); return .handled }
+            .onKeyPress(.return) { action(); return .handled }
+            .wattlyFocusRing(focused, cornerRadius: 6)
             .accessibilityAddTraits(isOn ? [.isButton, .isSelected] : .isButton)
     }
 }
@@ -169,6 +209,13 @@ struct SettingsToggleRow<Label: View>: View {
                 Rectangle().fill(t.line).frame(height: 1)
             }
         }
+        // One combined VoiceOver element: the row's title (from `.combine`) + the on/off
+        // state as a spoken value + a toggle action (issue 15 §11). The state copy lives
+        // HERE, not on `WattlyToggle` — the `.isSelected` trait alone is announced as
+        // "선택됨", not "켜짐/꺼짐".
         .accessibilityElement(children: .combine)
+        .accessibilityValue(isOn ? "켜짐" : "꺼짐")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { isOn.toggle() }
     }
 }
