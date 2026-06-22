@@ -189,6 +189,26 @@ struct SystemMonitorTests {
         #expect(tx.batteryCalls == batBefore + 3)   // battery temp still read each poll
     }
 
+    @Test func menubarMetricKeepsHiddenProviderPolled() async {
+        // Issue 14: a metric shown ONLY in the menubar keeps its provider polled — and its
+        // CPU/GPU SMC path enabled — even when every card is hidden. The inverse of
+        // `hiddenTemperatureCardsDoNoCPUGPUSensorIO`. `model:"Mac17,2"` pins a live SMC path.
+        let tx = FakeTempTransport()
+        tx.cpuCelsius = 80; tx.gpuCelsius = 70; tx.battery = .centiCelsius(3000)
+        let temp = TemperatureProvider(transport: tx, model: "Mac17,2")
+        let monitor = SystemMonitor(providers: [temp], clock: ManualClock())
+
+        // Hide every card, but keep GPU temp on the menubar → SMC must stay live.
+        await monitor.setShownCards([])
+        await monitor.setMenubarMetrics([.gpuTemp])
+        await monitor.pollOnce()
+        #expect(tx.openCalls >= 1)                  // SMC opened for the menubar's sake
+
+        let readBefore = tx.readCalls
+        for _ in 0..<3 { await monitor.pollOnce() }
+        #expect(tx.readCalls > readBefore)          // keeps reading CPU/GPU keys despite no visible card
+    }
+
     @Test func historyIsContinuousAcrossACadenceChange() async {
         // 수용 #3: cadence (open 1 s → closed 5 s) only changes the sleep between polls;
         // history is instant-keyed, so a full 60 s window survives the change with no reset
