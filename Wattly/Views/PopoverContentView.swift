@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// The popover panel (prototype lines 62–174), mode A. Deliberately host-agnostic
 /// (L2): no `MenuBarExtra` knowledge, so an AppKit `NSPanel` could host it
@@ -74,7 +75,7 @@ struct PopoverContentView: View {
                 iconButton("pencil", active: editMode, activeColor: Tokens.accent,
                            activeBg: Tokens.accent.opacity(0.16)) { editMode.toggle() }
                 iconButton("gearshape", active: false, activeColor: t.faint,
-                           activeBg: .clear) { openSettings() }
+                           activeBg: .clear) { openSettingsRaised() }
             }
         }
         .padding(EdgeInsets(top: 2, leading: 4, bottom: 12, trailing: 4))
@@ -92,6 +93,19 @@ struct PopoverContentView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(system == "pencil" ? "편집" : "설정")
+    }
+
+    /// Open (or focus) the settings window AND raise it above other apps. In an
+    /// LSUIElement (accessory) app, `openSettings()` alone only focuses the window
+    /// within our app — it doesn't activate us over other apps, so an already-open
+    /// window stays hidden behind whatever is frontmost. `openSettings()` first puts
+    /// Settings frontmost within the app, then `activate` crosses the app boundary to
+    /// pull Wattly (with Settings on top) above everything else. `activate(ignoringOtherApps:)`
+    /// is deprecated on macOS 14 but the non-deprecated `activate()` is unreliable at
+    /// raising an accessory app over other apps, so we keep it deliberately.
+    private func openSettingsRaised() {
+        openSettings()
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     // MARK: Cards (prototype lines 76–173)

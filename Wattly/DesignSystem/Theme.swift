@@ -41,8 +41,14 @@ enum ThemeResolver {
 /// Applies the theme's forced scheme and injects the matching tokens. Reads the
 /// resolved `colorScheme` *inside* the forced subtree so `system` picks up the OS
 /// value while `light`/`dark` see what they forced.
+///
+/// Reads `@AppStorage(theme)` itself rather than receiving it as a prop, so a theme
+/// change re-renders only this subtree instead of the App's `Scene` body. (Note: this
+/// is NOT what fixes the "popover closes on settings change" report — that closure is
+/// `openSettings()` opening a key window, which dismisses the `.window` popover
+/// regardless of theme.)
 struct ThemedRoot<Content: View>: View {
-    let theme: ThemeMode
+    @AppStorage(StorageKey.theme) private var theme: ThemeMode = Defaults.theme
     @ViewBuilder var content: () -> Content
 
     var body: some View {

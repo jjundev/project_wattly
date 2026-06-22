@@ -36,6 +36,9 @@ struct Tokens: Sendable, Equatable {
 
     // Theme-dependent.
     let panelBg, panelBorder, text, sub, faint, cardBg, line, spark, sparkFill: Color
+    // `titlebar`/`segTrack` (prototype `c` 581–582) and `gridBorder`/`cText` (prototype 583–584,
+    // used there 7×/4×) are prototype-faithful but FORWARD-DECLARED: not yet referenced in any
+    // Swift view. They get wired with the graph grid / code text in issues 10 & 13.
     let settingsBg, titlebar, rowBg, rowBorder, segTrack, gridBorder, cText: Color
 }
 
