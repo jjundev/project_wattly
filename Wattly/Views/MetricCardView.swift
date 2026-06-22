@@ -19,6 +19,9 @@ struct MetricCardView: View {
         switch state {
         case .unavailable(let reason):
             unavailableCard(reason)
+                // Whole unavailable card → one VO element: "<이름>, 사용 불가, <사유>" (§3).
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Accessibility.cardLabel(card, state))
         case .loading, .value:
             standardCard
         }
@@ -29,16 +32,7 @@ struct MetricCardView: View {
     private var standardCard: some View {
         let d = CardPresentation.display(card, state)
         return VStack(alignment: .leading, spacing: 8) {
-            headerRow(d)
-            if hasValue {
-                SparklineView(values: historyValues, stroke: sparkStroke, fill: hasSparkArea ? sparkFill : nil)
-                if let sub = d.subText, !sub.isEmpty {
-                    Text(sub)
-                        .font(WattlyFont.at(11, weight: .regular))
-                        .monospacedDigit()
-                        .foregroundStyle(t.sub)
-                }
-            }
+            summaryGroup(d)
             if isExpanded, isExpandable { expandRegion }
         }
         .padding(EdgeInsets(top: 11, leading: 12, bottom: 11, trailing: 12))
@@ -46,6 +40,41 @@ struct MetricCardView: View {
         .background(RoundedRectangle(cornerRadius: 12).fill(t.cardBg))
         .contentShape(Rectangle())
         .onTapGesture { onToggleExpand?() }
+    }
+
+    /// The card's spoken summary: header + sparkline + sub-line collapsed into ONE VoiceOver
+    /// element (issue 15 §2) carrying the composed label + warn/crit value. The sparkline is
+    /// decorative (hidden); the sub-line is folded into the label by `Accessibility.cardLabel`,
+    /// not read separately (§4/§5). `expandRegion` stays a SIBLING outside this element so its
+    /// per-core/process/cluster rows remain individually navigable (§6). Expandable cards
+    /// expose an `.accessibilityAction` so VoiceOver can toggle the expand the mouse toggles
+    /// via the card's `.onTapGesture` (a gesture VO can't otherwise actuate).
+    @ViewBuilder
+    private func summaryGroup(_ d: CardDisplay) -> some View {
+        let summary = VStack(alignment: .leading, spacing: 8) {
+            headerRow(d)
+            if hasValue {
+                SparklineView(values: historyValues, stroke: sparkStroke, fill: hasSparkArea ? sparkFill : nil)
+                    .accessibilityHidden(true)
+                if let sub = d.subText, !sub.isEmpty {
+                    Text(sub)
+                        .font(WattlyFont.at(11, weight: .regular))
+                        .monospacedDigit()
+                        .foregroundStyle(t.sub)
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Accessibility.cardLabel(card, state))
+        .accessibilityValue(Accessibility.stateWord(card, state, thresholds) ?? "")
+
+        if isExpandable {
+            summary
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction { onToggleExpand?() }
+        } else {
+            summary
+        }
     }
 
     private func headerRow(_ d: CardDisplay) -> some View {
@@ -72,16 +101,8 @@ struct MetricCardView: View {
                     .foregroundStyle(t.sub)
             }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityValue(thresholdStateWord)
-    }
-
-    /// Non-color warn/crit announcement for VoiceOver (issue 10 §5) — so a colorblind or
-    /// VoiceOver user gets the threshold signal the color alone carries. Empty unless the
-    /// card has a value in the warn/crit band; full a11y copy is issue 15.
-    private var thresholdStateWord: String {
-        guard hasValue, let word = thresholdLevel?.stateWord else { return "" }
-        return word
+        // The card's VoiceOver element + warn/crit value live on `summaryGroup` (issue 15);
+        // the header row itself is decorative inside that `.ignore` container.
     }
 
     // CPU per-core bars (04). Memory top-3 processes (05) still deferred.

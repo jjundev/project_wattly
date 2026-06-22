@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0B545B279B2A4B89D8325660 /* LoginItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0BC034680A8F9989B9D773 /* LoginItem.swift */; };
 		0C6BF823B674B64055BC1C00 /* PollPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A204818E6FC1DAC62E6E2CC3 /* PollPolicyTests.swift */; };
+		0CCE23A7B4FB7DEC009ECA18 /* Accessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FB43BADD9D2756BBE8F6A7B /* Accessibility.swift */; };
 		0CFE1F2EDC6A20038D493BDA /* Tokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D016BCB249C488EC97DBF25 /* Tokens.swift */; };
 		0DC692829BD9D200DBBECE47 /* CardReorderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E3CEC05A8EC12EB24156C91 /* CardReorderTests.swift */; };
 		0DFE06348B464F92F5334297 /* CPUUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9AB5AA6871BCF1DC1EEBBE7 /* CPUUsage.swift */; };
@@ -19,6 +20,7 @@
 		1E0778BF5B4D3664E6C18C9B /* SmoothingOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = A61C78982D0A278875AC6792 /* SmoothingOverlay.swift */; };
 		222AEAEE28AEA0F1432E10D0 /* SparklineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00082133CD88B0F35342BB85 /* SparklineView.swift */; };
 		24E614EA3299409018DD6491 /* Glyphs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 416979B2919C07DC814AE533 /* Glyphs.swift */; };
+		2F21C6921E2896512BD4FF55 /* AccessibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C59C21E293258105C63FB142 /* AccessibilityTests.swift */; };
 		31926AD6C690491825627C11 /* OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = DECFD3734A1569FA8CFE4AF5 /* OFL.txt */; };
 		32A2E4A4DC43E9ED03E0ADA7 /* Temperature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0721DEAA1855EE4C25F48F35 /* Temperature.swift */; };
 		339352DA4758AE187D4E7000 /* MenuBarLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F55E227946867EDB8D1BC9 /* MenuBarLabel.swift */; };
@@ -89,6 +91,7 @@
 		14B2BDFF1DB69E370CC26C75 /* SettingsReset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsReset.swift; sourceTree = "<group>"; };
 		16699BC4854BB993A0BB6073 /* FontRegistration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FontRegistration.swift; sourceTree = "<group>"; };
 		1D2CEA18A30B021587C24F0A /* Clock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clock.swift; sourceTree = "<group>"; };
+		1FB43BADD9D2756BBE8F6A7B /* Accessibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Accessibility.swift; sourceTree = "<group>"; };
 		2416472810E29E43641FBC70 /* PretendardVariable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = PretendardVariable.ttf; sourceTree = "<group>"; };
 		2E3CEC05A8EC12EB24156C91 /* CardReorderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardReorderTests.swift; sourceTree = "<group>"; };
 		2FDBCEE7C543E46F486E93C0 /* ThresholdTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThresholdTests.swift; sourceTree = "<group>"; };
@@ -130,6 +133,7 @@
 		B8D87FCAC4528FF3B73DFD05 /* BatteryProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryProvider.swift; sourceTree = "<group>"; };
 		BCB3DFDA1EFD1E038E9B49C0 /* MenuBarTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarTextTests.swift; sourceTree = "<group>"; };
 		BD971C88D016C636CC8D43E6 /* SettingsComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsComponents.swift; sourceTree = "<group>"; };
+		C59C21E293258105C63FB142 /* AccessibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityTests.swift; sourceTree = "<group>"; };
 		C7B5E285FF8EA4DDD90B3B03 /* WattlyFont.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WattlyFont.swift; sourceTree = "<group>"; };
 		CB9717A4622D508E51C16FA8 /* SMC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMC.swift; sourceTree = "<group>"; };
 		CE8B45929FB77AE51839080D /* SystemMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMonitorTests.swift; sourceTree = "<group>"; };
@@ -152,6 +156,7 @@
 		1B4DC2B8547C7A7C02CCEBE4 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				1FB43BADD9D2756BBE8F6A7B /* Accessibility.swift */,
 				F0BB325E6C8D3C6B7207404B /* BatteryPower.swift */,
 				5FADA80FC02FE00A50BB9B45 /* CardPresentation.swift */,
 				1D2CEA18A30B021587C24F0A /* Clock.swift */,
@@ -227,6 +232,7 @@
 		8722763ECF3B075B3EB9B9B6 /* WattlyTests */ = {
 			isa = PBXGroup;
 			children = (
+				C59C21E293258105C63FB142 /* AccessibilityTests.swift */,
 				4B193EC77CC4F6135B8F3566 /* BatteryPowerTests.swift */,
 				E0AD4C82FC1A9EA5F33B69B3 /* CardPresentationTests.swift */,
 				2E3CEC05A8EC12EB24156C91 /* CardReorderTests.swift */,
@@ -402,6 +408,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2F21C6921E2896512BD4FF55 /* AccessibilityTests.swift in Sources */,
 				E6D4F1BE411CB7202D52B89D /* BatteryPowerTests.swift in Sources */,
 				485735366A6681DDDB9B001C /* CPUUsageTests.swift in Sources */,
 				AD7234042C8B58DCD400BE17 /* CardPresentationTests.swift in Sources */,
@@ -426,6 +433,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0CCE23A7B4FB7DEC009ECA18 /* Accessibility.swift in Sources */,
 				9164682B8D7954ADA22F3710 /* BatteryPower.swift in Sources */,
 				54CC1A4B35743BD034DC72F0 /* BatteryProvider.swift in Sources */,
 				D43BD771779302A73C41B245 /* CPUProvider.swift in Sources */,
