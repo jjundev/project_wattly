@@ -13,6 +13,7 @@ struct MetricCardView: View {
     var historyValues: [Double] = []
     var isExpanded: Bool = false
     var onToggleExpand: (() -> Void)? = nil
+    var thresholds: Thresholds = Defaults.thresholds
 
     var body: some View {
         switch state {
@@ -72,6 +73,15 @@ struct MetricCardView: View {
             }
         }
         .accessibilityElement(children: .combine)
+        .accessibilityValue(thresholdStateWord)
+    }
+
+    /// Non-color warn/crit announcement for VoiceOver (issue 10 §5) — so a colorblind or
+    /// VoiceOver user gets the threshold signal the color alone carries. Empty unless the
+    /// card has a value in the warn/crit band; full a11y copy is issue 15.
+    private var thresholdStateWord: String {
+        guard hasValue, let word = thresholdLevel?.stateWord else { return "" }
+        return word
     }
 
     // CPU per-core bars (04). Memory top-3 processes (05) still deferred.
@@ -325,7 +335,23 @@ struct MetricCardView: View {
     private var hasSparkArea: Bool { card.hasSparkArea }   // battery: polyline only (line 100)
     private var hasValue: Bool { if case .value = state { return true }; return false }
 
+    // The headline value keeps its neutral/accent color — the threshold color lands only
+    // on the sparkline + memory process bars (issue 10, matching the prototype).
     private var valueColor: Color { card.isAccented ? Tokens.accent : t.text }
-    private var sparkStroke: Color { card.isAccented ? Tokens.accent : t.spark }
-    private var sparkFill: Color { card.isAccented ? Color.rgba(0, 102, 255, 0.10) : t.sparkFill }
+    private var sparkStroke: Color {
+        if let level = thresholdLevel { return level.stroke }
+        return card.isAccented ? Tokens.accent : t.spark
+    }
+    private var sparkFill: Color {
+        if let level = thresholdLevel { return level.fill }
+        return card.isAccented ? Color.rgba(0, 102, 255, 0.10) : t.sparkFill
+    }
+
+    /// Warn/crit color level for this card's current value (issue 10), or nil when the card
+    /// is threshold-free (power/battery) or has no value. Drives the sparkline stroke/fill
+    /// — and, since the memory process bars fill with `sparkStroke`, those too — never the
+    /// headline `valueColor`.
+    private var thresholdLevel: ThresholdLevel? {
+        CardPresentation.thresholdLevel(card, state, thresholds)
+    }
 }

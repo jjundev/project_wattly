@@ -12,6 +12,10 @@ struct PopoverContentView: View {
     /// Power-type cards (프로세서 전력 + 배터리): show the EMA-smoothed value/sparkline
     /// (steady, tracks the real sustained draw) vs the raw 1-second reading. Default on.
     @AppStorage(StorageKey.powerSmoothed) private var powerSmoothed = Defaults.powerSmoothed
+    /// Warn/crit thresholds (issue 10). Read here (the card composition root) and passed
+    /// into each card; an `@AppStorage` change re-renders the cards, so a slider edit recolors
+    /// the panel live with no extra observer.
+    @AppStorage(StorageKey.thresholds) private var thresholds = Defaults.thresholds
 
     @State private var editMode = false
     // Persisted across popover opens (#12). @AppStorage can't hold a Set, so it's
@@ -104,7 +108,8 @@ struct PopoverContentView: View {
                         state: monitor.cardState(card, smoothed: powerSmoothed),
                         historyValues: monitor.historyValues(for: card, smoothed: powerSmoothed),
                         isExpanded: expanded.contains(card),
-                        onToggleExpand: card.isExpandable ? { toggleExpand(card) } : nil
+                        onToggleExpand: card.isExpandable ? { toggleExpand(card) } : nil,
+                        thresholds: thresholds
                     )
                 }
             }
