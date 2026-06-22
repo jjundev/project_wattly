@@ -35,6 +35,11 @@ enum CardKind: String, CaseIterable, Codable, Sendable, Identifiable, Hashable {
     /// The processor-power card is the single accented (brand-blue) card; every other
     /// card uses the neutral theme tokens.
     var isAccented: Bool { self == .power }
+
+    /// The processor-power and battery cards apply display smoothing (the shared
+    /// `powerSmoothed` toggle); every other card shows its raw series. The single home
+    /// for "which cards smooth", consumed by `SystemMonitor`'s state/history routing.
+    var isSmoothable: Bool { self == .power || self == .battery }
 }
 
 /// The five providers that cross the actor boundary (PRD line 73). Distinct from

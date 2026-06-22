@@ -9,8 +9,9 @@ import Observation
 final class SystemMonitor {
     /// Per-provider state (5 keys). The 7 cards derive from these.
     private(set) var states: [ProviderKind: MetricState]
-    /// Per-card sparkline history (7 keys).
-    private(set) var history: [CardKind: HistoryBuffer]
+    /// Per-card sparkline history (7 keys). Private — callers read a series only via
+    /// `historyValues(for:smoothed:)`, never the dict directly.
+    private var history: [CardKind: HistoryBuffer]
 
     /// Display-smoothed SoC power (EMA of the raw `.power` sample). The raw sample
     /// still lives in `states[.power]`/`history[.power]`; this is a *presentation*
@@ -171,33 +172,38 @@ final class SystemMonitor {
         }
     }
 
-    /// Power card state with optional display smoothing (issue: match MX Power
-    /// Gadget's damped readout). Only swaps in the smoothed sample when the raw
-    /// state is itself a power value — so a loading/unavailable power card is never
-    /// masked by a stale smoothed number.
-    func powerCardState(smoothed: Bool) -> MetricState {
-        let raw = cardState(.power)
-        guard smoothed, case .value(.power) = raw, let s = smoothedPower else { return raw }
-        return .value(.power(s))
+    /// Card state with optional display smoothing — the uniform surface for the view
+    /// (issue: match MX Power Gadget's damped readout). Smoothing applies only to the
+    /// smoothable cards (processor power + battery); every other card returns its raw
+    /// state. The swap is guarded on the raw state already being *that card's* value,
+    /// so a loading/unavailable card is never masked by a stale smoothed sample.
+    func cardState(_ card: CardKind, smoothed: Bool) -> MetricState {
+        let raw = cardState(card)
+        guard smoothed, card.isSmoothable else { return raw }
+        switch card {
+        case .power:
+            guard case .value(.power) = raw, let s = smoothedPower else { return raw }
+            return .value(.power(s))
+        case .battery:
+            guard case .value(.battery) = raw, let s = smoothedBattery else { return raw }
+            return .value(.battery(s))
+        default:
+            return raw
+        }
     }
 
-    /// Sparkline values for the power card — the smoothed series or the raw one.
-    func powerHistoryValues(smoothed: Bool) -> [Double] {
-        smoothed ? smoothedPowerHistory.values : (history[.power]?.values ?? [])
-    }
-
-    /// Battery card state with optional display smoothing — same contract as
-    /// `powerCardState`: only swaps in the smoothed sample when the raw state is a
-    /// battery value, so loading/unavailable/notPresent are never masked.
-    func batteryCardState(smoothed: Bool) -> MetricState {
-        let raw = cardState(.battery)
-        guard smoothed, case .value(.battery) = raw, let s = smoothedBattery else { return raw }
-        return .value(.battery(s))
-    }
-
-    /// Sparkline values for the battery card — the smoothed netW series or the raw one.
-    func batteryHistoryValues(smoothed: Bool) -> [Double] {
-        smoothed ? smoothedBatteryHistory.values : (history[.battery]?.values ?? [])
+    /// Sparkline values for a card — the smoothed series for the smoothable cards when
+    /// `smoothed`, otherwise the raw history. The only way callers read a series, so
+    /// the `history` dict stays private (closes the prior `monitor.history[card]` leak).
+    func historyValues(for card: CardKind, smoothed: Bool) -> [Double] {
+        if smoothed, card.isSmoothable {
+            switch card {
+            case .power: return smoothedPowerHistory.values
+            case .battery: return smoothedBatteryHistory.values
+            default: break
+            }
+        }
+        return history[card]?.values ?? []
     }
 
     private func temperatureCardState(_ card: CardKind, from providerState: MetricState) -> MetricState {

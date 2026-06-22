@@ -94,8 +94,8 @@ struct PopoverContentView: View {
                     }
                     MetricCardView(
                         card: card,
-                        state: smoothedState(for: card),
-                        historyValues: smoothedHistory(for: card),
+                        state: monitor.cardState(card, smoothed: powerSmoothed),
+                        historyValues: monitor.historyValues(for: card, smoothed: powerSmoothed),
                         isExpanded: expanded.contains(card),
                         onToggleExpand: card.isExpandable ? { toggleExpand(card) } : nil
                     )
@@ -103,24 +103,6 @@ struct PopoverContentView: View {
             }
         }
         .padding(.vertical, 1)
-    }
-
-    /// Power and battery cards apply display smoothing (shared `powerSmoothed` toggle);
-    /// every other card passes its raw state/history straight through.
-    private func smoothedState(for card: CardKind) -> MetricState {
-        switch card {
-        case .power:   return monitor.powerCardState(smoothed: powerSmoothed)
-        case .battery: return monitor.batteryCardState(smoothed: powerSmoothed)
-        default:       return monitor.cardState(card)
-        }
-    }
-
-    private func smoothedHistory(for card: CardKind) -> [Double] {
-        switch card {
-        case .power:   return monitor.powerHistoryValues(smoothed: powerSmoothed)
-        case .battery: return monitor.batteryHistoryValues(smoothed: powerSmoothed)
-        default:       return monitor.history[card]?.values ?? []
-        }
     }
 
     // MARK: Visibility (prototype `card.visible`, line 638)
