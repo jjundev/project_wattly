@@ -5,7 +5,6 @@ import SwiftUI
 @main
 struct WattlyApp: App {
     @State private var monitor: SystemMonitor
-    @AppStorage(StorageKey.theme) private var theme = Defaults.theme
 
     init() {
         FontRegistration.register()   // bundle Pretendard before any view renders (A17)
@@ -22,7 +21,7 @@ struct WattlyApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            ThemedRoot(theme: theme) {
+            ThemedRoot {
                 PopoverContentView(monitor: monitor)
             }
         } label: {
@@ -34,7 +33,7 @@ struct WattlyApp: App {
         .menuBarExtraStyle(.window)
 
         Settings {
-            ThemedRoot(theme: theme) {
+            ThemedRoot {
                 SettingsView()
             }
         }
