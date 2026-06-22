@@ -1,6 +1,11 @@
 import SwiftUI
 import AppKit
 
+/// A card's layout slot captured once at drag start (issue 12). The reorder maps the cursor
+/// to one of these static slots, so it never depends on the 1-frame-lagged live frames and
+/// always keeps up with the cursor — keeping the drop offset small (no snap).
+private struct DragSlot { let card: CardKind; let minY: CGFloat; let height: CGFloat }
+
 /// The popover panel (prototype lines 62–174), mode A. Deliberately host-agnostic
 /// (L2): no `MenuBarExtra` knowledge, so an AppKit `NSPanel` could host it
 /// unchanged. The connector-arrow triangle is cosmetic and omitted (issue 02 memo).
@@ -19,6 +24,20 @@ struct PopoverContentView: View {
     @AppStorage(StorageKey.thresholds) private var thresholds = Defaults.thresholds
 
     @State private var editMode = false
+    /// Edit-mode drag state (issue 12). `draggingCard` drives the 0.45 dim + float, `dragOffset`
+    /// makes the dragged card follow the cursor, and `cardFrames` holds each row's layout slot
+    /// (in the "cards" space) so a drop can hit-test which card it landed on. A plain
+    /// `DragGesture` — NOT `.onDrag`/`.draggable` — because a `MenuBarExtra(.window)` popover
+    /// won't start a system drag session, so pasteboard drag-and-drop silently no-ops there.
+    @State private var draggingCard: CardKind?
+    @State private var dragOffset: CGFloat = 0
+    /// How far the dragged card's home slot has moved due to live swaps. The render offset is
+    /// `translation − homeShift`, which keeps the card glued to the cursor WITHOUT reading the
+    /// (1-frame-lagged) post-swap layout frame — so there's no per-swap stutter.
+    @State private var homeShift: CGFloat = 0
+    @State private var cardFrames: [CardKind: CGRect] = [:]
+    @State private var dragSlots: [DragSlot] = []   // static slot snapshot for the active drag
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     // Persisted across popover opens (#12). @AppStorage can't hold a Set, so it's
     // a sorted CSV of card raw values. Shared by CPU and memory expand state.
     @AppStorage(StorageKey.expandedCards) private var expandedRaw = ""
@@ -73,7 +92,10 @@ struct PopoverContentView: View {
             Spacer(minLength: 8)
             HStack(spacing: 2) {
                 iconButton("pencil", active: editMode, activeColor: Tokens.accent,
-                           activeBg: Tokens.accent.opacity(0.16)) { editMode.toggle() }
+                           activeBg: Tokens.accent.opacity(0.16)) {
+                    editMode.toggle()
+                    draggingCard = nil   // clear any residual drag dim when leaving/entering edit
+                }
                 iconButton("gearshape", active: false, activeColor: t.faint,
                            activeBg: .clear) { openSettingsRaised() }
             }
@@ -104,31 +126,155 @@ struct PopoverContentView: View {
     /// is deprecated on macOS 14 but the non-deprecated `activate()` is unreliable at
     /// raising an accessory app over other apps, so we keep it deliberately.
     private func openSettingsRaised() {
+        editMode = false       // opening settings exits edit mode (prototype `openSettings`, line 762)
+        draggingCard = nil
         openSettings()
         NSApp.activate(ignoringOtherApps: true)
     }
 
     // MARK: Cards (prototype lines 76–173)
 
+    private static let cardSpace = "wattly.cards"
+    private static let cardSpacing: CGFloat = 8   // matches the cards VStack spacing
+
     private var cardsStack: some View {
         VStack(spacing: 8) {
             ForEach(visibleCards) { card in
-                HStack(spacing: 5) {
-                    if editMode {
-                        GripGlyph().frame(width: 14)
-                    }
-                    MetricCardView(
-                        card: card,
-                        state: monitor.cardState(card, smoothed: powerSmoothed),
-                        historyValues: monitor.historyValues(for: card, smoothed: powerSmoothed),
-                        isExpanded: expanded.contains(card),
-                        onToggleExpand: card.isExpandable ? { toggleExpand(card) } : nil,
-                        thresholds: thresholds
-                    )
+                // Each row publishes its layout slot (in the "cards" space) so a drop can
+                // hit-test which card it landed on. Read on the un-offset row, so the reported
+                // frame is the stable slot — not the dragged card's transient offset.
+                let row = cardRow(card)
+                    .background(GeometryReader { geo in
+                        Color.clear.preference(
+                            key: CardFrameKey.self,
+                            value: [card: geo.frame(in: .named(Self.cardSpace))])
+                    })
+                // The drag gesture attaches ONLY in edit mode, so a non-edit row can't be
+                // reordered (prototype `if(!editMode)return`, line 651).
+                if editMode {
+                    row
+                        .opacity(draggingCard == card ? 0.45 : 1)
+                        .offset(y: draggingCard == card ? dragOffset : 0)
+                        .zIndex(draggingCard == card ? 1 : 0)
+                        // Make the WHOLE row — including the grip's empty strip on the left — one
+                        // hit-test rect, so a drag started on the grip handle registers. The grip
+                        // is just tiny dots with no fill, so that 14px strip is otherwise dead.
+                        .contentShape(Rectangle())
+                        .gesture(dragGesture(card))
+                        // NOTE: deliberately NO `.animation(value: cardOrder)` here. The dragged
+                        // card already glides via `homeShift`; animating the displaced cards left
+                        // a 0.2 s slide (plus its re-render churn) running right at drop, which the
+                        // user saw as a post-drop freeze once the dragged card stopped moving.
+                        // Instant reorder = no trailing animation = no freeze.
+                } else {
+                    row
                 }
             }
         }
+        .coordinateSpace(name: Self.cardSpace)
+        .onPreferenceChange(CardFrameKey.self) { cardFrames = $0 }
         .padding(.vertical, 1)
+    }
+
+    /// Reorder by a plain `DragGesture` (see the `homeShift` note for why not `.onDrag`).
+    /// LIVE: as the cursor crosses a neighbour's midpoint the cards reorder in real time and
+    /// the displaced ones slide aside; the dragged card tracks the cursor via `dragOffset`.
+    /// On release nothing jumps — the order is already final, the card just settles into place.
+    private func dragGesture(_ card: CardKind) -> some Gesture {
+        DragGesture(minimumDistance: 6, coordinateSpace: .named(Self.cardSpace))
+            .onChanged { value in
+                if draggingCard != card { beginDrag(card) }
+                updateReorder(card, fingerY: value.location.y)
+                dragOffset = clampedOffset(card, raw: value.translation.height - homeShift)
+            }
+            .onEnded { _ in
+                guard !reduceMotion else {
+                    draggingCard = nil; dragOffset = 0; homeShift = 0; dragSlots = []
+                    return
+                }
+                // Settle the small residual offset into the slot, THEN drop the drag identity.
+                // (Clearing `draggingCard` first would zero the offset binding instantly, so the
+                // glide must run while the card is still "the dragged card".) The order is already
+                // final from the live reorder — only this one card moves.
+                withAnimation(.easeOut(duration: 0.13)) {
+                    dragOffset = 0
+                } completion: {
+                    draggingCard = nil
+                    homeShift = 0
+                    dragSlots = []
+                }
+            }
+    }
+
+    /// Snapshot the visible cards' slot geometry once, at the moment a drag begins.
+    private func beginDrag(_ card: CardKind) {
+        draggingCard = card
+        homeShift = 0
+        dragSlots = visibleCards.compactMap { c in
+            cardFrames[c].map { DragSlot(card: c, minY: $0.minY, height: $0.height) }
+        }
+    }
+
+    /// Map the cursor to a static slot and move the dragged card straight there (any distance,
+    /// in one shot — so a fast drag never lags). `homeShift` is recomputed as an ABSOLUTE value
+    /// from the snapshot each time (no accumulation drift), so `dragOffset = translation −
+    /// homeShift` stays within one slot and the drop never snaps far.
+    private func updateReorder(_ card: CardKind, fingerY: CGFloat) {
+        guard let oi = dragSlots.firstIndex(where: { $0.card == card }) else { return }
+        // The slot the cursor is currently over (last slot whose top is above the cursor).
+        var target = 0
+        for (idx, s) in dragSlots.enumerated() {
+            if fingerY >= s.minY { target = idx } else { break }
+        }
+        // Net vertical move of the dragged card's home from its original slot to the target.
+        if target > oi {
+            homeShift = dragSlots[(oi + 1)...target].reduce(0) { $0 + $1.height + Self.cardSpacing }
+        } else if target < oi {
+            homeShift = -dragSlots[target..<oi].reduce(0) { $0 + $1.height + Self.cardSpacing }
+        } else {
+            homeShift = 0
+        }
+        // Desired visible order = snapshot order with `card` moved to `target`; write it back
+        // into the full order, leaving hidden cards in their absolute positions.
+        var vis = dragSlots.map(\.card)
+        vis.removeAll { $0 == card }
+        vis.insert(card, at: min(target, vis.count))
+        let visibleSet = Set(dragSlots.map(\.card))
+        var it = vis.makeIterator()
+        let newCards = cardOrder.cards.map { visibleSet.contains($0) ? (it.next() ?? $0) : $0 }
+        let newOrder = CardOrder(newCards)
+        if newOrder != cardOrder { cardOrder = newOrder }
+    }
+
+    /// Keep the dragged card within the list's vertical bounds, so over-dragging past the first
+    /// or last slot doesn't fling it into empty space (which would snap back on release).
+    private func clampedOffset(_ card: CardKind, raw: CGFloat) -> CGFloat {
+        guard let oi = dragSlots.firstIndex(where: { $0.card == card }),
+              let first = dragSlots.first, let last = dragSlots.last else { return raw }
+        let homeTop = dragSlots[oi].minY + homeShift            // dragged card's slot top at target
+        let minTop = first.minY                                 // can't rise above the first slot
+        let maxTop = last.minY + last.height - dragSlots[oi].height  // …or sink below the last
+        let renderedTop = homeTop + raw
+        return raw + (min(max(renderedTop, minTop), maxTop) - renderedTop)
+    }
+
+    /// One reorderable row: the grip (edit mode only) + the metric card. In edit mode the
+    /// expand-tap is suppressed (`onToggleExpand: nil`) so a card can't change height
+    /// mid-drag; already-expanded cards are left as-is (no forced collapse).
+    private func cardRow(_ card: CardKind) -> some View {
+        HStack(spacing: 5) {
+            if editMode {
+                GripGlyph().frame(width: 14)
+            }
+            MetricCardView(
+                card: card,
+                state: monitor.cardState(card, smoothed: powerSmoothed),
+                historyValues: monitor.historyValues(for: card, smoothed: powerSmoothed),
+                isExpanded: expanded.contains(card),
+                onToggleExpand: editMode ? nil : (card.isExpandable ? { toggleExpand(card) } : nil),
+                thresholds: thresholds
+            )
+        }
     }
 
     // MARK: Visibility (prototype `card.visible`, line 638)
@@ -145,5 +291,14 @@ struct PopoverContentView: View {
         var s = expanded
         if s.contains(card) { s.remove(card) } else { s.insert(card) }
         expandedRaw = s.map(\.rawValue).sorted().joined(separator: ",")
+    }
+}
+
+/// Per-card layout slots in the popover's "cards" coordinate space, collected so an
+/// edit-mode drag can hit-test which card it was released over (issue 12).
+private struct CardFrameKey: PreferenceKey {
+    static let defaultValue: [CardKind: CGRect] = [:]
+    static func reduce(value: inout [CardKind: CGRect], nextValue: () -> [CardKind: CGRect]) {
+        value.merge(nextValue()) { _, new in new }
     }
 }

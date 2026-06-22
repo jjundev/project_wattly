@@ -127,6 +127,24 @@ struct CardOrder: Equatable, Sendable, RawRepresentable {
     }
 
     var rawValue: String { cards.map(\.rawValue).joined(separator: ",") }
+
+    /// Move `from` to sit adjacent to `target`, verbatim from the prototype `reorderCards`
+    /// (line 453): dragging downward (`from` was above `target`) drops it *after* `target`;
+    /// dragging upward drops it *before*. Operates on the full order — hidden cards keep
+    /// their relative position — and both `from` and `target` are visible cards, so both are
+    /// present. Pure/value-returning (the issue 12 §26 unit-tested seam); a no-op when
+    /// `from == target` or either card isn't in the order.
+    func reordering(_ from: CardKind, onto target: CardKind) -> CardOrder {
+        guard from != target else { return self }
+        var arr = cards
+        guard let fi = arr.firstIndex(of: from),
+              let ti = arr.firstIndex(of: target) else { return self }
+        let down = fi < ti
+        arr.remove(at: fi)
+        guard let newTi = arr.firstIndex(of: target) else { return self }
+        arr.insert(from, at: down ? newTi + 1 : newTi)
+        return CardOrder(arr)
+    }
 }
 
 // MARK: - Single source of defaults
