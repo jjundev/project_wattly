@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0B15660FC42EBB6A706855A7 /* SelfEnergy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 990E14E2DD88DEDA9CE98146 /* SelfEnergy.swift */; };
 		0B545B279B2A4B89D8325660 /* LoginItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0BC034680A8F9989B9D773 /* LoginItem.swift */; };
 		0C6BF823B674B64055BC1C00 /* PollPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A204818E6FC1DAC62E6E2CC3 /* PollPolicyTests.swift */; };
 		0CCE23A7B4FB7DEC009ECA18 /* Accessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FB43BADD9D2756BBE8F6A7B /* Accessibility.swift */; };
@@ -15,8 +16,10 @@
 		0DFE06348B464F92F5334297 /* CPUUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9AB5AA6871BCF1DC1EEBBE7 /* CPUUsage.swift */; };
 		13292970464831F33074AF3A /* MetricCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C76F1ADD8A1D0EC7C3CCCC /* MetricCardView.swift */; };
 		15DAB5064926E774708AA4A3 /* TemperatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A07555B3221FE4D57FED44 /* TemperatureTests.swift */; };
+		194C305F829708634C8171DF /* ProcessList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FA17294E4714010BBBFC334 /* ProcessList.swift */; };
 		1A2C69151BFE413F8609A063 /* FontRegistration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16699BC4854BB993A0BB6073 /* FontRegistration.swift */; };
 		1A724723A0F5517BF2BB945B /* MemoryProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBCFA8BD7953C7F1E6ED403C /* MemoryProvider.swift */; };
+		1C99FB54740E64E31C186BA4 /* SelfPowerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D16861515046CCD6F0D45217 /* SelfPowerTests.swift */; };
 		1E0778BF5B4D3664E6C18C9B /* SmoothingOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = A61C78982D0A278875AC6792 /* SmoothingOverlay.swift */; };
 		222AEAEE28AEA0F1432E10D0 /* SparklineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00082133CD88B0F35342BB85 /* SparklineView.swift */; };
 		24E614EA3299409018DD6491 /* Glyphs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 416979B2919C07DC814AE533 /* Glyphs.swift */; };
@@ -30,6 +33,7 @@
 		3B88FC69C5E47ED84C95CAB3 /* SystemMonitorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE8B45929FB77AE51839080D /* SystemMonitorTests.swift */; };
 		4219CC4B500EF72AA9C617E6 /* CardPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FADA80FC02FE00A50BB9B45 /* CardPresentation.swift */; };
 		4246E0D4D39477B3418FAF05 /* MetricState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8438B433DF80F449BCB80630 /* MetricState.swift */; };
+		459C8A0FEDF87980EB44E521 /* ProcessPowerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE68DC8258B9BDE754435964 /* ProcessPowerTests.swift */; };
 		485735366A6681DDDB9B001C /* CPUUsageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C6277EFF84708F461754CA3 /* CPUUsageTests.swift */; };
 		4E447F926511D41AB43E6AF4 /* PopoverContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D03B5C644C704D63E5F86C20 /* PopoverContentView.swift */; };
 		53A6845B9DDC236E2AA8BC7B /* PretendardVariable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2416472810E29E43641FBC70 /* PretendardVariable.ttf */; };
@@ -61,6 +65,7 @@
 		BBADDDEE7D705F9308877FFA /* Sparkline.swift in Sources */ = {isa = PBXBuildFile; fileRef = E16EB2DF75F2A90917F1881D /* Sparkline.swift */; };
 		BFB09690120FD774F4E0221C /* MenuBarText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE63A3412207498B4F2A877 /* MenuBarText.swift */; };
 		C62950358A727257558A982E /* History.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8ACAEB9B7EE979F55ECF5CC3 /* History.swift */; };
+		C8C17525980349E554E5E837 /* SelfPower.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94108EFA2FFE5A0F7E19D35E /* SelfPower.swift */; };
 		C9E719E7D0D0152859146746 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B2DE33D7B63228682966B89 /* SettingsView.swift */; };
 		CBE11652E044DD70C60D7A8D /* SettingsReset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14B2BDFF1DB69E370CC26C75 /* SettingsReset.swift */; };
 		D43BD771779302A73C41B245 /* CPUProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95D9BB66FA468EDC722C9692 /* CPUProvider.swift */; };
@@ -69,6 +74,7 @@
 		E6D4F1BE411CB7202D52B89D /* BatteryPowerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B193EC77CC4F6135B8F3566 /* BatteryPowerTests.swift */; };
 		F2CB4E2A4AE442F961B0E497 /* PowerEnergyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8019EC757BBE28FC570B71D /* PowerEnergyTests.swift */; };
 		F80BC2C8905EECB7EAE8DA5C /* SystemMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F61FA5F6DFF92047EE2B7B8E /* SystemMonitor.swift */; };
+		F8C06B1EF48C88E986B44520 /* ProcessPower.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21242F142598B4648C88DB0C /* ProcessPower.swift */; };
 		FCFFB2CEE33152456E33982A /* CardKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C28B12BD323D1E5FE11B646 /* CardKind.swift */; };
 		FE58DF7DBC6DA12ECB9CDB7B /* WattlyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9174C12241D59747340FB7CC /* WattlyApp.swift */; };
 /* End PBXBuildFile section */
@@ -92,6 +98,7 @@
 		16699BC4854BB993A0BB6073 /* FontRegistration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FontRegistration.swift; sourceTree = "<group>"; };
 		1D2CEA18A30B021587C24F0A /* Clock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clock.swift; sourceTree = "<group>"; };
 		1FB43BADD9D2756BBE8F6A7B /* Accessibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Accessibility.swift; sourceTree = "<group>"; };
+		21242F142598B4648C88DB0C /* ProcessPower.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessPower.swift; sourceTree = "<group>"; };
 		2416472810E29E43641FBC70 /* PretendardVariable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = PretendardVariable.ttf; sourceTree = "<group>"; };
 		2E3CEC05A8EC12EB24156C91 /* CardReorderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardReorderTests.swift; sourceTree = "<group>"; };
 		2FDBCEE7C543E46F486E93C0 /* ThresholdTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThresholdTests.swift; sourceTree = "<group>"; };
@@ -122,8 +129,11 @@
 		9044978DE889FEBEC87F3486 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		9174C12241D59747340FB7CC /* WattlyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WattlyApp.swift; sourceTree = "<group>"; };
 		91C76F1ADD8A1D0EC7C3CCCC /* MetricCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricCardView.swift; sourceTree = "<group>"; };
+		94108EFA2FFE5A0F7E19D35E /* SelfPower.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfPower.swift; sourceTree = "<group>"; };
 		95D9BB66FA468EDC722C9692 /* CPUProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUProvider.swift; sourceTree = "<group>"; };
 		9727A71C66783C40237A39E4 /* Wattly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wattly.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		990E14E2DD88DEDA9CE98146 /* SelfEnergy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfEnergy.swift; sourceTree = "<group>"; };
+		9FA17294E4714010BBBFC334 /* ProcessList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessList.swift; sourceTree = "<group>"; };
 		A204818E6FC1DAC62E6E2CC3 /* PollPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollPolicyTests.swift; sourceTree = "<group>"; };
 		A3BF59076BCF45AF5DFB2F47 /* PowerProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerProvider.swift; sourceTree = "<group>"; };
 		A61C78982D0A278875AC6792 /* SmoothingOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmoothingOverlay.swift; sourceTree = "<group>"; };
@@ -138,12 +148,14 @@
 		CB9717A4622D508E51C16FA8 /* SMC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMC.swift; sourceTree = "<group>"; };
 		CE8B45929FB77AE51839080D /* SystemMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMonitorTests.swift; sourceTree = "<group>"; };
 		D03B5C644C704D63E5F86C20 /* PopoverContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverContentView.swift; sourceTree = "<group>"; };
+		D16861515046CCD6F0D45217 /* SelfPowerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfPowerTests.swift; sourceTree = "<group>"; };
 		D8019EC757BBE28FC570B71D /* PowerEnergyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerEnergyTests.swift; sourceTree = "<group>"; };
 		D85F4FD3A4E6BB168DABACA7 /* PollPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollPolicy.swift; sourceTree = "<group>"; };
 		DECFD3734A1569FA8CFE4AF5 /* OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = OFL.txt; sourceTree = "<group>"; };
 		E0AD4C82FC1A9EA5F33B69B3 /* CardPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardPresentationTests.swift; sourceTree = "<group>"; };
 		E16EB2DF75F2A90917F1881D /* Sparkline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sparkline.swift; sourceTree = "<group>"; };
 		EBCFA8BD7953C7F1E6ED403C /* MemoryProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryProvider.swift; sourceTree = "<group>"; };
+		EE68DC8258B9BDE754435964 /* ProcessPowerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessPowerTests.swift; sourceTree = "<group>"; };
 		F0BB325E6C8D3C6B7207404B /* BatteryPower.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryPower.swift; sourceTree = "<group>"; };
 		F1A07555B3221FE4D57FED44 /* TemperatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemperatureTests.swift; sourceTree = "<group>"; };
 		F61FA5F6DFF92047EE2B7B8E /* SystemMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMonitor.swift; sourceTree = "<group>"; };
@@ -169,6 +181,10 @@
 				D85F4FD3A4E6BB168DABACA7 /* PollPolicy.swift */,
 				10635C5861EA5A327ED9CC2F /* PowerEnergy.swift */,
 				3A4050A1C7B99C5FDEB0117D /* PowerSmoothing.swift */,
+				9FA17294E4714010BBBFC334 /* ProcessList.swift */,
+				21242F142598B4648C88DB0C /* ProcessPower.swift */,
+				990E14E2DD88DEDA9CE98146 /* SelfEnergy.swift */,
+				94108EFA2FFE5A0F7E19D35E /* SelfPower.swift */,
 				14B2BDFF1DB69E370CC26C75 /* SettingsReset.swift */,
 				CB9717A4622D508E51C16FA8 /* SMC.swift */,
 				A61C78982D0A278875AC6792 /* SmoothingOverlay.swift */,
@@ -243,6 +259,8 @@
 				A204818E6FC1DAC62E6E2CC3 /* PollPolicyTests.swift */,
 				D8019EC757BBE28FC570B71D /* PowerEnergyTests.swift */,
 				3F5BBBFEC7E20B1DBE033A22 /* PowerSmoothingTests.swift */,
+				EE68DC8258B9BDE754435964 /* ProcessPowerTests.swift */,
+				D16861515046CCD6F0D45217 /* SelfPowerTests.swift */,
 				07C1BF327FACCDB9FAB5213C /* SettingsResetTests.swift */,
 				ADCD49E78A7446DE396FBE48 /* SmoothingOverlayTests.swift */,
 				AEB8384534F32A983330C07B /* SparklineTests.swift */,
@@ -419,6 +437,8 @@
 				0C6BF823B674B64055BC1C00 /* PollPolicyTests.swift in Sources */,
 				F2CB4E2A4AE442F961B0E497 /* PowerEnergyTests.swift in Sources */,
 				AA5F16A6EDFD5217C14C02B6 /* PowerSmoothingTests.swift in Sources */,
+				459C8A0FEDF87980EB44E521 /* ProcessPowerTests.swift in Sources */,
+				1C99FB54740E64E31C186BA4 /* SelfPowerTests.swift in Sources */,
 				ADD80CA70B5601FAC82CA262 /* SettingsResetTests.swift in Sources */,
 				D97CEF0FEFA4CF334E3DB6F1 /* SmoothingOverlayTests.swift in Sources */,
 				36349F6A02D7C184EADAAD51 /* SparklineTests.swift in Sources */,
@@ -460,7 +480,11 @@
 				B84ADFB9A7B85CE18C766236 /* PowerEnergy.swift in Sources */,
 				6F774A27D580235290B80753 /* PowerProvider.swift in Sources */,
 				704B65E517FECD08B4CD6DC4 /* PowerSmoothing.swift in Sources */,
+				194C305F829708634C8171DF /* ProcessList.swift in Sources */,
+				F8C06B1EF48C88E986B44520 /* ProcessPower.swift in Sources */,
 				590821C300D81BB07D5E1329 /* SMC.swift in Sources */,
+				0B15660FC42EBB6A706855A7 /* SelfEnergy.swift in Sources */,
+				C8C17525980349E554E5E837 /* SelfPower.swift in Sources */,
 				7A394705C6834B5A9358DA10 /* Settings.swift in Sources */,
 				A292F6D7B2D0DAAC999ECBB7 /* SettingsComponents.swift in Sources */,
 				CBE11652E044DD70C60D7A8D /* SettingsReset.swift in Sources */,

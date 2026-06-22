@@ -231,4 +231,90 @@ struct SystemMonitorTests {
         #expect(values.count <= HistoryBuffer.cap)           // never over the cap
         #expect(values.allSatisfy { $0 == 10 })              // continuous — no reset/gap injected
     }
+
+    // MARK: Self-power (issue 16) — fake energy source + manual clock, no libproc
+
+    /// A scripted self-energy counter: the test sets `next` before each `sampleSelfPower`.
+    final class FakeSelfEnergy: SelfEnergySampling, @unchecked Sendable {
+        var next: UInt64?
+        init(_ start: UInt64?) { next = start }
+        func energyNanojoules() -> UInt64? { next }
+    }
+
+    @Test func selfPowerComputesWattsFromEnergyDelta() {
+        let energy = FakeSelfEnergy(1_000_000_000)           // 1 J baseline
+        let clock = ManualClock()
+        let monitor = SystemMonitor(providers: [], clock: clock, selfEnergy: energy)
+
+        monitor.sampleSelfPower(at: clock.now())             // first sample → baseline only
+        #expect(monitor.selfPower == nil)
+
+        clock.advance(by: .seconds(2))
+        energy.next = 1_000_000_000 + 5_000_000_000          // +5 J over 2 s = 2.5 W
+        monitor.sampleSelfPower(at: clock.now())
+        // No previous → the first EMA step re-seeds to the raw value exactly.
+        #expect(monitor.selfPower != nil)
+        #expect(abs((monitor.selfPower ?? -1) - 2.5) < 1e-9)
+    }
+
+    @Test func selfPowerRebaselinesAcrossASleepGap() {
+        let energy = FakeSelfEnergy(0)
+        let clock = ManualClock()
+        let monitor = SystemMonitor(providers: [], clock: clock, selfEnergy: energy)
+        monitor.sampleSelfPower(at: clock.now())             // baseline
+        clock.advance(by: .seconds(120))                     // > 30 s gap (sleep/wake)
+        energy.next = 10_000_000_000
+        monitor.sampleSelfPower(at: clock.now())
+        #expect(monitor.selfPower == nil)                    // anomaly → no value emitted
+    }
+
+    @Test func selfPowerKeepsLastValueOnTransientAnomaly() {
+        let energy = FakeSelfEnergy(0)
+        let clock = ManualClock()
+        let monitor = SystemMonitor(providers: [], clock: clock, selfEnergy: energy)
+        monitor.sampleSelfPower(at: clock.now())             // baseline
+        clock.advance(by: .seconds(1))
+        energy.next = 3_000_000_000                          // +3 J / 1 s = 3 W
+        monitor.sampleSelfPower(at: clock.now())
+        let warm = monitor.selfPower
+        #expect(warm != nil)
+
+        clock.advance(by: .seconds(1))
+        energy.next = 0                                      // curr < prev → counter reset (anomaly)
+        monitor.sampleSelfPower(at: clock.now())
+        #expect(monitor.selfPower == warm)                   // a transient must not blank a working value
+    }
+
+    // MARK: Per-app power gating (issue 16 follow-up) — kind-routed enumerator
+
+    /// A provider that records its enumeration gate, for either kind.
+    actor FakeEnumProvider: MetricProvider, ProcessEnumerating {
+        let kind: ProviderKind
+        private(set) var enumerating = false
+        init(kind: ProviderKind) { self.kind = kind }
+        func setEnumerating(_ enabled: Bool) { enumerating = enabled }
+        func read(at instant: ContinuousClock.Instant) async -> ProviderReading { .pending }
+    }
+
+    @Test func processEnumerationRoutesByKind() async {
+        // Both memory and power conform to ProcessEnumerating. The power gate must reach the
+        // POWER provider — a `.first` extraction would always pick memory (earlier in
+        // ProviderKind.allCases), leaving the power gate wired to nil.
+        let mem = FakeEnumProvider(kind: .memory)
+        let pow = FakeEnumProvider(kind: .power)
+        let monitor = SystemMonitor(providers: [mem, pow], clock: ManualClock())
+
+        monitor.setPowerProcessEnumeration(true)            // spawns a MainActor Task internally
+        for _ in 0..<50 where !(await pow.enumerating) { await Task.yield() }
+        #expect(await pow.enumerating == true)              // power gate enabled…
+        #expect(await mem.enumerating == false)             // …and NOT the memory provider
+
+        monitor.setMemoryProcessEnumeration(true)
+        for _ in 0..<50 where !(await mem.enumerating) { await Task.yield() }
+        #expect(await mem.enumerating == true)              // memory gate routes to memory
+
+        monitor.setPowerProcessEnumeration(false)
+        for _ in 0..<50 where (await pow.enumerating) { await Task.yield() }
+        #expect(await pow.enumerating == false)             // …and turns back off on collapse
+    }
 }

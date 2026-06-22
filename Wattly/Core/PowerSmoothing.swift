@@ -40,12 +40,16 @@ enum PowerSmoothing {
     }
 
     /// One EMA step over all four processor-power fields (each smoothed independently).
+    /// `processes` (issue 16 follow-up) pass through from `raw` unchanged — smoothing damps
+    /// only the headline watts, never the per-app Top-N list (the card reads the smoothed
+    /// sample, so without this the expand would always see `nil`).
     static func step(previous: PowerSample?, raw: PowerSample, dt: Double,
                      maxGap: Double = 30, tau: Double = tau) -> PowerSample {
         PowerSample(
             totalW: emaStep(previous: previous?.totalW, raw: raw.totalW, dt: dt, maxGap: maxGap, tau: tau),
             cpuW: emaStep(previous: previous?.cpuW, raw: raw.cpuW, dt: dt, maxGap: maxGap, tau: tau),
             gpuW: emaStep(previous: previous?.gpuW, raw: raw.gpuW, dt: dt, maxGap: maxGap, tau: tau),
-            npuW: emaStep(previous: previous?.npuW, raw: raw.npuW, dt: dt, maxGap: maxGap, tau: tau))
+            npuW: emaStep(previous: previous?.npuW, raw: raw.npuW, dt: dt, maxGap: maxGap, tau: tau),
+            processes: raw.processes)
     }
 }

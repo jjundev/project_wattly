@@ -105,10 +105,12 @@ struct MetricCardView: View {
         // the header row itself is decorative inside that `.ignore` container.
     }
 
-    // CPU per-core bars (04). Memory top-3 processes (05) still deferred.
+    // Power per-app Top-3 (16). CPU per-core bars (04). Memory Top-3 (05). CPU-temp clusters (08).
     @ViewBuilder
     private var expandRegion: some View {
-        if card == .cpu, case .value(.cpu(let s)) = state {
+        if card == .power, case .value(.power(let s)) = state {
+            powerExpand(s)
+        } else if card == .cpu, case .value(.cpu(let s)) = state {
             cpuExpand(s)
         } else if card == .mem, case .value(.memory(let s)) = state {
             memExpand(s)
@@ -182,7 +184,42 @@ struct MetricCardView: View {
                     .foregroundStyle(t.faint)
             } else {
                 ForEach(s.processes) { p in
-                    processRow(name: p.name, footprintBytes: p.footprintBytes, maxBytes: maxBytes, iconPath: p.iconPath)
+                    processRow(name: p.name,
+                               valueText: CardPresentation.gbText(p.footprintBytes),
+                               fraction: barFraction(footprint: p.footprintBytes, maxBytes: maxBytes),
+                               iconPath: p.iconPath)
+                }
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    // MARK: Power expand — top per-app power (issue 16 follow-up)
+
+    /// Top power-consuming apps, symmetric with the memory Top-3. Three-state on
+    /// `s.processes`: nil → "측정 중…" (baselining — the energy counter is cumulative, so the
+    /// first sweep after expand has no rate yet); [] → "프로세스를 읽을 수 없음"; rows → Top-3.
+    /// Watts cover CPU+GPU compute only and your readable apps, so they don't sum to the
+    /// card's Combined headline (label-honest, not a breakdown).
+    @ViewBuilder
+    private func powerExpand(_ s: PowerSample) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            switch s.processes {
+            case .none:
+                Text("측정 중…")
+                    .font(WattlyFont.at(10.5, weight: .semibold))
+                    .foregroundStyle(t.faint)
+            case .some(let procs) where procs.isEmpty:
+                Text("프로세스를 읽을 수 없음")
+                    .font(WattlyFont.at(10.5, weight: .semibold))
+                    .foregroundStyle(t.faint)
+            case .some(let procs):
+                let maxW = procs.first?.watts ?? 0
+                ForEach(procs) { p in
+                    processRow(name: p.name,
+                               valueText: CardPresentation.wattText(p.watts),
+                               fraction: wattFraction(watts: p.watts, maxWatts: maxW),
+                               iconPath: p.iconPath)
                 }
             }
         }
@@ -190,8 +227,10 @@ struct MetricCardView: View {
     }
 
     // Process row, pixel-matched to the prototype (lines 138–141): name 74 ellipsis
-    // · bar h6 r3 · GB 46 right. Borrows coreRow's structure, not its sizing (§M13).
-    private func processRow(name: String, footprintBytes: UInt64, maxBytes: UInt64, iconPath: String?) -> some View {
+    // · bar h6 r3 · value 46 right. Generalized over the value (bytes "GB" / watts "W") and
+    // its bar fraction so memory (05) and power (16) share one row. Borrows coreRow's
+    // structure, not its sizing (§M13).
+    private func processRow(name: String, valueText: String, fraction: Double, iconPath: String?) -> some View {
         HStack(spacing: 9) {
             appIcon(iconPath)
                 .frame(width: 15, height: 15)
@@ -206,18 +245,18 @@ struct MetricCardView: View {
                     RoundedRectangle(cornerRadius: 3).fill(t.sparkFill)
                     RoundedRectangle(cornerRadius: 3)
                         .fill(sparkStroke)
-                        .frame(width: geo.size.width * barFraction(footprint: footprintBytes, maxBytes: maxBytes))
+                        .frame(width: geo.size.width * fraction)
                 }
             }
             .frame(height: 6)
-            Text(CardPresentation.gbText(footprintBytes))
+            Text(valueText)
                 .font(WattlyFont.at(10.5, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(t.sub)
                 .frame(width: 46, alignment: .trailing)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(name), \(CardPresentation.gbText(footprintBytes))")
+        .accessibilityLabel("\(name), \(valueText)")
     }
 
     /// Small app icon from the resolved bundle/executable path (NSWorkspace caches

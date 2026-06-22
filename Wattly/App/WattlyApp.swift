@@ -34,7 +34,7 @@ struct WattlyApp: App {
 
         Settings {
             ThemedRoot {
-                SettingsView()
+                SettingsView(monitor: monitor)
             }
         }
         // Lock the prefs window to its 440-wide content (issue 13 §1) — a Settings NSWindow

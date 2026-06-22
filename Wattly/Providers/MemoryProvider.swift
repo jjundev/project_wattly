@@ -63,7 +63,8 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
     private static func topMemoryProcesses(limit: Int) -> [ProcessUsage] {
         // Footprint-only sweep over all readable pids (cheap), then resolve name +
         // icon path for JUST the top-N — avoids hundreds of proc_name/proc_pidpath
-        // calls per refresh (skip unreadable: other user / system, §M10).
+        // calls per refresh (skip unreadable: other user / system, §M10). The pid list
+        // + name/path helpers are shared with the power Top-3 (`ProcessList`).
         var footprints: [(pid: pid_t, bytes: UInt64)] = []
         for pid in listPIDs() where pid > 0 {
             if let bytes = physFootprint(pid) { footprints.append((pid, bytes)) }
@@ -71,20 +72,10 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
         return footprints.sorted { $0.bytes > $1.bytes }.prefix(limit).map { entry in
             let path = pidPath(entry.pid)
             return ProcessUsage(pid: entry.pid,
-                                name: name(of: entry.pid, path: path),
+                                name: procName(of: entry.pid, path: path),
                                 footprintBytes: entry.bytes,
                                 iconPath: appBundlePath(forExecutable: path))
         }
-    }
-
-    /// Two-pass `proc_listpids` into a caller-allocated Swift array (no Mach free).
-    private static func listPIDs() -> [pid_t] {
-        let needed = proc_listpids(UInt32(PROC_ALL_PIDS), 0, nil, 0)
-        guard needed > 0 else { return [] }
-        var pids = [pid_t](repeating: 0, count: Int(needed) / MemoryLayout<pid_t>.stride)
-        let written = proc_listpids(UInt32(PROC_ALL_PIDS), 0, &pids, needed)
-        guard written > 0 else { return [] }
-        return Array(pids.prefix(Int(written) / MemoryLayout<pid_t>.stride))
     }
 
     /// `ri_phys_footprint` via `proc_pid_rusage`; nil if the process is unreadable.
@@ -97,23 +88,5 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
             }
         }
         return rc == 0 ? info.ri_phys_footprint : nil
-    }
-
-    /// Full executable path via `proc_pidpath` ("" if unreadable). Used for both
-    /// the name fallback and the icon (`appBundlePath`), so it's fetched once.
-    private static func pidPath(_ pid: pid_t) -> String {
-        var buf = [CChar](repeating: 0, count: 4096)   // PROC_PIDPATHINFO_MAXSIZE = 4*MAXPATHLEN
-        return proc_pidpath(pid, &buf, UInt32(buf.count)) > 0 ? String(cString: buf) : ""
-    }
-
-    /// `proc_name` → executable basename (from `path`) → "PID n".
-    private static func name(of pid: pid_t, path: String) -> String {
-        var buf = [CChar](repeating: 0, count: 256)
-        if proc_name(pid, &buf, UInt32(buf.count)) > 0 {
-            let s = String(cString: buf)
-            if !s.isEmpty { return s }
-        }
-        if let last = path.split(separator: "/").last, !last.isEmpty { return String(last) }
-        return "PID \(pid)"
     }
 }

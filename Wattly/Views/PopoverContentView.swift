@@ -59,6 +59,7 @@ struct PopoverContentView: View {
     }
 
     private var memExpanded: Bool { expanded.contains(.mem) }
+    private var powerExpanded: Bool { expanded.contains(.power) }
 
     var body: some View {
         // No ScrollView here: MenuBarExtra(.window) sizes the window to the
@@ -80,12 +81,15 @@ struct PopoverContentView: View {
         // open state. (Card visibility is pushed by the always-alive PollPolicyBridge, not
         // here — it must reach the monitor even while this view is unmounted.)
         .onAppear { monitor.setPanelVisible(true) }
-        // Gate memory process enumeration to when this panel is open AND the memory card is
-        // expanded (issue 05 §M11/M18); .onDisappear reliably turns both off on close.
+        // Gate per-process enumeration (memory Top-3 / power Top-3) to when this panel is
+        // open AND that card is expanded (issue 05 §M11/M18, issue 16 follow-up);
+        // .onDisappear reliably turns each off on close so neither sweep leaks across reopen.
         .task(id: memExpanded) { monitor.setMemoryProcessEnumeration(memExpanded) }
+        .task(id: powerExpanded) { monitor.setPowerProcessEnumeration(powerExpanded) }
         .onDisappear {
             monitor.setPanelVisible(false)
             monitor.setMemoryProcessEnumeration(false)
+            monitor.setPowerProcessEnumeration(false)
         }
     }
 

@@ -10,6 +10,14 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.tokens) private var t
 
+    /// The shared monitor — read only for the footer's live self-power (issue 16). The
+    /// rest of the window is `@AppStorage`. Observing it across the separate `Settings`
+    /// scene is reliable (same `@Observable` instance, read in `body`); the poll keeps
+    /// running via the always-alive `PollPolicyBridge`, independent of which window is open.
+    let monitor: SystemMonitor
+
+    init(monitor: SystemMonitor) { self.monitor = monitor }
+
     // Theme / poll / smoothing / menubar text.
     @AppStorage(StorageKey.theme) private var theme = Defaults.theme
     @AppStorage(StorageKey.pollInterval) private var pollInterval = Defaults.pollInterval
@@ -284,10 +292,16 @@ struct SettingsView: View {
 
     // MARK: 푸터
 
+    /// "X.XX W" (2 decimals, prototype-faithful) when a self-power reading exists, else "—".
+    private var selfPowerText: String {
+        monitor.selfPower.map { String(format: "%.2f W", $0) } ?? "—"
+    }
+
     private var footer: some View {
         VStack(spacing: 6) {
-            // Self-power "X.XX W" lights up when issue 16 lands; "—" until then (가정 A).
-            (Text("Wattly 1.0 · 자체 소비 ") + Text("—").foregroundColor(t.sub))
+            // Live self-power (issue 16): "X.XX W" when warm, "—" until the first valid
+            // interval. Reading monitor.selfPower in body tracks the @Observable update.
+            (Text("Wattly 1.0 · 자체 소비 ") + Text(selfPowerText).foregroundColor(t.sub))
                 .font(WattlyFont.at(11.5, weight: .regular))
                 .foregroundStyle(t.faint)
             Text("Created by jjundev")

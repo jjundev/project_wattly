@@ -24,9 +24,9 @@ enum CardKind: String, CaseIterable, Codable, Sendable, Identifiable, Hashable {
     // (they were copy-pasted across MetricCardView / PopoverContentView). The card's
     // *content* (label, value, unit) lives in `CardPresentation`; these are pure shape.
 
-    /// Cards with an expand region + chevron (CPU per-core, memory Top-3, CPU-temp
-    /// clusters). Drives both the chevron and whether a tap toggles expansion.
-    var isExpandable: Bool { self == .cpu || self == .mem || self == .cpuTemp }
+    /// Cards with an expand region + chevron (processor-power per-app Top-3, CPU per-core,
+    /// memory Top-3, CPU-temp clusters). Drives both the chevron and whether a tap toggles.
+    var isExpandable: Bool { self == .power || self == .cpu || self == .mem || self == .cpuTemp }
 
     /// The battery card draws a polyline only; every other card fills the sparkline
     /// area beneath the line (prototype line 100).
