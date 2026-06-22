@@ -39,11 +39,18 @@ struct PopoverContentView: View {
         .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(t.panelBorder, lineWidth: 1))
         .shadow(color: Tokens.shadowFar.color, radius: Tokens.shadowFar.radius, x: 0, y: Tokens.shadowFar.y)
         .shadow(color: Tokens.shadowNear.color, radius: Tokens.shadowNear.radius, x: 0, y: Tokens.shadowNear.y)
-        // Gate memory process enumeration to when this panel is open AND the memory
-        // card is expanded (issue 05 §M11/M18). The panel unmounts on close (issue
-        // 03 render-stop), so .onDisappear reliably turns it off.
+        // Panel open/closed drives the adaptive cadence (issue 09): open → 1 s live view,
+        // closed → 2–5 s. The panel unmounts on close, so onAppear/onDisappear bracket the
+        // open state. (Card visibility is pushed by the always-alive PollPolicyBridge, not
+        // here — it must reach the monitor even while this view is unmounted.)
+        .onAppear { monitor.setPanelVisible(true) }
+        // Gate memory process enumeration to when this panel is open AND the memory card is
+        // expanded (issue 05 §M11/M18); .onDisappear reliably turns both off on close.
         .task(id: memExpanded) { monitor.setMemoryProcessEnumeration(memExpanded) }
-        .onDisappear { monitor.setMemoryProcessEnumeration(false) }
+        .onDisappear {
+            monitor.setPanelVisible(false)
+            monitor.setMemoryProcessEnumeration(false)
+        }
     }
 
     // MARK: Header (prototype lines 66–72)
