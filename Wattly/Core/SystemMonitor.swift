@@ -41,6 +41,12 @@ final class SystemMonitor {
     private var panelVisible = false
     /// Whether the menubar shows a metric number (keeps a closed panel at 2 s, not 5 s).
     private var menubarTextEnabled = Defaults.menubarTextEnabled
+    /// The cards whose metric is shown in the menubar text (issue 14). When the text is
+    /// enabled, their providers stay polled even if the matching card is hidden — that is
+    /// what makes a menubar-only metric (e.g. GPU temp with its card off) keep updating.
+    /// Seeded to the default-selected set (= `[.cpu]`) so `menubarNeeds` matches the prior
+    /// hardcode until `PollPolicyBridge` pushes the user's chips.
+    private var menubarMetrics = Set(Defaults.menuMetrics.filter(\.value).map(\.key))
     /// The cards currently shown. Providers feeding no shown (or menubar-needed) card drop
     /// out of the poll. Seeded to every card so the filter is a no-op until a card is hidden
     /// (issue 13's toggles) — never empty, which would skip every provider at launch.
@@ -148,12 +154,23 @@ final class SystemMonitor {
         await recomputeGating()
     }
 
+    /// The menubar metric selection changed (issue 14's chips). A gating input only —
+    /// like `setShownCards` it re-derives the active providers + temperature gate but
+    /// never reschedules, so the closed-panel poll count stays deterministic. Cadence
+    /// keys off the text toggle (`setMenubarTextEnabled`), not the selection: an empty
+    /// selection with text still on holds the 2 s closed cadence (issue 14 §14, accepted).
+    func setMenubarMetrics(_ cards: Set<CardKind>) async {
+        guard cards != menubarMetrics else { return }
+        menubarMetrics = cards
+        await recomputeGating()
+    }
+
     /// Recompute which providers to poll and whether the temperature SMC path is enabled,
     /// then fire a single immediate poll iff something turned ON (a provider became active,
     /// or CPU/GPU temp re-enabled), so a re-shown card fills without waiting a cycle.
     /// Turning OFF polls nothing — the determinism the call-count test (issue 09 §수용) relies on.
     private func recomputeGating() async {
-        let menubarNeeds: Set<CardKind> = menubarTextEnabled ? [.cpu] : []
+        let menubarNeeds: Set<CardKind> = menubarTextEnabled ? menubarMetrics : []
         let needed = activeProviders(shown: shownCards, menubarNeeds: menubarNeeds)
         let newlyActivated = !needed.subtracting(activeProviderKinds).isEmpty
         activeProviderKinds = needed
