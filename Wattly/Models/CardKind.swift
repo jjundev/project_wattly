@@ -18,6 +18,28 @@ enum CardKind: String, CaseIterable, Codable, Sendable, Identifiable, Hashable {
         case .cpuTemp, .gpuTemp, .batTemp: .temperature
         }
     }
+
+    // MARK: Structural facts (state-independent) — the card's layout shape.
+    // The single home for the card-family booleans the views previously hardcoded
+    // (they were copy-pasted across MetricCardView / PopoverContentView). The card's
+    // *content* (label, value, unit) lives in `CardPresentation`; these are pure shape.
+
+    /// Cards with an expand region + chevron (CPU per-core, memory Top-3, CPU-temp
+    /// clusters). Drives both the chevron and whether a tap toggles expansion.
+    var isExpandable: Bool { self == .cpu || self == .mem || self == .cpuTemp }
+
+    /// The battery card draws a polyline only; every other card fills the sparkline
+    /// area beneath the line (prototype line 100).
+    var hasSparkArea: Bool { self != .battery }
+
+    /// The processor-power card is the single accented (brand-blue) card; every other
+    /// card uses the neutral theme tokens.
+    var isAccented: Bool { self == .power }
+
+    /// The processor-power and battery cards apply display smoothing (the shared
+    /// `powerSmoothed` toggle); every other card shows its raw series. The single home
+    /// for "which cards smooth", consumed by `SystemMonitor`'s state/history routing.
+    var isSmoothable: Bool { self == .power || self == .battery }
 }
 
 /// The five providers that cross the actor boundary (PRD line 73). Distinct from

@@ -89,22 +89,22 @@ struct SystemMonitorTests {
         let monitor = SystemMonitor(providers: [power], clock: clock)
 
         await monitor.pollOnce()                         // seed → smoothed == raw == 10
-        #expect(monitor.smoothedPower?.totalW == 10)
+        #expect(monitor.powerOverlay.sample?.totalW == 10)
 
         clock.advance(by: .seconds(1))
         await monitor.pollOnce()                          // raw jumps to 20; smoothed damps
-        let smoothed = monitor.smoothedPower!.totalW
+        let smoothed = monitor.powerOverlay.sample!.totalW
         #expect(smoothed > 10 && smoothed < 20)           // EMA, not the full jump
         // Raw stays exact in state + history; the smoothed series is its own buffer.
-        #expect(monitor.history[.power]?.values == [10, 20])
-        #expect(monitor.smoothedPowerHistory.values.last == smoothed)
+        #expect(monitor.historyValues(for: .power, smoothed: false) == [10, 20])
+        #expect(monitor.powerOverlay.history.values.last == smoothed)
 
         // The toggle picks which the card shows.
-        guard case .value(.power(let shown)) = monitor.powerCardState(smoothed: true) else {
+        guard case .value(.power(let shown)) = monitor.cardState(.power, smoothed: true) else {
             Issue.record("smoothed power card should be a value"); return
         }
         #expect(shown.totalW == smoothed)
-        guard case .value(.power(let rawShown)) = monitor.powerCardState(smoothed: false) else {
+        guard case .value(.power(let rawShown)) = monitor.cardState(.power, smoothed: false) else {
             Issue.record("raw power card should be a value"); return
         }
         #expect(rawShown.totalW == 20)
@@ -121,22 +121,22 @@ struct SystemMonitorTests {
         let monitor = SystemMonitor(providers: [battery], clock: clock)
 
         await monitor.pollOnce()                          // seed → smoothed netW == 16
-        #expect(monitor.smoothedBattery?.netW == 16)
+        #expect(monitor.batteryOverlay.sample?.netW == 16)
 
         clock.advance(by: .seconds(1))
         await monitor.pollOnce()                           // raw spikes to 24; smoothed damps between
-        let sm = monitor.smoothedBattery!
+        let sm = monitor.batteryOverlay.sample!
         #expect(sm.netW > 16 && sm.netW < 24)              // EMA, not the full spike
         #expect(sm.charging == false)                      // direction re-derived from smoothed netW
         #expect(sm.milliamps == Int((abs(sm.netW) * 1000 / 12.0).rounded()))  // mA consistent w/ smoothed netW
-        #expect(monitor.history[.battery]?.values == [16, 24])               // raw series untouched
+        #expect(monitor.historyValues(for: .battery, smoothed: false) == [16, 24])   // raw series untouched
 
         clock.advance(by: .seconds(1))
         await monitor.pollOnce()                           // plug in (ExternalConnected flip) → smoothing resets
-        #expect(monitor.smoothedBattery?.netW == -30)      // seeds to the charging value at once (no blend)
-        #expect(monitor.smoothedBattery?.charging == true)
-        #expect(monitor.smoothedBatteryHistory.values == [-30])
-        #expect(monitor.batteryCardState(smoothed: true) == .value(.battery(monitor.smoothedBattery!)))
+        #expect(monitor.batteryOverlay.sample?.netW == -30)      // seeds to the charging value at once (no blend)
+        #expect(monitor.batteryOverlay.sample?.charging == true)
+        #expect(monitor.batteryOverlay.history.values == [-30])
+        #expect(monitor.cardState(.battery, smoothed: true) == .value(.battery(monitor.batteryOverlay.sample!)))
     }
 
     @Test func batteryPlugInResetsHistory() async {
@@ -154,10 +154,10 @@ struct SystemMonitorTests {
         await monitor.pollOnce()                 // on battery → [9.6]
         clock.advance(by: .seconds(2))
         await monitor.pollOnce()                 // still on battery (no plug change) → [9.6, 9.6]
-        #expect(monitor.history[.battery]?.values == [9.6, 9.6])
+        #expect(monitor.historyValues(for: .battery, smoothed: false) == [9.6, 9.6])
 
         clock.advance(by: .seconds(2))
         await monitor.pollOnce()                 // plugged in (ExternalConnected flip) → reset → [-13.4]
-        #expect(monitor.history[.battery]?.values == [-13.4])
+        #expect(monitor.historyValues(for: .battery, smoothed: false) == [-13.4])
     }
 }

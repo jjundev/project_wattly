@@ -2,8 +2,10 @@ import SwiftUI
 import AppKit   // NSWorkspace for per-process app icons (issue 05)
 
 /// One mode-A card, pixel-matched to the prototype (lines 84–168). Switches layout
-/// by card family and by state (loading "—" / value / unavailable). Sparkline band
-/// is reserved (issue 03); expand content for CPU/memory is issues 04/05.
+/// by card family and by state (loading "—" / value / unavailable). A thin renderer:
+/// all text/number/unit/sign rules live in `CardPresentation` (pure), and the
+/// card-family shape lives on `CardKind`; this view only lays out SwiftUI primitives
+/// and resolves the `tint` role to theme tokens.
 struct MetricCardView: View {
     @Environment(\.tokens) private var t
     let card: CardKind
@@ -24,11 +26,12 @@ struct MetricCardView: View {
     // MARK: Standard card (loading or value)
 
     private var standardCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            headerRow
+        let d = CardPresentation.display(card, state)
+        return VStack(alignment: .leading, spacing: 8) {
+            headerRow(d)
             if hasValue {
                 SparklineView(values: historyValues, stroke: sparkStroke, fill: hasSparkArea ? sparkFill : nil)
-                if let sub = subText, !sub.isEmpty {
+                if let sub = d.subText, !sub.isEmpty {
                     Text(sub)
                         .font(WattlyFont.at(11, weight: .regular))
                         .monospacedDigit()
@@ -44,10 +47,10 @@ struct MetricCardView: View {
         .onTapGesture { onToggleExpand?() }
     }
 
-    private var headerRow: some View {
+    private func headerRow(_ d: CardDisplay) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             HStack(spacing: 5) {
-                Text(label)
+                Text(d.label)
                     .font(WattlyFont.at(11.5, weight: .semibold))
                     .foregroundStyle(t.sub)
                     .fixedSize()
@@ -59,11 +62,11 @@ struct MetricCardView: View {
             }
             Spacer(minLength: 8)
             HStack(alignment: .firstTextBaseline, spacing: 3) {
-                Text(valueText)
+                Text(d.valueText)
                     .font(WattlyFont.at(19, weight: .bold)).tracking(-0.19)
                     .monospacedDigit()
                     .foregroundStyle(valueColor)
-                Text(unitText)
+                Text(d.unitText)
                     .font(WattlyFont.at(12, weight: .semibold))
                     .foregroundStyle(t.sub)
             }
@@ -99,7 +102,7 @@ struct MetricCardView: View {
                             .foregroundStyle(idx == 0 ? Tokens.accent : t.sub)
                     }
                     ForEach(Array(level.cores.enumerated()), id: \.offset) { ci, usage in
-                        coreRow(label: "\(corePrefix(level.name))\(ci)", usage: usage, accent: idx == 0)
+                        coreRow(label: "\(CardPresentation.corePrefix(level.name))\(ci)", usage: usage, accent: idx == 0)
                     }
                 }
             }
@@ -131,11 +134,6 @@ struct MetricCardView: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(label), \(Int(usage.rounded())) 퍼센트")
-    }
-
-    /// Runtime perf-level name → single-letter label prefix ("Performance" → "P").
-    private func corePrefix(_ name: String) -> String {
-        name.first.map { String($0).uppercased() } ?? "C"
     }
 
     // MARK: Memory expand — top processes (issue 05)
@@ -181,18 +179,14 @@ struct MetricCardView: View {
                 }
             }
             .frame(height: 6)
-            Text(gbText(footprintBytes))
+            Text(CardPresentation.gbText(footprintBytes))
                 .font(WattlyFont.at(10.5, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(t.sub)
                 .frame(width: 46, alignment: .trailing)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(name), \(gbText(footprintBytes))")
-    }
-
-    private func gbText(_ bytes: UInt64) -> String {
-        String(format: "%.1f GB", Double(bytes) / (1024.0 * 1024.0 * 1024.0))
+        .accessibilityLabel("\(name), \(CardPresentation.gbText(footprintBytes))")
     }
 
     /// Small app icon from the resolved bundle/executable path (NSWorkspace caches
@@ -237,24 +231,18 @@ struct MetricCardView: View {
                     RoundedRectangle(cornerRadius: 3).fill(t.sparkFill)
                     RoundedRectangle(cornerRadius: 3)
                         .fill(t.spark)
-                        .frame(width: geo.size.width * Self.tempBarFraction(g.average))
+                        .frame(width: geo.size.width * CardPresentation.tempBarFraction(g.average))
                 }
             }
             .frame(height: 6)
-            Text("\(f1(g.average))° · 최고 \(f1(g.hottest))°")
+            Text(CardPresentation.clusterSummary(average: g.average, hottest: g.hottest))
                 .font(WattlyFont.at(10.5, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(t.sub)
                 .frame(width: 104, alignment: .trailing)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(g.name), 평균 \(f1(g.average))도, 최고 \(f1(g.hottest))도")
-    }
-
-    /// Bar fill fraction on a fixed 0–110 °C display scale (issue 08 §8; neutral color —
-    /// threshold coloring is issue 10).
-    private static func tempBarFraction(_ celsius: Double) -> Double {
-        min(1, max(0, celsius / 110.0))
+        .accessibilityLabel("\(g.name), 평균 \(CardPresentation.f1(g.average))도, 최고 \(CardPresentation.f1(g.hottest))도")
     }
 
     // MARK: Unavailable cards
@@ -276,7 +264,7 @@ struct MetricCardView: View {
                 .foregroundStyle(Color(hex: "#d47800"))
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 2) {
-                Text(label).font(WattlyFont.at(11.5, weight: .semibold)).foregroundStyle(t.text)
+                Text(CardPresentation.label(card)).font(WattlyFont.at(11.5, weight: .semibold)).foregroundStyle(t.text)
                 Text(reason.message)
                     .font(WattlyFont.at(11, weight: .regular)).lineSpacing(1.5)
                     .foregroundStyle(t.sub)
@@ -297,7 +285,7 @@ struct MetricCardView: View {
                 .foregroundStyle(t.faint)
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 1) {
-                Text(label).font(WattlyFont.at(11.5, weight: .semibold)).foregroundStyle(t.sub)
+                Text(CardPresentation.label(card)).font(WattlyFont.at(11.5, weight: .semibold)).foregroundStyle(t.sub)
                 Text(reason.message).font(WattlyFont.at(11, weight: .regular)).foregroundStyle(t.faint)
             }
         }
@@ -311,7 +299,7 @@ struct MetricCardView: View {
     private func genericUnavailable(_ reason: MetricUnavailableReason) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
-                Text(label).font(WattlyFont.at(11.5, weight: .semibold)).foregroundStyle(t.sub)
+                Text(CardPresentation.label(card)).font(WattlyFont.at(11.5, weight: .semibold)).foregroundStyle(t.sub)
                 Spacer(minLength: 8)
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 12, weight: .semibold))
@@ -329,86 +317,15 @@ struct MetricCardView: View {
 
     // MARK: Card-family attributes
 
-    private var isExpandable: Bool { card == .cpu || card == .mem || card == .cpuTemp }
+    // Structural shape comes from `CardKind`; this view only resolves the accent
+    // `tint` role to theme tokens (neutral tokens are theme-dependent; the accent is
+    // the static brand color).
+    private var isExpandable: Bool { card.isExpandable }
     private var hasChevron: Bool { isExpandable }
-    private var hasSparkArea: Bool { card != .battery }   // battery: polyline only (line 100)
+    private var hasSparkArea: Bool { card.hasSparkArea }   // battery: polyline only (line 100)
     private var hasValue: Bool { if case .value = state { return true }; return false }
 
-    private var valueColor: Color { card == .power ? Tokens.accent : t.text }
-    private var sparkStroke: Color { card == .power ? Tokens.accent : t.spark }
-    private var sparkFill: Color { card == .power ? Color.rgba(0, 102, 255, 0.10) : t.sparkFill }
-
-    private var label: String {
-        switch card {
-        case .power: "프로세서 전력"
-        case .battery: "배터리"
-        case .cpu: "CPU"
-        case .mem: "메모리"
-        case .cpuTemp: "CPU 온도"
-        case .gpuTemp: "GPU 온도"
-        case .batTemp: "배터리 온도"
-        }
-    }
-
-    private var unitText: String {
-        switch card {
-        case .power, .battery: return "W"
-        case .cpu: return "%"
-        case .mem:
-            if case .value(.memory(let s)) = state { return "/ \(Int(s.totalGB)) GB" }
-            return "GB"
-        case .cpuTemp, .gpuTemp, .batTemp: return "°C"
-        }
-    }
-
-    private var valueText: String {
-        guard case .value(let sample) = state else { return "—" }
-        switch (card, sample) {
-        case (.power, .power(let s)): return f1(s.totalW)
-        case (.battery, .battery(let s)):
-            // #17: drop the sign when the magnitude rounds to 0.0 (AC 연결·완충 등 net≈0)
-            // so the card shows "0.0", never a meaningless "−0.0".
-            let mag = abs(s.netW)
-            return (mag < 0.05 ? "" : (s.charging ? "+" : "−")) + f1(mag)
-        case (.cpu, .cpu(let s)): return String(Int(s.overall.rounded()))
-        case (.mem, .memory(let s)): return f1(s.usedGB)
-        case (.cpuTemp, .temperature(let s)): return tempText(s.cpu)
-        case (.gpuTemp, .temperature(let s)): return tempText(s.gpu)
-        case (.batTemp, .temperature(let s)): return tempText(s.battery)
-        default: return "—"
-        }
-    }
-
-    private var subText: String? {
-        guard case .value(let sample) = state else { return nil }
-        switch sample {
-        case .power(let s):
-            return "CPU \(f1(s.cpuW)) W · GPU \(f1(s.gpuW)) W · NPU \(f1(s.npuW)) W"
-        case .battery(let s):
-            // #17: same zero-magnitude → no-sign rule as the value (keeps mA in step).
-            let sign = abs(s.netW) < 0.05 ? "" : (s.charging ? "+" : "−")
-            return "\(sign)\(s.milliamps) mA · \(f1(s.volts)) V · \(s.charging ? "충전 중" : "방전 중")"
-        case .cpu(let s):
-            // Order-based (not name-coupled): runtime perf-level names ("Performance"/
-            // "Efficiency" → "P"/"E") differ from the prototype's "S". Guard
-            // single-cluster hardware (<2 levels) against an out-of-range read.
-            guard s.perfLevels.count >= 2 else {
-                guard let only = s.perfLevels.first else { return nil }
-                return "\(corePrefix(only.name)) \(Int(only.usage.rounded()))%"
-            }
-            let a = s.perfLevels[0], b = s.perfLevels[1]
-            return "\(corePrefix(a.name)) \(Int(a.usage.rounded()))% · \(corePrefix(b.name)) \(Int(b.usage.rounded()))%"
-        case .memory(let s):
-            return "고정 \(f1(s.wiredGB)) GB · 압축 \(f1(s.compressedGB)) GB"
-        case .temperature:
-            return nil
-        }
-    }
-
-    private func f1(_ x: Double) -> String { String(format: "%.1f", x) }
-
-    private func tempText(_ c: CategoryReading) -> String {
-        if case .reading(let r) = c { return f1(r.celsius) }
-        return "—"
-    }
+    private var valueColor: Color { card.isAccented ? Tokens.accent : t.text }
+    private var sparkStroke: Color { card.isAccented ? Tokens.accent : t.spark }
+    private var sparkFill: Color { card.isAccented ? Color.rgba(0, 102, 255, 0.10) : t.sparkFill }
 }
