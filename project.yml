@@ -13,9 +13,10 @@ settings:
     SWIFT_VERSION: "6.0"            # Swift 6 language mode (strict concurrency complete)
     MACOSX_DEPLOYMENT_TARGET: "14.0"
     SDKROOT: macosx
-    CODE_SIGN_IDENTITY: "-"         # ad-hoc for local dev; Developer ID is issue 17
+    ARCHS: arm64                    # Apple Silicon only (issue 17); avoids default universal build
+    CODE_SIGN_IDENTITY: "-"         # ad-hoc — free Apple ID, no Developer ID / notarization (issue 17, N1)
     CODE_SIGN_STYLE: Automatic
-    ENABLE_HARDENED_RUNTIME: NO     # ON for shared builds — issue 17
+    ENABLE_HARDENED_RUNTIME: NO     # not needed without notarization (free-account path, issue 17)
     ENABLE_USER_SCRIPT_SANDBOXING: YES
   configs:
     Debug:
