@@ -20,6 +20,7 @@ struct SettingsView: View {
 
     // Theme / poll / smoothing / menubar text.
     @AppStorage(StorageKey.theme) private var theme = Defaults.theme
+    @AppStorage(StorageKey.panelMode) private var panelMode = Defaults.panelMode
     @AppStorage(StorageKey.pollInterval) private var pollInterval = Defaults.pollInterval
     @AppStorage(StorageKey.powerSmoothed) private var powerSmoothed = Defaults.powerSmoothed
     @AppStorage(StorageKey.menubarTextEnabled) private var menubarText = Defaults.menubarTextEnabled
@@ -51,6 +52,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 18) {
                 generalSection
                 themeSection
+                layoutSection
                 showSection
                 smoothingSection
                 thresholdSection
@@ -101,6 +103,17 @@ struct SettingsView: View {
         SettingsSection(title: "테마") {
             WattlySegment(selection: $theme, options: [
                 (.light, "라이트"), (.dark, "다크"), (.system, "시스템 설정"),
+            ])
+        }
+    }
+
+    // MARK: 레이아웃 (issue 19)
+
+    /// Popover layout picker. Exposes A·B now; the hero mode (`.c`) joins when plan 20 ships.
+    private var layoutSection: some View {
+        SettingsSection(title: "레이아웃") {
+            WattlySegment(selection: $panelMode, options: [
+                (.a, PanelMode.a.label), (.b, PanelMode.b.label),
             ])
         }
     }

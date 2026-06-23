@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// The 26px sparkline band (prototype `.wa-spark`, `:15`). Draws the polyline +
+/// The sparkline band (prototype `.wa-spark`, `:15`; 26px in mode A, 22px in the mode-B
+/// grid). Draws the polyline +
 /// optional area fill from `values` over the last-60s window, pixel-matched to the
 /// prototype `spark()`. Geometry lives in `Sparkline` (pure); this view only maps
 /// the 120×28 viewBox into the actual Canvas size and strokes it.
@@ -13,6 +14,9 @@ struct SparklineView: View {
     let values: [Double]
     var stroke: Color
     var fill: Color? = nil
+    /// Rendered band height. Defaults to the mode-A 26px; the mode-B grid passes 22.
+    /// Only the outer frame changes — the 120×28 viewBox still maps non-uniformly.
+    var height: CGFloat = 26
 
     var body: some View {
         Canvas(opaque: false) { ctx, size in
@@ -34,6 +38,6 @@ struct SparklineView: View {
             ctx.stroke(line, with: .color(stroke),
                        style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
         }
-        .frame(height: 26)
+        .frame(height: height)
     }
 }

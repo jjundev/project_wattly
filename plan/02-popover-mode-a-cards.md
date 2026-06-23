@@ -5,7 +5,7 @@
 
 ## 목표
 
-팝오버 패널과 **모드 A(스택 행)** 카드 레이아웃을 픽셀 일치로 만든다. **모드 A만 출시**(보류 #23) — B/C는 데모 하니스의 디자인 후보이고 설정에 모드 토글이 없다.
+팝오버 패널과 **모드 A(스택 행)** 카드 레이아웃을 픽셀 일치로 만든다. 모드 A는 기본 레이아웃이며, B/C는 같은 셸 위에 별도 plan으로 추가된다(→ [19](19-popover-layout-select-mode-b.md)/[20](20-popover-mode-c-hero.md), 결정 #29가 #23을 정정).
 
 ## 범위 (In)
 
@@ -30,7 +30,7 @@
 
 ## 범위 (Out)
 
-- 모드 B(그리드)·모드 C(히어로+리스트): **미구현**(데모 전용). 드래그 동작([12](12-card-reorder-edit-mode.md)). 색상 코딩([10](10-thresholds-color-coding.md)).
+- 모드 B(그리드 → [19](19-popover-layout-select-mode-b.md))·모드 C(히어로+리스트 → [20](20-popover-mode-c-hero.md))는 **별도 plan**. 드래그 동작([12](12-card-reorder-edit-mode.md)). 색상 코딩([10](10-thresholds-color-coding.md)).
 
 ## 수용 기준
 

@@ -15,6 +15,11 @@ struct PopoverContentView: View {
     @Environment(\.tokens) private var t
     @Environment(\.openSettings) private var openSettings
     @AppStorage(StorageKey.cardOrder) private var cardOrder = Defaults.cardOrder
+    /// Chosen popover layout (issue 19). `.a` = the stacked cards below; `.b` = the compact
+    /// grid (`PopoverGridView`). `.c` (hero, plan 20) folds back to `.a` until it ships.
+    /// Edit/drag and per-process expansion are `.a`-only (see `body`'s onChange + the task
+    /// gating). Read as `@AppStorage` so a settings change re-renders the panel live.
+    @AppStorage(StorageKey.panelMode) private var panelMode = Defaults.panelMode
     /// Power-type cards (프로세서 전력 + 배터리): show the EMA-smoothed value/sparkline
     /// (steady, tracks the real sustained draw) vs the raw 1-second reading. Default on.
     @AppStorage(StorageKey.powerSmoothed) private var powerSmoothed = Defaults.powerSmoothed
@@ -68,6 +73,13 @@ struct PopoverContentView: View {
     private var memExpanded: Bool { expanded.contains(.mem) }
     private var powerExpanded: Bool { expanded.contains(.power) }
 
+    // Per-process enumeration is only meaningful in mode A (the only layout with an expand
+    // region). Gating on `panelMode == .a` too means switching A→B mid-session — while the
+    // mem/power card is expanded — turns the sweep off, instead of leaking it into a layout
+    // that never shows the Top-3 (review row 6). Composite so the `.task` re-fires on switch.
+    private var memEnumActive: Bool { panelMode == .a && memExpanded }
+    private var powerEnumActive: Bool { panelMode == .a && powerExpanded }
+
     var body: some View {
         // The cards region caps itself to the menu-bar screen and scrolls the overflow
         // (issue 17 follow-up): MenuBarExtra(.window) sizes the window to the content's natural
@@ -76,7 +88,7 @@ struct PopoverContentView: View {
         // height-capped ScrollView — see its doc-comment for the no-first-frame-collapse detail.
         VStack(spacing: 0) {
             header
-            cardsRegion
+            modeBody
         }
         .padding(14)
         .frame(width: 320, alignment: .leading)
@@ -97,11 +109,16 @@ struct PopoverContentView: View {
             let screenH = NSScreen.screens.first?.visibleFrame.height ?? 800
             maxCardsHeight = screenH - 84
         }
+        // Leaving mode A drops edit state so a half-finished drag (dimmed card) can't strand
+        // when the row that hosts it disappears (review row 5).
+        .onChange(of: panelMode) { _, mode in
+            if mode != .a { editMode = false; draggingCard = nil; dragOffset = 0; homeShift = 0 }
+        }
         // Gate per-process enumeration (memory Top-3 / power Top-3) to when this panel is
-        // open AND that card is expanded (issue 05 §M11/M18, issue 16 follow-up);
-        // .onDisappear reliably turns each off on close so neither sweep leaks across reopen.
-        .task(id: memExpanded) { monitor.setMemoryProcessEnumeration(memExpanded) }
-        .task(id: powerExpanded) { monitor.setPowerProcessEnumeration(powerExpanded) }
+        // open, mode A, AND that card is expanded (issue 05 §M11/M18, issue 16 follow-up,
+        // issue 19 review row 6); .onDisappear reliably turns each off on close.
+        .task(id: memEnumActive) { monitor.setMemoryProcessEnumeration(memEnumActive) }
+        .task(id: powerEnumActive) { monitor.setPowerProcessEnumeration(powerEnumActive) }
         .onDisappear {
             monitor.setPanelVisible(false)
             monitor.setMemoryProcessEnumeration(false)
@@ -126,10 +143,14 @@ struct PopoverContentView: View {
             .accessibilityLabel("Wattly, " + (monitor.aggregateHealthy ? "정상" : "주의"))
             Spacer(minLength: 8)
             HStack(spacing: 2) {
-                iconButton("pencil", active: editMode, activeColor: Tokens.accent,
-                           activeBg: Tokens.accent.opacity(0.16)) {
-                    editMode.toggle()
-                    draggingCard = nil   // clear any residual drag dim when leaving/entering edit
+                // Reorder is mode-A only (the grid/hero layouts have no drag), so the edit
+                // toggle is hidden in other modes rather than left as a no-op (issue 19).
+                if panelMode == .a {
+                    iconButton("pencil", active: editMode, activeColor: Tokens.accent,
+                               activeBg: Tokens.accent.opacity(0.16)) {
+                        editMode.toggle()
+                        draggingCard = nil   // clear any residual drag dim when leaving/entering edit
+                    }
                 }
                 iconButton("gearshape", active: false, activeColor: t.faint,
                            activeBg: .clear) { openSettingsRaised() }
@@ -176,16 +197,32 @@ struct PopoverContentView: View {
     private static let cardSpace = "wattly.cards"
     private static let cardSpacing: CGFloat = 8   // matches the cards VStack spacing
 
-    /// `cardsStack` capped to the menu-bar screen: rendered at its natural height while it fits,
-    /// wrapped in a height-capped ScrollView once it would overflow (issue 17 follow-up). The
-    /// conditional is what avoids a zero-height first frame — before `cardsNaturalHeight` is
-    /// measured (== 0) the `else` branch renders the stack at natural height exactly as before;
-    /// only a genuinely too-tall list takes the scrolling branch. On macOS a ScrollView consumes
-    /// scroll-wheel events while the edit-mode reorder uses a click-`DragGesture`, so the two
-    /// never compete — reorder keeps working inside the scroll container, and the named cards
-    /// coordinate space moves with the content so the slot math stays consistent.
-    @ViewBuilder private var cardsRegion: some View {
-        let measured = cardsStack
+    /// The popover body for the chosen layout (issue 19), each wrapped by the same
+    /// screen-height cap. `.a` = the stacked cards (with edit/drag); `.b` = the compact grid;
+    /// `.c` (hero, plan 20) folds back to `.a` for now. The shared header + panel chrome live
+    /// in `body`, so only this content switches.
+    @ViewBuilder private var modeBody: some View {
+        switch panelMode {
+        case .a, .c:
+            scrollCapped { cardsStack }
+        case .b:
+            scrollCapped {
+                PopoverGridView(cards: visibleCards, monitor: monitor,
+                                thresholds: thresholds, powerSmoothed: powerSmoothed)
+            }
+        }
+    }
+
+    /// Cap arbitrary mode content to the menu-bar screen: rendered at its natural height while
+    /// it fits, wrapped in a height-capped ScrollView once it would overflow (issue 17
+    /// follow-up; generalized from `cardsRegion` for issue 19). The conditional is what avoids a
+    /// zero-height first frame — before `cardsNaturalHeight` is measured (== 0) the `else`
+    /// branch renders at natural height; only a genuinely too-tall body takes the scrolling
+    /// branch. On macOS a ScrollView consumes scroll-wheel events while the edit-mode reorder
+    /// uses a click-`DragGesture`, so the two never compete — reorder keeps working inside the
+    /// scroll container, and the named cards coordinate space moves with the content.
+    @ViewBuilder private func scrollCapped<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        let measured = content()
             .background(GeometryReader { geo in
                 Color.clear.preference(key: ContentHeightKey.self, value: geo.size.height)
             })
@@ -193,8 +230,8 @@ struct PopoverContentView: View {
         if cardsNaturalHeight > maxCardsHeight {
             // Only in the scrolling branch: extend the scroll view rightward into the outer
             // .padding(14) inset (negative trailing) so the scroll bar hugs the panel edge, while
-            // re-insetting the cards by the same amount keeps their right margin aligned with the
-            // header — net effect: scroll bar near the edge, cards in a gutter, no overlap.
+            // re-insetting the content by the same amount keeps its right margin aligned with the
+            // header — net effect: scroll bar near the edge, content in a gutter, no overlap.
             ScrollView { measured.padding(.trailing, 10) }
                 .frame(height: maxCardsHeight)
                 .padding(.trailing, -10)
