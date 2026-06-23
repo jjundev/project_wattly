@@ -17,9 +17,9 @@ struct PowerEnergyTests {
         #expect(unitScale("pJ") == 1e-12)
     }
 
-    @Test func unitScaleUnknownOrNilDefaultsToMilli() {
-        #expect(unitScale(nil) == 1e-3)
-        #expect(unitScale("zJ") == 1e-3)
+    @Test func unitScaleUnknownOrNilIsRejected() {
+        #expect(unitScale(nil) == nil)
+        #expect(unitScale("zJ") == nil)
     }
 
     // MARK: classifyEngine — only the rolled-up aggregates map; sub-components don't
@@ -39,6 +39,17 @@ struct PowerEnergyTests {
         #expect(classifyEngine("DRAM") == nil)          // counts toward total, not an engine breakout
     }
 
+    @Test func cpuCoreChannelPatternsAreExact() {
+        for name in ["ECPU0", "ECPU5", "PCPU0", "PCPU12", "MCPU0", "MCPU1_0",
+                     "PACC_0", "PACC0_CPU0", "EACC_CPU3"] {
+            #expect(isCPUCoreEnergyChannel(name), "\(name) should be a core channel")
+        }
+        for name in ["ECPU", "PCPU", "CPU Energy", "ECPU0_SRAM", "PCPU0_SRAM",
+                     "ECPUDTL07", "PCPUDTL010", "PACC0_CPM", "MCPU0_SRAM"] {
+            #expect(!isCPUCoreEnergyChannel(name), "\(name) must not be counted as a core")
+        }
+    }
+
     // MARK: powerSample — the J/s → W math, dedup, and "total == Combined" property
 
     @Test func wattsFromEnergyDelta() {
@@ -53,6 +64,28 @@ struct PowerEnergyTests {
         #expect(s.totalW == s.cpuW + s.gpuW + s.npuW)   // headline == Combined breakout
     }
 
+    @Test func perCoreSumIsPreferredOverBroaderCPURollup() {
+        let prev = ["CPU Energy": 10.0, "ECPU0": 1.0, "PCPU0": 2.0, "GPU Energy": 0.0]
+        let curr = ["CPU Energy": 20.0, "ECPU0": 2.0, "PCPU0": 4.0, "GPU Energy": 1.0]
+        let s = powerSample(prev: prev, curr: curr, dt: 1.0)
+        #expect(s.cpuW == 3.0)       // cores: (2-1) + (4-2), NOT rollup (20-10)
+        #expect(s.gpuW == 1.0)
+        #expect(s.totalW == 4.0)
+    }
+
+    @Test func cpuRollupIsFallbackWhenNoCoreChannelsExist() {
+        let s = powerSample(prev: ["CPU Energy": 1.0], curr: ["CPU Energy": 3.0], dt: 2.0)
+        #expect(s.cpuW == 1.0)
+        #expect(s.totalW == 1.0)
+    }
+
+    @Test func engineChannelSetChangeRequiresRebaseline() {
+        let prev = ["ECPU0": 1.0, "GPU Energy": 1.0]
+        #expect(!hasEngineChannelSetChanged(prev: prev, curr: ["ECPU0": 2.0, "GPU Energy": 2.0]))
+        #expect(hasEngineChannelSetChanged(prev: prev, curr: ["ECPU0": 2.0]))
+        #expect(hasEngineChannelSetChanged(prev: prev, curr: ["ECPU0": 2.0, "GPU Energy": 2.0, "ANE": 0.0]))
+    }
+
     @Test func gpuAliasesCountedOnce() {
         // Both the coarse "GPU" (mJ) and precise "GPU Energy" appear on real chips —
         // same physical quantity. Total must not double-count; breakout prefers the
@@ -64,14 +97,14 @@ struct PowerEnergyTests {
         #expect(s.totalW == 1.0)                 // counted once, not 2.0
     }
 
-    @Test func subComponentsDoNotInflateTotal() {
-        // Per-core / SRAM / DTL channels coexist with the roll-up; only "CPU Energy"
-        // may count, never its parts.
+    @Test func hierarchicalSubComponentsDoNotInflateCoreSum() {
+        // A real per-core channel coexists with SRAM/DTL sub-components and the broader
+        // roll-up. Count the core once; never add its hierarchy or the roll-up again.
         let prev = ["CPU Energy": 1.0, "ECPU0": 0.0, "PCPU0_SRAM": 0.0, "ECPUDTL07": 0.0]
-        let curr = ["CPU Energy": 2.0, "ECPU0": 5.0, "PCPU0_SRAM": 5.0, "ECPUDTL07": 5.0]
+        let curr = ["CPU Energy": 9.0, "ECPU0": 1.0, "PCPU0_SRAM": 5.0, "ECPUDTL07": 5.0]
         let s = powerSample(prev: prev, curr: curr, dt: 1.0)
         #expect(s.cpuW == 1.0)
-        #expect(s.totalW == 1.0)                 // sub-components excluded
+        #expect(s.totalW == 1.0)                 // roll-up + sub-components excluded
     }
 
     @Test func negativeDeltaFlooredAtZero() {

@@ -29,7 +29,7 @@
 3. **표시 (부호 규칙 · UI 기구축 + #17 분기)**
    - 충전/방전 = `charging`(= netW<−0.2). 값 = 부호 + 크기(소수 1자리): 충전 `+`, 방전 `−`. 값 색 `c.text`. **부하>어댑터면 꽂혀 있어도 "방전 중"으로 정확히**(실측 전력).
    - **[#17] 크기 `0.0`(|netW|<0.05)이면 부호 생략** → `0.0 W`.
-   - sub = "±mA · {V} V · 충전 중/방전 중". 스파크라인 area 없음(중립색).
+   - sub = "±mA · {V} V · 충전 중/방전 중 · 1분 평균 x.x W". 1분 값은 원시 netW의 τ=60초 EMA이며, 4초 헤드라인 EMA와 독립적이다. 스파크라인 area 없음(중립색).
    - **그래프 리셋 = `externalConnected` 변화**(꽂기/뽑기 즉시) — `SystemMonitor.recordHistory`의 `lastExternalConnected`.
 
 ## 범위 (Out)
@@ -47,6 +47,7 @@
 
 - **+** `Wattly/Core/SMC.swift`(SMCConnection — 재사용), **+** `Wattly/Providers/BatteryProvider.swift`, **+** `Wattly/Core/BatteryPower.swift`(순수: `smcDouble`·`twosComplement`·`netWatts`·`isCharging`·`batteryMilliamps`), **+** `WattlyTests/BatteryPowerTests.swift`.
 - `MetricSample.BatterySample`에 `externalConnected: Bool`. 와이어링 `FakeProviders.all`. `MetricCardView` #17 분기. `SystemMonitor` `lastExternalConnected` 리셋. 파일 추가 → `xcodegen generate` 재실행.
+- `BatterySample.average1mW`는 provider가 아니라 `SystemMonitor`가 채우는 표시 전용 값이다. 어댑터 연결 상태가 바뀌면 4초 EMA와 함께 리셋한다.
 
 ## 검증 완료
 

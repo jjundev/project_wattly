@@ -159,7 +159,9 @@ enum CardPresentation {
         case .battery(let s):
             // #17: same zero-magnitude → no-sign rule as the value (keeps mA in step).
             let sign = batterySign(netW: s.netW, charging: s.charging)
-            return "\(sign)\(s.milliamps) mA · \(f1(s.volts)) V · \(s.charging ? "충전 중" : "방전 중")"
+            let base = "\(sign)\(s.milliamps) mA · \(f1(s.volts)) V · \(s.charging ? "충전 중" : "방전 중")"
+            guard let average = s.average1mW else { return base }
+            return "\(base) · 1분 평균 \(f1(abs(average))) W"
         case .cpu(let s):
             // Order-based (not name-coupled): runtime perf-level names ("Performance"/
             // "Efficiency" → "P"/"E") differ from the prototype's "S". Guard

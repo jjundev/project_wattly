@@ -18,8 +18,8 @@
    - 스파크라인(높이 26px, → [03](03-sparkline-history.md)).
    - sub 행(11px `c.sub`).
 4. **카드 7종** (순서 `cardOrder`)
-   - **프로세서 전력**: 값 색 = accent. 값 = Combined(CPU+GPU+ANE). sub "CPU x.x W · GPU y.y W · ANE z.z W". (→ [06](06-power-ioreport-soc.md))
-   - **배터리**: 값 `c.text`, 부호 W, sub "±mA · V · 충전/방전 중", 스파크 area 없음. 데스크톱 숨김. (→ [07](07-power-battery.md))
+   - **프로세서 전력**: 값 색 = accent. 값 = Combined(개별 CPU 코어 합+GPU+ANE). CPU 클러스터 롤업은 호환 폴백일 뿐 정상 경로에서 합산하지 않는다. sub "CPU x.x W · GPU y.y W · NPU z.z W". (→ [06](06-power-ioreport-soc.md))
+   - **배터리**: 값 `c.text`, 부호 W, sub "±mA · V · 충전/방전 중 · 1분 평균 x.x W", 스파크 area 없음. 데스크톱 숨김. (→ [07](07-power-battery.md))
    - **CPU**(클릭 → 펼침): 헤더에 chevron. sub "S xx% · E yy%". 펼침 시 코어 막대(→ [04](04-cpu-spine.md)).
    - **메모리**(클릭 → 펼침): 값 + "/ {total} GB". sub "고정 X.X GB · 압축 Y.Y GB". 펼침 시 Top-3(→ [05](05-memory-and-top-processes.md)).
    - **CPU 온도 / GPU 온도 / 배터리 온도**: 값 + °C(→ [08](08-temperature-cpu-gpu-battery.md)). 배터리 온도는 데스크톱 숨김.
