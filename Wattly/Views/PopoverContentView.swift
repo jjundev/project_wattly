@@ -42,6 +42,13 @@ struct PopoverContentView: View {
     // a sorted CSV of card raw values. Shared by CPU and memory expand state.
     @AppStorage(StorageKey.expandedCards) private var expandedRaw = ""
 
+    /// Natural (unconstrained) height of the cards stack and the per-open cap derived from the
+    /// menu-bar screen (issue 17 follow-up). When the stack would exceed the cap it moves into a
+    /// scrolling container; until measured (`cardsNaturalHeight == 0`) the cap is not applied, so
+    /// there is no first-frame collapse.
+    @State private var cardsNaturalHeight: CGFloat = 0
+    @State private var maxCardsHeight: CGFloat = 600
+
     // Per-card visibility (issue 13). Observed as `@AppStorage` (NOT read straight from
     // `UserDefaults`) so a settings-toggle write re-renders `visibleCards` live while the
     // popover is open — otherwise the panel would only pick up the change on its next open
@@ -62,13 +69,14 @@ struct PopoverContentView: View {
     private var powerExpanded: Bool { expanded.contains(.power) }
 
     var body: some View {
-        // No ScrollView here: MenuBarExtra(.window) sizes the window to the
-        // content's natural height, and a ScrollView has no intrinsic height so it
-        // collapses (empty panel). The panel grows to fit the cards instead.
-        // (Scroll-on-overflow for very tall lists is a later refinement.)
+        // The cards region caps itself to the menu-bar screen and scrolls the overflow
+        // (issue 17 follow-up): MenuBarExtra(.window) sizes the window to the content's natural
+        // height, so without a cap an all-expanded list runs off the bottom of the screen.
+        // `cardsRegion` renders at natural height until it would overflow, then switches to a
+        // height-capped ScrollView — see its doc-comment for the no-first-frame-collapse detail.
         VStack(spacing: 0) {
             header
-            cardsStack
+            cardsRegion
         }
         .padding(14)
         .frame(width: 320, alignment: .leading)
@@ -80,7 +88,15 @@ struct PopoverContentView: View {
         // closed → 2–5 s. The panel unmounts on close, so onAppear/onDisappear bracket the
         // open state. (Card visibility is pushed by the always-alive PollPolicyBridge, not
         // here — it must reach the monitor even while this view is unmounted.)
-        .onAppear { monitor.setPanelVisible(true) }
+        .onAppear {
+            monitor.setPanelVisible(true)
+            // Cap the scrollable cards to the menu-bar screen — screens.first (index 0 = the
+            // menu-bar display), NOT NSScreen.main which tracks the key window and is wrong on
+            // multi-display. visibleFrame already excludes the menu bar + Dock; subtract the
+            // header (~40), the outer .padding(14) on both edges (28), and a safety margin (16).
+            let screenH = NSScreen.screens.first?.visibleFrame.height ?? 800
+            maxCardsHeight = screenH - 84
+        }
         // Gate per-process enumeration (memory Top-3 / power Top-3) to when this panel is
         // open AND that card is expanded (issue 05 §M11/M18, issue 16 follow-up);
         // .onDisappear reliably turns each off on close so neither sweep leaks across reopen.
@@ -117,6 +133,8 @@ struct PopoverContentView: View {
                 }
                 iconButton("gearshape", active: false, activeColor: t.faint,
                            activeBg: .clear) { openSettingsRaised() }
+                iconButton("power", active: false, activeColor: t.faint,
+                           activeBg: .clear) { NSApp.terminate(nil) }
             }
         }
         .padding(EdgeInsets(top: 2, leading: 4, bottom: 12, trailing: 4))
@@ -133,7 +151,7 @@ struct PopoverContentView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(system == "pencil" ? "편집" : "설정")
+        .accessibilityLabel(system == "pencil" ? "편집" : system == "gearshape" ? "설정" : "종료")
         // The pencil is a toggle (edit mode); speak its on/off state (issue 15 §5).
         .accessibilityValue(system == "pencil" ? (active ? "켜짐" : "꺼짐") : "")
     }
@@ -157,6 +175,34 @@ struct PopoverContentView: View {
 
     private static let cardSpace = "wattly.cards"
     private static let cardSpacing: CGFloat = 8   // matches the cards VStack spacing
+
+    /// `cardsStack` capped to the menu-bar screen: rendered at its natural height while it fits,
+    /// wrapped in a height-capped ScrollView once it would overflow (issue 17 follow-up). The
+    /// conditional is what avoids a zero-height first frame — before `cardsNaturalHeight` is
+    /// measured (== 0) the `else` branch renders the stack at natural height exactly as before;
+    /// only a genuinely too-tall list takes the scrolling branch. On macOS a ScrollView consumes
+    /// scroll-wheel events while the edit-mode reorder uses a click-`DragGesture`, so the two
+    /// never compete — reorder keeps working inside the scroll container, and the named cards
+    /// coordinate space moves with the content so the slot math stays consistent.
+    @ViewBuilder private var cardsRegion: some View {
+        let measured = cardsStack
+            .background(GeometryReader { geo in
+                Color.clear.preference(key: ContentHeightKey.self, value: geo.size.height)
+            })
+            .onPreferenceChange(ContentHeightKey.self) { cardsNaturalHeight = $0 }
+        if cardsNaturalHeight > maxCardsHeight {
+            // Only in the scrolling branch: extend the scroll view rightward into the outer
+            // .padding(14) inset (negative trailing) so the scroll bar hugs the panel edge, while
+            // re-insetting the cards by the same amount keeps their right margin aligned with the
+            // header — net effect: scroll bar near the edge, cards in a gutter, no overlap.
+            ScrollView { measured.padding(.trailing, 10) }
+                .frame(height: maxCardsHeight)
+                .padding(.trailing, -10)
+                .scrollIndicators(.automatic)
+        } else {
+            measured
+        }
+    }
 
     private var cardsStack: some View {
         VStack(spacing: 8) {
@@ -329,5 +375,14 @@ private struct CardFrameKey: PreferenceKey {
     static let defaultValue: [CardKind: CGRect] = [:]
     static func reduce(value: inout [CardKind: CGRect], nextValue: () -> [CardKind: CGRect]) {
         value.merge(nextValue()) { _, new in new }
+    }
+}
+
+/// The cards stack's natural (unconstrained) height, measured so the popover can cap itself to the
+/// menu-bar screen and scroll the overflow instead of clipping off-screen (issue 17 follow-up).
+private struct ContentHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
