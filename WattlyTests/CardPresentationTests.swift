@@ -29,8 +29,10 @@ struct CardPresentationTests {
         #expect(CardPresentation.subText(charging) == "+2362 mA · 12.7 V · 충전 중")
 
         let discharging = MetricState.value(.battery(BatterySample(
-            netW: 12.0, milliamps: 944, volts: 12.7, charging: false, externalConnected: false)))
+            netW: 12.0, milliamps: 944, volts: 12.7, charging: false, externalConnected: false,
+            average1mW: 10.4)))
         #expect(CardPresentation.valueText(.battery, discharging) == "\(minus)12.0")
+        #expect(CardPresentation.subText(discharging) == "−944 mA · 12.7 V · 방전 중 · 1분 평균 10.4 W")
 
         let zero = MetricState.value(.battery(BatterySample(
             netW: 0.0, milliamps: 0, volts: 12.7, charging: false, externalConnected: true)))

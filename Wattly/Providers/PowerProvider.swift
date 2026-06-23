@@ -17,6 +17,9 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
     /// plain Sendable values — no Core Foundation object lives across polls.
     private var prev: [String: Double]?
     private var prevInstant: ContinuousClock.Instant?
+    /// Actual IOReport capture clock. Injected so provider-level time remains deterministic
+    /// in a future hardware seam; the monitor's cycle-start timestamp is not a sample time.
+    private let now: @Sendable () -> ContinuousClock.Instant
 
     /// Per-app power (issue 16 follow-up). Swept ONLY while the power card's expand is
     /// on-screen (gated like `MemoryProvider`'s Top-3), so the routine poll stays cheap.
@@ -29,7 +32,7 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
     /// spike) → re-baseline rather than emit. Generous enough never to reject a real
     /// Apple-silicon SoC figure (highest parts draw well under this), tight enough to
     /// catch an order-of-magnitude units mistake.
-    private static let sanityCeilingW = 500.0
+    private static let sanityCeilingW = 200.0
     /// Elapsed time beyond which the interval is treated as a gap (missed poll, or
     /// sleep/wake — `ContinuousClock` advances through sleep) → re-baseline.
     private static let maxPlausibleDt = 30.0
@@ -38,6 +41,10 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
     static let unreadableMessage =
         "Energy Model 그룹을 읽을 수 없음 — 이 macOS에서 채널이 바뀌었을 수 있습니다."
 
+    init(now: @escaping @Sendable () -> ContinuousClock.Instant = { .now }) {
+        self.now = now
+    }
+
     /// Gate the per-app power sweep to when the power card's expand is visible (issue 16
     /// follow-up). Clearing the baseline on disable means a re-open re-baselines cleanly.
     func setEnumerating(_ enabled: Bool) {
@@ -45,7 +52,7 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
         if !enabled { prevProcEnergy = nil; prevProcInstant = nil }
     }
 
-    func read(at instant: ContinuousClock.Instant) async -> ProviderReading {
+    func read(at _: ContinuousClock.Instant) async -> ProviderReading {
         if !setupAttempted {
             setupAttempted = true
             subscription = IOReportEnergySubscription()
@@ -53,21 +60,30 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
         guard let subscription else {
             return .unavailable(.channelUnreadable(Self.unreadableMessage))
         }
-        guard let curr = subscription.sample(), !curr.isEmpty else {
+        let sampleStart = now()
+        guard let captured = subscription.sample(), !captured.energies.isEmpty else {
             return .unavailable(.channelUnreadable(Self.unreadableMessage))
         }
-        defer { prev = curr; prevInstant = instant }       // re-baseline on every kept path
+        let sampleEnd = now()
+        let sampleInstant = sampleStart.advanced(by: sampleStart.duration(to: sampleEnd) / 2)
+        let curr = captured.energies
+        defer { prev = curr; prevInstant = sampleInstant }       // re-baseline on every kept path
+
+        // An engine channel with an unknown unit is unsafe to scale. Drop this interval
+        // and keep the remaining known counters only as a new baseline.
+        guard captured.unknownUnitEngineChannels.isEmpty else { return .pending }
 
         guard let prev, let prevInstant else { return .pending }   // first sample: baseline only
-        let dt = Self.seconds(from: prevInstant, to: instant)
-        if dt <= 0 || dt > Self.maxPlausibleDt || hasCounterReset(prev: prev, curr: curr) {
+        let dt = Self.seconds(from: prevInstant, to: sampleInstant)
+        if dt <= 0 || dt > Self.maxPlausibleDt || hasCounterReset(prev: prev, curr: curr)
+            || hasEngineChannelSetChanged(prev: prev, curr: curr) {
             return .pending                                  // anomaly → drop interval, re-baseline
         }
         var sample = powerSample(prev: prev, curr: curr, dt: dt)
         guard sample.totalW.isFinite, sample.totalW <= Self.sanityCeilingW else {
             return .pending                                  // implausible → re-baseline
         }
-        sample.processes = enumerating ? processPower(at: instant) : nil
+        sample.processes = enumerating ? processPower(at: sampleInstant) : nil
         return .value(.power(sample))
     }
 
@@ -136,6 +152,11 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
 /// subscription is released when this object deinits. The library handle is left
 /// open for the process lifetime (one mapping; releasing the subscription must not
 /// race a `dlclose` of its CF finalizer).
+struct IOReportEnergySnapshot {
+    var energies: [String: Double]
+    var unknownUnitEngineChannels: Set<String>
+}
+
 final class IOReportEnergySubscription: @unchecked Sendable {
     private typealias CopyChannelsFn =
         @convention(c) (CFString, CFString?, UInt64, UInt64, UInt64) -> Unmanaged<CFMutableDictionary>?
@@ -195,19 +216,26 @@ final class IOReportEnergySubscription: @unchecked Sendable {
     /// sample failure. Walks the sample dict's `IOReportChannels` array directly —
     /// no Objective-C block (avoids a Swift 6 data-race on the accumulator), the
     /// block-free style `CPUProvider` uses for the same reason.
-    func sample() -> [String: Double]? {
+    func sample() -> IOReportEnergySnapshot? {
         guard let samplesU = createSamples(subscription, subbedChannels, nil) else { return nil }
         let dict = samplesU.takeRetainedValue()               // +1 consumed; released at scope exit
         guard let channels = (dict as NSDictionary)["IOReportChannels"] as? [Any] else { return nil }
         var out: [String: Double] = [:]
+        var unknownUnitEngines = Set<String>()
         out.reserveCapacity(channels.count)
         for case let ch as NSDictionary in channels {
             let chCF = ch as CFDictionary
             guard let name = getChannelName(chCF)?.takeUnretainedValue() as String? else { continue }
             let unit = getUnitLabel(chCF)?.takeUnretainedValue() as String?
             let raw = getIntegerValue(chCF, 0)
-            out[name, default: 0] += Double(raw) * unitScale(unit)
+            guard let scale = unitScale(unit) else {
+                if isCPUCoreEnergyChannel(name) || name == "CPU Energy" || classifyEngine(name) != nil {
+                    unknownUnitEngines.insert(name)
+                }
+                continue
+            }
+            out[name, default: 0] += Double(raw) * scale
         }
-        return out
+        return IOReportEnergySnapshot(energies: out, unknownUnitEngineChannels: unknownUnitEngines)
     }
 }

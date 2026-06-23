@@ -2,9 +2,9 @@ import Foundation
 
 /// Display-only smoothing for the power-type cards (processor power + battery).
 ///
-/// The underlying measurements are exact — processor power is verified bit-for-bit
-/// against `powermetrics`, battery netW against the SMC gauge (B0AP = B0AV×B0AC =
-/// PSTR) and pmset's runtime estimate. But a raw 1-second reading is *spiky*: a
+/// The underlying measurements are kept separate from presentation — processor power
+/// uses per-core IOReport energy to match `powermetrics` scope, while battery netW is
+/// cross-checked against SMC (B0AP = B0AV×B0AC = PSTR). A raw 1-second reading is *spiky*: a
 /// momentary peak reads several percent above a tool like MX Power Gadget (which
 /// shows a moving average), and a spiky battery watt misleads — the charge % drains
 /// at the *average* power, not the peak. This applies an exponential moving average

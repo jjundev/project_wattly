@@ -107,6 +107,9 @@ struct BatterySample: Sendable, Equatable {
     /// Hardware `ExternalConnected` (AC adapter present). Flips immediately on
     /// plug/unplug; `SystemMonitor` resets the battery sparkline when it changes.
     var externalConnected: Bool
+    /// Display-only one-minute EMA of signed net power. Providers leave this nil;
+    /// `SystemMonitor` attaches it so the battery sub-line can show sustained draw.
+    var average1mW: Double? = nil
 }
 
 // MARK: - Temperature (the partial-failure boundary, PRD line 74)

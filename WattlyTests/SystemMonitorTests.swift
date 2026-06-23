@@ -122,6 +122,7 @@ struct SystemMonitorTests {
 
         await monitor.pollOnce()                          // seed → smoothed netW == 16
         #expect(monitor.batteryOverlay.sample?.netW == 16)
+        #expect(monitor.batteryOneMinuteAverage == 16)
 
         clock.advance(by: .seconds(1))
         await monitor.pollOnce()                           // raw spikes to 24; smoothed damps between
@@ -130,10 +131,17 @@ struct SystemMonitorTests {
         #expect(sm.charging == false)                      // direction re-derived from smoothed netW
         #expect(sm.milliamps == Int((abs(sm.netW) * 1000 / 12.0).rounded()))  // mA consistent w/ smoothed netW
         #expect(monitor.historyValues(for: .battery, smoothed: false) == [16, 24])   // raw series untouched
+        let expected1m = PowerSmoothing.emaStep(previous: 16, raw: 24, dt: 1, tau: 60)
+        #expect(abs((monitor.batteryOneMinuteAverage ?? 0) - expected1m) < 1e-12)
+        guard case .value(.battery(let shownWithAverage)) = monitor.cardState(.battery, smoothed: true) else {
+            Issue.record("smoothed battery card should carry the one-minute average"); return
+        }
+        #expect(shownWithAverage.average1mW == monitor.batteryOneMinuteAverage)
 
         clock.advance(by: .seconds(1))
         await monitor.pollOnce()                           // plug in (ExternalConnected flip) → smoothing resets
         #expect(monitor.batteryOverlay.sample?.netW == -30)      // seeds to the charging value at once (no blend)
+        #expect(monitor.batteryOneMinuteAverage == -30)          // 1-minute trend resets across regimes too
         #expect(monitor.batteryOverlay.sample?.charging == true)
         #expect(monitor.batteryOverlay.history.values == [-30])
         #expect(monitor.cardState(.battery, smoothed: true) == .value(.battery(monitor.batteryOverlay.sample!)))

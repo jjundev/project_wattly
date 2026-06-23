@@ -20,6 +20,10 @@ final class SystemMonitor {
     /// `ingest`/`reset` is a tracked `@Observable` write (see `SmoothingOverlay`).
     private(set) var powerOverlay = SmoothingOverlay<PowerSample>()
     private(set) var batteryOverlay = SmoothingOverlay<BatterySample>()
+    /// Longer battery trend for comparison with slowly changing charge percentage.
+    /// Kept separate from the 4 s headline EMA; reset on adapter regime changes.
+    private(set) var batteryOneMinuteAverage: Double?
+    private var batteryOneMinuteInstant: ContinuousClock.Instant?
 
     /// Wattly's own EMA-smoothed power draw in watts (issue 16), or nil until the first
     /// valid interval (the settings footer shows "—"). Doubles as the EMA's previous
@@ -280,14 +284,22 @@ final class SystemMonitor {
             if let last = lastExternalConnected, last != s.externalConnected {
                 history[.battery] = HistoryBuffer()      // adapter plugged/unplugged → fresh raw graph
                 batteryOverlay.reset()                   // …and restart smoothing: don't blend regimes
+                batteryOneMinuteAverage = nil
+                batteryOneMinuteInstant = nil
             }
             lastExternalConnected = s.externalConnected
+            let averageDt = batteryOneMinuteInstant.map { Self.seconds(from: $0, to: instant) } ?? 0
+            batteryOneMinuteAverage = PowerSmoothing.emaStep(
+                previous: batteryOneMinuteAverage, raw: s.netW, dt: averageDt, tau: 60)
+            batteryOneMinuteInstant = instant
+            var presented = s
+            presented.average1mW = batteryOneMinuteAverage
             // Smooth only netW, then re-derive mA + charge direction from it (so the value,
             // the mA, and the 충전/방전 label never disagree). Policy stays here, by the card.
             batteryOverlay.ingest(at: instant,
                 smooth: { previous, dt in
-                    let netW = PowerSmoothing.emaStep(previous: previous?.netW, raw: s.netW, dt: dt)
-                    return Self.batterySmoothed(from: s, netW: netW)
+                    let netW = PowerSmoothing.emaStep(previous: previous?.netW, raw: presented.netW, dt: dt)
+                    return Self.batterySmoothed(from: presented, netW: netW)
                 },
                 series: \.netW)
         }
@@ -310,7 +322,8 @@ final class SystemMonitor {
     private static func batterySmoothed(from raw: BatterySample, netW: Double) -> BatterySample {
         let mA = raw.volts > 0 ? Int((abs(netW) * 1000 / raw.volts).rounded()) : raw.milliamps
         return BatterySample(netW: netW, milliamps: mA, volts: raw.volts,
-                             charging: isCharging(netW: netW), externalConnected: raw.externalConnected)
+                             charging: isCharging(netW: netW), externalConnected: raw.externalConnected,
+                             average1mW: raw.average1mW)
     }
 
     // MARK: Derivation — the 7-card fan-out
@@ -323,6 +336,10 @@ final class SystemMonitor {
         switch card {
         case .cpuTemp, .gpuTemp, .batTemp:
             return temperatureCardState(card, from: providerState)
+        case .battery:
+            guard case .value(.battery(var sample)) = providerState else { return providerState }
+            sample.average1mW = batteryOneMinuteAverage
+            return .value(.battery(sample))
         default:
             return providerState
         }
@@ -341,7 +358,8 @@ final class SystemMonitor {
             guard case .value(.power) = raw, let s = powerOverlay.sample else { return raw }
             return .value(.power(s))
         case .battery:
-            guard case .value(.battery) = raw, let s = batteryOverlay.sample else { return raw }
+            guard case .value(.battery) = raw, var s = batteryOverlay.sample else { return raw }
+            s.average1mW = batteryOneMinuteAverage
             return .value(.battery(s))
         default:
             return raw
