@@ -16,6 +16,7 @@ enum SettingsReset {
         defaults.set(Defaults.theme.rawValue, forKey: StorageKey.theme)
         defaults.set(Defaults.pollInterval.rawValue, forKey: StorageKey.pollInterval)
         defaults.set(Defaults.panelMode.rawValue, forKey: StorageKey.panelMode)
+        defaults.set(Defaults.heroMetric.rawValue, forKey: StorageKey.heroMetric)
         defaults.set(Defaults.menubarTextEnabled, forKey: StorageKey.menubarTextEnabled)
         defaults.set(Defaults.powerSmoothed, forKey: StorageKey.powerSmoothed)
         defaults.set(Defaults.cardOrder.rawValue, forKey: StorageKey.cardOrder)

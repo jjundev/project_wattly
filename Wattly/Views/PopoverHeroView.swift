@@ -1,0 +1,167 @@
+import SwiftUI
+
+/// Mode C — the dark hero card + a label↔value list (prototype lines 207–222). One promoted
+/// metric is shown large (40px) on a fixed-dark card; every other visible card is a compact row,
+/// and tapping a row promotes it to hero. The visible set + order arrive from `PopoverContentView`
+/// (`cardOrder ∩ isPresent ∩ isShown`); the hero choice is the shared `@AppStorage(heroMetric)`,
+/// so the settings picker and a row tap stay in sync for free.
+///
+/// Because the hero card is dark in BOTH themes, its text and the neutral/accent spark colors are
+/// hardcoded light-on-dark — they CANNOT reuse the theme tokens (`t.spark`/`Tokens.accent`) the
+/// way modes A/B do, or they'd vanish in light mode. Threshold-driven cards still reuse the theme-
+/// independent status colors. The list below the hero sits on the panel background and uses the
+/// theme tokens normally. Power-type cards get the EMA-smoothed series (same toggle as mode A).
+struct PopoverHeroView: View {
+    let cards: [CardKind]
+    let monitor: SystemMonitor
+    var thresholds: Thresholds = Defaults.thresholds
+    var powerSmoothed: Bool
+
+    @AppStorage(StorageKey.heroMetric) private var heroMetric = Defaults.heroMetric
+    @Environment(\.tokens) private var t
+
+    private var hero: CardKind? {
+        CardPresentation.resolveHero(persisted: heroMetric, visible: cards)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // hero == nil only when nothing is visible (all cards hidden) → render nothing, no crash.
+            if let hero {
+                HeroCard(card: hero,
+                         state: monitor.cardState(hero, smoothed: powerSmoothed),
+                         historyValues: monitor.historyValues(for: hero, smoothed: powerSmoothed),
+                         thresholds: thresholds)
+                list(excluding: hero)
+            }
+        }
+        .padding(.vertical, 1)
+    }
+
+    // The list = the visible cards minus the hero, in `cardOrder` order (prototype 213–220).
+    private func list(excluding hero: CardKind) -> some View {
+        let rows = cards.filter { $0 != hero }
+        return VStack(spacing: 0) {
+            ForEach(rows) { card in
+                listRow(card,
+                        monitor.cardState(card, smoothed: powerSmoothed),
+                        divider: card != rows.last)
+            }
+        }
+    }
+
+    private func listRow(_ card: CardKind, _ state: MetricState, divider: Bool) -> some View {
+        let unavailable: Bool = { if case .unavailable = state { return true }; return false }()
+        return VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Text(CardPresentation.label(card))
+                    .font(WattlyFont.at(13, weight: .semibold))
+                    .foregroundStyle(t.cText)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                Text(CardPresentation.compactRowText(card, state))
+                    .font(WattlyFont.at(14, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(unavailable ? t.faint : t.cText)
+                    .lineLimit(1)
+            }
+            .padding(.vertical, 11)
+            .padding(.horizontal, 6)
+            if divider {
+                Rectangle().fill(t.line).frame(height: 1)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { heroMetric = card }
+        // One VoiceOver element per row: the card summary + a promote action (issue 15 regs reused).
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Accessibility.cardLabel(card, state))
+        .accessibilityValue(Accessibility.stateWord(card, state, thresholds) ?? "")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint("히어로로 강조")
+        .accessibilityAction { heroMetric = card }
+    }
+}
+
+/// The dark hero card (prototype line 208): fixed `#171719` in both themes, radius 14, padding 16.
+/// Its text + the neutral/accent spark colors are hardcoded light-on-dark (see `PopoverHeroView`).
+private struct HeroCard: View {
+    let card: CardKind
+    let state: MetricState
+    var historyValues: [Double] = []
+    var thresholds: Thresholds = Defaults.thresholds
+
+    // Hardcoded light-on-dark surface/text (prototype line 208).
+    private static let heroBg = Color(hex: "#171719")
+    private static let labelColor = Color.rgba(247, 247, 248, 0.6)
+    private static let unitColor = Color.rgba(247, 247, 248, 0.6)
+    private static let subColor = Color.rgba(247, 247, 248, 0.55)
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(CardPresentation.label(card))
+                .font(WattlyFont.at(11.5, weight: .semibold))
+                .foregroundStyle(Self.labelColor)
+                .lineLimit(1)
+            switch state {
+            case .unavailable(let reason):
+                // Hero unavailable (prototype line 211): same dark card + the full reason.
+                Text(reason.message)
+                    .font(WattlyFont.at(12, weight: .regular))
+                    .foregroundStyle(Self.subColor)
+                    .fixedSize(horizontal: false, vertical: true)
+            case .loading, .value:
+                valueBody
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 14).fill(Self.heroBg))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Accessibility.cardLabel(card, state))
+        .accessibilityValue(Accessibility.stateWord(card, state, thresholds) ?? "")
+    }
+
+    // value 40/700 white + unit 16/600 → spark (h32, area+line) → sub 11 (prototype 208).
+    @ViewBuilder private var valueBody: some View {
+        let d = CardPresentation.display(card, state)
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Text(d.valueText)
+                .font(WattlyFont.at(40, weight: .bold)).tracking(-1.2)
+                .monospacedDigit()
+                .foregroundStyle(.white)
+            Text(d.unitText)
+                .font(WattlyFont.at(16, weight: .semibold))
+                .foregroundStyle(Self.unitColor)
+                .lineLimit(1)
+        }
+        if hasValue {
+            // The hero always draws area + line, even for the battery card (which is line-only in
+            // mode A) — prototype-faithful (line 208 renders a polygon for every metric).
+            SparklineView(values: historyValues, stroke: sparkStroke, fill: sparkFill, height: 32)
+                .accessibilityHidden(true)
+        }
+        if let sub = d.subText {
+            Text(sub)
+                .font(WattlyFont.at(11, weight: .regular))
+                .monospacedDigit()
+                .foregroundStyle(Self.subColor)
+                .lineLimit(1)
+        }
+    }
+
+    // Spark colors on the DARK hero card (prototype heroColorMap 705–715): threshold cards use the
+    // theme-independent status colors; the accented (power) card uses an on-dark accent (#3385ff,
+    // NOT the panel accent #0066ff); everything else (battery / neutral) uses a light-on-dark tone.
+    private var sparkStroke: Color {
+        if let level = CardPresentation.thresholdLevel(card, state, thresholds) { return level.stroke }
+        return card.isAccented ? Color(hex: "#3385ff") : .rgba(247, 247, 248, 0.85)
+    }
+
+    private var sparkFill: Color {
+        if let level = CardPresentation.thresholdLevel(card, state, thresholds) { return level.fill }
+        return card.isAccented ? .rgba(51, 133, 255, 0.18) : .rgba(247, 247, 248, 0.12)
+    }
+
+    private var hasValue: Bool { if case .value = state { return true }; return false }
+}

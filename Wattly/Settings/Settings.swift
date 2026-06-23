@@ -187,6 +187,14 @@ struct CardOrder: Equatable, Sendable, RawRepresentable {
         arr.insert(from, at: down ? newTi + 1 : newTi)
         return CardOrder(arr)
     }
+
+    /// The cards that should render, in this order: present (provider/category not `.notPresent`,
+    /// so desktop battery/batTemp drop out) AND shown (user toggle). The popover and the settings
+    /// hero picker (plan 20) both compute their visible set through here, so the two can't drift.
+    /// Pure given the two predicates (the caller passes `monitor.isPresent` + its show flags).
+    func visible(present: (CardKind) -> Bool, shown: (CardKind) -> Bool) -> [CardKind] {
+        cards.filter { present($0) && shown($0) }
+    }
 }
 
 // MARK: - Single source of defaults
@@ -198,6 +206,7 @@ enum Defaults {
     static let theme = ThemeMode.dark
     static let pollInterval = PollInterval.auto
     static let panelMode = PanelMode.a       // ship default: full-width stacked cards (mode A)
+    static let heroMetric = CardKind.power   // mode C hero (plan 20); falls back to first visible when hidden
     static let loginItem = true            // F1: a MIRROR of SMAppService — NOT authoritative
     static let menubarTextEnabled = true   // default menubar metric = CPU only
     static let powerSmoothed = true        // 프로세서 전력 + 배터리 카드: EMA-smoothed display (raw spikes mislead)
@@ -227,6 +236,7 @@ enum StorageKey {
     static let theme = "theme"
     static let pollInterval = "pollInterval"
     static let panelMode = "panelMode"
+    static let heroMetric = "heroMetric"   // mode C hero metric (plan 20)
     static let loginItem = "loginItem"
     static let menubarTextEnabled = "menubarTextEnabled"
     static let powerSmoothed = "powerSmoothed"
