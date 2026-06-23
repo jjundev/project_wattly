@@ -39,6 +39,31 @@ enum CardPresentation {
                     tint: card.isAccented ? .accent : .neutral)
     }
 
+    /// Which card is the hero in mode C (plan 20, prototype lines 693–695): the persisted choice
+    /// when it's still visible, else the first visible card, else `nil` (nothing visible). State-
+    /// agnostic by design — `visible` is the popover's `visibleCards`, which keeps present-but-
+    /// unavailable cards, so the hero can legitimately resolve to a card that renders its
+    /// unavailable face. "First visible" follows the passed (cardOrder) order.
+    static func resolveHero(persisted: CardKind, visible: [CardKind]) -> CardKind? {
+        visible.contains(persisted) ? persisted : visible.first
+    }
+
+    /// One compact list-row value for the mode-C list (plan 20). **Total** over `MetricState`,
+    /// reusing `valueText`/`unitText` so the battery sign (#17) and every unit stay correct and in
+    /// step with the cards — including the battery-temperature `°C` the prototype `rowOf` (lines
+    /// 677–682) dropped to `W`. Loading → `"—"`; unavailable → the short reason (the view tints it
+    /// faint). CPU joins its `%` tight (`"42%"`); every other unit is spaced (`"8.4 W"`).
+    static func compactRowText(_ card: CardKind, _ state: MetricState) -> String {
+        switch state {
+        case .unavailable(let reason): return reason.shortMessage
+        case .loading: return "—"
+        case .value:
+            let v = valueText(card, state)
+            let u = unitText(card, state)
+            return card == .cpu ? v + u : "\(v) \(u)"
+        }
+    }
+
     /// Warn/crit color level for a card's current value, or `nil` when the card is
     /// threshold-free (processor power = accent, battery = neutral) or has no value
     /// (loading/unavailable). The view resolves the level to status tokens and applies it

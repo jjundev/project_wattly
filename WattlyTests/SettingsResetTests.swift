@@ -32,6 +32,7 @@ struct SettingsResetTests {
         d.set(ThemeMode.light.rawValue, forKey: StorageKey.theme)
         d.set(PollInterval.s5.rawValue, forKey: StorageKey.pollInterval)
         d.set(PanelMode.b.rawValue, forKey: StorageKey.panelMode)
+        d.set(CardKind.cpu.rawValue, forKey: StorageKey.heroMetric)
         d.set(false, forKey: StorageKey.menubarTextEnabled)
         d.set(false, forKey: StorageKey.powerSmoothed)
         d.set("xyz", forKey: StorageKey.expandedCards)
@@ -41,6 +42,7 @@ struct SettingsResetTests {
         #expect(d.string(forKey: StorageKey.theme) == Defaults.theme.rawValue)
         #expect(d.string(forKey: StorageKey.pollInterval) == Defaults.pollInterval.rawValue)
         #expect(d.string(forKey: StorageKey.panelMode) == Defaults.panelMode.rawValue)
+        #expect(d.string(forKey: StorageKey.heroMetric) == Defaults.heroMetric.rawValue)
         #expect(d.bool(forKey: StorageKey.menubarTextEnabled) == Defaults.menubarTextEnabled)
         #expect(d.bool(forKey: StorageKey.powerSmoothed) == Defaults.powerSmoothed)
         #expect(d.string(forKey: StorageKey.expandedCards) == "")          // 가정 C

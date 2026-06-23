@@ -21,6 +21,10 @@ struct SettingsView: View {
     // Theme / poll / smoothing / menubar text.
     @AppStorage(StorageKey.theme) private var theme = Defaults.theme
     @AppStorage(StorageKey.panelMode) private var panelMode = Defaults.panelMode
+    // Mode C: the hero metric + the card order, so the hero picker can resolve the same visible
+    // set the popover shows (plan 20). Shared keys → the picker and the popover row-tap sync free.
+    @AppStorage(StorageKey.heroMetric) private var heroMetric = Defaults.heroMetric
+    @AppStorage(StorageKey.cardOrder) private var cardOrder = Defaults.cardOrder
     @AppStorage(StorageKey.pollInterval) private var pollInterval = Defaults.pollInterval
     @AppStorage(StorageKey.powerSmoothed) private var powerSmoothed = Defaults.powerSmoothed
     @AppStorage(StorageKey.menubarTextEnabled) private var menubarText = Defaults.menubarTextEnabled
@@ -107,14 +111,59 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: 레이아웃 (issue 19)
+    // MARK: 레이아웃 (issue 19 + plan 20)
 
-    /// Popover layout picker. Exposes A·B now; the hero mode (`.c`) joins when plan 20 ships.
+    /// Popover layout picker (A·B·C). When mode C is selected, a hero-metric sub-picker appears
+    /// beneath the segment — a single-select grid over the visible cards, writing the same
+    /// `heroMetric` key the popover row-tap does (plan 20). The window is a `ScrollView`, so the
+    /// extra section scrolls rather than overflowing.
     private var layoutSection: some View {
         SettingsSection(title: "레이아웃") {
             WattlySegment(selection: $panelMode, options: [
-                (.a, PanelMode.a.label), (.b, PanelMode.b.label),
+                (.a, PanelMode.a.label), (.b, PanelMode.b.label), (.c, PanelMode.c.label),
             ])
+            if panelMode == .c { heroPicker }
+        }
+    }
+
+    /// Mode-C hero-metric picker: single-select over the visible cards. Highlights the RESOLVED
+    /// hero (`resolveHero`), so a hidden persisted pick shows the live fallback — matching the
+    /// popover — and a tap writes the raw `heroMetric`.
+    private var heroPicker: some View {
+        let visible = visibleCards
+        let resolved = CardPresentation.resolveHero(persisted: heroMetric, visible: visible)
+        let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 2)
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("히어로 지표")
+                .font(WattlyFont.at(11.5, weight: .regular))
+                .foregroundStyle(t.faint)
+            LazyVGrid(columns: columns, spacing: 4) {
+                ForEach(visible) { card in
+                    WattlyChip(label: CardPresentation.label(card), isOn: resolved == card) {
+                        heroMetric = card
+                    }
+                }
+            }
+            .padding(3)
+            .background(RoundedRectangle(cornerRadius: 8).fill(t.segTrack))
+        }
+    }
+
+    /// The cards the popover would show, computed through the shared `CardOrder.visible` so the
+    /// picker can't drift from the live panel (desktop battery/batTemp drop out via `isPresent`).
+    private var visibleCards: [CardKind] {
+        cardOrder.visible(present: { monitor.isPresent($0) }, shown: { isShown($0) })
+    }
+
+    private func isShown(_ card: CardKind) -> Bool {
+        switch card {
+        case .power: showPower
+        case .battery: showBattery
+        case .cpu: showCPU
+        case .mem: showMem
+        case .cpuTemp: showCpuTemp
+        case .gpuTemp: showGpuTemp
+        case .batTemp: showBatTemp
         }
     }
 

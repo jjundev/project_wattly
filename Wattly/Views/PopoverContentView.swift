@@ -15,10 +15,10 @@ struct PopoverContentView: View {
     @Environment(\.tokens) private var t
     @Environment(\.openSettings) private var openSettings
     @AppStorage(StorageKey.cardOrder) private var cardOrder = Defaults.cardOrder
-    /// Chosen popover layout (issue 19). `.a` = the stacked cards below; `.b` = the compact
-    /// grid (`PopoverGridView`). `.c` (hero, plan 20) folds back to `.a` until it ships.
-    /// Edit/drag and per-process expansion are `.a`-only (see `body`'s onChange + the task
-    /// gating). Read as `@AppStorage` so a settings change re-renders the panel live.
+    /// Chosen popover layout. `.a` = the stacked cards below (issue 19); `.b` = the compact grid
+    /// (`PopoverGridView`); `.c` = the hero + list (`PopoverHeroView`, plan 20). Edit/drag and
+    /// per-process expansion are `.a`-only (see `body`'s onChange + the task gating). Read as
+    /// `@AppStorage` so a settings change re-renders the panel live.
     @AppStorage(StorageKey.panelMode) private var panelMode = Defaults.panelMode
     /// Power-type cards (프로세서 전력 + 배터리): show the EMA-smoothed value/sparkline
     /// (steady, tracks the real sustained draw) vs the raw 1-second reading. Default on.
@@ -197,17 +197,21 @@ struct PopoverContentView: View {
     private static let cardSpace = "wattly.cards"
     private static let cardSpacing: CGFloat = 8   // matches the cards VStack spacing
 
-    /// The popover body for the chosen layout (issue 19), each wrapped by the same
-    /// screen-height cap. `.a` = the stacked cards (with edit/drag); `.b` = the compact grid;
-    /// `.c` (hero, plan 20) folds back to `.a` for now. The shared header + panel chrome live
-    /// in `body`, so only this content switches.
+    /// The popover body for the chosen layout, each wrapped by the same screen-height cap.
+    /// `.a` = the stacked cards (with edit/drag); `.b` = the compact grid; `.c` = the hero + list
+    /// (plan 20). The shared header + panel chrome live in `body`, so only this content switches.
     @ViewBuilder private var modeBody: some View {
         switch panelMode {
-        case .a, .c:
+        case .a:
             scrollCapped { cardsStack }
         case .b:
             scrollCapped {
                 PopoverGridView(cards: visibleCards, monitor: monitor,
+                                thresholds: thresholds, powerSmoothed: powerSmoothed)
+            }
+        case .c:
+            scrollCapped {
+                PopoverHeroView(cards: visibleCards, monitor: monitor,
                                 thresholds: thresholds, powerSmoothed: powerSmoothed)
             }
         }
@@ -384,7 +388,7 @@ struct PopoverContentView: View {
     // MARK: Visibility (prototype `card.visible`, line 638)
 
     private var visibleCards: [CardKind] {
-        cardOrder.cards.filter { monitor.isPresent($0) && isShown($0) }
+        cardOrder.visible(present: { monitor.isPresent($0) }, shown: { isShown($0) })
     }
 
     private func isShown(_ card: CardKind) -> Bool {
