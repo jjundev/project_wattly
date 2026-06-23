@@ -26,7 +26,7 @@
 
 ## 범위 (Out)
 
-- 모드 B/C(미구현). 카드 크기 조절·숨김(숨김은 설정 표시지표 토글로).
+- 모드 B/C(→ [19](19-popover-layout-select-mode-b.md)/[20](20-popover-mode-c-hero.md); 드래그 재정렬은 모드 A 전용). 카드 크기 조절·숨김(숨김은 설정 표시지표 토글로).
 - "기본값으로 되돌리기"의 순서 리셋 UI → [13](13-settings-window-login-item.md).
 
 (NOTE: 실시간 셔플은 당초 Out이었으나 사용자 요청으로 IN 으로 전환 — `liveReorder` 구현. 위 #2 참조.)

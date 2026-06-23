@@ -20,6 +20,29 @@ enum PollInterval: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+// MARK: - Panel layout mode
+
+/// Which popover layout the user has chosen (prototype `panelMode`, lines 408/791).
+/// All three cases are defined now so the persisted schema is stable; the settings
+/// segment exposes A·B until the hero mode (`.c`) ships in plan 20, and the popover
+/// folds an unexpected `.c` back to `.a` defensively. `@AppStorage`-storable as a
+/// String-raw enum, exactly like `ThemeMode`/`PollInterval`.
+enum PanelMode: String, CaseIterable, Identifiable, Sendable {
+    case a = "A"   // 스택 행 — full-width cards (mode A, the default)
+    case b = "B"   // 카드 그리드 — 2-column compact tiles
+    case c = "C"   // 히어로 + 리스트 (plan 20)
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .a: "스택 행"
+        case .b: "카드 그리드"
+        case .c: "히어로+리스트"
+        }
+    }
+}
+
 // MARK: - Thresholds (warn/crit per family)
 
 struct ThresholdPair: Equatable, Sendable {
@@ -174,6 +197,7 @@ struct CardOrder: Equatable, Sendable, RawRepresentable {
 enum Defaults {
     static let theme = ThemeMode.dark
     static let pollInterval = PollInterval.auto
+    static let panelMode = PanelMode.a       // ship default: full-width stacked cards (mode A)
     static let loginItem = true            // F1: a MIRROR of SMAppService — NOT authoritative
     static let menubarTextEnabled = true   // default menubar metric = CPU only
     static let powerSmoothed = true        // 프로세서 전력 + 배터리 카드: EMA-smoothed display (raw spikes mislead)
@@ -202,6 +226,7 @@ enum StorageKey {
     static func menu(_ c: CardKind) -> String { "menu.\(c.rawValue)" }
     static let theme = "theme"
     static let pollInterval = "pollInterval"
+    static let panelMode = "panelMode"
     static let loginItem = "loginItem"
     static let menubarTextEnabled = "menubarTextEnabled"
     static let powerSmoothed = "powerSmoothed"

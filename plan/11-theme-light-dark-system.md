@@ -25,7 +25,7 @@
    - `preferredColorScheme`: light→`.light`, dark→`.dark`, system→`nil`
    - `tokens(mode, scheme)`: 3모드 × 2스킴 매트릭스 — system은 scheme를 따르고 light/dark는 무시함을 단언, 반환셋이 `Tokens.light`/`.dark`와 동일함을 단언.
 2. **테마 피커 세그먼트** (결정 A) — `Picker(.segmented)`를 `@AppStorage(StorageKey.theme)`에 바인딩, `ThemeMode.allCases` 순회. `PollIntervalSetting`(`PollIntervalSetting.swift:19`)과 동일 패턴. 당장은 `SettingsView`에 배치(13에서 7섹션 레이아웃으로 재배치). 네이티브 스타일 사용, 커스텀 pill 칩은 이연(결정 B).
-3. **토큰 위생** — `gridBorder`/`cText`/`segTrack`/`titlebar`는 **프로토타입 충실 토큰이나 Swift 뷰에서 아직 미사용**(graph grid·code text는 plan 10/13에서 배선). "forward-declared, plan 10/13에서 배선"이라는 주석을 달아 미래 독자가 비프로토타입으로 오인하지 않게 한다 (결정 C 정정).
+3. **토큰 위생** — `segTrack`/`titlebar`는 plan 13(설정 크롬)에서, `gridBorder`는 plan [19](19-popover-layout-select-mode-b.md)(모드 B 타일 보더)에서, `cText`는 plan [20](20-popover-mode-c-hero.md)(모드 C 리스트 라벨)에서 배선된다. 배선 전까지 미사용 토큰에 "forward-declared, plan NN에서 배선" 주석을 달아 미래 독자가 비프로토타입으로 오인하지 않게 한다 (결정 C 정정).
 
 ## 범위 (Out)
 
