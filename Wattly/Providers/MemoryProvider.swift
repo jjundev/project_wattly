@@ -33,7 +33,8 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
             pageSize: pageSize == 0 ? 16384 : pageSize,
             memsize: memsize,
             processes: procs,
-            pressure: pressure)))
+            pressure: pressure,
+            swapUsedBytes: Self.swapUsedBytes())))
     }
 
     // MARK: VM statistics + constants (host_statistics64 fills a caller struct — no free)
@@ -71,6 +72,16 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
         var value: Int32 = 0
         guard sysctlbyname(name, &value, &size, nil, 0) == 0 else { return nil }
         return value
+    }
+
+    /// Swap used in bytes from `vm.swapusage` (`xsw_usage.xsu_used`) — the counter macOS
+    /// Activity Monitor labels "사용된 스왑 공간". A struct-valued sysctl (not a scalar), so it
+    /// gets its own helper. 0 on failure → the card shows "스왑 0.0 GB" rather than a wrong number.
+    private static func swapUsedBytes() -> UInt64 {
+        var usage = xsw_usage()
+        var size = MemoryLayout<xsw_usage>.size
+        guard sysctlbyname("vm.swapusage", &usage, &size, nil, 0) == 0 else { return 0 }
+        return usage.xsu_used
     }
 
     // MARK: Top processes (libproc — no entitlement; own-user procs only, §M10)
