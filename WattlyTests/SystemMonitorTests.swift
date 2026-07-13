@@ -23,6 +23,18 @@ struct SystemMonitorTests {
         }
     }
 
+    actor CountingProvider: MetricProvider {
+        let kind: ProviderKind
+        private(set) var reads = 0
+
+        init(kind: ProviderKind) { self.kind = kind }
+
+        func read(at: ContinuousClock.Instant) async -> ProviderReading {
+            reads += 1
+            return .pending
+        }
+    }
+
     @Test func loadingThenValueTransition() async {
         let value = MetricSample.cpu(CPUSample(overall: 42, perfLevels: []))
         let cpu = ScriptedProvider(kind: .cpu, [.pending, .value(value)])
@@ -171,6 +183,65 @@ struct SystemMonitorTests {
 
     // MARK: Issue 09 — adaptive polling / low power
 
+    @Test func scheduledClosedMenubarPollReadsOnlySelectedProvider() async {
+        let cpu = CountingProvider(kind: .cpu)
+        let power = CountingProvider(kind: .power)
+        let monitor = SystemMonitor(providers: [cpu, power], clock: ManualClock())
+
+        await monitor.pollScheduled(force: false)
+
+        #expect(await cpu.reads == 1)
+        #expect(await power.reads == 0)
+    }
+
+    @Test func manualPollOnceStillReadsEveryActiveProvider() async {
+        let cpu = CountingProvider(kind: .cpu)
+        let power = CountingProvider(kind: .power)
+        let monitor = SystemMonitor(providers: [cpu, power], clock: ManualClock())
+
+        await monitor.pollOnce()
+
+        #expect(await cpu.reads == 1)
+        #expect(await power.reads == 1)
+    }
+
+    @Test func scheduledPollWaitsForTheProviderInterval() async {
+        let cpu = CountingProvider(kind: .cpu)
+        let clock = ManualClock()
+        let monitor = SystemMonitor(providers: [cpu], clock: clock)
+
+        await monitor.pollScheduled(force: false)
+        clock.advance(by: .seconds(1))
+        await monitor.pollScheduled(force: false)
+        #expect(await cpu.reads == 1)
+
+        clock.advance(by: .seconds(1))
+        await monitor.pollScheduled(force: false)
+        #expect(await cpu.reads == 2)
+    }
+
+    @Test func textOffPerformsNoMetricReads() async {
+        let cpu = CountingProvider(kind: .cpu)
+        let monitor = SystemMonitor(providers: [cpu], clock: ManualClock())
+
+        await monitor.setMenubarTextEnabled(false)
+        monitor.stop()
+        await monitor.pollScheduled(force: false)
+
+        #expect(await cpu.reads == 0)
+    }
+
+    @Test func forcedProviderRefreshDoesNotReadOtherScheduledProviders() async {
+        let cpu = CountingProvider(kind: .cpu)
+        let power = CountingProvider(kind: .power)
+        let monitor = SystemMonitor(providers: [cpu, power], clock: ManualClock())
+
+        await monitor.pollScheduled(forceProviders: [.power])
+
+        #expect(await cpu.reads == 1)
+        #expect(await power.reads == 1)
+    }
+
     @Test func hiddenTemperatureCardsDoNoCPUGPUSensorIO() async {
         // 수용 #2: both temperature toggles OFF → zero CPU/GPU SMC I/O, but the provider
         // still runs for battery temp (independent source). Driven at the SystemMonitor
@@ -245,8 +316,12 @@ struct SystemMonitorTests {
     /// A scripted self-energy counter: the test sets `next` before each `sampleSelfPower`.
     final class FakeSelfEnergy: SelfEnergySampling, @unchecked Sendable {
         var next: UInt64?
+        private(set) var reads = 0
         init(_ start: UInt64?) { next = start }
-        func energyNanojoules() -> UInt64? { next }
+        func energyNanojoules() -> UInt64? {
+            reads += 1
+            return next
+        }
     }
 
     @Test func selfPowerComputesWattsFromEnergyDelta() {
@@ -291,6 +366,21 @@ struct SystemMonitorTests {
         energy.next = 0                                      // curr < prev → counter reset (anomaly)
         monitor.sampleSelfPower(at: clock.now())
         #expect(monitor.selfPower == warm)                   // a transient must not blank a working value
+    }
+
+    @Test func scheduledSelfEnergySamplingIsCappedAtThirtySeconds() {
+        let energy = FakeSelfEnergy(0)
+        let clock = ManualClock()
+        let monitor = SystemMonitor(providers: [], clock: clock, selfEnergy: energy)
+
+        monitor.sampleSelfPowerIfDue(at: clock.now())
+        clock.advance(by: .seconds(29))
+        monitor.sampleSelfPowerIfDue(at: clock.now())
+        #expect(energy.reads == 1)
+
+        clock.advance(by: .seconds(1))
+        monitor.sampleSelfPowerIfDue(at: clock.now())
+        #expect(energy.reads == 2)
     }
 
     // MARK: Per-app power gating (issue 16 follow-up) — kind-routed enumerator
