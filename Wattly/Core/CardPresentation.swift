@@ -195,6 +195,13 @@ enum CardPresentation {
     /// One-decimal fixed format, used across every card's value/sub-line.
     static func f1(_ x: Double) -> String { String(format: "%.1f", x) }
 
+    /// GHz → "X.XX GHz" for the CPU card's per-cluster clock (plan 21). Two decimals:
+    /// cluster active clock sits in a tight ~1–5 GHz range where 0.01 GHz (10 MHz) is the
+    /// meaningful resolution.
+    static func ghzText(_ ghz: Double) -> String {
+        String(format: "%.2f GHz", ghz)
+    }
+
     /// Bytes → "X.X GB" for the memory card's process rows.
     static func gbText(_ bytes: UInt64) -> String {
         String(format: "%.1f GB", Double(bytes) / (1024.0 * 1024.0 * 1024.0))

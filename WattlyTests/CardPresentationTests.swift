@@ -147,6 +147,11 @@ struct CardPresentationTests {
         #expect(CardPresentation.clusterSummary(average: 55.0, hottest: 60.0) == "55.0° · 최고 60.0°")
     }
 
+    @Test func ghzTextTwoDecimalsWithUnit() {
+        #expect(CardPresentation.ghzText(3.456) == "3.46 GHz")
+        #expect(CardPresentation.ghzText(1.2) == "1.20 GHz")
+    }
+
     // MARK: CardKind structural facts (D) — single home for the card-family flags
 
     @Test func cardKindStructuralFlags() {
