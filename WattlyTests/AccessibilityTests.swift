@@ -60,7 +60,7 @@ struct AccessibilityTests {
 
     @Test func memoryUsesGBSymbolAndFoldsDetail() {
         #expect(Accessibility.cardLabel(.mem, mem(9.18))
-                == "메모리, 9.2 GB, 고정 1.0 GB · 압축 0.5 GB")
+                == "메모리, 9.2 GB, 고정 1.0 GB · 압축 0.5 GB · 스왑 0.0 GB")
     }
 
     @Test func temperatureUsesDegreeSymbol() {

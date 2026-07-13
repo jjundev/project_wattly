@@ -112,8 +112,11 @@ actor FakeProvider: MetricProvider {
             // demos the pressure-colored card (the real sysctl drives it at runtime).
             let frac = total > 0 ? used / total : 0
             let pressure: MemoryPressure = frac > 0.85 ? .critical : (frac > 0.70 ? .warn : .normal)
+            // Synthetic swap so the dev harness demos the "스왑" sub-line segment: none when
+            // roomy, a little under pressure, more when critical (the real sysctl drives it at runtime).
+            let swap = frac > 0.85 ? 5.0 : (frac > 0.70 ? 1.5 : 0.0)
             return .memory(MemorySample(usedGB: used, totalGB: total, wiredGB: 2.4, compressedGB: 1.1,
-                                        processes: procs, pressure: pressure))
+                                        swapUsedGB: swap, processes: procs, pressure: pressure))
         case .temperature:
             // Synthetic cluster groups so the expand demo works (P-코어 a touch hotter
             // than the E-코어; headline ≈ their blend, mirroring the real average).
