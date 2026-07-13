@@ -91,8 +91,10 @@ actor FakeProvider: MetricProvider {
             let pAvg = min(99, c * 1.25)
             let eAvg = c * 0.5
             return .cpu(CPUSample(overall: c, perfLevels: [
-                PerfLevelUsage(name: "Performance", usage: pAvg, cores: Self.spread(pAvg, count: 4)),
-                PerfLevelUsage(name: "Efficiency", usage: eAvg, cores: Self.spread(eAvg, count: 6)),
+                PerfLevelUsage(name: "Performance", usage: pAvg, cores: Self.spread(pAvg, count: 4),
+                               activeGHz: 1.6 + pAvg / 100 * 2.6),
+                PerfLevelUsage(name: "Efficiency", usage: eAvg, cores: Self.spread(eAvg, count: 6),
+                               activeGHz: 0.9 + eAvg / 100 * 1.5),
             ]))
         case .memory:
             let total = effectiveScenario == .desktop ? 64.0 : 16.0

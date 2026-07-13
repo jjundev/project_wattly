@@ -62,6 +62,28 @@ struct CardPresentationTests {
         #expect(CardPresentation.subText(none) == nil)                         // no levels → nil
     }
 
+    // Clock visible in the collapsed sub-line too (plan 21 follow-up — not just the expand
+    // region), so GHz is readable before the card is tapped open.
+    @Test func cpuSubTextIncludesClockWhenAvailable() {
+        let twoLevels = MetricState.value(.cpu(CPUSample(overall: 42.4, perfLevels: [
+            PerfLevelUsage(name: "Performance", usage: 80.4, activeGHz: 3.204),
+            PerfLevelUsage(name: "Efficiency", usage: 12.6, activeGHz: 1.104),
+        ])))
+        #expect(CardPresentation.subText(twoLevels) == "P 3.20 GHz 80% · E 1.10 GHz 13%")
+
+        let single = MetricState.value(.cpu(CPUSample(overall: 50, perfLevels: [
+            PerfLevelUsage(name: "Super", usage: 50.0, activeGHz: 2.5)])))
+        #expect(CardPresentation.subText(single) == "S 2.50 GHz 50%")
+
+        // Baseline poll: clock not yet available on one cluster → that cluster's token has no
+        // GHz clause while the other (already baselined) keeps its clock — no crash, no stale 0.
+        let mixed = MetricState.value(.cpu(CPUSample(overall: 42.4, perfLevels: [
+            PerfLevelUsage(name: "Performance", usage: 80.4, activeGHz: nil),
+            PerfLevelUsage(name: "Efficiency", usage: 12.6, activeGHz: 1.104),
+        ])))
+        #expect(CardPresentation.subText(mixed) == "P 80% · E 1.10 GHz 13%")
+    }
+
     // MARK: Memory — the one state-dependent unit ("/ N GB")
 
     @Test func memoryValueUnitSub() {
@@ -145,6 +167,11 @@ struct CardPresentationTests {
         #expect(CardPresentation.tempBarFraction(220.0) == 1.0)       // clamped high
         #expect(CardPresentation.tempBarFraction(-5.0) == 0.0)        // clamped low
         #expect(CardPresentation.clusterSummary(average: 55.0, hottest: 60.0) == "55.0° · 최고 60.0°")
+    }
+
+    @Test func ghzTextTwoDecimalsWithUnit() {
+        #expect(CardPresentation.ghzText(3.456) == "3.46 GHz")
+        #expect(CardPresentation.ghzText(1.2) == "1.20 GHz")
     }
 
     // MARK: CardKind structural facts (D) — single home for the card-family flags

@@ -168,10 +168,10 @@ enum CardPresentation {
             // single-cluster hardware (<2 levels) against an out-of-range read.
             guard s.perfLevels.count >= 2 else {
                 guard let only = s.perfLevels.first else { return nil }
-                return "\(corePrefix(only.name)) \(Int(only.usage.rounded()))%"
+                return clusterSubText(only)
             }
             let a = s.perfLevels[0], b = s.perfLevels[1]
-            return "\(corePrefix(a.name)) \(Int(a.usage.rounded()))% · \(corePrefix(b.name)) \(Int(b.usage.rounded()))%"
+            return "\(clusterSubText(a)) · \(clusterSubText(b))"
         case .memory(let s):
             return "고정 \(f1(s.wiredGB)) GB · 압축 \(f1(s.compressedGB)) GB"
         case .temperature:
@@ -192,8 +192,26 @@ enum CardPresentation {
         name.first.map { String($0).uppercased() } ?? "C"
     }
 
+    /// One cluster's collapsed sub-line token: "<prefix> [<GHz> ]<usage>%" (plan 21 follow-up
+    /// — the clock is visible in the collapsed summary, not only the expand region, so users
+    /// don't have to tap the card open to see it). The GHz clause is present only once the
+    /// clock source has a reading; nil (unavailable / baseline poll) collapses back to the
+    /// pre-clock "<prefix> <usage>%" format, so this is source-compatible with every existing
+    /// call.
+    private static func clusterSubText(_ level: PerfLevelUsage) -> String {
+        let ghz = level.activeGHz.map { "\(ghzText($0)) " } ?? ""
+        return "\(corePrefix(level.name)) \(ghz)\(Int(level.usage.rounded()))%"
+    }
+
     /// One-decimal fixed format, used across every card's value/sub-line.
     static func f1(_ x: Double) -> String { String(format: "%.1f", x) }
+
+    /// GHz → "X.XX GHz" for the CPU card's per-cluster clock (plan 21). Two decimals:
+    /// cluster active clock sits in a tight ~1–5 GHz range where 0.01 GHz (10 MHz) is the
+    /// meaningful resolution.
+    static func ghzText(_ ghz: Double) -> String {
+        String(format: "%.2f GHz", ghz)
+    }
 
     /// Bytes → "X.X GB" for the memory card's process rows.
     static func gbText(_ bytes: UInt64) -> String {

@@ -41,6 +41,7 @@
 		57C6CB12E4D566BEBB428145 /* PopoverGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21C8BF6274BBB6992A1F1633 /* PopoverGridView.swift */; };
 		590821C300D81BB07D5E1329 /* SMC.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9717A4622D508E51C16FA8 /* SMC.swift */; };
 		5AADB450E100B4CB2C611335 /* HeroSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACDC5AEC1E8EC996DFF101D8 /* HeroSelectionTests.swift */; };
+		5B2049F789C31AF111AF490A /* CPUFrequency.swift in Sources */ = {isa = PBXBuildFile; fileRef = D620F32C016A23C9A9478E15 /* CPUFrequency.swift */; };
 		67087007F09610655F68D44C /* Clock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D2CEA18A30B021587C24F0A /* Clock.swift */; };
 		6908BD61C6584F0B0EAF637D /* MemoryUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA98B2B1F73BCF4A0B7AC05B /* MemoryUsage.swift */; };
 		6F774A27D580235290B80753 /* PowerProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3BF59076BCF45AF5DFB2F47 /* PowerProvider.swift */; };
@@ -62,6 +63,7 @@
 		ACDC80B0A710B12831C2F88D /* FakeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32D8574AAFF0BFEF6380060D /* FakeProvider.swift */; };
 		AD7234042C8B58DCD400BE17 /* CardPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0AD4C82FC1A9EA5F33B69B3 /* CardPresentationTests.swift */; };
 		ADD80CA70B5601FAC82CA262 /* SettingsResetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07C1BF327FACCDB9FAB5213C /* SettingsResetTests.swift */; };
+		B1533AAE6C577BD6D1F81D00 /* CPUFrequencyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C8FA9D6B1F52ECC6920D40 /* CPUFrequencyTests.swift */; };
 		B84ADFB9A7B85CE18C766236 /* PowerEnergy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10635C5861EA5A327ED9CC2F /* PowerEnergy.swift */; };
 		BA684AC2BA23B20C13094637 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 9044978DE889FEBEC87F3486 /* README.md */; };
 		BBADDDEE7D705F9308877FFA /* Sparkline.swift in Sources */ = {isa = PBXBuildFile; fileRef = E16EB2DF75F2A90917F1881D /* Sparkline.swift */; };
@@ -70,6 +72,7 @@
 		C8C17525980349E554E5E837 /* SelfPower.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94108EFA2FFE5A0F7E19D35E /* SelfPower.swift */; };
 		C9E719E7D0D0152859146746 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B2DE33D7B63228682966B89 /* SettingsView.swift */; };
 		CBE11652E044DD70C60D7A8D /* SettingsReset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14B2BDFF1DB69E370CC26C75 /* SettingsReset.swift */; };
+		CC025CBE8EF328436E0E80DA /* CPUClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8851659C2CDAC260D4C7134 /* CPUClock.swift */; };
 		D0E1282AFC9B1A74DE556B85 /* PanelPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FC4B0A6E07A2BA0DBE34A4F /* PanelPresentationTests.swift */; };
 		D43BD771779302A73C41B245 /* CPUProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95D9BB66FA468EDC722C9692 /* CPUProvider.swift */; };
 		D97CEF0FEFA4CF334E3DB6F1 /* SmoothingOverlayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADCD49E78A7446DE396FBE48 /* SmoothingOverlayTests.swift */; };
@@ -156,9 +159,12 @@
 		CB9717A4622D508E51C16FA8 /* SMC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMC.swift; sourceTree = "<group>"; };
 		CE8B45929FB77AE51839080D /* SystemMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMonitorTests.swift; sourceTree = "<group>"; };
 		D03B5C644C704D63E5F86C20 /* PopoverContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverContentView.swift; sourceTree = "<group>"; };
+		D0C8FA9D6B1F52ECC6920D40 /* CPUFrequencyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUFrequencyTests.swift; sourceTree = "<group>"; };
 		D16861515046CCD6F0D45217 /* SelfPowerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfPowerTests.swift; sourceTree = "<group>"; };
+		D620F32C016A23C9A9478E15 /* CPUFrequency.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUFrequency.swift; sourceTree = "<group>"; };
 		D8019EC757BBE28FC570B71D /* PowerEnergyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerEnergyTests.swift; sourceTree = "<group>"; };
 		D85F4FD3A4E6BB168DABACA7 /* PollPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollPolicy.swift; sourceTree = "<group>"; };
+		D8851659C2CDAC260D4C7134 /* CPUClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUClock.swift; sourceTree = "<group>"; };
 		DECFD3734A1569FA8CFE4AF5 /* OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = OFL.txt; sourceTree = "<group>"; };
 		E0AD4C82FC1A9EA5F33B69B3 /* CardPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardPresentationTests.swift; sourceTree = "<group>"; };
 		E16EB2DF75F2A90917F1881D /* Sparkline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sparkline.swift; sourceTree = "<group>"; };
@@ -180,6 +186,7 @@
 				F0BB325E6C8D3C6B7207404B /* BatteryPower.swift */,
 				5FADA80FC02FE00A50BB9B45 /* CardPresentation.swift */,
 				1D2CEA18A30B021587C24F0A /* Clock.swift */,
+				D620F32C016A23C9A9478E15 /* CPUFrequency.swift */,
 				F9AB5AA6871BCF1DC1EEBBE7 /* CPUUsage.swift */,
 				8ACAEB9B7EE979F55ECF5CC3 /* History.swift */,
 				FE0BC034680A8F9989B9D773 /* LoginItem.swift */,
@@ -262,6 +269,7 @@
 				4B193EC77CC4F6135B8F3566 /* BatteryPowerTests.swift */,
 				E0AD4C82FC1A9EA5F33B69B3 /* CardPresentationTests.swift */,
 				2E3CEC05A8EC12EB24156C91 /* CardReorderTests.swift */,
+				D0C8FA9D6B1F52ECC6920D40 /* CPUFrequencyTests.swift */,
 				5C6277EFF84708F461754CA3 /* CPUUsageTests.swift */,
 				ACDC5AEC1E8EC996DFF101D8 /* HeroSelectionTests.swift */,
 				832652672791FAC9750165B6 /* HistoryTests.swift */,
@@ -326,6 +334,7 @@
 			isa = PBXGroup;
 			children = (
 				B8D87FCAC4528FF3B73DFD05 /* BatteryProvider.swift */,
+				D8851659C2CDAC260D4C7134 /* CPUClock.swift */,
 				95D9BB66FA468EDC722C9692 /* CPUProvider.swift */,
 				32D8574AAFF0BFEF6380060D /* FakeProvider.swift */,
 				EBCFA8BD7953C7F1E6ED403C /* MemoryProvider.swift */,
@@ -440,6 +449,7 @@
 			files = (
 				2F21C6921E2896512BD4FF55 /* AccessibilityTests.swift in Sources */,
 				E6D4F1BE411CB7202D52B89D /* BatteryPowerTests.swift in Sources */,
+				B1533AAE6C577BD6D1F81D00 /* CPUFrequencyTests.swift in Sources */,
 				485735366A6681DDDB9B001C /* CPUUsageTests.swift in Sources */,
 				AD7234042C8B58DCD400BE17 /* CardPresentationTests.swift in Sources */,
 				0DC692829BD9D200DBBECE47 /* CardReorderTests.swift in Sources */,
@@ -470,6 +480,8 @@
 				0CCE23A7B4FB7DEC009ECA18 /* Accessibility.swift in Sources */,
 				9164682B8D7954ADA22F3710 /* BatteryPower.swift in Sources */,
 				54CC1A4B35743BD034DC72F0 /* BatteryProvider.swift in Sources */,
+				CC025CBE8EF328436E0E80DA /* CPUClock.swift in Sources */,
+				5B2049F789C31AF111AF490A /* CPUFrequency.swift in Sources */,
 				D43BD771779302A73C41B245 /* CPUProvider.swift in Sources */,
 				0DFE06348B464F92F5334297 /* CPUUsage.swift in Sources */,
 				FCFFB2CEE33152456E33982A /* CardKind.swift in Sources */,
