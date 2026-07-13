@@ -47,6 +47,12 @@ struct CPUFrequencyTests {
         #expect(CPUFrequency.activeGHz(tableGHz: [2.0], prev: [5], curr: [5]) == nil)
     }
 
+    @Test func ignoresBinsBeyondTableLength() {
+        // table has 1 entry but there are 2 active bins → only bin 1 (↔ table[0]) counts.
+        // delta bin1 = 2 @ 2.0 GHz → weighted 4 / total 2 = 2.0; the extra bin is truncated by min().
+        #expect(CPUFrequency.activeGHz(tableGHz: [2.0], prev: [0, 1, 1], curr: [0, 3, 9]) == 2.0)
+    }
+
     // MARK: order-based attach
     @Test func attachesClockByPerfLevelOrder() {
         let s = CPUSample(overall: 50, perfLevels: [

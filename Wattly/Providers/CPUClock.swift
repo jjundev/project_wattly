@@ -53,19 +53,11 @@ final class RealCPUClock: @unchecked Sendable {
             let getRes = sym("IOReportStateGetResidency", as: StateGetResidencyFn.self)
         else { dlclose(handle); return nil }
 
-        // One channel per cluster (ECPU/PCPU) lives in this subgroup.
-        guard let channelsU = copyChannels("CPU Stats" as CFString,
-                                           "CPU Complex Performance States" as CFString, 0, 0, 0) else {
-            dlclose(handle); return nil
-        }
-        let channels = channelsU.takeRetainedValue()
-        var subbedOut: Unmanaged<CFMutableDictionary>?
-        guard let subU = createSub(nil, channels, &subbedOut, 0, nil), let subbedU = subbedOut else {
-            dlclose(handle); return nil
-        }
-
         // states5-sram = performance cluster, states1-sram = efficiency (asitop/macmon convention,
-        // verified on M5). An absent table just means that cluster reports no clock.
+        // verified on M5). An absent table just means that cluster reports no clock. Read these
+        // (independent IOKit calls, no IOReport subscription involved) BEFORE creating the
+        // subscription below, so the empty-table degrade path returns nil without ever having
+        // created a CF object that would need releasing.
         var t: [Cluster: [Double]] = [:]
         if let p = Self.readDVFSTable("voltage-states5-sram") { t[.performance] = p }
         if let e = Self.readDVFSTable("voltage-states1-sram") { t[.efficiency] = e }
@@ -77,6 +69,17 @@ final class RealCPUClock: @unchecked Sendable {
             t[.performance] = e; t[.efficiency] = p
         }
         guard !t.isEmpty else { dlclose(handle); return nil }
+
+        // One channel per cluster (ECPU/PCPU) lives in this subgroup.
+        guard let channelsU = copyChannels("CPU Stats" as CFString,
+                                           "CPU Complex Performance States" as CFString, 0, 0, 0) else {
+            dlclose(handle); return nil
+        }
+        let channels = channelsU.takeRetainedValue()
+        var subbedOut: Unmanaged<CFMutableDictionary>?
+        guard let subU = createSub(nil, channels, &subbedOut, 0, nil), let subbedU = subbedOut else {
+            dlclose(handle); return nil
+        }
 
         self.subscription = subU.takeRetainedValue()
         self.subbedChannels = subbedU.takeRetainedValue()
