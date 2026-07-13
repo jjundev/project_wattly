@@ -39,4 +39,15 @@ enum CPUFrequency {
         }
         return total > 0 ? weighted / total : nil
     }
+
+    /// Attach per-cluster clocks onto a freshly derived `CPUSample`, aligned by perf-level
+    /// order (`clockGHz[i]` → `perfLevels[i]`). Pure so the order-mapping is unit-tested
+    /// without touching IOReport. Extra/short `clockGHz` is tolerated (zip to the shorter).
+    static func attaching(_ sample: CPUSample, clockGHz: [Double?]) -> CPUSample {
+        var s = sample
+        for i in s.perfLevels.indices where i < clockGHz.count {
+            s.perfLevels[i].activeGHz = clockGHz[i]
+        }
+        return s
+    }
 }

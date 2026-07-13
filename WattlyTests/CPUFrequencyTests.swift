@@ -46,4 +46,25 @@ struct CPUFrequencyTests {
         #expect(CPUFrequency.activeGHz(tableGHz: [2.0], prev: [0, 1], curr: [0, 1, 2]) == nil)
         #expect(CPUFrequency.activeGHz(tableGHz: [2.0], prev: [5], curr: [5]) == nil)
     }
+
+    // MARK: order-based attach
+    @Test func attachesClockByPerfLevelOrder() {
+        let s = CPUSample(overall: 50, perfLevels: [
+            PerfLevelUsage(name: "Performance", usage: 60, cores: [60]),
+            PerfLevelUsage(name: "Efficiency", usage: 20, cores: [20]),
+        ])
+        let out = CPUFrequency.attaching(s, clockGHz: [3.4, 2.1])
+        #expect(out.perfLevels[0].activeGHz == 3.4)
+        #expect(out.perfLevels[1].activeGHz == 2.1)
+    }
+
+    @Test func attachToleratesNilAndShortArray() {
+        let s = CPUSample(overall: 0, perfLevels: [
+            PerfLevelUsage(name: "Performance", usage: 0, cores: []),
+            PerfLevelUsage(name: "Efficiency", usage: 0, cores: []),
+        ])
+        let out = CPUFrequency.attaching(s, clockGHz: [nil])   // short + nil
+        #expect(out.perfLevels[0].activeGHz == nil)
+        #expect(out.perfLevels[1].activeGHz == nil)
+    }
 }
