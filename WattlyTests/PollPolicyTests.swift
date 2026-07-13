@@ -55,4 +55,60 @@ struct PollPolicyTests {
     @Test func nothingShownYieldsNoProviders() {
         #expect(activeProviders(shown: [], menubarNeeds: []).isEmpty)
     }
+
+    // MARK: provider-level policy
+
+    @Test func autoPolicyBudgetsProvidersByVisibility() {
+        let all = Set(ProviderKind.allCases)
+        #expect(providerIntervals(setting: .auto, panelVisible: true,
+                                  menubarTextEnabled: true, active: all,
+                                  menubarNeeds: [.cpu]) == [
+            .cpu: .seconds(1), .power: .seconds(1), .temperature: .seconds(2),
+            .memory: .seconds(5), .battery: .seconds(5),
+        ])
+        #expect(providerIntervals(setting: .auto, panelVisible: false,
+                                  menubarTextEnabled: true, active: all,
+                                  menubarNeeds: [.cpu]) == [.cpu: .seconds(2)])
+        #expect(providerIntervals(setting: .auto, panelVisible: false,
+                                  menubarTextEnabled: false, active: all,
+                                  menubarNeeds: [.cpu]).isEmpty)
+    }
+
+    @Test func fixedPolicyKeepsEveryActiveProviderAtChosenInterval() {
+        #expect(providerIntervals(setting: .s2, panelVisible: false,
+                                  menubarTextEnabled: false,
+                                  active: [.cpu, .power], menubarNeeds: []) == [
+            .cpu: .seconds(2), .power: .seconds(2),
+        ])
+    }
+
+    @Test func dueProvidersOnlyReturnsExpiredIntervalsUnlessForced() {
+        let now = ContinuousClock.now
+        let intervals: [ProviderKind: Duration] = [.cpu: .seconds(1), .memory: .seconds(5)]
+        let last: [ProviderKind: ContinuousClock.Instant] = [
+            .cpu: now.advanced(by: .seconds(-1)),
+            .memory: now.advanced(by: .seconds(-2)),
+        ]
+        #expect(dueProviders(intervals: intervals, lastRead: last, now: now, force: false) == [.cpu])
+        #expect(dueProviders(intervals: intervals, lastRead: last, now: now, force: true) == [.cpu, .memory])
+    }
+
+    @Test func nextDelayNeverExceedsHousekeepingWake() {
+        let now = ContinuousClock.now
+        #expect(nextPollDelay(intervals: [:], lastRead: [:], now: now,
+                              housekeeping: .seconds(30)) == .seconds(30))
+        #expect(nextPollDelay(intervals: [.cpu: .seconds(2)], lastRead: [:], now: now,
+                              housekeeping: .seconds(30)) == .zero)
+    }
+
+    @Test func nextDelayUsesTheEarliestProviderDeadline() {
+        let now = ContinuousClock.now
+        let last: [ProviderKind: ContinuousClock.Instant] = [
+            .cpu: now.advanced(by: .seconds(-1)),
+            .memory: now.advanced(by: .seconds(-1)),
+        ]
+        #expect(nextPollDelay(intervals: [.cpu: .seconds(5), .memory: .seconds(2)],
+                              lastRead: last, now: now,
+                              housekeeping: .seconds(30)) == .seconds(1))
+    }
 }
