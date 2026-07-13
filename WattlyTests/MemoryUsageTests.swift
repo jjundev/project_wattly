@@ -42,6 +42,21 @@ struct MemoryUsageTests {
         #expect(abs(s.usedGB - 3.0) < 1e-9)      // active 0 + wire 2 + compressor 1
     }
 
+    @Test func memorySampleConvertsSwapToGiB() {
+        // 3 GiB of swap, expressed in bytes, should read back as 3.0 GB (GiB).
+        let s = memorySample(active: 0, wire: 0, compressor: 0,
+                             pageSize: 16384, memsize: 16 * gib, processes: [],
+                             swapUsedBytes: 3 * gib)
+        #expect(abs(s.swapUsedGB - 3.0) < 1e-9)
+    }
+
+    @Test func memorySampleSwapDefaultsToZero() {
+        // Callers that don't pass swap (older paths) get 0, never a crash or garbage.
+        let s = memorySample(active: 0, wire: 0, compressor: 0,
+                             pageSize: 16384, memsize: 16 * gib, processes: [])
+        #expect(s.swapUsedGB == 0)
+    }
+
     // MARK: MemoryPressure — kernel sysctl mapping (issue: pressure coloring)
 
     @Test func memoryPressureMapsSysctlLevels() {

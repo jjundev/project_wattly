@@ -32,6 +32,9 @@ struct MemorySample: Sendable, Equatable {
     var totalGB: Double
     var wiredGB: Double
     var compressedGB: Double
+    /// Swap used, GiB (macOS `vm.swapusage` `xsu_used` — the number Activity Monitor's
+    /// "사용된 스왑 공간" shows). 0 when there's no swap OR the sysctl was unavailable.
+    var swapUsedGB: Double = 0
     /// Top memory-consuming processes (issue 05). Populated only while the memory
     /// card's expand is on-screen (gating keeps the routine poll cheap); empty
     /// otherwise. MUST stay `Equatable` — the whole `MetricSample`/`MetricState`
