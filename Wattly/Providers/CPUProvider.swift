@@ -11,14 +11,26 @@ actor CPUProvider: MetricProvider {
     private var prev: [CoreTicks]?
     private var topology: [PerfLevel]?
 
+    /// Live per-cluster clock source (plan 21). Built once, lazily (like `topology`); nil after
+    /// the attempt means unavailable → the CPU card just shows no clock (graceful degrade).
+    private var clockSetupAttempted = false
+    private var clock: RealCPUClock?
+
     func read(at instant: ContinuousClock.Instant) async -> ProviderReading {
         guard let curr = sampleTicks() else {
             return .unavailable(.providerError("CPU 사용률을 읽을 수 없음"))
         }
         if topology == nil { topology = Self.readTopology() }
+        if !clockSetupAttempted { clockSetupAttempted = true; clock = RealCPUClock() }
         defer { prev = curr }
         guard let prev else { return .pending }   // first poll: no baseline yet
-        return .value(.cpu(cpuUsage(prev: prev, curr: curr, topology: topology ?? [])))
+        let topo = topology ?? []
+        var sample = cpuUsage(prev: prev, curr: curr, topology: topo)
+        if let clock {
+            // Order-aligned per-cluster clock (baseline poll → all nil, real from the next poll).
+            sample = CPUFrequency.attaching(sample, clockGHz: clock.sampleGHz(topology: topo))
+        }
+        return .value(.cpu(sample))
     }
 
     // MARK: Mach tick snapshot (freed before returning — no leak, plan §1)
