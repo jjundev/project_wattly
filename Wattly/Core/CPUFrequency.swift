@@ -21,4 +21,22 @@ enum CPUFrequency {
         }
         return out
     }
+
+    /// Frequency-weighted active clock (GHz) from two cumulative DVFS residency snapshots.
+    /// Bin 0 is the idle/off bin and is skipped; bin i (i≥1) is dwell in the DVFS state whose
+    /// frequency is `tableGHz[i-1]`. Returns nil when no active dwell accrued this interval
+    /// (fully idle, counter reset, or a length mismatch) so the caller shows no clock, not 0.
+    static func activeGHz(tableGHz: [Double], prev: [UInt64], curr: [UInt64]) -> Double? {
+        guard prev.count == curr.count, curr.count >= 2 else { return nil }
+        let active = min(curr.count - 1, tableGHz.count)
+        var weighted = 0.0, total = 0.0
+        for i in 0..<active {
+            let bin = i + 1
+            if curr[bin] < prev[bin] { return nil }        // cumulative counter reset → drop interval
+            let d = Double(curr[bin] - prev[bin])
+            weighted += d * tableGHz[i]
+            total += d
+        }
+        return total > 0 ? weighted / total : nil
+    }
 }
