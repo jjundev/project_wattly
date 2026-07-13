@@ -20,6 +20,9 @@ enum PollInterval: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+let automaticPollingDescription =
+    "자동: 패널 열림은 CPU·전력 1초/온도 2초/메모리·배터리 5초, 닫힘은 메뉴바에 표시한 지표만 2초마다 갱신합니다. 텍스트를 끄면 지표 폴링을 멈춥니다."
+
 // MARK: - Panel layout mode
 
 /// Which popover layout the user has chosen (prototype `panelMode`, lines 408/791).

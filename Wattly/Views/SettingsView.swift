@@ -359,7 +359,7 @@ struct SettingsView: View {
                     WattlySegment(selection: $pollInterval,
                                   options: PollInterval.allCases.map { ($0, $0.label) },
                                   pillVPadding: 6)
-                    Text("자동: 패널 열림 1–2초, 닫힘 5초(텍스트 ON 시 2초)로 낮춰 배터리를 아낍니다.")
+                    Text(automaticPollingDescription)
                         .font(WattlyFont.at(11.5, weight: .regular))
                         .foregroundStyle(t.faint)
                         .fixedSize(horizontal: false, vertical: true)
