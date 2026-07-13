@@ -41,6 +41,7 @@
 		57C6CB12E4D566BEBB428145 /* PopoverGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21C8BF6274BBB6992A1F1633 /* PopoverGridView.swift */; };
 		590821C300D81BB07D5E1329 /* SMC.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9717A4622D508E51C16FA8 /* SMC.swift */; };
 		5AADB450E100B4CB2C611335 /* HeroSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACDC5AEC1E8EC996DFF101D8 /* HeroSelectionTests.swift */; };
+		5B2049F789C31AF111AF490A /* CPUFrequency.swift in Sources */ = {isa = PBXBuildFile; fileRef = D620F32C016A23C9A9478E15 /* CPUFrequency.swift */; };
 		67087007F09610655F68D44C /* Clock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D2CEA18A30B021587C24F0A /* Clock.swift */; };
 		6908BD61C6584F0B0EAF637D /* MemoryUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA98B2B1F73BCF4A0B7AC05B /* MemoryUsage.swift */; };
 		6F774A27D580235290B80753 /* PowerProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3BF59076BCF45AF5DFB2F47 /* PowerProvider.swift */; };
@@ -159,6 +160,7 @@
 		D03B5C644C704D63E5F86C20 /* PopoverContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverContentView.swift; sourceTree = "<group>"; };
 		D0C8FA9D6B1F52ECC6920D40 /* CPUFrequencyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUFrequencyTests.swift; sourceTree = "<group>"; };
 		D16861515046CCD6F0D45217 /* SelfPowerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfPowerTests.swift; sourceTree = "<group>"; };
+		D620F32C016A23C9A9478E15 /* CPUFrequency.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUFrequency.swift; sourceTree = "<group>"; };
 		D8019EC757BBE28FC570B71D /* PowerEnergyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerEnergyTests.swift; sourceTree = "<group>"; };
 		D85F4FD3A4E6BB168DABACA7 /* PollPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollPolicy.swift; sourceTree = "<group>"; };
 		DECFD3734A1569FA8CFE4AF5 /* OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = OFL.txt; sourceTree = "<group>"; };
@@ -182,6 +184,7 @@
 				F0BB325E6C8D3C6B7207404B /* BatteryPower.swift */,
 				5FADA80FC02FE00A50BB9B45 /* CardPresentation.swift */,
 				1D2CEA18A30B021587C24F0A /* Clock.swift */,
+				D620F32C016A23C9A9478E15 /* CPUFrequency.swift */,
 				F9AB5AA6871BCF1DC1EEBBE7 /* CPUUsage.swift */,
 				8ACAEB9B7EE979F55ECF5CC3 /* History.swift */,
 				FE0BC034680A8F9989B9D773 /* LoginItem.swift */,
@@ -474,6 +477,7 @@
 				0CCE23A7B4FB7DEC009ECA18 /* Accessibility.swift in Sources */,
 				9164682B8D7954ADA22F3710 /* BatteryPower.swift in Sources */,
 				54CC1A4B35743BD034DC72F0 /* BatteryProvider.swift in Sources */,
+				5B2049F789C31AF111AF490A /* CPUFrequency.swift in Sources */,
 				D43BD771779302A73C41B245 /* CPUProvider.swift in Sources */,
 				0DFE06348B464F92F5334297 /* CPUUsage.swift in Sources */,
 				FCFFB2CEE33152456E33982A /* CardKind.swift in Sources */,
