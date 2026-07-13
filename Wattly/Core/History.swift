@@ -15,9 +15,11 @@ struct HistoryBuffer: Sendable {
     static let cap = 256
 
     private(set) var samples: [HistorySample] = []
+    private(set) var version = 0
 
     mutating func append(_ value: Double, at instant: ContinuousClock.Instant) {
         samples.append(HistorySample(at: instant, value: value))
+        version += 1
         prune(now: instant)
     }
 

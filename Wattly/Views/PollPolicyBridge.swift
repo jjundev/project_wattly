@@ -16,6 +16,7 @@ struct PollPolicyBridge: View {
 
     @AppStorage(StorageKey.pollInterval) private var pollInterval: PollInterval = Defaults.pollInterval
     @AppStorage(StorageKey.menubarTextEnabled) private var menubarTextEnabled = Defaults.menubarTextEnabled
+    @AppStorage(StorageKey.powerSmoothed) private var powerSmoothed = Defaults.powerSmoothed
     @AppStorage(StorageKey.show(.power))   private var showPower   = Defaults.show[.power]   ?? true
     @AppStorage(StorageKey.show(.battery)) private var showBattery = Defaults.show[.battery] ?? true
     @AppStorage(StorageKey.show(.cpu))     private var showCPU     = Defaults.show[.cpu]     ?? true
@@ -67,6 +68,7 @@ struct PollPolicyBridge: View {
             // monitor also seeds safe defaults at init, so even an early start() is correct.
             .task {
                 monitor.setPollInterval(pollInterval)
+                monitor.setPowerSmoothed(powerSmoothed)
                 await monitor.setMenubarTextEnabled(menubarTextEnabled)
                 await monitor.setShownCards(shownCards)
                 await monitor.setMenubarMetrics(menubarMetrics)   // before start() (B5): first poll sees the persisted chips
@@ -76,6 +78,7 @@ struct PollPolicyBridge: View {
             // re-push of the seed). Async setters hop through a Task; the seeded value already
             // landed above, so ordering here is benign.
             .onChange(of: pollInterval) { _, v in monitor.setPollInterval(v) }
+            .onChange(of: powerSmoothed) { _, v in monitor.setPowerSmoothed(v) }
             .onChange(of: menubarTextEnabled) { _, v in Task { await monitor.setMenubarTextEnabled(v) } }
             .onChange(of: shownCards) { _, v in Task { await monitor.setShownCards(v) } }
             .onChange(of: menubarMetrics) { _, v in Task { await monitor.setMenubarMetrics(v) } }

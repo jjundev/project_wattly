@@ -47,6 +47,7 @@
 		704B65E517FECD08B4CD6DC4 /* PowerSmoothing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A4050A1C7B99C5FDEB0117D /* PowerSmoothing.swift */; };
 		709CA63AA1B889F23AB4AE04 /* ThemeResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EC101CF7C8E5F2E38102F96 /* ThemeResolverTests.swift */; };
 		73E2133420A33E60F7329D42 /* HistoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 832652672791FAC9750165B6 /* HistoryTests.swift */; };
+		7699D5772FF20FDD2D9490EA /* ProviderPollBudget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED2AA0BB11CD6EC56FD3587 /* ProviderPollBudget.swift */; };
 		7A394705C6834B5A9358DA10 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7818C9B5500C51EA6F62B3F4 /* Settings.swift */; };
 		7E0DF3B2D7E2BAE6BDEB7764 /* TemperatureProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 419C0BB5C63DC6C6DCEE8BBF /* TemperatureProvider.swift */; };
 		868EB1B64A4B157A046511F4 /* ThresholdTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FDBCEE7C543E46F486E93C0 /* ThresholdTests.swift */; };
@@ -75,6 +76,7 @@
 		D97CEF0FEFA4CF334E3DB6F1 /* SmoothingOverlayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADCD49E78A7446DE396FBE48 /* SmoothingOverlayTests.swift */; };
 		DB5376908CFC7D56976E43DE /* MemoryUsageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F4F7AF2CAC7816F6FA756B2 /* MemoryUsageTests.swift */; };
 		E6D4F1BE411CB7202D52B89D /* BatteryPowerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B193EC77CC4F6135B8F3566 /* BatteryPowerTests.swift */; };
+		EB85AEBF1FE3360A474EAAB6 /* MenuBarSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCD075915DEC722ECF74E843 /* MenuBarSnapshotTests.swift */; };
 		F2CB4E2A4AE442F961B0E497 /* PowerEnergyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8019EC757BBE28FC570B71D /* PowerEnergyTests.swift */; };
 		F38F679D33E6DD796A2A578A /* PopoverHeroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43761373E1878A83B8F6365E /* PopoverHeroView.swift */; };
 		F80BC2C8905EECB7EAE8DA5C /* SystemMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F61FA5F6DFF92047EE2B7B8E /* SystemMonitor.swift */; };
@@ -120,6 +122,7 @@
 		4EC101CF7C8E5F2E38102F96 /* ThemeResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeResolverTests.swift; sourceTree = "<group>"; };
 		5280F85A9A3EAB8E9FF4F733 /* MetricSample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricSample.swift; sourceTree = "<group>"; };
 		5C6277EFF84708F461754CA3 /* CPUUsageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUUsageTests.swift; sourceTree = "<group>"; };
+		5ED2AA0BB11CD6EC56FD3587 /* ProviderPollBudget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderPollBudget.swift; sourceTree = "<group>"; };
 		5FADA80FC02FE00A50BB9B45 /* CardPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardPresentation.swift; sourceTree = "<group>"; };
 		5FC4B0A6E07A2BA0DBE34A4F /* PanelPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelPresentationTests.swift; sourceTree = "<group>"; };
 		67FE518CDA8ED1E9E6BAB874 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -159,6 +162,7 @@
 		D16861515046CCD6F0D45217 /* SelfPowerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfPowerTests.swift; sourceTree = "<group>"; };
 		D8019EC757BBE28FC570B71D /* PowerEnergyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerEnergyTests.swift; sourceTree = "<group>"; };
 		D85F4FD3A4E6BB168DABACA7 /* PollPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollPolicy.swift; sourceTree = "<group>"; };
+		DCD075915DEC722ECF74E843 /* MenuBarSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSnapshotTests.swift; sourceTree = "<group>"; };
 		DECFD3734A1569FA8CFE4AF5 /* OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = OFL.txt; sourceTree = "<group>"; };
 		E0AD4C82FC1A9EA5F33B69B3 /* CardPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardPresentationTests.swift; sourceTree = "<group>"; };
 		E16EB2DF75F2A90917F1881D /* Sparkline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sparkline.swift; sourceTree = "<group>"; };
@@ -191,6 +195,7 @@
 				3A4050A1C7B99C5FDEB0117D /* PowerSmoothing.swift */,
 				9FA17294E4714010BBBFC334 /* ProcessList.swift */,
 				21242F142598B4648C88DB0C /* ProcessPower.swift */,
+				5ED2AA0BB11CD6EC56FD3587 /* ProviderPollBudget.swift */,
 				990E14E2DD88DEDA9CE98146 /* SelfEnergy.swift */,
 				94108EFA2FFE5A0F7E19D35E /* SelfPower.swift */,
 				14B2BDFF1DB69E370CC26C75 /* SettingsReset.swift */,
@@ -266,6 +271,7 @@
 				ACDC5AEC1E8EC996DFF101D8 /* HeroSelectionTests.swift */,
 				832652672791FAC9750165B6 /* HistoryTests.swift */,
 				7F4F7AF2CAC7816F6FA756B2 /* MemoryUsageTests.swift */,
+				DCD075915DEC722ECF74E843 /* MenuBarSnapshotTests.swift */,
 				BCB3DFDA1EFD1E038E9B49C0 /* MenuBarTextTests.swift */,
 				5FC4B0A6E07A2BA0DBE34A4F /* PanelPresentationTests.swift */,
 				A204818E6FC1DAC62E6E2CC3 /* PollPolicyTests.swift */,
@@ -446,6 +452,7 @@
 				5AADB450E100B4CB2C611335 /* HeroSelectionTests.swift in Sources */,
 				73E2133420A33E60F7329D42 /* HistoryTests.swift in Sources */,
 				DB5376908CFC7D56976E43DE /* MemoryUsageTests.swift in Sources */,
+				EB85AEBF1FE3360A474EAAB6 /* MenuBarSnapshotTests.swift in Sources */,
 				8CE8957A003D686B95C4FAD2 /* MenuBarTextTests.swift in Sources */,
 				D0E1282AFC9B1A74DE556B85 /* PanelPresentationTests.swift in Sources */,
 				0C6BF823B674B64055BC1C00 /* PollPolicyTests.swift in Sources */,
@@ -498,6 +505,7 @@
 				704B65E517FECD08B4CD6DC4 /* PowerSmoothing.swift in Sources */,
 				194C305F829708634C8171DF /* ProcessList.swift in Sources */,
 				F8C06B1EF48C88E986B44520 /* ProcessPower.swift in Sources */,
+				7699D5772FF20FDD2D9490EA /* ProviderPollBudget.swift in Sources */,
 				590821C300D81BB07D5E1329 /* SMC.swift in Sources */,
 				0B15660FC42EBB6A706855A7 /* SelfEnergy.swift in Sources */,
 				C8C17525980349E554E5E837 /* SelfPower.swift in Sources */,

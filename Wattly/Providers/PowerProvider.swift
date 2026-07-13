@@ -27,6 +27,8 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
     private var enumerating = false
     private var prevProcEnergy: [Int32: UInt64]?
     private var prevProcInstant: ContinuousClock.Instant?
+    private var lastProcRows: [ProcessPower]?
+    private var identityCache = ProcessIdentityCache()
 
     /// Above this the reading is implausible (unit-decode error or a transient
     /// spike) → re-baseline rather than emit. Generous enough never to reject a real
@@ -49,7 +51,12 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
     /// follow-up). Clearing the baseline on disable means a re-open re-baselines cleanly.
     func setEnumerating(_ enabled: Bool) {
         enumerating = enabled
-        if !enabled { prevProcEnergy = nil; prevProcInstant = nil }
+        if !enabled {
+            prevProcEnergy = nil
+            prevProcInstant = nil
+            lastProcRows = nil
+            identityCache.removeAll()
+        }
     }
 
     func read(at _: ContinuousClock.Instant) async -> ProviderReading {
@@ -101,24 +108,34 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
     /// buried. The executable path is resolved only for CONSUMING pids (positive delta —
     /// dozens, not all ~560), keeping the per-poll cost bounded.
     private func processPower(at instant: ContinuousClock.Instant) -> [ProcessPower]? {
+        if let prevProcInstant {
+            let dt = Self.seconds(from: prevProcInstant, to: instant)
+            if !shouldRunProcessDetailSweep(elapsedSeconds: dt) {
+                return lastProcRows
+            }
+        }
         let curr = Self.currentProcessEnergies()
         defer { prevProcEnergy = curr; prevProcInstant = instant }
         guard let prevE = prevProcEnergy, let prevI = prevProcInstant else { return nil }
         let dt = Self.seconds(from: prevI, to: instant)
-        guard dt > 0, dt <= Self.maxPlausibleDt else { return nil }   // gap → re-baseline
+        guard dt > 0, dt <= Self.maxPlausibleDt else { return lastProcRows }   // gap → re-baseline
 
         let perPid = processWatts(prev: prevE, curr: curr, dt: dt)
         var appKey: [Int32: String] = [:]
         appKey.reserveCapacity(perPid.count)
+        identityCache.retainOnly(Set(curr.keys))
         for (pid, _) in perPid {
-            appKey[pid] = appBundlePath(forExecutable: pidPath(pid)) ?? "PID \(pid)"
+            let identity = identityCache.identity(for: pid)
+            appKey[pid] = identity.iconPath ?? "PID \(pid)"
         }
-        return topAppPower(perPidWatts: perPid, appKey: appKey, limit: 3).map { group in
+        let rows = topAppPower(perPidWatts: perPid, appKey: appKey, limit: 3).map { group in
             ProcessPower(id: group.key,
                          name: appDisplayName(forKey: group.key),
                          watts: group.watts,
                          iconPath: group.key.hasPrefix("/") ? group.key : nil)
         }
+        lastProcRows = rows
+        return rows
     }
 
     /// Absolute per-pid energy (nanojoules) for every readable pid, from `ri_energy_nj`.

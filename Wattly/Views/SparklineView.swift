@@ -12,6 +12,7 @@ import SwiftUI
 /// `@Observable` poll tick while the view is on screen.
 struct SparklineView: View {
     let values: [Double]
+    var geometry: Sparkline.Geometry? = nil
     var stroke: Color
     var fill: Color? = nil
     /// Rendered band height. Defaults to the mode-A 26px; the mode-B grid passes 22.
@@ -20,7 +21,7 @@ struct SparklineView: View {
 
     var body: some View {
         Canvas(opaque: false) { ctx, size in
-            guard let geo = Sparkline.geometry(values) else { return }
+            guard let geo = geometry ?? Sparkline.geometry(values) else { return }
 
             let sx = size.width / Sparkline.width
             let sy = size.height / Sparkline.height

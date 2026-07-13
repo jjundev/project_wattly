@@ -12,17 +12,27 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
     private let host = mach_host_self()
     /// Gate the process sweep to when the expand is visible (issue 05 §M11).
     private var enumerating = false
+    private var identityCache = ProcessIdentityCache()
+    private var lastProcessSweepInstant: ContinuousClock.Instant?
+    private var lastProcesses: [ProcessUsage]?
     /// Constants — read once, then cached (actor-isolated lazy).
     private lazy var memsize: UInt64 = Self.sysctlUInt64("hw.memsize") ?? 0
     private lazy var pageSize: UInt64 = hostPageSize()
 
-    func setEnumerating(_ enabled: Bool) { enumerating = enabled }
+    func setEnumerating(_ enabled: Bool) {
+        enumerating = enabled
+        if !enabled {
+            lastProcessSweepInstant = nil
+            lastProcesses = nil
+            identityCache.removeAll()
+        }
+    }
 
     func read(at instant: ContinuousClock.Instant) async -> ProviderReading {
         guard let vm = vmStatistics() else {
             return .unavailable(.providerError("메모리 통계를 읽을 수 없음"))
         }
-        let procs = enumerating ? Self.topMemoryProcesses(limit: 3) : []
+        let detail = processDetail(at: instant)
         // Kernel memory-pressure verdict — cheap scalar read every poll (no gating). nil on
         // failure → the card falls back to the used% band (CardPresentation).
         let pressure = Self.sysctlInt32("kern.memorystatus_vm_pressure_level").map(MemoryPressure.init(fromSysctl:))
@@ -32,7 +42,8 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
             compressor: UInt64(vm.compressor_page_count),
             pageSize: pageSize == 0 ? 16384 : pageSize,
             memsize: memsize,
-            processes: procs,
+            processes: detail.rows,
+            processesMeasured: detail.measured,
             pressure: pressure)))
     }
 
@@ -75,21 +86,43 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
 
     // MARK: Top processes (libproc — no entitlement; own-user procs only, §M10)
 
-    private static func topMemoryProcesses(limit: Int) -> [ProcessUsage] {
+    private func processDetail(at instant: ContinuousClock.Instant) -> (rows: [ProcessUsage], measured: Bool) {
+        guard enumerating else { return ([], false) }
+        if let lastProcessSweepInstant {
+            let dt = Self.seconds(from: lastProcessSweepInstant, to: instant)
+            if dt < Self.detailIntervalSeconds {
+                return (lastProcesses ?? [], lastProcesses != nil)
+            }
+        }
+        let rows = topMemoryProcesses(limit: 3)
+        lastProcessSweepInstant = instant
+        lastProcesses = rows
+        return (rows, true)
+    }
+
+    private static let detailIntervalSeconds = 5.0
+
+    private static func seconds(from a: ContinuousClock.Instant, to b: ContinuousClock.Instant) -> Double {
+        let d = a.duration(to: b)
+        return Double(d.components.seconds) + Double(d.components.attoseconds) * 1e-18
+    }
+
+    private func topMemoryProcesses(limit: Int) -> [ProcessUsage] {
         // Footprint-only sweep over all readable pids (cheap), then resolve name +
         // icon path for JUST the top-N — avoids hundreds of proc_name/proc_pidpath
         // calls per refresh (skip unreadable: other user / system, §M10). The pid list
         // + name/path helpers are shared with the power Top-3 (`ProcessList`).
         var footprints: [(pid: pid_t, bytes: UInt64)] = []
         for pid in listPIDs() where pid > 0 {
-            if let bytes = physFootprint(pid) { footprints.append((pid, bytes)) }
+            if let bytes = Self.physFootprint(pid) { footprints.append((pid, bytes)) }
         }
+        identityCache.retainOnly(Set(footprints.map(\.pid)))
         return footprints.sorted { $0.bytes > $1.bytes }.prefix(limit).map { entry in
-            let path = pidPath(entry.pid)
+            let identity = identityCache.identity(for: entry.pid)
             return ProcessUsage(pid: entry.pid,
-                                name: procName(of: entry.pid, path: path),
+                                name: identity.name,
                                 footprintBytes: entry.bytes,
-                                iconPath: appBundlePath(forExecutable: path))
+                                iconPath: identity.iconPath)
         }
     }
 

@@ -1,6 +1,35 @@
 import Foundation
 import Observation
 
+struct MenuBarSnapshot: Sendable, Equatable {
+    var visibleText: String?
+    var accessibilityLabel: String = "Wattly"
+}
+
+enum PollOrigin: Sendable, Equatable {
+    case scheduler
+    case policyChange
+    case manual
+}
+
+struct PollCycleResult: Sendable, Equatable {
+    var warmupStarted = false
+}
+
+private struct ApplyTransition {
+    var warmupStarted = false
+}
+
+private struct SparklineCacheKey: Hashable {
+    var card: CardKind
+    var smoothed: Bool
+}
+
+private struct SparklineCacheEntry {
+    var version: Int
+    var geometry: Sparkline.Geometry?
+}
+
 /// The one model SwiftUI views observe. Polls the injected providers off the
 /// MainActor, keeps per-provider `MetricState`, derives the 7 card states (with
 /// the temperature fan-out), and maintains per-card history.
@@ -24,6 +53,11 @@ final class SystemMonitor {
     /// Kept separate from the 4 s headline EMA; reset on adapter regime changes.
     private(set) var batteryOneMinuteAverage: Double?
     private var batteryOneMinuteInstant: ContinuousClock.Instant?
+
+    /// Always-alive status-item surface. `MenuBarLabel` reads only this snapshot,
+    /// rather than pulling `cardState` directly and re-rendering for every provider
+    /// write. Updated only when the quantized visible/a11y strings actually change.
+    private(set) var menuBarSnapshot = MenuBarSnapshot()
 
     /// Wattly's own EMA-smoothed power draw in watts (issue 16), or nil until the first
     /// valid interval (the settings footer shows "—"). Doubles as the EMA's previous
@@ -50,6 +84,12 @@ final class SystemMonitor {
     private let selfEnergy: any SelfEnergySampling
     private var prevSelfNJ: UInt64?
     private var prevSelfInstant: ContinuousClock.Instant?
+    private var lastProviderPoll: [ProviderKind: ContinuousClock.Instant] = [:]
+    private var sparklineCache: [SparklineCacheKey: SparklineCacheEntry] = [:]
+    private var powerFirstValueSeen = false
+    private var powerWarmupStartedAt: ContinuousClock.Instant?
+    private let powerWarmupWindow: Duration = .seconds(5)
+    private(set) var schedulerWakeSerial = 0
 
     // MARK: Adaptive-poll policy (issue 09) — pushed in from the views, never read from
     // `UserDefaults` here, so the cadence and gating stay deterministically testable.
@@ -60,6 +100,7 @@ final class SystemMonitor {
     private var panelVisible = false
     /// Whether the menubar shows a metric number (keeps a closed panel at 2 s, not 5 s).
     private var menubarTextEnabled = Defaults.menubarTextEnabled
+    private var powerSmoothedSetting = Defaults.powerSmoothed
     /// The cards whose metric is shown in the menubar text (issue 14). When the text is
     /// enabled, their providers stay polled even if the matching card is hidden — that is
     /// what makes a menubar-only metric (e.g. GPU temp with its card off) keep updating.
@@ -87,6 +128,7 @@ final class SystemMonitor {
         self.selfEnergy = selfEnergy
         self.states = Dictionary(uniqueKeysWithValues: ProviderKind.allCases.map { ($0, .loading) })
         self.history = Dictionary(uniqueKeysWithValues: CardKind.allCases.map { ($0, HistoryBuffer()) })
+        updateMenuBarSnapshot()
     }
 
     // MARK: Lifecycle
@@ -102,12 +144,22 @@ final class SystemMonitor {
         pollTask = Task(priority: .utility) { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
-                await self.pollOnce()
-                // Self-power (issue 16) is sampled here, on the timer cadence only — NOT
-                // inside `pollOnce`, whose 3 out-of-band callers would otherwise inject
-                // spurious sub-interval-dt samples.
-                self.sampleSelfPower(at: self.clock.now())
-                let interval = self.currentInterval
+                let instant = self.clock.now()
+                let input = self.budgetInput(at: instant)
+                let targets = self.dueProviders(at: instant, input: input)
+                if targets.isEmpty {
+                    if shouldParkScheduler(input: input) {
+                        self.pollTask = nil
+                        return
+                    }
+                } else {
+                    await self.poll(targets: targets, origin: .scheduler)
+                    // Self-power (issue 16) piggybacks on real scheduler wakeups only.
+                    self.sampleSelfPower(at: self.clock.now())
+                }
+                let postInstant = self.clock.now()
+                let postInput = self.budgetInput(at: postInstant)
+                let interval = self.sleepUntilNextDue(from: postInstant, input: postInput) ?? self.currentInterval
                 try? await Task.sleep(for: interval, tolerance: interval / 5)
             }
         }
@@ -118,6 +170,58 @@ final class SystemMonitor {
         resolvePollInterval(setting: pollSetting,
                             panelVisible: panelVisible,
                             menubarTextEnabled: menubarTextEnabled)
+    }
+
+    func budgetInput(at instant: ContinuousClock.Instant) -> ProviderPollBudgetInput {
+        ProviderPollBudgetInput(setting: pollSetting,
+                                panelVisible: panelVisible,
+                                activeProviders: activeProviderKinds,
+                                shownCards: shownCards,
+                                menubarMetrics: menubarMetrics,
+                                warmupProviders: warmupProviders(at: instant))
+    }
+
+    func warmupProviders(at instant: ContinuousClock.Instant) -> Set<ProviderKind> {
+        guard pollSetting == .auto else { return [] }
+        guard activeProviderKinds.contains(.power) else {
+            powerWarmupStartedAt = nil
+            return []
+        }
+        guard !powerFirstValueSeen else { return [] }
+        guard let started = powerWarmupStartedAt else { return [] }
+        if started.duration(to: instant) >= powerWarmupWindow {
+            powerWarmupStartedAt = nil
+            return []
+        }
+        return [.power]
+    }
+
+    private var shouldParkSchedulerNow: Bool {
+        shouldParkScheduler(input: budgetInput(at: clock.now()))
+    }
+
+    func dueProviders(at instant: ContinuousClock.Instant,
+                      input: ProviderPollBudgetInput) -> Set<ProviderKind> {
+        Set(ProviderKind.allCases.filter { kind in
+            guard case .due(let interval) = providerPollDecision(kind: kind, input: input) else {
+                return false
+            }
+            guard let last = lastProviderPoll[kind] else { return true }
+            return last.duration(to: instant) >= interval
+        })
+    }
+
+    func sleepUntilNextDue(from instant: ContinuousClock.Instant,
+                           input: ProviderPollBudgetInput) -> Duration? {
+        var next: Duration?
+        for kind in ProviderKind.allCases {
+            guard case .due(let interval) = providerPollDecision(kind: kind, input: input) else { continue }
+            guard let last = lastProviderPoll[kind] else { return .zero }
+            let elapsed = last.duration(to: instant)
+            let remaining = elapsed >= interval ? .zero : interval - elapsed
+            next = next.map { min($0, remaining) } ?? remaining
+        }
+        return next
     }
 
     func stop() {
@@ -133,7 +237,7 @@ final class SystemMonitor {
         guard let memEnumerator else { return }
         Task { [weak self] in
             await memEnumerator.setEnumerating(on)
-            if on { await self?.pollOnce() }
+            if on { await self?.poll(targets: [.memory], origin: .policyChange) }
         }
     }
 
@@ -145,7 +249,7 @@ final class SystemMonitor {
         guard let powerEnumerator else { return }
         Task { [weak self] in
             await powerEnumerator.setEnumerating(on)
-            if on { await self?.pollOnce() }
+            if on { await self?.poll(targets: [.power], origin: .policyChange) }
         }
     }
 
@@ -179,8 +283,17 @@ final class SystemMonitor {
         guard enabled != menubarTextEnabled else { return }
         let before = currentInterval
         menubarTextEnabled = enabled
+        updateMenuBarSnapshot()
         await recomputeGating()
         if currentInterval != before { reschedule() }
+    }
+
+    /// Power smoothing affects the menu bar's power string, so it is a snapshot
+    /// input even though it does not change provider gating.
+    func setPowerSmoothed(_ enabled: Bool) {
+        guard enabled != powerSmoothedSetting else { return }
+        powerSmoothedSetting = enabled
+        updateMenuBarSnapshot()
     }
 
     /// The set of shown cards changed (issue 13's visibility toggles). Re-derives the
@@ -200,6 +313,7 @@ final class SystemMonitor {
     func setMenubarMetrics(_ cards: Set<CardKind>) async {
         guard cards != menubarMetrics else { return }
         menubarMetrics = cards
+        updateMenuBarSnapshot()
         await recomputeGating()
     }
 
@@ -208,10 +322,14 @@ final class SystemMonitor {
     /// or CPU/GPU temp re-enabled), so a re-shown card fills without waiting a cycle.
     /// Turning OFF polls nothing — the determinism the call-count test (issue 09 §수용) relies on.
     private func recomputeGating() async {
-        let menubarNeeds: Set<CardKind> = menubarTextEnabled ? menubarMetrics : []
+        let menubarNeeds: Set<CardKind> = menubarMetrics
         let needed = activeProviders(shown: shownCards, menubarNeeds: menubarNeeds)
         let newlyActivated = !needed.subtracting(activeProviderKinds).isEmpty
+        let activatedKinds = needed.subtracting(activeProviderKinds)
         activeProviderKinds = needed
+        if !activeProviderKinds.contains(.power) {
+            powerWarmupStartedAt = nil
+        }
 
         let neededCards = shownCards.union(menubarNeeds)
         let want = neededCards.contains(.cpuTemp) || neededCards.contains(.gpuTemp)
@@ -219,7 +337,12 @@ final class SystemMonitor {
         tempEnabled = want
         await tempGater?.setEnabled(want)
 
-        if newlyActivated || tempTurnedOn { await pollOnce() }
+        if newlyActivated || tempTurnedOn {
+            var targets = activatedKinds
+            if tempTurnedOn { targets.insert(.temperature) }
+            await poll(targets: targets.isEmpty ? activeProviderKinds : targets, origin: .policyChange)
+        }
+        if pollTask == nil && !shouldParkSchedulerNow { start() }
     }
 
     /// Restart the poll loop so a cadence change takes effect now (the loop polls on entry).
@@ -253,14 +376,31 @@ final class SystemMonitor {
     // MARK: One poll cycle (called directly by tests — the seam)
 
     func pollOnce() async {
-        let instant = clock.now()
-        for provider in providers where activeProviderKinds.contains(provider.kind) {
-            let reading = await provider.read(at: instant)   // off-main hop
-            apply(reading, from: provider.kind, at: instant) // back on MainActor
-        }
+        await poll(targets: activeProviderKinds, origin: .manual)
     }
 
-    private func apply(_ reading: ProviderReading, from kind: ProviderKind, at instant: ContinuousClock.Instant) {
+    @discardableResult
+    func poll(targets: Set<ProviderKind>,
+              origin: PollOrigin = .manual) async -> PollCycleResult {
+        let instant = clock.now()
+        var result = PollCycleResult()
+        for provider in providers where targets.contains(provider.kind) {
+            let reading = await provider.read(at: instant)   // off-main hop
+            let transition = apply(reading, from: provider.kind, at: instant) // back on MainActor
+            result.warmupStarted = result.warmupStarted || transition.warmupStarted
+            lastProviderPoll[provider.kind] = instant
+        }
+        if result.warmupStarted, origin == .policyChange {
+            wakeSchedulerForPolicyChange()
+        }
+        return result
+    }
+
+    @discardableResult
+    private func apply(_ reading: ProviderReading,
+                       from kind: ProviderKind,
+                       at instant: ContinuousClock.Instant) -> ApplyTransition {
+        let transition = applyPowerWarmupTransition(reading, from: kind, at: instant)
         switch reading {
         case .pending:
             states[kind] = .loading
@@ -270,6 +410,40 @@ final class SystemMonitor {
             states[kind] = .value(sample)
             recordHistory(for: kind, sample: sample, at: instant)
         }
+        updateMenuBarSnapshot()
+        return transition
+    }
+
+    private func applyPowerWarmupTransition(_ reading: ProviderReading,
+                                            from kind: ProviderKind,
+                                            at instant: ContinuousClock.Instant) -> ApplyTransition {
+        guard kind == .power else { return ApplyTransition() }
+        switch reading {
+        case .pending:
+            guard pollSetting == .auto,
+                  activeProviderKinds.contains(.power),
+                  !powerFirstValueSeen,
+                  powerWarmupStartedAt == nil else {
+                return ApplyTransition()
+            }
+            powerWarmupStartedAt = instant
+            return ApplyTransition(warmupStarted: true)
+        case .value(.power):
+            powerFirstValueSeen = true
+            powerWarmupStartedAt = nil
+            return ApplyTransition()
+        case .unavailable:
+            powerWarmupStartedAt = nil
+            return ApplyTransition()
+        case .value:
+            return ApplyTransition()
+        }
+    }
+
+    func wakeSchedulerForPolicyChange() {
+        schedulerWakeSerial += 1
+        guard pollTask != nil else { return }
+        reschedule()
     }
 
     /// Previous AC-adapter connection state. A plug/unplug (`ExternalConnected` change)
@@ -378,6 +552,36 @@ final class SystemMonitor {
             }
         }
         return history[card]?.values ?? []
+    }
+
+    func sparklineGeometry(for card: CardKind, smoothed: Bool) -> Sparkline.Geometry? {
+        let buffer: HistoryBuffer? = if smoothed, card.isSmoothable {
+            switch card {
+            case .power: powerOverlay.history
+            case .battery: batteryOverlay.history
+            default: history[card]
+            }
+        } else {
+            history[card]
+        }
+        guard let buffer else { return nil }
+        let key = SparklineCacheKey(card: card, smoothed: smoothed)
+        if let cached = sparklineCache[key], cached.version == buffer.version {
+            return cached.geometry
+        }
+        let geometry = Sparkline.geometry(buffer.values)
+        sparklineCache[key] = SparklineCacheEntry(version: buffer.version, geometry: geometry)
+        return geometry
+    }
+
+    private func updateMenuBarSnapshot() {
+        let selected = menubarMetrics
+        let states = Dictionary(uniqueKeysWithValues:
+            selected.map { ($0, cardState($0, smoothed: powerSmoothedSetting)) })
+        let next = MenuBarSnapshot(
+            visibleText: menubarTextEnabled ? MenuBarText.assemble(selected: selected, states: states) : nil,
+            accessibilityLabel: Accessibility.menuBarLabel(selected: selected, states: states))
+        if next != menuBarSnapshot { menuBarSnapshot = next }
     }
 
     private func temperatureCardState(_ card: CardKind, from providerState: MetricState) -> MetricState {

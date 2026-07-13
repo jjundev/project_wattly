@@ -55,4 +55,75 @@ struct PollPolicyTests {
     @Test func nothingShownYieldsNoProviders() {
         #expect(activeProviders(shown: [], menubarNeeds: []).isEmpty)
     }
+
+    // MARK: ProviderPollBudget
+
+    @Test func autoClosedGivesMenubarProvidersFresherLane() {
+        let input = ProviderPollBudgetInput(
+            setting: .auto, panelVisible: false,
+            activeProviders: [.cpu, .memory],
+            shownCards: [.mem],
+            menubarMetrics: [.cpu])
+
+        #expect(providerPollDecision(kind: .cpu, input: input) == .due(.seconds(2)))
+        #expect(providerPollDecision(kind: .memory, input: input) == .due(.seconds(5)))
+        #expect(providerPollDecision(kind: .power, input: input) == .suspended)
+    }
+
+    @Test func fixedSettingPinsHeadlineCadence() {
+        let input = ProviderPollBudgetInput(
+            setting: .s1, panelVisible: false,
+            activeProviders: [.cpu],
+            shownCards: [.cpu],
+            menubarMetrics: [])
+        #expect(providerPollDecision(kind: .cpu, input: input) == .due(.seconds(1)))
+    }
+
+    @Test func autoWarmupProvidersGetOneSecondLane() {
+        let input = ProviderPollBudgetInput(
+            setting: .auto, panelVisible: false,
+            activeProviders: [.power],
+            shownCards: [.power],
+            menubarMetrics: [],
+            warmupProviders: [.power])
+        #expect(providerPollDecision(kind: .power, input: input) == .due(.seconds(1)))
+    }
+
+    @Test func fixedSettingIgnoresWarmupProviders() {
+        let input = ProviderPollBudgetInput(
+            setting: .s5, panelVisible: false,
+            activeProviders: [.power],
+            shownCards: [.power],
+            menubarMetrics: [],
+            warmupProviders: [.power])
+        #expect(providerPollDecision(kind: .power, input: input) == .due(.seconds(5)))
+    }
+
+    @Test func inactiveWarmupProviderStillSuspends() {
+        let input = ProviderPollBudgetInput(
+            setting: .auto, panelVisible: false,
+            activeProviders: [],
+            shownCards: [],
+            menubarMetrics: [],
+            warmupProviders: [.power])
+        #expect(providerPollDecision(kind: .power, input: input) == .suspended)
+    }
+
+    @Test func processDetailSweepKeepsFiveSecondMinimum() {
+        #expect(processDetailInterval() == .seconds(5))
+        #expect(processDetailIntervalSeconds() == 5)
+        #expect(shouldRunProcessDetailSweep(elapsedSeconds: nil))
+        #expect(shouldRunProcessDetailSweep(elapsedSeconds: 0))
+        #expect(shouldRunProcessDetailSweep(elapsedSeconds: 4.9) == false)
+        #expect(shouldRunProcessDetailSweep(elapsedSeconds: 5))
+    }
+
+    @Test func parksOnlyWhenThereIsNoSurface() {
+        #expect(shouldParkScheduler(input: ProviderPollBudgetInput(
+            setting: .auto, panelVisible: false,
+            activeProviders: [], shownCards: [], menubarMetrics: [])))
+        #expect(shouldParkScheduler(input: ProviderPollBudgetInput(
+            setting: .auto, panelVisible: false,
+            activeProviders: [.cpu], shownCards: [], menubarMetrics: [.cpu])) == false)
+    }
 }

@@ -240,6 +240,103 @@ struct SystemMonitorTests {
         #expect(values.allSatisfy { $0 == 10 })              // continuous — no reset/gap injected
     }
 
+    @Test func powerPendingStartsWarmupAndPostPollSleepIsOneSecond() async {
+        let power = ScriptedProvider(kind: .power, [.pending])
+        let clock = ManualClock()
+        let monitor = SystemMonitor(providers: [power], clock: clock)
+
+        let result = await monitor.poll(targets: [.power], origin: .scheduler)
+
+        #expect(result.warmupStarted)
+        let input = ProviderPollBudgetInput(
+            setting: .auto, panelVisible: false,
+            activeProviders: [.power],
+            shownCards: [.power],
+            menubarMetrics: [],
+            warmupProviders: [.power])
+        #expect(providerPollDecision(kind: .power, input: input) == .due(.seconds(1)))
+        #expect(monitor.sleepUntilNextDue(from: clock.now(), input: input) == .seconds(1))
+    }
+
+    @Test func powerWarmupExpiresBackToNormalClosedCadence() async {
+        let power = ScriptedProvider(kind: .power, [.pending])
+        let clock = ManualClock()
+        let monitor = SystemMonitor(providers: [power], clock: clock)
+
+        await monitor.poll(targets: [.power], origin: .scheduler)
+        clock.advance(by: .seconds(5))
+
+        let input = monitor.budgetInput(at: clock.now())
+        #expect(providerPollDecision(kind: .power, input: input) == .due(.seconds(5)))
+    }
+
+    @Test func powerValueClearsWarmupAndPreventsRestart() async {
+        func pw(_ w: Double) -> ProviderReading {
+            .value(.power(PowerSample(totalW: w, cpuW: w, gpuW: 0, npuW: 0)))
+        }
+        let power = ScriptedProvider(kind: .power, [.pending, pw(10), .pending])
+        let clock = ManualClock()
+        let monitor = SystemMonitor(providers: [power], clock: clock)
+
+        let cold = await monitor.poll(targets: [.power], origin: .scheduler)
+        #expect(cold.warmupStarted)
+
+        clock.advance(by: .seconds(1))
+        let value = await monitor.poll(targets: [.power], origin: .scheduler)
+        #expect(value.warmupStarted == false)
+        #expect(providerPollDecision(kind: .power, input: monitor.budgetInput(at: clock.now())) == .due(.seconds(5)))
+
+        clock.advance(by: .seconds(1))
+        let laterPending = await monitor.poll(targets: [.power], origin: .scheduler)
+        #expect(laterPending.warmupStarted == false)
+    }
+
+    @Test func powerUnavailableClearsFastPathButDoesNotBlockFutureWarmup() async {
+        let power = ScriptedProvider(kind: .power, [
+            .pending,
+            .unavailable(.channelUnreadable("sample failed")),
+            .pending
+        ])
+        let clock = ManualClock()
+        let monitor = SystemMonitor(providers: [power], clock: clock)
+
+        let cold = await monitor.poll(targets: [.power], origin: .scheduler)
+        #expect(cold.warmupStarted)
+
+        clock.advance(by: .seconds(1))
+        let unavailable = await monitor.poll(targets: [.power], origin: .scheduler)
+        #expect(unavailable.warmupStarted == false)
+        #expect(providerPollDecision(kind: .power, input: monitor.budgetInput(at: clock.now())) == .due(.seconds(5)))
+
+        clock.advance(by: .seconds(5))
+        let retryPending = await monitor.poll(targets: [.power], origin: .scheduler)
+        #expect(retryPending.warmupStarted)
+    }
+
+    @Test func policyChangeWarmupWakesSchedulerHook() async {
+        let power = ScriptedProvider(kind: .power, [.pending])
+        let monitor = SystemMonitor(providers: [power], clock: ManualClock())
+
+        let result = await monitor.poll(targets: [.power], origin: .policyChange)
+
+        #expect(result.warmupStarted)
+        #expect(monitor.schedulerWakeSerial == 1)
+    }
+
+    @Test func inactivePowerClearsWarmupAndSuspendsProvider() async {
+        let power = ScriptedProvider(kind: .power, [.pending])
+        let clock = ManualClock()
+        let monitor = SystemMonitor(providers: [power], clock: clock)
+
+        await monitor.poll(targets: [.power], origin: .scheduler)
+        await monitor.setShownCards([])
+        await monitor.setMenubarMetrics([])
+        monitor.stop()
+
+        let input = monitor.budgetInput(at: clock.now())
+        #expect(providerPollDecision(kind: .power, input: input) == .suspended)
+    }
+
     // MARK: Self-power (issue 16) — fake energy source + manual clock, no libproc
 
     /// A scripted self-energy counter: the test sets `next` before each `sampleSelfPower`.

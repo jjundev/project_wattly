@@ -47,6 +47,7 @@ func usedBytes(active: UInt64, wire: UInt64, compressor: UInt64, pageSize: UInt6
 func memorySample(active: UInt64, wire: UInt64, compressor: UInt64,
                   pageSize: UInt64, memsize: UInt64,
                   processes: [ProcessUsage],
+                  processesMeasured: Bool = false,
                   pressure: MemoryPressure? = nil) -> MemorySample {
     MemorySample(
         usedGB: Double(usedBytes(active: active, wire: wire, compressor: compressor, pageSize: pageSize)) / bytesPerGiB,
@@ -54,6 +55,7 @@ func memorySample(active: UInt64, wire: UInt64, compressor: UInt64,
         wiredGB: Double(wire * pageSize) / bytesPerGiB,
         compressedGB: Double(compressor * pageSize) / bytesPerGiB,
         processes: topProcesses(processes),
+        processesMeasured: processesMeasured,
         pressure: pressure)
 }
 

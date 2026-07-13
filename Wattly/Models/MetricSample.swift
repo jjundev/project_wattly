@@ -37,6 +37,10 @@ struct MemorySample: Sendable, Equatable {
     /// otherwise. MUST stay `Equatable` — the whole `MetricSample`/`MetricState`
     /// chain synthesises `Equatable` through this field.
     var processes: [ProcessUsage] = []
+    /// Whether `processes` is a measured Top-N result for this refresh. `false`
+    /// means the detail lane is baselining / skipped and the view should keep the
+    /// row in a "측정 중…" state rather than treating an empty list as a failure.
+    var processesMeasured: Bool = false
     /// The kernel's memory-pressure verdict (`kern.memorystatus_vm_pressure_level`).
     /// Drives the card color when `Thresholds.memColorByPressure` is on (the macOS
     /// "활성 상태 보기" model: color by pressure, not occupancy). `nil` = sysctl

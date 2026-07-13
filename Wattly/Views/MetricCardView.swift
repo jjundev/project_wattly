@@ -11,6 +11,7 @@ struct MetricCardView: View {
     let card: CardKind
     let state: MetricState
     var historyValues: [Double] = []
+    var sparklineGeometry: Sparkline.Geometry? = nil
     var isExpanded: Bool = false
     var onToggleExpand: (() -> Void)? = nil
     var thresholds: Thresholds = Defaults.thresholds
@@ -54,7 +55,8 @@ struct MetricCardView: View {
         let summary = VStack(alignment: .leading, spacing: 8) {
             headerRow(d)
             if hasValue {
-                SparklineView(values: historyValues, stroke: sparkStroke, fill: hasSparkArea ? sparkFill : nil)
+                SparklineView(values: historyValues, geometry: sparklineGeometry,
+                              stroke: sparkStroke, fill: hasSparkArea ? sparkFill : nil)
                     .accessibilityHidden(true)
                 if let sub = d.subText, !sub.isEmpty {
                     Text(sub)
@@ -178,7 +180,11 @@ struct MetricCardView: View {
     private func memExpand(_ s: MemorySample) -> some View {
         let maxBytes = s.processes.first?.footprintBytes ?? 0
         VStack(alignment: .leading, spacing: 8) {
-            if s.processes.isEmpty {
+            if !s.processesMeasured {
+                Text("측정 중…")
+                    .font(WattlyFont.at(10.5, weight: .semibold))
+                    .foregroundStyle(t.faint)
+            } else if s.processes.isEmpty {
                 Text("프로세스를 읽을 수 없음")
                     .font(WattlyFont.at(10.5, weight: .semibold))
                     .foregroundStyle(t.faint)

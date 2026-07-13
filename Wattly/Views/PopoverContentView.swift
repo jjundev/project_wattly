@@ -378,6 +378,7 @@ struct PopoverContentView: View {
                 card: card,
                 state: monitor.cardState(card, smoothed: powerSmoothed),
                 historyValues: monitor.historyValues(for: card, smoothed: powerSmoothed),
+                sparklineGeometry: monitor.sparklineGeometry(for: card, smoothed: powerSmoothed),
                 isExpanded: expanded.contains(card),
                 onToggleExpand: editMode ? nil : (card.isExpandable ? { toggleExpand(card) } : nil),
                 thresholds: thresholds

@@ -31,6 +31,7 @@ struct PopoverHeroView: View {
                 HeroCard(card: hero,
                          state: monitor.cardState(hero, smoothed: powerSmoothed),
                          historyValues: monitor.historyValues(for: hero, smoothed: powerSmoothed),
+                         sparklineGeometry: monitor.sparklineGeometry(for: hero, smoothed: powerSmoothed),
                          thresholds: thresholds)
                 list(excluding: hero)
             }
@@ -89,6 +90,7 @@ private struct HeroCard: View {
     let card: CardKind
     let state: MetricState
     var historyValues: [Double] = []
+    var sparklineGeometry: Sparkline.Geometry? = nil
     var thresholds: Thresholds = Defaults.thresholds
 
     // Hardcoded light-on-dark surface/text (prototype line 208).
@@ -138,7 +140,8 @@ private struct HeroCard: View {
         if hasValue {
             // The hero always draws area + line, even for the battery card (which is line-only in
             // mode A) — prototype-faithful (line 208 renders a polygon for every metric).
-            SparklineView(values: historyValues, stroke: sparkStroke, fill: sparkFill, height: 32)
+            SparklineView(values: historyValues, geometry: sparklineGeometry,
+                          stroke: sparkStroke, fill: sparkFill, height: 32)
                 .accessibilityHidden(true)
         }
         if let sub = d.subText {

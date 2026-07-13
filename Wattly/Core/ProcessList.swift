@@ -5,7 +5,39 @@ import Foundation
 /// (`MemoryProvider`, issue 05) and the per-app power Top-3 (`PowerProvider`, issue 16
 /// follow-up): each provider reads its own per-pid metric (footprint vs energy); these
 /// cover the pid list + identity (name/path), so the two providers don't duplicate it.
-/// Free functions, like `appBundlePath`/`barFraction` — no shared mutable state.
+/// Free functions, like `appBundlePath`/`barFraction`. Providers may layer an
+/// actor-local `ProcessIdentityCache` over these primitives to avoid repeating
+/// name/icon resolution while still checking the executable path for PID reuse.
+
+struct ProcessIdentity: Sendable, Equatable {
+    var pid: pid_t
+    var path: String
+    var name: String
+    var iconPath: String?
+}
+
+struct ProcessIdentityCache: Sendable {
+    private var entries: [pid_t: ProcessIdentity] = [:]
+
+    mutating func identity(for pid: pid_t) -> ProcessIdentity {
+        let path = pidPath(pid)
+        if let cached = entries[pid], cached.path == path {
+            return cached
+        }
+        let identity = ProcessIdentity(pid: pid,
+                                       path: path,
+                                       name: procName(of: pid, path: path),
+                                       iconPath: appBundlePath(forExecutable: path))
+        entries[pid] = identity
+        return identity
+    }
+
+    mutating func retainOnly(_ livePIDs: Set<pid_t>) {
+        entries = entries.filter { livePIDs.contains($0.key) }
+    }
+
+    mutating func removeAll() { entries.removeAll() }
+}
 
 /// Two-pass `proc_listpids` into a caller-allocated Swift array (no Mach free).
 func listPIDs() -> [pid_t] {

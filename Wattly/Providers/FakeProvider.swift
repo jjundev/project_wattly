@@ -111,7 +111,7 @@ actor FakeProvider: MetricProvider {
             let frac = total > 0 ? used / total : 0
             let pressure: MemoryPressure = frac > 0.85 ? .critical : (frac > 0.70 ? .warn : .normal)
             return .memory(MemorySample(usedGB: used, totalGB: total, wiredGB: 2.4, compressedGB: 1.1,
-                                        processes: procs, pressure: pressure))
+                                        processes: procs, processesMeasured: true, pressure: pressure))
         case .temperature:
             // Synthetic cluster groups so the expand demo works (P-코어 a touch hotter
             // than the E-코어; headline ≈ their blend, mirroring the real average).

@@ -24,6 +24,7 @@ struct PopoverGridView: View {
                 GridTile(card: card,
                          state: monitor.cardState(card, smoothed: powerSmoothed),
                          historyValues: monitor.historyValues(for: card, smoothed: powerSmoothed),
+                         sparklineGeometry: monitor.sparklineGeometry(for: card, smoothed: powerSmoothed),
                          thresholds: thresholds)
             }
         }
@@ -39,6 +40,7 @@ private struct GridTile: View {
     let card: CardKind
     let state: MetricState
     var historyValues: [Double] = []
+    var sparklineGeometry: Sparkline.Geometry? = nil
     var thresholds: Thresholds = Defaults.thresholds
 
     var body: some View {
@@ -76,7 +78,8 @@ private struct GridTile: View {
             }
             if hasValue {
                 // Polyline only (prototype mode-B spark has no area), 22px band.
-                SparklineView(values: historyValues, stroke: sparkStroke, fill: nil, height: 22)
+                SparklineView(values: historyValues, geometry: sparklineGeometry,
+                              stroke: sparkStroke, fill: nil, height: 22)
                     .accessibilityHidden(true)
             }
         }
