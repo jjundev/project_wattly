@@ -25,6 +25,9 @@ struct PerfLevelUsage: Sendable, Equatable {
     var name: String          // runtime perf-level name (e.g. "Performance", "Efficiency")
     var usage: Double          // 0–100, tick-weighted average across this level's cores
     var cores: [Double] = []   // per-core usage 0–100, in physical-cpu order (issue 04)
+    /// Per-cluster active clock in GHz (plan 21), or nil when the DVFS residency source is
+    /// unavailable (pre-"CPU Stats" macOS, single-cluster fallback, or first-poll baseline).
+    var activeGHz: Double? = nil
 }
 
 struct MemorySample: Sendable, Equatable {

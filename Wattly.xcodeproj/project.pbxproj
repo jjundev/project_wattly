@@ -62,6 +62,7 @@
 		ACDC80B0A710B12831C2F88D /* FakeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32D8574AAFF0BFEF6380060D /* FakeProvider.swift */; };
 		AD7234042C8B58DCD400BE17 /* CardPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0AD4C82FC1A9EA5F33B69B3 /* CardPresentationTests.swift */; };
 		ADD80CA70B5601FAC82CA262 /* SettingsResetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07C1BF327FACCDB9FAB5213C /* SettingsResetTests.swift */; };
+		B1533AAE6C577BD6D1F81D00 /* CPUFrequencyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C8FA9D6B1F52ECC6920D40 /* CPUFrequencyTests.swift */; };
 		B84ADFB9A7B85CE18C766236 /* PowerEnergy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10635C5861EA5A327ED9CC2F /* PowerEnergy.swift */; };
 		BA684AC2BA23B20C13094637 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 9044978DE889FEBEC87F3486 /* README.md */; };
 		BBADDDEE7D705F9308877FFA /* Sparkline.swift in Sources */ = {isa = PBXBuildFile; fileRef = E16EB2DF75F2A90917F1881D /* Sparkline.swift */; };
@@ -156,6 +157,7 @@
 		CB9717A4622D508E51C16FA8 /* SMC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMC.swift; sourceTree = "<group>"; };
 		CE8B45929FB77AE51839080D /* SystemMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMonitorTests.swift; sourceTree = "<group>"; };
 		D03B5C644C704D63E5F86C20 /* PopoverContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverContentView.swift; sourceTree = "<group>"; };
+		D0C8FA9D6B1F52ECC6920D40 /* CPUFrequencyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUFrequencyTests.swift; sourceTree = "<group>"; };
 		D16861515046CCD6F0D45217 /* SelfPowerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfPowerTests.swift; sourceTree = "<group>"; };
 		D8019EC757BBE28FC570B71D /* PowerEnergyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerEnergyTests.swift; sourceTree = "<group>"; };
 		D85F4FD3A4E6BB168DABACA7 /* PollPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollPolicy.swift; sourceTree = "<group>"; };
@@ -262,6 +264,7 @@
 				4B193EC77CC4F6135B8F3566 /* BatteryPowerTests.swift */,
 				E0AD4C82FC1A9EA5F33B69B3 /* CardPresentationTests.swift */,
 				2E3CEC05A8EC12EB24156C91 /* CardReorderTests.swift */,
+				D0C8FA9D6B1F52ECC6920D40 /* CPUFrequencyTests.swift */,
 				5C6277EFF84708F461754CA3 /* CPUUsageTests.swift */,
 				ACDC5AEC1E8EC996DFF101D8 /* HeroSelectionTests.swift */,
 				832652672791FAC9750165B6 /* HistoryTests.swift */,
@@ -440,6 +443,7 @@
 			files = (
 				2F21C6921E2896512BD4FF55 /* AccessibilityTests.swift in Sources */,
 				E6D4F1BE411CB7202D52B89D /* BatteryPowerTests.swift in Sources */,
+				B1533AAE6C577BD6D1F81D00 /* CPUFrequencyTests.swift in Sources */,
 				485735366A6681DDDB9B001C /* CPUUsageTests.swift in Sources */,
 				AD7234042C8B58DCD400BE17 /* CardPresentationTests.swift in Sources */,
 				0DC692829BD9D200DBBECE47 /* CardReorderTests.swift in Sources */,
