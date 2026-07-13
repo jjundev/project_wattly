@@ -69,8 +69,15 @@ struct CardPresentationTests {
             usedGB: 8.37, totalGB: 16, wiredGB: 3.21, compressedGB: 1.05)))
         #expect(CardPresentation.valueText(.mem, st) == "8.4")
         #expect(CardPresentation.unitText(.mem, st) == "/ 16 GB")             // reads total off state
-        #expect(CardPresentation.subText(st) == "고정 3.2 GB · 압축 1.1 GB")
+        #expect(CardPresentation.subText(st) == "고정 3.2 GB · 압축 1.1 GB · 스왑 0.0 GB")
         #expect(CardPresentation.unitText(.mem, .loading) == "GB")           // no value → bare unit
+    }
+
+    @Test func memorySubShowsSwapSize() {
+        // The swap segment reflects swapUsedGB and uses the same one-decimal GB format.
+        let st = MetricState.value(.memory(MemorySample(
+            usedGB: 12.0, totalGB: 16, wiredGB: 3.21, compressedGB: 1.05, swapUsedGB: 5.0)))
+        #expect(CardPresentation.subText(st) == "고정 3.2 GB · 압축 1.1 GB · 스왑 5.0 GB")
     }
 
     // MARK: Power — the only accented card

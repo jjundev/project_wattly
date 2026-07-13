@@ -173,7 +173,7 @@ enum CardPresentation {
             let a = s.perfLevels[0], b = s.perfLevels[1]
             return "\(corePrefix(a.name)) \(Int(a.usage.rounded()))% · \(corePrefix(b.name)) \(Int(b.usage.rounded()))%"
         case .memory(let s):
-            return "고정 \(f1(s.wiredGB)) GB · 압축 \(f1(s.compressedGB)) GB"
+            return "고정 \(f1(s.wiredGB)) GB · 압축 \(f1(s.compressedGB)) GB · 스왑 \(f1(s.swapUsedGB)) GB"
         case .temperature:
             return nil
         }
