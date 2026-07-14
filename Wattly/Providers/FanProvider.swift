@@ -40,6 +40,9 @@ actor FanProvider: MetricProvider {
     static let unreadableMessage = "팬 센서에 연결할 수 없음 — 재시도 중"
     /// Plausibility band (RPM). A finite reading outside this is rejected as bogus.
     private static let rpmRange = 0.0...12000.0
+    /// Plausibility cap on `FNum` itself — no real Mac has anywhere near this many fans.
+    /// A garbage/corrupt `FNum` read must never be trusted as a `0..<count` loop bound.
+    private static let maxFanCount = 16
     /// Elapsed beyond this ⇒ a gap (missed poll / sleep-wake) → reset backoff + reconnect
     /// (mirrors `TemperatureProvider.maxPlausibleDt`).
     private static let maxPlausibleDt = 30.0
@@ -91,6 +94,14 @@ actor FanProvider: MetricProvider {
             fanless = true
             transport.close(); smcOpen = false
             return .unavailable(.notPresent(Self.fanlessMessage))
+        }
+
+        guard count > 0, count <= Self.maxFanCount else {
+            // Implausible FNum (corrupt/garbage read) — never trust it to drive the loop
+            // below; treat exactly like an unreadable connection and back off.
+            transport.close(); smcOpen = false
+            registerFailure(at: instant)
+            return .unavailable(.channelUnreadable(Self.unreadableMessage))
         }
 
         var fans: [FanReading] = []

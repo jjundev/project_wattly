@@ -72,6 +72,18 @@ struct FanProviderTests {
         #expect(tx.openCalls == 1)
     }
 
+    @Test func implausibleFanCountIsRejectedWithoutReadingAnyFan() async {
+        let tx = FakeFanTransport(); tx.count = 200   // corrupt/garbage FNum byte, way past any real Mac
+        let p = FanProvider(transport: tx)
+        let r = await readReading(p, at: base)
+        guard case .unavailable(.channelUnreadable) = r else {
+            Issue.record("expected channelUnreadable, got \(r)"); return
+        }
+        // Never trusted as a loop bound: not one `readFan` call was made.
+        #expect(tx.readFanCalls == 0)
+        #expect(tx.closeCalls == 1)   // connection dropped, same as any other bad read
+    }
+
     @Test func wakeResetsConnection() async {
         let tx = FakeFanTransport(); tx.count = 1
         tx.fans = [0: RawFan(actual: 2400, min: 1200, max: 6000, target: 2500)]
