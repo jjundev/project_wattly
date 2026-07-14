@@ -194,6 +194,31 @@ struct SystemMonitorTests {
         #expect(await power.reads == 0)
     }
 
+    @Test func switchingToPerformancePollsClosedActiveProviders() async {
+        let cpu = CountingProvider(kind: .cpu)
+        let power = CountingProvider(kind: .power)
+        let monitor = SystemMonitor(providers: [cpu, power], clock: ManualClock())
+
+        monitor.start()
+        monitor.setPowerMode(.performance)
+        monitor.stop() // Stop the replacement loop; drive the schedule deterministically below.
+        await monitor.pollScheduled(force: false)
+
+        #expect(await cpu.reads > 0)
+        #expect(await power.reads > 0)
+    }
+
+    @Test func configurationBeforeStartDoesNotPollProviders() async {
+        let cpu = CountingProvider(kind: .cpu)
+        let monitor = SystemMonitor(providers: [cpu], clock: ManualClock())
+
+        monitor.setPowerMode(.performance)
+        await monitor.setShownCards([.cpu])
+        await Task.yield()
+
+        #expect(await cpu.reads == 0)
+    }
+
     @Test func manualPollOnceStillReadsEveryActiveProvider() async {
         let cpu = CountingProvider(kind: .cpu)
         let power = CountingProvider(kind: .power)

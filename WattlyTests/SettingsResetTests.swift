@@ -31,6 +31,7 @@ struct SettingsResetTests {
         // Dirty every key with a non-default value.
         d.set(ThemeMode.light.rawValue, forKey: StorageKey.theme)
         d.set(PollInterval.s5.rawValue, forKey: StorageKey.pollInterval)
+        d.set(PowerMode.performance.rawValue, forKey: StorageKey.powerMode)
         d.set(PanelMode.b.rawValue, forKey: StorageKey.panelMode)
         d.set(CardKind.cpu.rawValue, forKey: StorageKey.heroMetric)
         d.set(false, forKey: StorageKey.menubarTextEnabled)
@@ -41,6 +42,7 @@ struct SettingsResetTests {
 
         #expect(d.string(forKey: StorageKey.theme) == Defaults.theme.rawValue)
         #expect(d.string(forKey: StorageKey.pollInterval) == Defaults.pollInterval.rawValue)
+        #expect(d.string(forKey: StorageKey.powerMode) == PowerMode.eco.rawValue)
         #expect(d.string(forKey: StorageKey.panelMode) == Defaults.panelMode.rawValue)
         #expect(d.string(forKey: StorageKey.heroMetric) == Defaults.heroMetric.rawValue)
         #expect(d.bool(forKey: StorageKey.menubarTextEnabled) == Defaults.menubarTextEnabled)

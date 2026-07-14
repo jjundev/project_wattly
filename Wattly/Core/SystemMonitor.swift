@@ -59,6 +59,8 @@ final class SystemMonitor {
 
     /// The user's cadence choice; only `.auto` adapts to panel/menubar state.
     private var pollSetting: PollInterval = Defaults.pollInterval
+    /// The user's power-saving policy. The bridge seeds its persisted value before starting.
+    private var powerMode = Defaults.powerMode
     /// Whether the popover is on-screen (pushed by `PopoverContentView`'s lifecycle).
     private var panelVisible = false
     /// Whether the menubar shows a metric number (keeps a closed panel at 2 s, not 5 s).
@@ -116,7 +118,7 @@ final class SystemMonitor {
 
     private var currentProviderIntervals: [ProviderKind: Duration] {
         let needs: Set<CardKind> = menubarTextEnabled ? menubarMetrics : []
-        return providerIntervals(mode: .eco, setting: pollSetting, panelVisible: panelVisible,
+        return providerIntervals(mode: powerMode, setting: pollSetting, panelVisible: panelVisible,
                                  menubarTextEnabled: menubarTextEnabled,
                                  active: activeProviderKinds, menubarNeeds: needs)
     }
@@ -156,6 +158,18 @@ final class SystemMonitor {
     }
 
     // MARK: Adaptive-poll control (issue 09)
+
+    /// The user selected an energy policy. Providers newly scheduled by the selection are
+    /// read immediately, while providers already on the schedule preserve their cadence.
+    func setPowerMode(_ mode: PowerMode) {
+        guard mode != powerMode else { return }
+        let before = currentProviderIntervals
+        powerMode = mode
+        let after = currentProviderIntervals
+        if after != before {
+            reschedule(forceProviders: Set(after.keys).subtracting(before.keys))
+        }
+    }
 
     func setPanelVisible(_ visible: Bool) {
         guard visible != panelVisible else { return }
@@ -227,6 +241,9 @@ final class SystemMonitor {
     }
 
     private func reschedule(forceProviders: Set<ProviderKind> = []) {
+        // PollPolicyBridge seeds every persisted input before calling start(). A setter must
+        // never create a loop while that configuration is only partially applied.
+        guard pollTask != nil else { return }
         stop()
         start(forceProviders: forceProviders)
     }

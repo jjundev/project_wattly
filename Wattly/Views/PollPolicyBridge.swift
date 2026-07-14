@@ -15,6 +15,7 @@ struct PollPolicyBridge: View {
     let monitor: SystemMonitor
 
     @AppStorage(StorageKey.pollInterval) private var pollInterval: PollInterval = Defaults.pollInterval
+    @AppStorage(StorageKey.powerMode) private var powerMode: PowerMode = Defaults.powerMode
     @AppStorage(StorageKey.menubarTextEnabled) private var menubarTextEnabled = Defaults.menubarTextEnabled
     @AppStorage(StorageKey.show(.power))   private var showPower   = Defaults.show[.power]   ?? true
     @AppStorage(StorageKey.show(.battery)) private var showBattery = Defaults.show[.battery] ?? true
@@ -66,6 +67,7 @@ struct PollPolicyBridge: View {
             // seed lands before the first poll and there's no start()/seed race (B5). The
             // monitor also seeds safe defaults at init, so even an early start() is correct.
             .task {
+                monitor.setPowerMode(powerMode)
                 monitor.setPollInterval(pollInterval)
                 await monitor.setMenubarTextEnabled(menubarTextEnabled)
                 await monitor.setShownCards(shownCards)
@@ -75,6 +77,7 @@ struct PollPolicyBridge: View {
             // Live updates only (`.onChange` doesn't fire on first appear, so no redundant
             // re-push of the seed). Async setters hop through a Task; the seeded value already
             // landed above, so ordering here is benign.
+            .onChange(of: powerMode) { _, v in monitor.setPowerMode(v) }
             .onChange(of: pollInterval) { _, v in monitor.setPollInterval(v) }
             .onChange(of: menubarTextEnabled) { _, v in Task { await monitor.setMenubarTextEnabled(v) } }
             .onChange(of: shownCards) { _, v in Task { await monitor.setShownCards(v) } }
