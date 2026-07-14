@@ -158,7 +158,7 @@ final class SMCFanTransport: FanTransport, @unchecked Sendable {
     func fanCount() -> Int? {
         guard let smc, let r = smc.read("FNum") else { return nil }
         let v = smcDouble(r.bytes, type: r.type)
-        return v.isFinite ? Int(v) : nil
+        return Wattly.fanCount(fromRawFNum: v)
     }
 
     func readFan(_ index: Int) -> RawFan? {

@@ -25,4 +25,32 @@ struct FanTests {
         #expect(CardPresentation.fanBarFraction(actual: -100, max: 4000) == 0.0)   // clamp low
         #expect(CardPresentation.fanBarFraction(actual: 2000, max: 0) == 0.0)      // no max → 0
     }
+
+    // MARK: - fanCount(fromRawFNum:)
+
+    /// Regression for the `Int(v)` trap: a corrupted SMC key-info `dataSize` can make
+    /// `smcDouble` return a finite-but-huge value for the 1-byte `FNum` key, and `Int(v)`
+    /// crashes the process for anything outside `Int`'s range. `fanCount(fromRawFNum:)` must
+    /// reject that case (and negatives/non-finite) with `nil` instead of trapping.
+    @Test func fanCountNormalValue() {
+        #expect(fanCount(fromRawFNum: 2) == 2)
+    }
+
+    @Test func fanCountZeroIsFanless() {
+        #expect(fanCount(fromRawFNum: 0) == 0)   // FanProvider treats 0 as the fanless path
+    }
+
+    @Test func fanCountNegativeIsNil() {
+        #expect(fanCount(fromRawFNum: -1) == nil)
+    }
+
+    @Test func fanCountNonFiniteIsNil() {
+        #expect(fanCount(fromRawFNum: .nan) == nil)
+        #expect(fanCount(fromRawFNum: .infinity) == nil)
+    }
+
+    @Test func fanCountHugeValueIsNilNotTrap() {
+        // Would trap on plain `Int(v)` — this is the crash this function exists to prevent.
+        #expect(fanCount(fromRawFNum: 1e19) == nil)
+    }
 }

@@ -30,3 +30,14 @@ func averageRPM(_ fans: [FanReading]) -> Double? {
     guard !fans.isEmpty else { return nil }
     return fans.map(\.actualRPM).reduce(0, +) / Double(fans.count)
 }
+
+/// Safe raw-`FNum` → fan-count conversion. `smcDouble` decodes the SMC `FNum` key's bytes
+/// into a `Double`, and a corrupted key-info `dataSize` (e.g. a stale/garbage read reporting
+/// more than the true 1-byte size) can make that `Double` finite but astronomically large —
+/// `Int(v)` TRAPS in that case. Reject anything non-finite, negative, or implausibly large
+/// (no real Mac has anywhere near this many fans) *before* the `Int` conversion, so the live
+/// transport degrades to `nil` (→ `.channelUnreadable`) instead of crashing the process.
+func fanCount(fromRawFNum v: Double) -> Int? {
+    guard v.isFinite, v >= 0, v <= 1_000_000 else { return nil }
+    return Int(v)
+}
