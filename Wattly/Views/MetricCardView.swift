@@ -129,6 +129,12 @@ struct MetricCardView: View {
                             .font(WattlyFont.at(11, weight: .bold))
                             .foregroundStyle(t.sub)
                         Spacer(minLength: 8)
+                        if let ghz = level.activeGHz {
+                            Text(CardPresentation.ghzText(ghz))
+                                .font(WattlyFont.at(11, weight: .semibold))
+                                .monospacedDigit()
+                                .foregroundStyle(t.faint)
+                        }
                         Text("\(Int(level.usage.rounded()))%")
                             .font(WattlyFont.at(12, weight: .bold))
                             .monospacedDigit()
