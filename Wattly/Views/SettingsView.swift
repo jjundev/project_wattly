@@ -30,6 +30,7 @@ struct SettingsView: View {
     @AppStorage(StorageKey.powerSmoothed) private var powerSmoothed = Defaults.powerSmoothed
     @AppStorage(StorageKey.menubarTextEnabled) private var menubarText = Defaults.menubarTextEnabled
     @AppStorage(StorageKey.thresholds) private var thresholds = Defaults.thresholds
+    @AppStorage(StorageKey.fanCurve) private var fanCurve = Defaults.fanCurve
 
     // 표시 지표 — one flag per card (mirrors PollPolicyBridge; gating is automatic).
     @AppStorage(StorageKey.show(.power))   private var showPower   = Defaults.show[.power]   ?? true
@@ -63,6 +64,7 @@ struct SettingsView: View {
                 showSection
                 smoothingSection
                 thresholdSection
+                if monitor.isPresent(.fan) { fanCurveSection }
                 menubarSection
                 powerModeSection
                 pollSection
@@ -229,6 +231,57 @@ struct SettingsView: View {
         Rectangle().fill(t.line).frame(height: 1)
     }
 
+    // MARK: 팬 커브 (Phase B-1 — preview only, no control)
+
+    private var fanCurveSection: some View {
+        SettingsSection(title: "팬 커브") {
+            SettingsCard(padding: 14) {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(Array(FanCurve.anchorsCelsius.enumerated()), id: \.offset) { i, temp in
+                        HStack(spacing: 9) {
+                            Text("\(Int(temp))°C")
+                                .font(WattlyFont.at(12, weight: .semibold))
+                                .monospacedDigit()
+                                .foregroundStyle(t.sub)
+                                .frame(width: 44, alignment: .leading)
+                            Slider(value: fanCurveRpmBinding(i), in: 0...8000, step: 100)
+                                .tint(Tokens.accent)
+                            Text("\(Int(fanCurveRpmBinding(i).wrappedValue)) RPM")
+                                .font(WattlyFont.at(12, weight: .bold))
+                                .monospacedDigit()
+                                .foregroundStyle(t.text)
+                                .frame(width: 76, alignment: .trailing)
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                    Rectangle().fill(t.line).frame(height: 1)
+                    fanCurvePreview
+                }
+            }
+        }
+    }
+
+    private var fanCurvePreview: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if let c = currentHottestCPU {
+                (Text("현재 CPU \(Int(c.rounded()))°C → 커브 목표 ")
+                    + Text("\(Int(fanCurve.evaluate(inputCelsius: c).rounded())) RPM")
+                        .foregroundColor(t.text))
+                    .font(WattlyFont.at(12, weight: .regular))
+                    .monospacedDigit()
+                    .foregroundStyle(t.sub)
+            } else {
+                Text("CPU 온도를 읽을 수 없음")
+                    .font(WattlyFont.at(12, weight: .regular))
+                    .foregroundStyle(t.faint)
+            }
+            Text("미리보기입니다 — 실제 팬 제어는 아직 지원되지 않습니다")
+                .font(WattlyFont.at(11.5, weight: .regular))
+                .foregroundStyle(t.faint)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     /// Memory block: a pressure toggle on top, and the occupancy warn/crit sliders only when
     /// the toggle is off (in pressure mode the % thresholds don't drive the color, so showing
     /// them would be a tombstoned knob).
@@ -316,6 +369,26 @@ struct SettingsView: View {
                 thresholds = next
             }
         )
+    }
+
+    /// Clamping `Double` binding into one anchor's RPM; reassigns the whole `FanCurve` so the
+    /// `@AppStorage` re-encodes (same idiom as `thresholdBinding`). Rounds to a whole RPM.
+    private func fanCurveRpmBinding(_ index: Int) -> Binding<Double> {
+        Binding(
+            get: { fanCurve.rpms.indices.contains(index) ? fanCurve.rpms[index] : 0 },
+            set: { newValue in
+                var next = fanCurve
+                if next.rpms.indices.contains(index) { next.rpms[index] = newValue.rounded() }
+                fanCurve = next
+            }
+        )
+    }
+
+    /// The hottest live CPU sensor (°C) from the monitor, or nil when CPU temperature isn't a
+    /// live reading. Read in `body` (via the preview), so the @Observable monitor re-renders it.
+    private var currentHottestCPU: Double? {
+        if case .value(.temperature(let s)) = monitor.cardState(.cpuTemp) { return hottestCPUCelsius(s) }
+        return nil
     }
 
     // MARK: 메뉴바
