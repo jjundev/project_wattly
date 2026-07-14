@@ -60,26 +60,60 @@ struct PollPolicyTests {
 
     @Test func autoPolicyBudgetsProvidersByVisibility() {
         let all = Set(ProviderKind.allCases)
-        #expect(providerIntervals(setting: .auto, panelVisible: true,
+        #expect(providerIntervals(mode: .eco, setting: .auto, panelVisible: true,
                                   menubarTextEnabled: true, active: all,
                                   menubarNeeds: [.cpu]) == [
             .cpu: .seconds(1), .power: .seconds(1), .temperature: .seconds(2),
             .memory: .seconds(5), .battery: .seconds(5),
         ])
-        #expect(providerIntervals(setting: .auto, panelVisible: false,
+        #expect(providerIntervals(mode: .eco, setting: .auto, panelVisible: false,
                                   menubarTextEnabled: true, active: all,
                                   menubarNeeds: [.cpu]) == [.cpu: .seconds(2)])
-        #expect(providerIntervals(setting: .auto, panelVisible: false,
+        #expect(providerIntervals(mode: .eco, setting: .auto, panelVisible: false,
                                   menubarTextEnabled: false, active: all,
                                   menubarNeeds: [.cpu]).isEmpty)
     }
 
     @Test func fixedPolicyKeepsEveryActiveProviderAtChosenInterval() {
-        #expect(providerIntervals(setting: .s2, panelVisible: false,
+        #expect(providerIntervals(mode: .eco, setting: .s2, panelVisible: false,
                                   menubarTextEnabled: false,
                                   active: [.cpu, .power], menubarNeeds: []) == [
             .cpu: .seconds(2), .power: .seconds(2),
         ])
+    }
+
+    @Test func performanceAutoPollsEveryActiveProviderWhenPanelIsClosed() {
+        let active = Set(ProviderKind.allCases)
+        let cases: [(menubarTextEnabled: Bool, interval: Duration)] = [
+            (true, .seconds(2)),
+            (false, .seconds(5)),
+        ]
+
+        for test in cases {
+            #expect(providerIntervals(mode: .performance, setting: .auto,
+                                      panelVisible: false,
+                                      menubarTextEnabled: test.menubarTextEnabled,
+                                      active: active, menubarNeeds: [.cpu]) ==
+                Dictionary(uniqueKeysWithValues: active.map { ($0, test.interval) }))
+        }
+
+        let hidden = active.subtracting([.battery])
+        #expect(providerIntervals(mode: .performance, setting: .auto,
+                                  panelVisible: false, menubarTextEnabled: true,
+                                  active: hidden, menubarNeeds: [.cpu]) ==
+            Dictionary(uniqueKeysWithValues: hidden.map { ($0, .seconds(2)) }))
+    }
+
+    @Test func performanceAndEcoAgreeForFixedInterval() {
+        let active: Set<ProviderKind> = [.cpu, .power]
+        let eco = providerIntervals(mode: .eco, setting: .s2, panelVisible: false,
+                                    menubarTextEnabled: false, active: active,
+                                    menubarNeeds: [])
+        let performance = providerIntervals(mode: .performance, setting: .s2,
+                                            panelVisible: false,
+                                            menubarTextEnabled: false, active: active,
+                                            menubarNeeds: [])
+        #expect(performance == eco)
     }
 
     @Test func dueProvidersOnlyReturnsExpiredIntervalsUnlessForced() {

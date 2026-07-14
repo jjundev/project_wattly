@@ -20,6 +20,20 @@ enum PollInterval: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+enum PowerMode: String, CaseIterable, Identifiable, Sendable {
+    case eco
+    case performance
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .eco: "에코"
+        case .performance: "성능"
+        }
+    }
+}
+
 let automaticPollingDescription =
     "자동: 패널 열림은 CPU·전력 1초/온도 2초/메모리·배터리 5초, 닫힘은 메뉴바에 표시한 지표만 2초마다 갱신합니다. 텍스트를 끄면 지표 폴링을 멈춥니다."
 
@@ -208,6 +222,7 @@ struct CardOrder: Equatable, Sendable, RawRepresentable {
 enum Defaults {
     static let theme = ThemeMode.dark
     static let pollInterval = PollInterval.auto
+    static let powerMode = PowerMode.eco
     static let panelMode = PanelMode.a       // ship default: full-width stacked cards (mode A)
     static let heroMetric = CardKind.power   // mode C hero (plan 20); falls back to first visible when hidden
     static let loginItem = true            // F1: a MIRROR of SMAppService — NOT authoritative
@@ -238,6 +253,7 @@ enum StorageKey {
     static func menu(_ c: CardKind) -> String { "menu.\(c.rawValue)" }
     static let theme = "theme"
     static let pollInterval = "pollInterval"
+    static let powerMode = "powerMode"
     static let panelMode = "panelMode"
     static let heroMetric = "heroMetric"   // mode C hero metric (plan 20)
     static let loginItem = "loginItem"

@@ -116,7 +116,7 @@ final class SystemMonitor {
 
     private var currentProviderIntervals: [ProviderKind: Duration] {
         let needs: Set<CardKind> = menubarTextEnabled ? menubarMetrics : []
-        return providerIntervals(setting: pollSetting, panelVisible: panelVisible,
+        return providerIntervals(mode: .eco, setting: pollSetting, panelVisible: panelVisible,
                                  menubarTextEnabled: menubarTextEnabled,
                                  active: activeProviderKinds, menubarNeeds: needs)
     }

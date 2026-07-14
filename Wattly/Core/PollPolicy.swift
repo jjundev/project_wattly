@@ -32,11 +32,17 @@ func activeProviders(shown: Set<CardKind>, menubarNeeds: Set<CardKind>) -> Set<P
     Set(shown.union(menubarNeeds).map(\.provider))
 }
 
-func providerIntervals(setting: PollInterval,
+func providerIntervals(mode: PowerMode,
+                       setting: PollInterval,
                        panelVisible: Bool,
                        menubarTextEnabled: Bool,
                        active: Set<ProviderKind>,
                        menubarNeeds: Set<CardKind>) -> [ProviderKind: Duration] {
+    if mode == .performance {
+        let interval = resolvePollInterval(setting: setting, panelVisible: panelVisible,
+                                           menubarTextEnabled: menubarTextEnabled)
+        return Dictionary(uniqueKeysWithValues: active.map { ($0, interval) })
+    }
     if setting != .auto {
         let interval: Duration = switch setting {
         case .s1: .seconds(1)
