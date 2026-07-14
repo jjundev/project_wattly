@@ -91,7 +91,12 @@ struct FanCurve: Equatable, Sendable, RawRepresentable {
         guard let data = rawValue.data(using: .utf8),
               let raw = try? JSONSerialization.jsonObject(with: data) as? [Any] else { return nil }
         let values = raw.compactMap { ($0 as? NSNumber)?.doubleValue }
-        guard values.count == Self.anchorsCelsius.count else { return nil }
+        // Reject the whole value (falls back to `Defaults.fanCurve` via `@AppStorage`) if any
+        // RPM is out of a sane plausibility range. Mirrors `fanCount`/`plausibleRPM`'s defense
+        // against a finite-but-astronomical decode TRAPping the `Int(...)` sites in
+        // `SettingsView` (slider readout, curve preview) — see `plausibleRPMHugeFiniteIsZeroNotTrap`.
+        guard values.count == Self.anchorsCelsius.count,
+              values.allSatisfy({ (0.0...20000.0).contains($0) }) else { return nil }
         self.init(rpms: values)
     }
 

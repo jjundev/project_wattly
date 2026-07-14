@@ -114,6 +114,16 @@ struct FanTests {
         #expect(FanCurve(rawValue: "[1,2,3,4,5]") == nil)      // wrong count (5)
     }
 
+    @Test func fanCurveRejectsOutOfRangeRawValue() {
+        // A huge finite value would TRAP the `Int(...)` render sites in `SettingsView`
+        // (slider readout, curve preview) — same crash class as
+        // `plausibleRPMHugeFiniteIsZeroNotTrap`. The whole curve is rejected so
+        // `@AppStorage` falls back to `Defaults.fanCurve`.
+        #expect(FanCurve(rawValue: "[1200,2500,4500,1e19]") == nil)
+        #expect(FanCurve(rawValue: "[-1,2500,4500,6000]") == nil)
+        #expect(FanCurve(rawValue: "[1200,2500,4500,8000]")?.rpms == [1200, 2500, 4500, 8000])
+    }
+
     @Test func hottestCPUReturnsMaxHottestAcrossGroups() {
         let snap = TemperatureSnapshot(
             cpu: .reading(TemperatureReading(celsius: 70, groups: [
