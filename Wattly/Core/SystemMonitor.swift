@@ -44,6 +44,9 @@ final class SystemMonitor {
     private let tempGater: (any TemperatureGating)?
     private let clock: MonotonicClock
     private var pollTask: Task<Void, Never>?
+    private static let selfPowerInterval: Duration = .seconds(30)
+    private var lastProviderRead: [ProviderKind: ContinuousClock.Instant] = [:]
+    private var lastSelfPowerSample: ContinuousClock.Instant?
 
     /// Self-power measurement state (issue 16). The injected energy source plus the prior
     /// nanojoule counter + its instant; `sampleSelfPower` diffs them into `selfPower`.
@@ -56,6 +59,8 @@ final class SystemMonitor {
 
     /// The user's cadence choice; only `.auto` adapts to panel/menubar state.
     private var pollSetting: PollInterval = Defaults.pollInterval
+    /// The user's power-saving policy. The bridge seeds its persisted value before starting.
+    private var powerMode = Defaults.powerMode
     /// Whether the popover is on-screen (pushed by `PopoverContentView`'s lifecycle).
     private var panelVisible = false
     /// Whether the menubar shows a metric number (keeps a closed panel at 2 s, not 5 s).
@@ -91,33 +96,36 @@ final class SystemMonitor {
 
     // MARK: Lifecycle
 
-    /// Adaptive-interval polling (issue 09). The interval is re-resolved every cycle from
-    /// the current panel / menubar / setting state (`currentInterval`), and a state change
-    /// reschedules at once (`reschedule`) so a freshly-opened panel doesn't wait out a 5 s
-    /// idle sleep. `tolerance` lets the OS coalesce wake-ups; `.utility` keeps the loop off
-    /// the high-priority lane. The loop polls first, so every (re)start yields an immediate
-    /// read.
     func start() {
+        start(forceProviders: nil)
+    }
+
+    private func start(forceProviders: Set<ProviderKind>?) {
         guard pollTask == nil else { return }
+        let initial = forceProviders ?? Set(currentProviderIntervals.keys)
         pollTask = Task(priority: .utility) { [weak self] in
+            var forced = initial
             while !Task.isCancelled {
                 guard let self else { return }
-                await self.pollOnce()
-                // Self-power (issue 16) is sampled here, on the timer cadence only — NOT
-                // inside `pollOnce`, whose 3 out-of-band callers would otherwise inject
-                // spurious sub-interval-dt samples.
-                self.sampleSelfPower(at: self.clock.now())
-                let interval = self.currentInterval
-                try? await Task.sleep(for: interval, tolerance: interval / 5)
+                await self.pollScheduled(forceProviders: forced)
+                self.sampleSelfPowerIfDue(at: self.clock.now())
+                forced = []
+                let delay = self.nextScheduledDelay(at: self.clock.now())
+                try? await Task.sleep(for: delay, tolerance: delay / 5)
             }
         }
     }
 
-    /// The interval for the next cycle, from the current policy state (pure `resolvePollInterval`).
-    private var currentInterval: Duration {
-        resolvePollInterval(setting: pollSetting,
-                            panelVisible: panelVisible,
-                            menubarTextEnabled: menubarTextEnabled)
+    private var currentProviderIntervals: [ProviderKind: Duration] {
+        let needs: Set<CardKind> = menubarTextEnabled ? menubarMetrics : []
+        return providerIntervals(mode: powerMode, setting: pollSetting, panelVisible: panelVisible,
+                                 menubarTextEnabled: menubarTextEnabled,
+                                 active: activeProviderKinds, menubarNeeds: needs)
+    }
+
+    private func nextScheduledDelay(at instant: ContinuousClock.Instant) -> Duration {
+        nextPollDelay(intervals: currentProviderIntervals, lastRead: lastProviderRead,
+                      now: instant, housekeeping: Self.selfPowerInterval)
     }
 
     func stop() {
@@ -133,7 +141,7 @@ final class SystemMonitor {
         guard let memEnumerator else { return }
         Task { [weak self] in
             await memEnumerator.setEnumerating(on)
-            if on { await self?.pollOnce() }
+            if on, let self { await self.poll(kinds: [.memory], at: self.clock.now()) }
         }
     }
 
@@ -145,72 +153,82 @@ final class SystemMonitor {
         guard let powerEnumerator else { return }
         Task { [weak self] in
             await powerEnumerator.setEnumerating(on)
-            if on { await self?.pollOnce() }
+            if on, let self { await self.poll(kinds: [.power], at: self.clock.now()) }
         }
     }
 
     // MARK: Adaptive-poll control (issue 09)
 
-    // Pushed from the always-alive policy bridge (`PollPolicyBridge`) and the popover
-    // lifecycle. Cadence setters reschedule only on a real interval change; the
-    // visibility / gating setters are `async` so a test can `await` the gate to land
-    // before counting sensor I/O (no detached Task to race).
+    /// The user selected an energy policy. Providers newly scheduled by the selection are
+    /// read immediately, while providers already on the schedule preserve their cadence.
+    func setPowerMode(_ mode: PowerMode) {
+        guard mode != powerMode else { return }
+        let before = currentProviderIntervals
+        powerMode = mode
+        let after = currentProviderIntervals
+        if after != before {
+            reschedule(forceProviders: Set(after.keys).subtracting(before.keys))
+        }
+    }
 
-    /// The popover opened/closed. For `.auto` this flips the cadence (open 1 s ⇄ closed
-    /// 2/5 s); the reschedule's entry poll gives a freshly-opened panel current data.
     func setPanelVisible(_ visible: Bool) {
         guard visible != panelVisible else { return }
-        let before = currentInterval
+        let before = currentProviderIntervals
         panelVisible = visible
-        if currentInterval != before { reschedule() }
+        let after = currentProviderIntervals
+        guard after != before else { return }
+        let forced = visible ? Set(after.keys) : Set(after.keys).subtracting(before.keys)
+        reschedule(forceProviders: forced)
     }
 
     /// The user picked a cadence in settings.
     func setPollInterval(_ setting: PollInterval) {
         guard setting != pollSetting else { return }
-        let before = currentInterval
+        let before = currentProviderIntervals
         pollSetting = setting
-        if currentInterval != before { reschedule() }
+        let after = currentProviderIntervals
+        if after != before { reschedule(forceProviders: Set(after.keys).subtracting(before.keys)) }
     }
 
     /// The menubar metric text was turned on/off — affects both the closed-panel cadence
     /// and which providers the menubar needs (so it is a gating input too).
     func setMenubarTextEnabled(_ enabled: Bool) async {
         guard enabled != menubarTextEnabled else { return }
-        let before = currentInterval
+        let before = currentProviderIntervals
         menubarTextEnabled = enabled
-        await recomputeGating()
-        if currentInterval != before { reschedule() }
+        let newlyActivated = await recomputeGating()
+        let after = currentProviderIntervals
+        let forced = Set(after.keys).subtracting(before.keys)
+            .union(newlyActivated.intersection(Set(after.keys)))
+        if after != before || !forced.isEmpty { reschedule(forceProviders: forced) }
     }
 
-    /// The set of shown cards changed (issue 13's visibility toggles). Re-derives the
-    /// active-provider set and the temperature CPU/GPU gate. Not a cadence input, so it
-    /// never reschedules — which is what keeps "card hidden ⇒ zero poll" deterministic.
     func setShownCards(_ cards: Set<CardKind>) async {
         guard cards != shownCards else { return }
+        let before = currentProviderIntervals
         shownCards = cards
-        await recomputeGating()
+        let newlyActivated = await recomputeGating()
+        let after = currentProviderIntervals
+        let forced = Set(after.keys).subtracting(before.keys)
+            .union(newlyActivated.intersection(Set(after.keys)))
+        if after != before || !forced.isEmpty { reschedule(forceProviders: forced) }
     }
 
-    /// The menubar metric selection changed (issue 14's chips). A gating input only —
-    /// like `setShownCards` it re-derives the active providers + temperature gate but
-    /// never reschedules, so the closed-panel poll count stays deterministic. Cadence
-    /// keys off the text toggle (`setMenubarTextEnabled`), not the selection: an empty
-    /// selection with text still on holds the 2 s closed cadence (issue 14 §14, accepted).
     func setMenubarMetrics(_ cards: Set<CardKind>) async {
         guard cards != menubarMetrics else { return }
+        let before = currentProviderIntervals
         menubarMetrics = cards
-        await recomputeGating()
+        let newlyActivated = await recomputeGating()
+        let after = currentProviderIntervals
+        let forced = Set(after.keys).subtracting(before.keys)
+            .union(newlyActivated.intersection(Set(after.keys)))
+        if after != before || !forced.isEmpty { reschedule(forceProviders: forced) }
     }
 
-    /// Recompute which providers to poll and whether the temperature SMC path is enabled,
-    /// then fire a single immediate poll iff something turned ON (a provider became active,
-    /// or CPU/GPU temp re-enabled), so a re-shown card fills without waiting a cycle.
-    /// Turning OFF polls nothing — the determinism the call-count test (issue 09 §수용) relies on.
-    private func recomputeGating() async {
+    private func recomputeGating() async -> Set<ProviderKind> {
         let menubarNeeds: Set<CardKind> = menubarTextEnabled ? menubarMetrics : []
         let needed = activeProviders(shown: shownCards, menubarNeeds: menubarNeeds)
-        let newlyActivated = !needed.subtracting(activeProviderKinds).isEmpty
+        var newlyActivated = needed.subtracting(activeProviderKinds)
         activeProviderKinds = needed
 
         let neededCards = shownCards.union(menubarNeeds)
@@ -218,14 +236,16 @@ final class SystemMonitor {
         let tempTurnedOn = want && !tempEnabled
         tempEnabled = want
         await tempGater?.setEnabled(want)
-
-        if newlyActivated || tempTurnedOn { await pollOnce() }
+        if tempTurnedOn { newlyActivated.insert(.temperature) }
+        return newlyActivated
     }
 
-    /// Restart the poll loop so a cadence change takes effect now (the loop polls on entry).
-    private func reschedule() {
+    private func reschedule(forceProviders: Set<ProviderKind> = []) {
+        // PollPolicyBridge seeds every persisted input before calling start(). A setter must
+        // never create a loop while that configuration is only partially applied.
+        guard pollTask != nil else { return }
         stop()
-        start()
+        start(forceProviders: forceProviders)
     }
 
     // MARK: Self-power (issue 16) — called by the timer loop, and directly by tests
@@ -239,23 +259,39 @@ final class SystemMonitor {
         guard let curr = selfEnergy.energyNanojoules() else { return }   // unreadable → keep last
         defer { prevSelfNJ = curr; prevSelfInstant = instant }          // re-baseline on every kept path
         guard let prevNJ = prevSelfNJ, let prevInstant = prevSelfInstant else { return }  // first sample
-        let dt = Self.seconds(from: prevInstant, to: instant)
+        let dt = seconds(from: prevInstant, to: instant)
         guard let raw = SelfPower.watts(prevNanojoules: prevNJ, currNanojoules: curr, dt: dt) else { return }
         // selfPower is its own EMA previous → cold start (nil) re-seeds to raw, then blends.
         selfPower = PowerSmoothing.emaStep(previous: selfPower, raw: raw, dt: dt)
     }
 
-    private static func seconds(from a: ContinuousClock.Instant, to b: ContinuousClock.Instant) -> Double {
-        let d = a.duration(to: b)
-        return Double(d.components.seconds) + Double(d.components.attoseconds) * 1e-18
+    func sampleSelfPowerIfDue(at instant: ContinuousClock.Instant) {
+        guard lastSelfPowerSample.map({ seconds(from: $0, to: instant) >= 30 }) != false else { return }
+        sampleSelfPower(at: instant)
+        lastSelfPowerSample = instant
     }
 
     // MARK: One poll cycle (called directly by tests — the seam)
 
     func pollOnce() async {
+        await poll(kinds: activeProviderKinds, at: clock.now())
+    }
+
+    func pollScheduled(force: Bool) async {
+        await pollScheduled(forceProviders: force ? Set(currentProviderIntervals.keys) : [])
+    }
+
+    func pollScheduled(forceProviders: Set<ProviderKind>) async {
         let instant = clock.now()
-        for provider in providers where activeProviderKinds.contains(provider.kind) {
+        let due = dueProviders(intervals: currentProviderIntervals, lastRead: lastProviderRead,
+                               now: instant, force: false)
+        await poll(kinds: due.union(forceProviders), at: instant)
+    }
+
+    private func poll(kinds: Set<ProviderKind>, at instant: ContinuousClock.Instant) async {
+        for provider in providers where kinds.contains(provider.kind) {
             let reading = await provider.read(at: instant)   // off-main hop
+            lastProviderRead[provider.kind] = instant
             apply(reading, from: provider.kind, at: instant) // back on MainActor
         }
     }
@@ -288,7 +324,7 @@ final class SystemMonitor {
                 batteryOneMinuteInstant = nil
             }
             lastExternalConnected = s.externalConnected
-            let averageDt = batteryOneMinuteInstant.map { Self.seconds(from: $0, to: instant) } ?? 0
+            let averageDt = batteryOneMinuteInstant.map { seconds(from: $0, to: instant) } ?? 0
             batteryOneMinuteAverage = PowerSmoothing.emaStep(
                 previous: batteryOneMinuteAverage, raw: s.netW, dt: averageDt, tau: 60)
             batteryOneMinuteInstant = instant
