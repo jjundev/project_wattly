@@ -39,6 +39,7 @@ struct SettingsView: View {
     @AppStorage(StorageKey.show(.cpuTemp)) private var showCpuTemp = Defaults.show[.cpuTemp] ?? true
     @AppStorage(StorageKey.show(.gpuTemp)) private var showGpuTemp = Defaults.show[.gpuTemp] ?? true
     @AppStorage(StorageKey.show(.batTemp)) private var showBatTemp = Defaults.show[.batTemp] ?? true
+    @AppStorage(StorageKey.show(.fan))     private var showFan     = Defaults.show[.fan]     ?? true
 
     // 메뉴바 칩 (multi-select). Persisted now; the visible menubar effect lands with issue 14.
     @AppStorage(StorageKey.menu(.cpu))     private var menuCPU     = Defaults.menuMetrics[.cpu]     ?? false
@@ -47,6 +48,7 @@ struct SettingsView: View {
     @AppStorage(StorageKey.menu(.cpuTemp)) private var menuCpuTemp = Defaults.menuMetrics[.cpuTemp] ?? false
     @AppStorage(StorageKey.menu(.gpuTemp)) private var menuGpuTemp = Defaults.menuMetrics[.gpuTemp] ?? false
     @AppStorage(StorageKey.menu(.batTemp)) private var menuBatTemp = Defaults.menuMetrics[.batTemp] ?? false
+    @AppStorage(StorageKey.menu(.fan))     private var menuFan     = Defaults.menuMetrics[.fan]     ?? false
 
     // Login item: @AppStorage is the display MIRROR; `loginItem` (SMAppService) is authoritative.
     @AppStorage(StorageKey.loginItem) private var loginMirror = Defaults.loginItem
@@ -166,7 +168,7 @@ struct SettingsView: View {
         case .cpuTemp: showCpuTemp
         case .gpuTemp: showGpuTemp
         case .batTemp: showBatTemp
-        case .fan: false   // TEMP: replaced by `showFan` in Task 4
+        case .fan: showFan
         }
     }
 
@@ -181,7 +183,8 @@ struct SettingsView: View {
                 SettingsToggleRow(isOn: $showMem, divider: true) { rowTitle("메모리") }
                 SettingsToggleRow(isOn: $showCpuTemp, divider: true) { rowTitleWithSuffix("CPU 온도", "· 최고값") }
                 SettingsToggleRow(isOn: $showGpuTemp, divider: true) { rowTitleWithSuffix("GPU 온도", "· 최고값") }
-                SettingsToggleRow(isOn: $showBatTemp, divider: false) { rowTitle("배터리 온도") }
+                SettingsToggleRow(isOn: $showBatTemp, divider: true) { rowTitle("배터리 온도") }
+                SettingsToggleRow(isOn: $showFan, divider: false) { rowTitle("팬 속도") }
             }
         }
     }
@@ -348,6 +351,7 @@ struct SettingsView: View {
             WattlyChip(label: "CPU 온도 (°C)", isOn: menuCpuTemp) { menuCpuTemp.toggle() }
             WattlyChip(label: "GPU 온도 (°C)", isOn: menuGpuTemp) { menuGpuTemp.toggle() }
             WattlyChip(label: "배터리 온도 (°C)", isOn: menuBatTemp) { menuBatTemp.toggle() }
+            WattlyChip(label: "팬 (RPM)", isOn: menuFan) { menuFan.toggle() }
         }
         .padding(3)
         .background(RoundedRectangle(cornerRadius: 8).fill(t.segTrack))

@@ -65,6 +65,7 @@ struct PopoverContentView: View {
     @AppStorage(StorageKey.show(.cpuTemp)) private var showCpuTemp = Defaults.show[.cpuTemp] ?? true
     @AppStorage(StorageKey.show(.gpuTemp)) private var showGpuTemp = Defaults.show[.gpuTemp] ?? true
     @AppStorage(StorageKey.show(.batTemp)) private var showBatTemp = Defaults.show[.batTemp] ?? true
+    @AppStorage(StorageKey.show(.fan))     private var showFan     = Defaults.show[.fan]     ?? true
 
     private var expanded: Set<CardKind> {
         Set(expandedRaw.split(separator: ",").compactMap { CardKind(rawValue: String($0)) })
@@ -400,7 +401,7 @@ struct PopoverContentView: View {
         case .cpuTemp: showCpuTemp
         case .gpuTemp: showGpuTemp
         case .batTemp: showBatTemp
-        case .fan: false   // TEMP: replaced by `showFan` in Task 4
+        case .fan: showFan
         }
     }
 

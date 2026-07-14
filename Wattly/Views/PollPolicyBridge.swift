@@ -24,6 +24,7 @@ struct PollPolicyBridge: View {
     @AppStorage(StorageKey.show(.cpuTemp)) private var showCpuTemp = Defaults.show[.cpuTemp] ?? true
     @AppStorage(StorageKey.show(.gpuTemp)) private var showGpuTemp = Defaults.show[.gpuTemp] ?? true
     @AppStorage(StorageKey.show(.batTemp)) private var showBatTemp = Defaults.show[.batTemp] ?? true
+    @AppStorage(StorageKey.show(.fan))     private var showFan     = Defaults.show[.fan]     ?? true
 
     // The menubar metric chips (issue 14). Pushed alongside `shownCards` so a metric shown
     // ONLY in the menubar keeps its provider polled even while its card is hidden.
@@ -33,6 +34,7 @@ struct PollPolicyBridge: View {
     @AppStorage(StorageKey.menu(.cpuTemp)) private var menuCpuTemp = Defaults.menuMetrics[.cpuTemp] ?? false
     @AppStorage(StorageKey.menu(.gpuTemp)) private var menuGpuTemp = Defaults.menuMetrics[.gpuTemp] ?? false
     @AppStorage(StorageKey.menu(.batTemp)) private var menuBatTemp = Defaults.menuMetrics[.batTemp] ?? false
+    @AppStorage(StorageKey.menu(.fan))     private var menuFan     = Defaults.menuMetrics[.fan]     ?? false
 
     /// The shown set, assembled from the per-card flags (mirrors `PopoverContentView.isShown`).
     private var shownCards: Set<CardKind> {
@@ -44,6 +46,7 @@ struct PollPolicyBridge: View {
         if showCpuTemp { s.insert(.cpuTemp) }
         if showGpuTemp { s.insert(.gpuTemp) }
         if showBatTemp { s.insert(.batTemp) }
+        if showFan     { s.insert(.fan) }
         return s
     }
 
@@ -56,6 +59,7 @@ struct PollPolicyBridge: View {
         if menuCpuTemp { s.insert(.cpuTemp) }
         if menuGpuTemp { s.insert(.gpuTemp) }
         if menuBatTemp { s.insert(.batTemp) }
+        if menuFan     { s.insert(.fan) }
         return s
     }
 

@@ -64,7 +64,7 @@ struct PollPolicyTests {
                                   menubarTextEnabled: true, active: all,
                                   menubarNeeds: [.cpu]) == [
             .cpu: .seconds(1), .power: .seconds(1), .temperature: .seconds(2),
-            .memory: .seconds(5), .battery: .seconds(5),
+            .memory: .seconds(5), .battery: .seconds(5), .fan: .seconds(5),
         ])
         #expect(providerIntervals(mode: .eco, setting: .auto, panelVisible: false,
                                   menubarTextEnabled: true, active: all,
@@ -144,5 +144,14 @@ struct PollPolicyTests {
         #expect(nextPollDelay(intervals: [.cpu: .seconds(5), .memory: .seconds(2)],
                               lastRead: last, now: now,
                               housekeeping: .seconds(30)) == .seconds(1))
+    }
+
+    @Test func panelOpenSchedulesEveryProvider() {
+        let ivals = providerIntervals(mode: .eco, setting: .auto, panelVisible: true,
+                                      menubarTextEnabled: true,
+                                      active: Set(ProviderKind.allCases), menubarNeeds: [])
+        for kind in ProviderKind.allCases {
+            #expect(ivals[kind] != nil, "\(kind) missing from the panel-open schedule")
+        }
     }
 }

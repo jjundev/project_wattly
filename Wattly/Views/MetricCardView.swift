@@ -116,6 +116,8 @@ struct MetricCardView: View {
             memExpand(s)
         } else if card == .cpuTemp, case .value(.temperature(let s)) = state, case .reading(let r) = s.cpu {
             tempExpand(r.groups)
+        } else if card == .fan, case .value(.fan(let s)) = state {
+            fanExpand(s)
         }
     }
 
@@ -319,6 +321,49 @@ struct MetricCardView: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(g.name), 평균 \(CardPresentation.f1(g.average))도, 최고 \(CardPresentation.f1(g.hottest))도")
+    }
+
+    // MARK: Fan expand — per-fan actual/target (Phase A)
+
+    /// One row per physical fan: a bar on the fan's own 0–max scale plus its actual and
+    /// target RPM. Single-fan Macs show one row; multi-fan Macs (some MacBook Pros) show one
+    /// per fan. Mirrors `tempExpand`'s shape.
+    private func fanExpand(_ s: FanSample) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if s.fans.isEmpty {
+                Text("팬을 읽을 수 없음")
+                    .font(WattlyFont.at(10.5, weight: .semibold))
+                    .foregroundStyle(t.faint)
+            } else {
+                ForEach(s.fans) { fanRow($0) }
+            }
+        }
+        .padding(.top, 8)
+    }
+
+    private func fanRow(_ f: FanReading) -> some View {
+        HStack(spacing: 9) {
+            Text("팬 \(f.index + 1)")
+                .font(WattlyFont.at(10.5, weight: .semibold))
+                .foregroundStyle(t.faint)
+                .frame(width: 44, alignment: .leading)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3).fill(t.sparkFill)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(t.spark)
+                        .frame(width: geo.size.width * CardPresentation.fanBarFraction(actual: f.actualRPM, max: f.maxRPM))
+                }
+            }
+            .frame(height: 6)
+            Text("\(Int(f.actualRPM.rounded())) RPM · 목표 \(Int(f.targetRPM.rounded()))")
+                .font(WattlyFont.at(10.5, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(t.sub)
+                .frame(width: 128, alignment: .trailing)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("팬 \(f.index + 1), \(Int(f.actualRPM.rounded())) RPM, 목표 \(Int(f.targetRPM.rounded())) RPM")
     }
 
     // MARK: Unavailable cards
