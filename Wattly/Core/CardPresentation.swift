@@ -174,6 +174,10 @@ enum CardPresentation {
             return "\(clusterSubText(a)) · \(clusterSubText(b))"
         case .memory(let s):
             return "고정 \(f1(s.wiredGB)) GB · 압축 \(f1(s.compressedGB)) GB · 스왑 \(f1(s.swapUsedGB)) GB"
+        case .fan(let s):
+            guard let avgTarget = averageRPM(s.fans.map { FanReading(index: $0.index, actualRPM: $0.targetRPM, minRPM: 0, maxRPM: 0, targetRPM: 0) }),
+                  let maxMax = s.fans.map(\.maxRPM).max() else { return nil }
+            return "목표 \(Int(avgTarget.rounded())) RPM · 최대 \(Int(maxMax.rounded())) RPM"
         case .temperature:
             return nil
         }
@@ -226,6 +230,13 @@ enum CardPresentation {
     /// Bar fill fraction on the fixed 0–110 °C display scale (issue 08 §8). Clamped.
     static func tempBarFraction(_ celsius: Double) -> Double {
         min(1, max(0, celsius / 110.0))
+    }
+
+    /// Fan bar fill fraction = actual / max, clamped to 0…1 (the fan expand's per-fan bar).
+    /// `0` when `max` is non-positive (unreadable), so the row still renders a flat track.
+    static func fanBarFraction(actual: Double, max: Double) -> Double {
+        guard max > 0 else { return 0 }
+        return min(1, Swift.max(0, actual / max))
     }
 
     /// One cluster's "평균 · 최고" summary line for the temperature expand.

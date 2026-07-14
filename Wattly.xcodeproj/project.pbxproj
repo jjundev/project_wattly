@@ -26,6 +26,8 @@
 		2F21C6921E2896512BD4FF55 /* AccessibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C59C21E293258105C63FB142 /* AccessibilityTests.swift */; };
 		31926AD6C690491825627C11 /* OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = DECFD3734A1569FA8CFE4AF5 /* OFL.txt */; };
 		32A2E4A4DC43E9ED03E0ADA7 /* Temperature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0721DEAA1855EE4C25F48F35 /* Temperature.swift */; };
+		75FE2ED734304FF99D5C55C0 /* Fan.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF03996174A7435EB0679508 /* Fan.swift */; };
+		F6FECA5A0CAA44A28F3028CB /* FanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC94F98123394D128441D555 /* FanTests.swift */; };
 		339352DA4758AE187D4E7000 /* MenuBarLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F55E227946867EDB8D1BC9 /* MenuBarLabel.swift */; };
 		34B7DAF861D1D07C5F31775B /* MetricProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CC07BAFD29885CF7E76FF5D /* MetricProvider.swift */; };
 		351A26180194AB3D3EF7C3F2 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4533B30821882929BD063FA4 /* Theme.swift */; };
@@ -99,6 +101,8 @@
 /* Begin PBXFileReference section */
 		00082133CD88B0F35342BB85 /* SparklineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparklineView.swift; sourceTree = "<group>"; };
 		0721DEAA1855EE4C25F48F35 /* Temperature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Temperature.swift; sourceTree = "<group>"; };
+		AF03996174A7435EB0679508 /* Fan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fan.swift; sourceTree = "<group>"; };
+		AC94F98123394D128441D555 /* FanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanTests.swift; sourceTree = "<group>"; };
 		07C1BF327FACCDB9FAB5213C /* SettingsResetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsResetTests.swift; sourceTree = "<group>"; };
 		10635C5861EA5A327ED9CC2F /* PowerEnergy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerEnergy.swift; sourceTree = "<group>"; };
 		14B2BDFF1DB69E370CC26C75 /* SettingsReset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsReset.swift; sourceTree = "<group>"; };
@@ -206,6 +210,7 @@
 				E16EB2DF75F2A90917F1881D /* Sparkline.swift */,
 				F61FA5F6DFF92047EE2B7B8E /* SystemMonitor.swift */,
 				0721DEAA1855EE4C25F48F35 /* Temperature.swift */,
+				AF03996174A7435EB0679508 /* Fan.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -288,6 +293,7 @@
 				F1A07555B3221FE4D57FED44 /* TemperatureTests.swift */,
 				4EC101CF7C8E5F2E38102F96 /* ThemeResolverTests.swift */,
 				2FDBCEE7C543E46F486E93C0 /* ThresholdTests.swift */,
+				AC94F98123394D128441D555 /* FanTests.swift */,
 			);
 			path = WattlyTests;
 			sourceTree = "<group>";
@@ -470,6 +476,7 @@
 				15DAB5064926E774708AA4A3 /* TemperatureTests.swift in Sources */,
 				709CA63AA1B889F23AB4AE04 /* ThemeResolverTests.swift in Sources */,
 				868EB1B64A4B157A046511F4 /* ThresholdTests.swift in Sources */,
+				F6FECA5A0CAA44A28F3028CB /* FanTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -523,6 +530,7 @@
 				F80BC2C8905EECB7EAE8DA5C /* SystemMonitor.swift in Sources */,
 				32A2E4A4DC43E9ED03E0ADA7 /* Temperature.swift in Sources */,
 				7E0DF3B2D7E2BAE6BDEB7764 /* TemperatureProvider.swift in Sources */,
+				75FE2ED734304FF99D5C55C0 /* Fan.swift in Sources */,
 				351A26180194AB3D3EF7C3F2 /* Theme.swift in Sources */,
 				0CFE1F2EDC6A20038D493BDA /* Tokens.swift in Sources */,
 				FE58DF7DBC6DA12ECB9CDB7B /* WattlyApp.swift in Sources */,

@@ -12,6 +12,7 @@ enum MetricSample: Sendable, Equatable {
     case power(PowerSample)
     case battery(BatterySample)
     case temperature(TemperatureSnapshot)
+    case fan(FanSample)
 }
 
 struct CPUSample: Sendable, Equatable {
