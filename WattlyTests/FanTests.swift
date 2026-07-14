@@ -83,4 +83,59 @@ struct FanTests {
         #expect(plausibleRPM(12000, in: 0...12000) == 12000)   // upper bound inclusive
         #expect(plausibleRPM(12001, in: 0...12000) == 0)       // just past the bound
     }
+
+    // MARK: Fan curve (Phase B-1) — pure model
+
+    @Test func fanCurveEvaluateFlatBelowFirstAndAboveLast() {
+        let curve = FanCurve(rpms: [1200, 2500, 4500, 6000])   // anchors 40/60/80/95
+        #expect(curve.evaluate(inputCelsius: 20) == 1200)      // below first anchor → first rpm
+        #expect(curve.evaluate(inputCelsius: 40) == 1200)      // at first anchor
+        #expect(curve.evaluate(inputCelsius: 95) == 6000)      // at last anchor
+        #expect(curve.evaluate(inputCelsius: 110) == 6000)     // above last → last rpm
+    }
+
+    @Test func fanCurveEvaluateInterpolatesLinearly() {
+        let curve = FanCurve(rpms: [1200, 2500, 4500, 6000])
+        // Midpoint of the 60→80 segment (70 °C) between 2500 and 4500 → 3500.
+        #expect(curve.evaluate(inputCelsius: 70) == 3500)
+        // Quarter into the 40→60 segment (45 °C) between 1200 and 2500 → 1200 + 0.25*1300 = 1525.
+        #expect(curve.evaluate(inputCelsius: 45) == 1525)
+    }
+
+    @Test func fanCurveRawValueRoundTrips() {
+        let curve = FanCurve(rpms: [1000, 3000, 5000, 6500])
+        #expect(FanCurve(rawValue: curve.rawValue)?.rpms == curve.rpms)
+    }
+
+    @Test func fanCurveRejectsMalformedRawValue() {
+        #expect(FanCurve(rawValue: "") == nil)
+        #expect(FanCurve(rawValue: "not json") == nil)
+        #expect(FanCurve(rawValue: "[1,2,3]") == nil)          // wrong count (3, needs 4)
+        #expect(FanCurve(rawValue: "[1,2,3,4,5]") == nil)      // wrong count (5)
+    }
+
+    @Test func hottestCPUReturnsMaxHottestAcrossGroups() {
+        let snap = TemperatureSnapshot(
+            cpu: .reading(TemperatureReading(celsius: 70, groups: [
+                TemperatureGroup(name: "P-코어", average: 72, hottest: 88),
+                TemperatureGroup(name: "E-코어", average: 60, hottest: 66),
+            ])),
+            gpu: .reading(TemperatureReading(celsius: 55)),
+            battery: .reading(TemperatureReading(celsius: 30)))
+        #expect(hottestCPUCelsius(snap) == 88)   // max of the per-group hottest values
+    }
+
+    @Test func hottestCPUNilWhenNotReadingOrNoGroups() {
+        let unavailable = TemperatureSnapshot(
+            cpu: .unavailable(.connectionFailed),
+            gpu: .reading(TemperatureReading(celsius: 55)),
+            battery: .reading(TemperatureReading(celsius: 30)))
+        #expect(hottestCPUCelsius(unavailable) == nil)
+
+        let noGroups = TemperatureSnapshot(
+            cpu: .reading(TemperatureReading(celsius: 70)),   // groups defaults to []
+            gpu: .reading(TemperatureReading(celsius: 55)),
+            battery: .reading(TemperatureReading(celsius: 30)))
+        #expect(hottestCPUCelsius(noGroups) == nil)           // empty groups → max of [] → nil
+    }
 }
