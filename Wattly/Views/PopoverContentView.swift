@@ -400,6 +400,7 @@ struct PopoverContentView: View {
         case .cpuTemp: showCpuTemp
         case .gpuTemp: showGpuTemp
         case .batTemp: showBatTemp
+        case .fan: false   // TEMP: replaced by `showFan` in Task 4
         }
     }
 

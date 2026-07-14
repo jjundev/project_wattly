@@ -184,8 +184,74 @@ struct CardPresentationTests {
     // MARK: CardKind structural facts (D) — single home for the card-family flags
 
     @Test func cardKindStructuralFlags() {
-        #expect(CardKind.allCases.filter(\.isExpandable) == [.power, .cpu, .mem, .cpuTemp])
-        #expect(CardKind.allCases.filter(\.hasSparkArea) == [.power, .cpu, .mem, .cpuTemp, .gpuTemp, .batTemp])
+        #expect(CardKind.allCases.filter(\.isExpandable) == [.power, .cpu, .mem, .cpuTemp, .fan])
+        #expect(CardKind.allCases.filter(\.hasSparkArea) == [.power, .cpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
         #expect(CardKind.allCases.filter(\.isAccented) == [.power])
+    }
+
+    // MARK: Fan presentation
+
+    @Test func fanLabelUnitAndValue() {
+        let state = MetricState.value(.fan(FanSample(fans: [
+            FanReading(index: 0, actualRPM: 2000, minRPM: 0, maxRPM: 4000, targetRPM: 2200),
+            FanReading(index: 1, actualRPM: 4000, minRPM: 0, maxRPM: 4000, targetRPM: 4200),
+        ])))
+        #expect(CardPresentation.label(.fan) == "팬 속도")
+        #expect(CardPresentation.unitText(.fan, state) == "RPM")
+        #expect(CardPresentation.valueText(.fan, state) == "3000")   // (2000 + 4000) / 2, integer
+    }
+
+    @Test func fanValueTextNoReadingIsDash() {
+        #expect(CardPresentation.valueText(.fan, .value(.fan(FanSample(fans: [])))) == "—")
+        #expect(CardPresentation.valueText(.fan, .loading) == "—")
+    }
+
+    @Test func fanHasNoThresholdColor() {
+        let state = MetricState.value(.fan(FanSample(fans: [
+            FanReading(index: 0, actualRPM: 9000, minRPM: 0, maxRPM: 9000, targetRPM: 9000)])))
+        #expect(CardPresentation.thresholdLevel(.fan, state, Defaults.thresholds) == nil)
+    }
+
+    // MARK: Coverage — every CardKind must format a value, plot a scalar, and (if menubar-
+    // eligible) format a menubar part. Guards the default-guarded tuple switches that would
+    // otherwise silently show "—" for a forgotten new card.
+
+    private func representativeState(_ card: CardKind) -> MetricState {
+        switch card {
+        case .power:   return .value(.power(PowerSample(totalW: 8, cpuW: 3, gpuW: 2, npuW: 0.1)))
+        case .battery: return .value(.battery(BatterySample(netW: 5, milliamps: 400, volts: 12,
+                                                            charging: false, externalConnected: false)))
+        case .cpu:     return .value(.cpu(CPUSample(overall: 42, perfLevels: [])))
+        case .mem:     return .value(.memory(MemorySample(usedGB: 8, totalGB: 16, wiredGB: 2, compressedGB: 1)))
+        case .cpuTemp, .gpuTemp, .batTemp:
+            return .value(.temperature(TemperatureSnapshot(
+                cpu: .reading(TemperatureReading(celsius: 50)),
+                gpu: .reading(TemperatureReading(celsius: 45)),
+                battery: .reading(TemperatureReading(celsius: 30)))))
+        case .fan:     return .value(.fan(FanSample(fans: [
+                            FanReading(index: 0, actualRPM: 2000, minRPM: 0, maxRPM: 4000, targetRPM: 2200)])))
+        }
+    }
+
+    @Test func everyCardFormatsAValue() {
+        for card in CardKind.allCases {
+            #expect(CardPresentation.valueText(card, representativeState(card)) != "—",
+                    "\(card) valueText fell through to —")
+        }
+    }
+
+    @MainActor
+    @Test func everyCardHasASparklineScalar() {
+        for card in CardKind.allCases {
+            guard case .value(let s) = representativeState(card) else { continue }
+            #expect(SystemMonitor.scalar(of: card, from: s) != nil, "\(card) has no scalar")
+        }
+    }
+
+    @Test func everyMenubarMetricFormatsValue() {
+        for card in MenuBarText.order {
+            let part = MenuBarText.part(card, representativeState(card))
+            #expect(!part.hasSuffix("—"), "\(card) menubar part fell through to placeholder")
+        }
     }
 }

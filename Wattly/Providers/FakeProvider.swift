@@ -133,6 +133,11 @@ actor FakeProvider: MetricProvider {
                 ? .notPresent("배터리 없음 — 데스크톱 Mac")
                 : .reading(TemperatureReading(celsius: v("batTemp")))
             return .temperature(TemperatureSnapshot(cpu: cpu, gpu: gpu, battery: bat))
+        case .fan:
+            let base = 2200.0
+            return .fan(FanSample(fans: [
+                FanReading(index: 0, actualRPM: v("fan"), minRPM: 1200, maxRPM: 6000, targetRPM: base),
+            ]))
         }
     }
 
@@ -162,6 +167,8 @@ actor FakeProvider: MetricProvider {
             ]
             if !desktop { t["batTemp"] = Base(b: 31, step: 0.7, min: 22, max: 46) }
             return t
+        case .fan:
+            return ["fan": Base(b: 2400, step: 180, min: 1200, max: 6000)]
         }
     }
 }

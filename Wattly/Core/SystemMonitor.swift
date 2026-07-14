@@ -466,6 +466,7 @@ final class SystemMonitor {
         case (.cpuTemp, .temperature(let s)): return s.cpu.celsius
         case (.gpuTemp, .temperature(let s)): return s.gpu.celsius
         case (.batTemp, .temperature(let s)): return s.battery.celsius
+        case (.fan, .fan(let s)): return averageRPM(s.fans)
         default: return nil
         }
     }

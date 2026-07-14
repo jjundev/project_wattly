@@ -115,6 +115,7 @@ enum CardPresentation {
         case .cpuTemp: "CPU 온도"
         case .gpuTemp: "GPU 온도"
         case .batTemp: "배터리 온도"
+        case .fan: "팬 속도"
         }
     }
 
@@ -128,6 +129,7 @@ enum CardPresentation {
             if case .value(.memory(let s)) = state { return "/ \(Int(s.totalGB)) GB" }
             return "GB"
         case .cpuTemp, .gpuTemp, .batTemp: return "°C"
+        case .fan: return "RPM"
         }
     }
 
@@ -145,6 +147,8 @@ enum CardPresentation {
         case (.cpuTemp, .temperature(let s)): return tempText(s.cpu)
         case (.gpuTemp, .temperature(let s)): return tempText(s.gpu)
         case (.batTemp, .temperature(let s)): return tempText(s.battery)
+        case (.fan, .fan(let s)):
+            return averageRPM(s.fans).map { String(Int($0.rounded())) } ?? "—"
         default: return "—"
         }
     }
