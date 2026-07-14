@@ -1,12 +1,12 @@
 import SwiftUI
 
-/// The seven-section settings window (issue 13). SwiftUI `Settings` scene, native window
+/// The settings window (issue 13). SwiftUI `Settings` scene, native window
 /// chrome (the prototype's fake traffic-light titlebar is a web-prototype artifact — a real
 /// prefs window already draws exactly close-enabled + disabled minimize/zoom; grill #1). All
 /// state is `@AppStorage`, so a change reflects in the popover live and survives restart.
 ///
 /// Sections (prototype order): 일반(로그인) · 테마 · 표시 지표 · 전력 표시(EMA) · 그래프 임곗값 ·
-/// 메뉴바 · 업데이트 주기 · 되돌리기 · 푸터.
+/// 메뉴바 · 동작 모드 · 업데이트 주기 · 되돌리기 · 푸터.
 struct SettingsView: View {
     @Environment(\.tokens) private var t
 
@@ -26,6 +26,7 @@ struct SettingsView: View {
     @AppStorage(StorageKey.heroMetric) private var heroMetric = Defaults.heroMetric
     @AppStorage(StorageKey.cardOrder) private var cardOrder = Defaults.cardOrder
     @AppStorage(StorageKey.pollInterval) private var pollInterval = Defaults.pollInterval
+    @AppStorage(StorageKey.powerMode) private var powerMode = Defaults.powerMode
     @AppStorage(StorageKey.powerSmoothed) private var powerSmoothed = Defaults.powerSmoothed
     @AppStorage(StorageKey.menubarTextEnabled) private var menubarText = Defaults.menubarTextEnabled
     @AppStorage(StorageKey.thresholds) private var thresholds = Defaults.thresholds
@@ -61,6 +62,7 @@ struct SettingsView: View {
                 smoothingSection
                 thresholdSection
                 menubarSection
+                powerModeSection
                 pollSection
                 resetButton
                 footer
@@ -350,6 +352,29 @@ struct SettingsView: View {
         .background(RoundedRectangle(cornerRadius: 8).fill(t.segTrack))
     }
 
+    // MARK: 동작 모드
+
+    private var powerModeSection: some View {
+        SettingsSection(title: "동작 모드") {
+            WattlySegment(selection: $powerMode, options: [
+                (.eco, PowerMode.eco.label), (.performance, PowerMode.performance.label),
+            ])
+            Text(powerModeDescription)
+                .font(WattlyFont.at(11.5, weight: .regular))
+                .foregroundStyle(t.faint)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var powerModeDescription: String {
+        switch powerMode {
+        case .eco:
+            "패널을 닫으면 백그라운드 지표 읽기를 줄입니다. 다시 열 때는 최신 값과 그래프 샘플을 새로 얻을 수 있습니다."
+        case .performance:
+            "활성 지표를 백그라운드에서도 계속 갱신합니다. 더 많은 전력을 사용하지만, 패널 값과 그래프를 더 빨리 준비할 수 있습니다."
+        }
+    }
+
     // MARK: 업데이트 주기
 
     private var pollSection: some View {
@@ -359,7 +384,7 @@ struct SettingsView: View {
                     WattlySegment(selection: $pollInterval,
                                   options: PollInterval.allCases.map { ($0, $0.label) },
                                   pillVPadding: 6)
-                    Text(automaticPollingDescription)
+                    Text(pollingDescription(for: powerMode))
                         .font(WattlyFont.at(11.5, weight: .regular))
                         .foregroundStyle(t.faint)
                         .fixedSize(horizontal: false, vertical: true)

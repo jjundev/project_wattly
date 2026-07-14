@@ -34,8 +34,14 @@ enum PowerMode: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-let automaticPollingDescription =
-    "자동: 패널 열림은 CPU·전력 1초/온도 2초/메모리·배터리 5초, 닫힘은 메뉴바에 표시한 지표만 2초마다 갱신합니다. 텍스트를 끄면 지표 폴링을 멈춥니다."
+func pollingDescription(for mode: PowerMode) -> String {
+    switch mode {
+    case .eco:
+        "자동: 패널 열림은 CPU·전력 1초/온도 2초/메모리·배터리 5초, 닫힘은 메뉴바에 표시한 지표만 2초마다 갱신합니다. 메뉴바 텍스트를 끄면 지표 폴링을 멈춥니다."
+    case .performance:
+        "자동: 패널 열림은 활성 지표를 1초마다, 닫힘은 메뉴바 텍스트 표시 시 2초마다, 끄면 5초마다 갱신합니다."
+    }
+}
 
 // MARK: - Panel layout mode
 
