@@ -53,4 +53,34 @@ struct FanTests {
         // Would trap on plain `Int(v)` — this is the crash this function exists to prevent.
         #expect(fanCount(fromRawFNum: 1e19) == nil)
     }
+
+    // MARK: - plausibleRPM(_:in:)
+
+    /// Regression for the `Int(...)` trap at render sites (`CardPresentation.subText(.fan)`,
+    /// `MetricCardView.fanRow`): `smcDouble` decodes a `flt ` SMC key from a `Float32`, which
+    /// can be finite yet astronomically larger than `Int64.max`. `plausibleRPM` must reject
+    /// that (and negatives/non-finite) with `0` instead of letting it reach `Int(...)`.
+    @Test func plausibleRPMInRangePasses() {
+        #expect(plausibleRPM(3000, in: 0...12000) == 3000)
+    }
+
+    @Test func plausibleRPMNegativeIsZero() {
+        #expect(plausibleRPM(-1, in: 0...12000) == 0)
+    }
+
+    @Test func plausibleRPMNonFiniteIsZero() {
+        #expect(plausibleRPM(.nan, in: 0...12000) == 0)
+        #expect(plausibleRPM(.infinity, in: 0...12000) == 0)
+    }
+
+    @Test func plausibleRPMHugeFiniteIsZeroNotTrap() {
+        // Would trap on plain `Int(v)` at a render site — this is the crash this function
+        // exists to prevent.
+        #expect(plausibleRPM(1e19, in: 0...12000) == 0)
+    }
+
+    @Test func plausibleRPMBoundary() {
+        #expect(plausibleRPM(12000, in: 0...12000) == 12000)   // upper bound inclusive
+        #expect(plausibleRPM(12001, in: 0...12000) == 0)       // just past the bound
+    }
 }

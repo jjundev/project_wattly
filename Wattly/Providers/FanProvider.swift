@@ -1,5 +1,4 @@
 import Foundation
-import IOKit
 
 /// What the fan provider reads through — the single read-only seam under which the real
 /// SMC I/O lives (mirrors `TemperatureTransport`). The provider knows only this protocol,
@@ -109,7 +108,9 @@ actor FanProvider: MetricProvider {
             guard let raw = transport.readFan(i),
                   raw.actual.isFinite, Self.rpmRange.contains(raw.actual) else { continue }
             fans.append(FanReading(index: i, actualRPM: raw.actual,
-                                   minRPM: raw.min, maxRPM: raw.max, targetRPM: raw.target))
+                                   minRPM: plausibleRPM(raw.min, in: Self.rpmRange),
+                                   maxRPM: plausibleRPM(raw.max, in: Self.rpmRange),
+                                   targetRPM: plausibleRPM(raw.target, in: Self.rpmRange)))
         }
 
         if fans.isEmpty {

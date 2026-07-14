@@ -84,6 +84,26 @@ struct FanProviderTests {
         #expect(tx.closeCalls == 1)   // connection dropped, same as any other bad read
     }
 
+    /// Regression: a plausible `actual` alongside a corrupt-but-finite `target`/`max` (the
+    /// `flt ` SMC decode can overflow `Int64` while staying finite) must be sanitized to `0`
+    /// by the provider — not trap `Int(...)` downstream at the render sites.
+    @Test func hugeFiniteSiblingFieldsAreSanitizedAndRenderSafely() async {
+        let tx = FakeFanTransport(); tx.count = 1
+        tx.fans = [0: RawFan(actual: 2000, min: 1200, max: 1e19, target: 1e19)]
+        let p = FanProvider(transport: tx)
+        guard case .value(.fan(let s)) = await readReading(p, at: base) else {
+            Issue.record("expected a fan sample"); return
+        }
+        #expect(s.fans.count == 1)
+        #expect(s.fans[0].actualRPM == 2000)
+        #expect(s.fans[0].targetRPM == 0)   // sanitized, not 1e19
+        #expect(s.fans[0].maxRPM == 0)      // sanitized, not 1e19
+
+        // Must not trap constructing the render text.
+        let subText = CardPresentation.subText(.value(.fan(s)))
+        #expect(subText != nil)
+    }
+
     @Test func wakeResetsConnection() async {
         let tx = FakeFanTransport(); tx.count = 1
         tx.fans = [0: RawFan(actual: 2400, min: 1200, max: 6000, target: 2500)]

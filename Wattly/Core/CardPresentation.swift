@@ -179,8 +179,8 @@ enum CardPresentation {
         case .memory(let s):
             return "고정 \(f1(s.wiredGB)) GB · 압축 \(f1(s.compressedGB)) GB · 스왑 \(f1(s.swapUsedGB)) GB"
         case .fan(let s):
-            guard let avgTarget = averageRPM(s.fans.map { FanReading(index: $0.index, actualRPM: $0.targetRPM, minRPM: 0, maxRPM: 0, targetRPM: 0) }),
-                  let maxMax = s.fans.map(\.maxRPM).max() else { return nil }
+            guard !s.fans.isEmpty, let maxMax = s.fans.map(\.maxRPM).max() else { return nil }
+            let avgTarget = s.fans.map(\.targetRPM).reduce(0, +) / Double(s.fans.count)
             return "목표 \(Int(avgTarget.rounded())) RPM · 최대 \(Int(maxMax.rounded())) RPM"
         case .temperature:
             return nil

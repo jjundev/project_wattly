@@ -41,3 +41,10 @@ func fanCount(fromRawFNum v: Double) -> Int? {
     guard v.isFinite, v >= 0, v <= 1_000_000 else { return nil }
     return Int(v)
 }
+
+/// A fan RPM field coerced into the plausible display range: the value if finite and in
+/// `range`, else 0. Keeps min/max/target `Int`-safe at the render sites (a corrupt `flt `
+/// SMC decode can be finite yet exceed Int64 — mirrors the FNum guard).
+func plausibleRPM(_ v: Double, in range: ClosedRange<Double>) -> Double {
+    (v.isFinite && range.contains(v)) ? v : 0
+}
