@@ -192,6 +192,7 @@ enum FakeProviders {
             case .power where scenario != .fail: return PowerProvider()
             case .battery where scenario != .desktop: return BatteryProvider()
             case .temperature where scenario != .desktop: return TemperatureProvider()
+            case .fan:    return FanProvider()
             default:      return FakeProvider(kind: kind, scenario: scenario)
             }
         }
