@@ -11,15 +11,19 @@ struct FanCurveEditor: View {
     @Environment(\.tokens) private var t
 
     @State private var dragIndex: Int?
+    @FocusState private var focusedAnchor: Int?
 
     private static let viewHeight: CGFloat = 150
 
     var body: some View {
         GeometryReader { geo in
             let size = geo.size
-            canvas(size)
-                .contentShape(Rectangle())
-                .gesture(drag(in: size))
+            ZStack(alignment: .topLeading) {
+                canvas(size)
+                anchorControls(size)
+            }
+            .contentShape(Rectangle())
+            .gesture(drag(in: size))
         }
         .frame(height: Self.viewHeight)
     }
@@ -80,7 +84,7 @@ struct FanCurveEditor: View {
             // handle dots (filled when the anchor is being dragged)
             for (i, p) in pts.enumerated() {
                 let box = CGRect(x: p.x - 5, y: p.y - 5, width: 10, height: 10)
-                ctx.fill(Path(ellipseIn: box), with: .color(i == dragIndex ? Tokens.accent : t.rowBg))
+                ctx.fill(Path(ellipseIn: box), with: .color(i == dragIndex || i == focusedAnchor ? Tokens.accent : t.rowBg))
                 ctx.stroke(Path(ellipseIn: box), with: .color(Tokens.accent), lineWidth: 2.5)
             }
         }
@@ -103,6 +107,38 @@ struct FanCurveEditor: View {
         var next = curve
         next.rpms[index] = rpm
         curve = next
+    }
+
+    // MARK: Accessibility + keyboard
+
+    /// One invisible focusable control per anchor, positioned on its handle. Gives VoiceOver an
+    /// adjustable action (up/down = ±`rpmStep`) and hardware arrow keys the same effect when the
+    /// handle is focused — restoring the parity the sliders had (issue 15). Pointer drags still
+    /// go to the container gesture; these clear views carry no gesture of their own.
+    private func anchorControls(_ size: CGSize) -> some View {
+        let pts = FanCurveGeometry.handlePoints(curve.rpms, in: size)
+        return ForEach(Array(FanCurveGeometry.anchorsCelsius.enumerated()), id: \.offset) { i, c in
+            Color.clear
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
+                .position(pts.indices.contains(i) ? pts[i] : .zero)
+                .focusable()
+                .focused($focusedAnchor, equals: i)
+                .accessibilityElement()
+                .accessibilityLabel(Accessibility.fanAnchorLabel(celsius: c))
+                .accessibilityValue(Accessibility.fanAnchorValue(rpm: curve.rpms.indices.contains(i) ? curve.rpms[i] : 0))
+                .accessibilityAdjustableAction { direction in
+                    nudge(direction == .increment ? FanCurveGeometry.rpmStep : -FanCurveGeometry.rpmStep, at: i)
+                }
+                .onKeyPress(.upArrow)   { nudge(FanCurveGeometry.rpmStep, at: i); return .handled }
+                .onKeyPress(.downArrow) { nudge(-FanCurveGeometry.rpmStep, at: i); return .handled }
+        }
+    }
+
+    private func nudge(_ delta: Double, at index: Int) {
+        guard curve.rpms.indices.contains(index) else { return }
+        let clamped = min(max(curve.rpms[index] + delta, FanCurveGeometry.rpmMin), FanCurveGeometry.rpmMax)
+        setRPM(clamped, at: index)
     }
 }
 

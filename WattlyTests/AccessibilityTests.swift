@@ -108,4 +108,16 @@ struct AccessibilityTests {
         #expect(Accessibility.menuBarLabel(selected: [.cpu, .power], states: states)
                 == "Wattly, CPU 42%  ·  8.4 W")
     }
+
+    // MARK: Fan-curve anchor copy
+
+    @Test func fanAnchorLabelSpeaksTempAndRole() {
+        #expect(Accessibility.fanAnchorLabel(celsius: 40) == "40°C 팬 속도")
+        #expect(Accessibility.fanAnchorLabel(celsius: 100) == "100°C 팬 속도")
+    }
+
+    @Test func fanAnchorValueSpeaksWholeRPM() {
+        #expect(Accessibility.fanAnchorValue(rpm: 1200) == "1200 RPM")
+        #expect(Accessibility.fanAnchorValue(rpm: 3049.6) == "3050 RPM")  // rounds defensively
+    }
 }
