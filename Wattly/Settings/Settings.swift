@@ -186,9 +186,13 @@ struct CardOrder: Equatable, Sendable, RawRepresentable {
 
     init?(rawValue: String) {
         let parts = rawValue.split(separator: ",").map(String.init)
-        let cards = parts.compactMap { CardKind(rawValue: $0) }
-        guard cards.count == parts.count, !cards.isEmpty else { return nil }
-        self.init(cards)
+        let parsed = parts.compactMap { CardKind(rawValue: $0) }
+        guard parsed.count == parts.count, !parsed.isEmpty else { return nil }
+        // Migration: append any card kinds added after this order was persisted (e.g. the fan
+        // card), so upgraders see new cards at the end instead of never (visibility is still
+        // governed by the per-card show flags). Preserves the user's existing relative order.
+        let missing = CardKind.allCases.filter { !parsed.contains($0) }
+        self.init(parsed + missing)
     }
 
     var rawValue: String { cards.map(\.rawValue).joined(separator: ",") }
@@ -237,18 +241,21 @@ enum Defaults {
 
     static let show: [CardKind: Bool] = [
         .power: true, .battery: true, .cpu: true, .mem: true,
-        .cpuTemp: true, .gpuTemp: true, .batTemp: true,
+        .cpuTemp: true, .gpuTemp: true, .batTemp: true, .fan: true,
     ]
     static let menuMetrics: [CardKind: Bool] = [
         .cpu: true, .power: false, .mem: false,
-        .cpuTemp: false, .gpuTemp: false, .batTemp: false,
+        .cpuTemp: false, .gpuTemp: false, .batTemp: false, .fan: false,
     ]
 
-    static let cardOrder = CardOrder([.power, .battery, .cpu, .mem, .cpuTemp, .gpuTemp, .batTemp])
+    static let cardOrder = CardOrder([.power, .battery, .cpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
     static let thresholds = Thresholds(
         cpu: ThresholdPair(warn: 70, crit: 90),
         mem: ThresholdPair(warn: 70, crit: 85),
         temp: ThresholdPair(warn: 70, crit: 90))
+    /// Fan curve (Phase B-1): target RPMs at the fixed 40/60/80/95 °C anchors. A gentle ramp
+    /// — quiet at idle, spinning up toward the fan's top end under sustained heat.
+    static let fanCurve = FanCurve(rpms: [1200, 2500, 4500, 6000])
 }
 
 /// `@AppStorage` key names. `loginItem` is a mirror of `SMAppService.mainApp`
@@ -267,5 +274,6 @@ enum StorageKey {
     static let powerSmoothed = "powerSmoothed"
     static let cardOrder = "cardOrder"
     static let thresholds = "thresholds"
+    static let fanCurve = "fanCurve"
     static let expandedCards = "expandedCards"   // CSV of expanded card raw values (issue 04)
 }

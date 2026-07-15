@@ -10,6 +10,7 @@ struct WattlyApp: App {
         FontRegistration.register()   // bundle Pretendard before any view renders (A17)
         #if DEBUG
         ThermalProbe.runIfRequested()  // -WattlyThermalProbe: dump live temps and exit (plan 08 Phase 0)
+        FanProbe.runIfRequested()      // -WattlyFanProbe: dump live fan RPM and exit (Phase A Phase 0)
         #endif
         // CPU/memory/power/battery/temperature are all real providers now; the dev
         // `-WattlyScenario` harness shapes only the remaining fault/desktop-demo fakes.

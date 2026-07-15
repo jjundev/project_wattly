@@ -55,7 +55,7 @@ func providerIntervals(mode: PowerMode,
     if panelVisible {
         let open: [ProviderKind: Duration] = [
             .cpu: .seconds(1), .power: .seconds(1), .temperature: .seconds(2),
-            .memory: .seconds(5), .battery: .seconds(5),
+            .memory: .seconds(5), .battery: .seconds(5), .fan: .seconds(5),
         ]
         return open.filter { active.contains($0.key) }
     }

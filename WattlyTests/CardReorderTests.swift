@@ -16,18 +16,18 @@ struct CardReorderTests {
     @Test func dragDownLandsAfterTarget() {
         // power (0) onto cpu (2) → power sits right after cpu
         let r = order.reordering(.power, onto: .cpu)
-        #expect(r.cards == [.battery, .cpu, .power, .mem, .cpuTemp, .gpuTemp, .batTemp])
+        #expect(r.cards == [.battery, .cpu, .power, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
     }
 
     @Test func dragDownAdjacentSwaps() {
         // power (0) onto battery (1) → simple swap
         let r = order.reordering(.power, onto: .battery)
-        #expect(r.cards == [.battery, .power, .cpu, .mem, .cpuTemp, .gpuTemp, .batTemp])
+        #expect(r.cards == [.battery, .power, .cpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
     }
 
     @Test func dragFirstToLast() {
         let r = order.reordering(.power, onto: .batTemp)
-        #expect(r.cards == [.battery, .cpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .power])
+        #expect(r.cards == [.battery, .cpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .power, .fan])
     }
 
     // MARK: dragging upward drops `from` BEFORE `target`
@@ -35,18 +35,18 @@ struct CardReorderTests {
     @Test func dragUpLandsBeforeTarget() {
         // batTemp (6) onto cpu (2) → batTemp sits right before cpu
         let r = order.reordering(.batTemp, onto: .cpu)
-        #expect(r.cards == [.power, .battery, .batTemp, .cpu, .mem, .cpuTemp, .gpuTemp])
+        #expect(r.cards == [.power, .battery, .batTemp, .cpu, .mem, .cpuTemp, .gpuTemp, .fan])
     }
 
     @Test func dragUpAdjacentSwaps() {
         // mem (3) onto cpu (2) → swap
         let r = order.reordering(.mem, onto: .cpu)
-        #expect(r.cards == [.power, .battery, .mem, .cpu, .cpuTemp, .gpuTemp, .batTemp])
+        #expect(r.cards == [.power, .battery, .mem, .cpu, .cpuTemp, .gpuTemp, .batTemp, .fan])
     }
 
     @Test func dragLastToFirst() {
         let r = order.reordering(.batTemp, onto: .power)
-        #expect(r.cards == [.batTemp, .power, .battery, .cpu, .mem, .cpuTemp, .gpuTemp])
+        #expect(r.cards == [.batTemp, .power, .battery, .cpu, .mem, .cpuTemp, .gpuTemp, .fan])
     }
 
     // MARK: no-ops & invariants
@@ -72,7 +72,7 @@ struct CardReorderTests {
     // MARK: CardOrder RawRepresentable round-trip + init? guards (previously untested)
 
     @Test func rawValueRoundTrips() {
-        let o = CardOrder([.cpu, .power, .batTemp])
+        let o = CardOrder(CardKind.allCases.reversed())   // a full permutation — nothing to migrate
         #expect(CardOrder(rawValue: o.rawValue)?.cards == o.cards)
     }
 
@@ -88,4 +88,15 @@ struct CardReorderTests {
         // "foo" isn't a CardKind → count mismatch vs parts → nil (per init? guard).
         #expect(CardOrder(rawValue: "power,foo,cpu") == nil)
     }
+
+    @Test func cardOrderAppendsNewlyAddedCards() {
+        // A persisted order from before the fan card shipped (7 cards, no ".fan").
+        let legacy = "power,battery,cpu,mem,cpuTemp,gpuTemp,batTemp"
+        let order = CardOrder(rawValue: legacy)
+        #expect(order != nil)
+        #expect(order?.cards.contains(.fan) == true)               // migrated in
+        #expect(Set(order?.cards ?? []) == Set(CardKind.allCases))  // every card present
+        #expect(order?.cards.prefix(7).map(\.rawValue) == legacy.split(separator: ",").map(String.init))  // user order preserved, new card appended
+    }
+
 }

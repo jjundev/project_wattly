@@ -20,6 +20,7 @@ struct MenuBarLabel: View {
     @AppStorage(StorageKey.menu(.cpuTemp)) private var menuCpuTemp = Defaults.menuMetrics[.cpuTemp] ?? false
     @AppStorage(StorageKey.menu(.gpuTemp)) private var menuGpuTemp = Defaults.menuMetrics[.gpuTemp] ?? false
     @AppStorage(StorageKey.menu(.batTemp)) private var menuBatTemp = Defaults.menuMetrics[.batTemp] ?? false
+    @AppStorage(StorageKey.menu(.fan))     private var menuFan     = Defaults.menuMetrics[.fan]     ?? false
 
     var body: some View {
         let label = assembled
@@ -74,6 +75,7 @@ struct MenuBarLabel: View {
         if menuCpuTemp { s.insert(.cpuTemp) }
         if menuGpuTemp { s.insert(.gpuTemp) }
         if menuBatTemp { s.insert(.batTemp) }
+        if menuFan     { s.insert(.fan) }
         return s
     }
 }

@@ -79,4 +79,16 @@ struct SettingsResetTests {
         #expect(login.isEnabled == Defaults.loginItem)
         #expect(d.bool(forKey: StorageKey.loginItem) == Defaults.loginItem)
     }
+
+    @Test func resetWritesDefaultFanCurve() {
+        let defaults = makeDefaults(#function)
+        // Pre-dirty the key with a non-default value.
+        defaults.set(FanCurve(rpms: [9, 9, 9, 9]).rawValue, forKey: StorageKey.fanCurve)
+
+        SettingsReset.applyDefaults(into: defaults)
+
+        let raw = defaults.string(forKey: StorageKey.fanCurve)
+        #expect(raw == Defaults.fanCurve.rawValue)
+        #expect(FanCurve(rawValue: raw ?? "")?.rpms == Defaults.fanCurve.rpms)
+    }
 }

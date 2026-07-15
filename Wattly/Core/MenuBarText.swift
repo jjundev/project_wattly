@@ -13,7 +13,7 @@ import Foundation
 enum MenuBarText {
     /// Canonical menubar order = the prototype's source order. Battery net-power is not
     /// menubar-eligible (there is no battery chip — see `Defaults.menuMetrics`).
-    static let order: [CardKind] = [.cpu, .power, .mem, .cpuTemp, .gpuTemp, .batTemp]
+    static let order: [CardKind] = [.cpu, .power, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan]
 
     /// The joined menubar string for the selected metrics in canonical order, or `nil`
     /// when none is selected (→ icon only, the prototype's `hasMenuMetric`). Parts join
@@ -37,6 +37,8 @@ enum MenuBarText {
         case (.cpuTemp, .temperature(let s)): return tempPart("CPU", longLabel(card), s.cpu)
         case (.gpuTemp, .temperature(let s)): return tempPart("GPU", longLabel(card), s.gpu)
         case (.batTemp, .temperature(let s)): return tempPart("배터리", longLabel(card), s.battery)
+        case (.fan, .fan(let s)):
+            return averageRPM(s.fans).map { "팬 \(Int($0.rounded())) RPM" } ?? "\(longLabel(card)) —"
         default:                              return "\(longLabel(card)) —"   // state/sample mismatch
         }
     }
@@ -52,6 +54,7 @@ enum MenuBarText {
         case .cpuTemp: "CPU 온도"
         case .gpuTemp: "GPU 온도"
         case .batTemp: "배터리 온도"
+        case .fan: "팬"
         case .battery: "배터리"   // not menubar-eligible; present only so the switch is total
         }
     }

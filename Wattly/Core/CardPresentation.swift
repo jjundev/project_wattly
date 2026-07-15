@@ -115,6 +115,7 @@ enum CardPresentation {
         case .cpuTemp: "CPU 온도"
         case .gpuTemp: "GPU 온도"
         case .batTemp: "배터리 온도"
+        case .fan: "팬 속도"
         }
     }
 
@@ -128,6 +129,7 @@ enum CardPresentation {
             if case .value(.memory(let s)) = state { return "/ \(Int(s.totalGB)) GB" }
             return "GB"
         case .cpuTemp, .gpuTemp, .batTemp: return "°C"
+        case .fan: return "RPM"
         }
     }
 
@@ -145,6 +147,8 @@ enum CardPresentation {
         case (.cpuTemp, .temperature(let s)): return tempText(s.cpu)
         case (.gpuTemp, .temperature(let s)): return tempText(s.gpu)
         case (.batTemp, .temperature(let s)): return tempText(s.battery)
+        case (.fan, .fan(let s)):
+            return averageRPM(s.fans).map { String(Int($0.rounded())) } ?? "—"
         default: return "—"
         }
     }
@@ -174,6 +178,10 @@ enum CardPresentation {
             return "\(clusterSubText(a)) · \(clusterSubText(b))"
         case .memory(let s):
             return "고정 \(f1(s.wiredGB)) GB · 압축 \(f1(s.compressedGB)) GB · 스왑 \(f1(s.swapUsedGB)) GB"
+        case .fan(let s):
+            guard !s.fans.isEmpty, let maxMax = s.fans.map(\.maxRPM).max() else { return nil }
+            let avgTarget = s.fans.map(\.targetRPM).reduce(0, +) / Double(s.fans.count)
+            return "목표 \(Int(avgTarget.rounded())) RPM · 최대 \(Int(maxMax.rounded())) RPM"
         case .temperature:
             return nil
         }
@@ -226,6 +234,13 @@ enum CardPresentation {
     /// Bar fill fraction on the fixed 0–110 °C display scale (issue 08 §8). Clamped.
     static func tempBarFraction(_ celsius: Double) -> Double {
         min(1, max(0, celsius / 110.0))
+    }
+
+    /// Fan bar fill fraction = actual / max, clamped to 0…1 (the fan expand's per-fan bar).
+    /// `0` when `max` is non-positive (unreadable), so the row still renders a flat track.
+    static func fanBarFraction(actual: Double, max: Double) -> Double {
+        guard max > 0 else { return 0 }
+        return min(1, Swift.max(0, actual / max))
     }
 
     /// One cluster's "평균 · 최고" summary line for the temperature expand.
