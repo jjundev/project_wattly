@@ -251,66 +251,44 @@ struct SettingsView: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
-                    Text(fanControlStatusText)
-                        .font(WattlyFont.at(11.5, weight: .regular))
-                        .foregroundStyle(t.faint)
-                    ForEach(Array(FanCurve.anchorsCelsius.enumerated()), id: \.offset) { i, temp in
-                        HStack(spacing: 9) {
-                            Text("\(Int(temp))°C")
-                                .font(WattlyFont.at(12, weight: .semibold))
-                                .monospacedDigit()
-                                .foregroundStyle(t.sub)
-                                .frame(width: 44, alignment: .leading)
-                            Slider(value: fanCurveRpmBinding(i), in: 0...8000, step: 100)
-                                .tint(Tokens.accent)
-                            Text("\(Int(fanCurveRpmBinding(i).wrappedValue)) RPM")
-                                .font(WattlyFont.at(12, weight: .bold))
-                                .monospacedDigit()
-                                .foregroundStyle(t.text)
-                                .frame(width: 76, alignment: .trailing)
-                        }
-                        .accessibilityElement(children: .combine)
+                    if let problem = fanControlProblemText {
+                        Text(problem)
+                            .font(WattlyFont.at(11.5, weight: .regular))
+                            .foregroundStyle(t.faint)
                     }
-                    Rectangle().fill(t.line).frame(height: 1)
-                    fanCurvePreview
+                    HStack {
+                        Text("온도 → 팬 속도")
+                            .font(WattlyFont.at(12, weight: .semibold))
+                            .foregroundStyle(t.sub)
+                        Spacer()
+                        Button { fanCurve = Defaults.fanCurve } label: {
+                            Text("기본값")
+                                .font(WattlyFont.at(11, weight: .semibold))
+                                .foregroundStyle(t.sub)
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 3)
+                                .background(RoundedRectangle(cornerRadius: 6).fill(t.cardBg))
+                                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(t.rowBorder, lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("팬 커브 기본값으로 되돌리기")
+                    }
+                    FanCurveEditor(curve: $fanCurve, currentCPU: currentHottestCPU)
                 }
             }
         }
     }
 
-    private var fanCurvePreview: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if let c = currentHottestCPU {
-                (Text("현재 CPU \(Int(c.rounded()))°C → 커브 목표 ")
-                    + Text("\(Int(fanCurve.evaluate(inputCelsius: c).rounded())) RPM")
-                        .foregroundColor(t.text))
-                    .font(WattlyFont.at(12, weight: .regular))
-                    .monospacedDigit()
-                    .foregroundStyle(t.sub)
-            } else {
-                Text("CPU 온도를 읽을 수 없음")
-                    .font(WattlyFont.at(12, weight: .regular))
-                    .foregroundStyle(t.faint)
-            }
-            Text("현재 팬 커브 미리보기")
-                .font(WattlyFont.at(11.5, weight: .regular))
-                .foregroundStyle(t.faint)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private var fanControlStatusText: String {
+    /// Only the *actionable* fan-control states get a line under the toggle. The persistent
+    /// "적용 중"/"자동 제어" copy was dropped (graph redesign 2026-07-15), but a missing helper or
+    /// a control failure still needs to surface — so those (and the transient 연결 중) show, and
+    /// the two nominal states show nothing.
+    private var fanControlProblemText: String? {
         switch fanControl.status.mode {
-        case .unavailable:
-            "도우미 미설치 — scripts/install-fan-helper.sh 실행"
-        case .automatic:
-            "macOS 자동 제어"
-        case .engaging:
-            "수동 제어 연결 중"
-        case .controlling:
-            "팬 커브 적용 중"
-        case .failed:
-            "제어 실패 — macOS 자동 제어로 복귀"
+        case .unavailable: return "도우미 미설치 — scripts/install-fan-helper.sh 실행"
+        case .engaging:    return "수동 제어 연결 중"
+        case .failed:      return "제어 실패 — macOS 자동 제어로 복귀"
+        case .automatic, .controlling: return nil
         }
     }
 
@@ -399,19 +377,6 @@ struct SettingsView: View {
                 var next = thresholds
                 next[keyPath: keyPath] = next[keyPath: keyPath].setting(control, to: newValue)
                 thresholds = next
-            }
-        )
-    }
-
-    /// Clamping `Double` binding into one anchor's RPM; reassigns the whole `FanCurve` so the
-    /// `@AppStorage` re-encodes (same idiom as `thresholdBinding`). Rounds to a whole RPM.
-    private func fanCurveRpmBinding(_ index: Int) -> Binding<Double> {
-        Binding(
-            get: { fanCurve.rpms.indices.contains(index) ? fanCurve.rpms[index] : 0 },
-            set: { newValue in
-                var next = fanCurve
-                if next.rpms.indices.contains(index) { next.rpms[index] = newValue.rounded() }
-                fanCurve = next
             }
         )
     }

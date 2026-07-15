@@ -86,6 +86,7 @@
 		BA684AC2BA23B20C13094637 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 9044978DE889FEBEC87F3486 /* README.md */; };
 		BBADDDEE7D705F9308877FFA /* Sparkline.swift in Sources */ = {isa = PBXBuildFile; fileRef = E16EB2DF75F2A90917F1881D /* Sparkline.swift */; };
 		F1C72B2DD3B6C005070C24A2 /* FanCurveGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86583EB759B3302FC18048B0 /* FanCurveGeometry.swift */; };
+		9D2ACC31526FCD5E599091F6 /* FanCurveEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12EAB022144109A89EF1895 /* FanCurveEditor.swift */; };
 		BD761BDF0E37A136ABC6749E /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30CFB92C90260B259E7D218E /* main.swift */; };
 		BFB09690120FD774F4E0221C /* MenuBarText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE63A3412207498B4F2A877 /* MenuBarText.swift */; };
 		C1C941C245940A942552E3B6 /* Temperature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0721DEAA1855EE4C25F48F35 /* Temperature.swift */; };
@@ -213,6 +214,7 @@
 		E0AD4C82FC1A9EA5F33B69B3 /* CardPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardPresentationTests.swift; sourceTree = "<group>"; };
 		E16EB2DF75F2A90917F1881D /* Sparkline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sparkline.swift; sourceTree = "<group>"; };
 		86583EB759B3302FC18048B0 /* FanCurveGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanCurveGeometry.swift; sourceTree = "<group>"; };
+		E12EAB022144109A89EF1895 /* FanCurveEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanCurveEditor.swift; sourceTree = "<group>"; };
 		E81B47E3252A5121772114A7 /* FanControlPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanControlPolicy.swift; sourceTree = "<group>"; };
 		E92DBEAC072A56D8DCF1D665 /* FanControlEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanControlEngine.swift; sourceTree = "<group>"; };
 		EBCFA8BD7953C7F1E6ED403C /* MemoryProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryProvider.swift; sourceTree = "<group>"; };
@@ -285,6 +287,7 @@
 			isa = PBXGroup;
 			children = (
 				140F7DBFC4FAB83E2B10015A /* FanControlBridge.swift */,
+				E12EAB022144109A89EF1895 /* FanCurveEditor.swift */,
 				70F55E227946867EDB8D1BC9 /* MenuBarLabel.swift */,
 				91C76F1ADD8A1D0EC7C3CCCC /* MetricCardView.swift */,
 				8CB2A49DA4F828109BC87F53 /* PollPolicyBridge.swift */,
@@ -669,6 +672,7 @@
 				1E0778BF5B4D3664E6C18C9B /* SmoothingOverlay.swift in Sources */,
 				BBADDDEE7D705F9308877FFA /* Sparkline.swift in Sources */,
 				F1C72B2DD3B6C005070C24A2 /* FanCurveGeometry.swift in Sources */,
+				9D2ACC31526FCD5E599091F6 /* FanCurveEditor.swift in Sources */,
 				222AEAEE28AEA0F1432E10D0 /* SparklineView.swift in Sources */,
 				F80BC2C8905EECB7EAE8DA5C /* SystemMonitor.swift in Sources */,
 				32A2E4A4DC43E9ED03E0ADA7 /* Temperature.swift in Sources */,
