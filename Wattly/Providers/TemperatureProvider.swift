@@ -235,17 +235,6 @@ final class SMCTemperatureTransport: TemperatureTransport, @unchecked Sendable {
     func close() { smc = nil }   // SMCConnection.deinit closes the io_connect_t
 }
 
-/// `hw.model` (e.g. `Mac17,2`) — selects the verified `TemperatureProfile`. Free function
-/// (not pure) so `TemperatureProvider` can default to it while tests inject a model string.
-func currentHardwareModel() -> String {
-    var size = 0
-    sysctlbyname("hw.model", nil, &size, nil, 0)
-    guard size > 0 else { return "" }
-    var buf = [CChar](repeating: 0, count: size)
-    sysctlbyname("hw.model", &buf, &size, nil, 0)
-    return String(cString: buf)
-}
-
 #if DEBUG
 /// DEBUG re-verification probe (plan 08 Phase 0). Run headless to dump live temps from
 /// the REAL provider + live transport, then exit — for re-checking the M5 profile after

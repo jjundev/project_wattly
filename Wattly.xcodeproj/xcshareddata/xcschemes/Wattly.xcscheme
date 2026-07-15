@@ -21,6 +21,20 @@
                ReferencedContainer = "container:Wattly.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "039B6BDDAF6FEDBD6CC30A32"
+               BuildableName = "WattlyFanDaemon"
+               BlueprintName = "WattlyFanDaemon"
+               ReferencedContainer = "container:Wattly.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
