@@ -61,6 +61,11 @@ struct SettingsView: View {
     @AppStorage(StorageKey.loginItem) private var loginMirror = Defaults.loginItem
     private let loginItem: LoginItemControlling = LoginItem()
 
+    // Re-opens/focuses this window after the helper auth dialog; on a successful install the longer
+    // deactivation can fully CLOSE the accessory app's Settings window, which `NSApp.activate`
+    // alone can't reopen (same idiom as `openSettingsRaised`).
+    @Environment(\.openSettings) private var openSettings
+
     // A short grace window after a curve edit: re-applying the curve makes the daemon blip through
     // a transient `.failed` before it settles on `.controlling`, so within this window that one
     // mode reads as "적용 중…" instead of the alarming "제어 실패". `nil` = no edit in flight.
@@ -330,7 +335,8 @@ struct SettingsView: View {
         // both success and cancel, so cancelling the prompt doesn't take the Settings window with it.
         defer {
             installingHelper = false
-            NSApp.activate(ignoringOtherApps: true)
+            openSettings()                            // reopen if a successful install closed the window
+            NSApp.activate(ignoringOtherApps: true)   // pull the accessory app (with Settings) to front
         }
         do {
             try await FanHelperInstaller.install()
