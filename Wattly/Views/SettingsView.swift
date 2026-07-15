@@ -343,6 +343,18 @@ struct SettingsView: View {
         let raised = priorPolicy != .regular
         if raised { NSApp.setActivationPolicy(.regular) }
 
+        // Keep the Settings window visible UNDER the auth panel for the whole prompt + script run
+        // (~seconds): order it front every 0.4s so it doesn't sink behind other apps. Crucially this
+        // uses `orderFrontRegardless` only — NOT `activate`, which would steal keyboard focus from the
+        // password field. `install()` runs its `osascript` on a background thread, so the main actor
+        // is free to run this loop while we await it.
+        let keepVisible = Task { @MainActor in
+            while !Task.isCancelled {
+                settingsWindow?.orderFrontRegardless()
+                try? await Task.sleep(for: .milliseconds(400))
+            }
+        }
+
         var installed = true
         do {
             try await FanHelperInstaller.install()
@@ -350,6 +362,7 @@ struct SettingsView: View {
             fanControlEnabled = false
             installed = false
         }
+        keepVisible.cancel()
         installingHelper = false
 
         // Re-raise Settings the INSTANT the auth dialog is gone — before the XPC `apply` below.
