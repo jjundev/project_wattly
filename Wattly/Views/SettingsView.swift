@@ -65,6 +65,9 @@ struct SettingsView: View {
     // mode reads as "적용 중…" instead of the alarming "제어 실패". `nil` = no edit in flight.
     @State private var editApplyDeadline: Date?
 
+    // True while the privileged helper install (admin auth prompt) is running.
+    @State private var installingHelper = false
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
@@ -292,6 +295,13 @@ struct SettingsView: View {
                 editApplyDeadline = Date().addingTimeInterval(5)
                 Task { await fanControl.apply(enabled: true, curve: newCurve) }
             }
+            // Turning the opt-in ON while the helper isn't installed auto-runs the in-app installer
+            // (one macOS admin-auth prompt). On success the curve is applied to engage control; if
+            // the user cancels the prompt, revert the toggle so it reflects reality.
+            .onChange(of: fanControlEnabled) { _, enabled in
+                guard enabled, fanControl.status.mode == .unavailable, !installingHelper else { return }
+                Task { await installHelperThenEngage() }
+            }
             // Close the grace window at its deadline so a failure that OUTLASTS the re-apply still
             // surfaces as "제어 실패" even if the daemon sends no further status report (the state
             // change drives the re-render). Restarts on each edit; cancels cleanly on window change.
@@ -307,6 +317,21 @@ struct SettingsView: View {
     /// True while the post-edit grace window is still open.
     private var isWithinApplyGrace: Bool {
         (editApplyDeadline?.timeIntervalSinceNow ?? -1) > 0
+    }
+
+    /// Installs the privileged helper via one admin-auth prompt, then applies the current curve to
+    /// engage control. If the user cancels the prompt (or it fails), revert the opt-in so the toggle
+    /// doesn't claim control that isn't running.
+    @MainActor private func installHelperThenEngage() async {
+        installingHelper = true
+        defer { installingHelper = false }
+        do {
+            try await FanHelperInstaller.install()
+            editApplyDeadline = Date().addingTimeInterval(5)
+            await fanControl.apply(enabled: true, curve: fanCurve)
+        } catch {
+            fanControlEnabled = false
+        }
     }
 
     /// Live control-state indicator: a colored dot + word driven by the opt-in and the
@@ -326,6 +351,7 @@ struct SettingsView: View {
 
     private var fanStatusColor: Color {
         guard fanControlEnabled else { return t.faint }
+        if installingHelper { return Tokens.statusOrange }
         // A `.failed` blip during the post-edit re-apply is recovering, not broken → keep it orange.
         if isWithinApplyGrace, fanControl.status.mode == .failed { return Tokens.statusOrange }
         switch fanControl.status.mode {
@@ -337,6 +363,7 @@ struct SettingsView: View {
 
     private var fanStatusText: String {
         guard fanControlEnabled else { return "꺼짐 · macOS 자동 제어" }
+        if installingHelper { return "도우미 설치 중… (관리자 인증)" }
         // Just after an edit the curve re-engages, and the daemon can blip through `.failed` for a
         // second or two before `.controlling`. Within the grace window show the reassuring "적용 중…"
         // rather than the alarming "제어 실패"; a failure that outlasts the window still surfaces.
@@ -345,7 +372,7 @@ struct SettingsView: View {
         case .controlling: return "적용 중 · 커브대로 제어"
         case .engaging:    return "연결 중…"
         case .automatic:   return "대기 중 · macOS 자동 제어"
-        case .unavailable: return "도우미 미설치 — scripts/install-fan-helper.sh 실행"
+        case .unavailable: return "도우미 미설치 — 토글을 켜면 설치됩니다"
         case .failed:      return "제어 실패 — macOS 자동 제어로 복귀"
         }
     }

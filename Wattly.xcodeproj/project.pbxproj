@@ -85,6 +85,7 @@
 		B84ADFB9A7B85CE18C766236 /* PowerEnergy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10635C5861EA5A327ED9CC2F /* PowerEnergy.swift */; };
 		BA684AC2BA23B20C13094637 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 9044978DE889FEBEC87F3486 /* README.md */; };
 		BBADDDEE7D705F9308877FFA /* Sparkline.swift in Sources */ = {isa = PBXBuildFile; fileRef = E16EB2DF75F2A90917F1881D /* Sparkline.swift */; };
+		2412D5EF9B44D588E4D48860 /* WattlyFanDaemon in Embed Fan Helper */ = {isa = PBXBuildFile; fileRef = C48EFA903806186E968B2D77 /* WattlyFanDaemon */; };
 		F1C72B2DD3B6C005070C24A2 /* FanCurveGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86583EB759B3302FC18048B0 /* FanCurveGeometry.swift */; };
 		9D2ACC31526FCD5E599091F6 /* FanCurveEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12EAB022144109A89EF1895 /* FanCurveEditor.swift */; };
 		BD761BDF0E37A136ABC6749E /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30CFB92C90260B259E7D218E /* main.swift */; };
@@ -101,6 +102,7 @@
 		D43BD771779302A73C41B245 /* CPUProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95D9BB66FA468EDC722C9692 /* CPUProvider.swift */; };
 		D97CEF0FEFA4CF334E3DB6F1 /* SmoothingOverlayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADCD49E78A7446DE396FBE48 /* SmoothingOverlayTests.swift */; };
 		DB1D95D3E3404E6A9FE7C004 /* FanControlClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BF38B0353D3ED11BCAD6D5 /* FanControlClient.swift */; };
+		E9CE764ECB5AAFD8F2C41683 /* FanHelperInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68A44514772BA5AF370D0D56 /* FanHelperInstaller.swift */; };
 		DB5376908CFC7D56976E43DE /* MemoryUsageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F4F7AF2CAC7816F6FA756B2 /* MemoryUsageTests.swift */; };
 		DD797447DC0387B4C33B8A20 /* FanCurve.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E19061EEFC33CF7AA70F56 /* FanCurve.swift */; };
 		E6D4F1BE411CB7202D52B89D /* BatteryPowerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B193EC77CC4F6135B8F3566 /* BatteryPowerTests.swift */; };
@@ -123,7 +125,28 @@
 			remoteGlobalIDString = 6AA7BFBB43C66ED8C791FC43;
 			remoteInfo = Wattly;
 		};
+		E0B5AD6C5CC9D1BB84C82BA6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7ACCBC865A2369A582CFBCD6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 039B6BDDAF6FEDBD6CC30A32;
+			remoteInfo = WattlyFanDaemon;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		1FAF5B894F2D455E536995F1 /* Embed Fan Helper */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "Contents/Helpers";
+			dstSubfolderSpec = 1;
+			files = (
+				2412D5EF9B44D588E4D48860 /* WattlyFanDaemon in Embed Fan Helper */,
+			);
+			name = "Embed Fan Helper";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		00082133CD88B0F35342BB85 /* SparklineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparklineView.swift; sourceTree = "<group>"; };
@@ -132,6 +155,7 @@
 		09A53C49214CBBFA066B1697 /* Fan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fan.swift; sourceTree = "<group>"; };
 		10635C5861EA5A327ED9CC2F /* PowerEnergy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerEnergy.swift; sourceTree = "<group>"; };
 		11BF38B0353D3ED11BCAD6D5 /* FanControlClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanControlClient.swift; sourceTree = "<group>"; };
+		68A44514772BA5AF370D0D56 /* FanHelperInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanHelperInstaller.swift; sourceTree = "<group>"; };
 		140F7DBFC4FAB83E2B10015A /* FanControlBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanControlBridge.swift; sourceTree = "<group>"; };
 		14B2BDFF1DB69E370CC26C75 /* SettingsReset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsReset.swift; sourceTree = "<group>"; };
 		16699BC4854BB993A0BB6073 /* FontRegistration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FontRegistration.swift; sourceTree = "<group>"; };
@@ -279,6 +303,7 @@
 			isa = PBXGroup;
 			children = (
 				11BF38B0353D3ED11BCAD6D5 /* FanControlClient.swift */,
+				68A44514772BA5AF370D0D56 /* FanHelperInstaller.swift */,
 			);
 			path = Control;
 			sourceTree = "<group>";
@@ -493,10 +518,12 @@
 			buildPhases = (
 				596C88E1C025C1A94C297D8C /* Sources */,
 				C2CB2893692AFC5E33BDA57C /* Resources */,
+				1FAF5B894F2D455E536995F1 /* Embed Fan Helper */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				896678C5D041A77D02F67699 /* PBXTargetDependency */,
 			);
 			name = Wattly;
 			packageProductDependencies = (
@@ -634,6 +661,7 @@
 				6D464930823FC1EA22FCC2DB /* Fan.swift in Sources */,
 				F09A382CFB4D0A12620EE56F /* FanControlBridge.swift in Sources */,
 				DB1D95D3E3404E6A9FE7C004 /* FanControlClient.swift in Sources */,
+				E9CE764ECB5AAFD8F2C41683 /* FanHelperInstaller.swift in Sources */,
 				00A74CF529FE67DA3E141D39 /* FanControlEngine.swift in Sources */,
 				F10C0DA94A81731AD5BAEDD8 /* FanControlPolicy.swift in Sources */,
 				7963017E57BF95A4D225224D /* FanControlProtocol.swift in Sources */,
@@ -691,6 +719,11 @@
 			isa = PBXTargetDependency;
 			target = 6AA7BFBB43C66ED8C791FC43 /* Wattly */;
 			targetProxy = 528517CBEDE77F5F82BD7C86 /* PBXContainerItemProxy */;
+		};
+		896678C5D041A77D02F67699 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 039B6BDDAF6FEDBD6CC30A32 /* WattlyFanDaemon */;
+			targetProxy = E0B5AD6C5CC9D1BB84C82BA6 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
