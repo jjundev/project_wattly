@@ -56,6 +56,27 @@ struct FanControlEngineTests {
         #expect(engine.status.detail == "heartbeat expired")
     }
 
+    @Test func reconfigureWhileControllingAdoptsTheNewCurve() throws {
+        // Regression: editing the fan curve while control is already engaged must take effect.
+        // Previously a re-configure was rejected whenever fans were already controlled, so the
+        // daemon kept evaluating the OLD curve and the fan never followed graph edits.
+        let hw = FakeFanControlHardware(modeKey: "F0md", hasFtst: false, hottestCPU: 70,
+                                        limits: FanLimits(minimum: 2000, maximum: 8000))
+        let engine = FanControlEngine(hardware: hw)
+        let base: [Double] = [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400]
+        try engine.configure(.init(enabled: true, curve: .init(rpms: base)), now: 0)
+        try engine.tick(now: 0)                                   // engages + sets target
+        #expect(hw.writes.last == .target(0, 3600))               // evaluate(70) on the base curve
+        #expect(engine.status.mode == .controlling)
+
+        var edited = base
+        edited[8] = 5000                                          // raise the 70°C anchor (index 8)
+        try engine.configure(.init(enabled: true, curve: .init(rpms: edited)), now: 1)
+        try engine.tick(now: 1)
+        #expect(hw.writes.last == .target(0, 5000))               // must adopt the edited curve
+        #expect(engine.status.mode == .controlling)
+    }
+
     @Test func disableInvalidatesPendingEngagementGeneration() throws {
         let hw = FakeFanControlHardware(modeKey: "F0Md", hasFtst: true, hottestCPU: 70,
                                         limits: FanLimits(minimum: 2000, maximum: 6000))
