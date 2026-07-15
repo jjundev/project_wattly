@@ -61,10 +61,6 @@ struct SettingsView: View {
     @AppStorage(StorageKey.loginItem) private var loginMirror = Defaults.loginItem
     private let loginItem: LoginItemControlling = LoginItem()
 
-    // Re-opens/focuses this window after the helper auth dialog; on a successful install the longer
-    // deactivation can fully CLOSE the accessory app's Settings window, which `NSApp.activate`
-    // alone can't reopen (same idiom as `openSettingsRaised`).
-    @Environment(\.openSettings) private var openSettings
 
     // A short grace window after a curve edit: re-applying the curve makes the daemon blip through
     // a transient `.failed` before it settles on `.controlling`, so within this window that one
@@ -344,12 +340,19 @@ struct SettingsView: View {
     /// The admin-auth dialog deactivates this accessory (LSUIElement) app; on the longer success
     /// path macOS fully CLOSES the Settings window, and the auth flow restores focus to the
     /// previously-frontmost app a beat AFTER `osascript` returns — so a single immediate re-raise
-    /// loses that focus race. Reopen + activate several times over ~1s so the last attempt wins
-    /// after focus settles. `openSettings()` reopens a closed window (or focuses an open one).
+    /// loses that focus race. Reopen + activate several times over ~1.2s so the last attempt wins
+    /// after focus settles.
+    ///
+    /// Reopen is driven through the **app responder chain** (`showSettingsWindow:`), NOT the
+    /// `@Environment(\.openSettings)` action: once the window/view is torn down the captured
+    /// SwiftUI action goes inert (no-op), whereas the AppKit selector is app-global and reopens a
+    /// closed Settings scene reliably.
     @MainActor private func restoreSettingsWindow() {
-        for delay in [0.0, 0.3, 0.6, 1.0] {
+        for delay in [0.1, 0.4, 0.8, 1.2] {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                openSettings()
+                if !NSApp.sendAction(NSSelectorFromString("showSettingsWindow:"), to: nil, from: nil) {
+                    NSApp.sendAction(NSSelectorFromString("showPreferencesWindow:"), to: nil, from: nil)
+                }
                 NSApp.activate(ignoringOtherApps: true)
             }
         }
