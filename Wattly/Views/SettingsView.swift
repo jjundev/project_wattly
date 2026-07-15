@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// The settings window (issue 13). SwiftUI `Settings` scene, native window
 /// chrome (the prototype's fake traffic-light titlebar is a web-prototype artifact — a real
@@ -324,7 +325,13 @@ struct SettingsView: View {
     /// doesn't claim control that isn't running.
     @MainActor private func installHelperThenEngage() async {
         installingHelper = true
-        defer { installingHelper = false }
+        // The admin-auth dialog deactivates this accessory (LSUIElement) app, which buries/dismisses
+        // the Settings window (same quirk `openSettingsRaised` handles). Re-raise it afterward, on
+        // both success and cancel, so cancelling the prompt doesn't take the Settings window with it.
+        defer {
+            installingHelper = false
+            NSApp.activate(ignoringOtherApps: true)
+        }
         do {
             try await FanHelperInstaller.install()
             editApplyDeadline = Date().addingTimeInterval(5)
