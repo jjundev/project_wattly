@@ -3,8 +3,9 @@ import Foundation
 /// A CPU-temperature → target-RPM fan curve. The temperature anchors are fixed; only the
 /// four target RPMs are user-editable. `evaluate` is piecewise-linear between anchors.
 struct FanCurve: Equatable, Sendable, RawRepresentable {
-    /// The fixed temperature anchors (°C), ascending — the same for every curve.
-    static let anchorsCelsius: [Double] = [40, 60, 80, 95]
+    /// The fixed temperature anchors (°C), ascending — the same for every curve. 40…100 in 5°
+    /// steps (13 anchors): a fine-grained curve the graph editor exposes as draggable points.
+    static let anchorsCelsius: [Double] = Array(stride(from: 40.0, through: 100.0, by: 5.0))
 
     /// Target RPM at each anchor, parallel to `anchorsCelsius`.
     var rpms: [Double]

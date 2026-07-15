@@ -83,7 +83,7 @@ struct SettingsResetTests {
     @Test func resetWritesDefaultFanCurve() {
         let defaults = makeDefaults(#function)
         // Pre-dirty the key with a non-default value.
-        defaults.set(FanCurve(rpms: [9, 9, 9, 9]).rawValue, forKey: StorageKey.fanCurve)
+        defaults.set(FanCurve(rpms: Array(repeating: 3000, count: 13)).rawValue, forKey: StorageKey.fanCurve)
 
         SettingsReset.applyDefaults(into: defaults)
 
