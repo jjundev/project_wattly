@@ -24,6 +24,22 @@ When enabled, the curve target is clamped to each fan's hardware minimum and max
 
 For the first smoke test, enable the toggle briefly, verify the status and observed fan behavior, then disable it and confirm automatic mode. Perform a cold boot with Macs Fan Control still absent and leave the toggle off initially; this confirms the normal reboot state before any manual control is requested.
 
+## Automated verification record (2026-07-15)
+
+The repository was regenerated with `xcodegen generate` and the complete `Wattly` scheme test suite passed: **288 tests in 28 suites** (`xcodebuild test -project Wattly.xcodeproj -scheme Wattly -destination 'platform=macOS'`). A Debug build also succeeded, producing an executable `WattlyFanDaemon` in the target build directory. The installation and removal scripts passed `zsh -n` syntax validation; the installer resolves that Debug daemon product before performing its privileged copy.
+
+This is automated/build verification only. It did **not** invoke `sudo`, install or uninstall the helper, start the root daemon, or write an SMC key. Those actions require the local owner's presence and password and remain subject to the manual checklist below.
+
+## Manual M5 acceptance checklist (Mac17,2)
+
+Complete these items in person only after confirming that Macs Fan Control is neither running nor installed. Keep Wattly's toggle off before beginning. Do not deliberately drive the machine past 95°C; if that temperature is naturally observed, record whether `F0Tg == F0Mx`.
+
+- [ ] With the UI toggle off, verify `F0md = 0` and macOS automatic fan control.
+- [ ] Enable the toggle; within 10 seconds verify `F0md = 1`, `F0Tg >= F0Mn`, and `F0Ac` follows the target.
+- [ ] Under normal load, record CPU temperature, `F0Tg`, `F0Ac`, `F0Mn`, `F0Mx`, and daemon status.
+- [ ] Quit Wattly without disabling it; within 20 seconds verify watchdog timeout and `F0md = 0`.
+- [ ] Reboot to confirm automatic idle, then cold-boot again with Macs Fan Control absent; enable Wattly and record manual-mode acquisition time.
+
 ## Authorization limitation
 
 The daemon authorizes callers by the UID written during installation and by the audit-token process executable basename `Wattly`. This is intentionally weak authorization: an executable owned by that local user can potentially use the same basename. It is accepted only for this machine's personal local-owner setup, and is not suitable for shared machines or distribution. There is no code-signature authorization in this ad-hoc build.
