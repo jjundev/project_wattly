@@ -5,9 +5,9 @@ import IOKit
 /// strictly read-only; this is the sole adapter that can request manual fan control.
 final class SMCFanControlHardware: FanControlHardware {
     private static let maximumFanCount = 16
-    private let smc: SMCConnection
+    private let smc: SMCControlConnection
 
-    init?(smc: SMCConnection? = SMCConnection()) {
+    init?(smc: SMCControlConnection? = SMCControlConnection()) {
         guard let smc else { return nil }
         self.smc = smc
     }

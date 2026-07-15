@@ -1,9 +1,7 @@
 import Foundation
 import IOKit
 
-/// Minimal `AppleSMC` client (issue 07; reusable for issue 08 temperature and the privileged
-/// fan-control helper). The application-facing fan transport remains read-only; raw writes are
-/// only consumed by the daemon target.
+/// Minimal read-only `AppleSMC` client (issue 07; reusable for issue 08 temperature).
 /// SMC exposes LIVE (~1 s) power sensors the AppleSmartBattery gauge doesn't — `B0AP`
 /// (battery power mW, signed), `B0AV`/`B0AC` (battery mV/mA), `PSTR`/`PDTR`/`PPBR`
 /// (system/adapter/battery W). Verified on Mac17,2 (2026-06-21): every field updates each
@@ -33,7 +31,6 @@ final class SMCConnection: @unchecked Sendable {
         var bytes: Bytes32 = (0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
     }
     private static let cmdRead: UInt8 = 5
-    private static let cmdWrite: UInt8 = 6
     private static let cmdKeyInfo: UInt8 = 9
     private static let kernelIndex: UInt32 = 2
 
@@ -58,16 +55,6 @@ final class SMCConnection: @unchecked Sendable {
         return (kr, output)
     }
 
-    /// Raw SMC key metadata, kept internal so the privileged helper can validate every write.
-    func keyInfo(_ key: String) -> (type: String, size: Int)? {
-        var probe = Param(); probe.key = Self.fourCC(key); probe.data8 = Self.cmdKeyInfo
-        let reply = callStruct(&probe)
-        guard reply.kernel == KERN_SUCCESS else { return nil }
-        let size = Int(reply.output.keyInfo.dataSize)
-        guard (1...32).contains(size) else { return nil }
-        return (Self.string(reply.output.keyInfo.dataType), size)
-    }
-
     /// One 4-char SMC key as its FourCC type label + raw value bytes, or nil if the key is
     /// absent / unreadable (e.g. battery keys on a desktop). Decoding is left to `smcDouble`.
     func read(_ key: String) -> (type: String, bytes: [UInt8])? {
@@ -85,21 +72,6 @@ final class SMCConnection: @unchecked Sendable {
         var tuple = out.bytes
         let bytes = withUnsafeBytes(of: &tuple) { Array($0.prefix(size)) }
         return (Self.string(info.keyInfo.dataType), bytes)
-    }
-
-    /// Issues one raw SMC write. Callers must validate the key's type and exact data size with
-    /// `keyInfo(_:)`; this low-level primitive only accepts SMC's 1...32-byte payload range.
-    func write(_ key: String, bytes: [UInt8]) -> (kernel: kern_return_t, smcResult: UInt8)? {
-        guard (1...32).contains(bytes.count) else { return nil }
-        var request = Param()
-        request.key = Self.fourCC(key)
-        request.keyInfo.dataSize = UInt32(bytes.count)
-        request.data8 = Self.cmdWrite
-        withUnsafeMutableBytes(of: &request.bytes) { destination in
-            destination.copyBytes(from: bytes)
-        }
-        let reply = callStruct(&request)
-        return (reply.kernel, reply.output.result)
     }
 
     private static func fourCC(_ s: String) -> UInt32 { var r: UInt32 = 0; for b in s.utf8.prefix(4) { r = (r << 8) | UInt32(b) }; return r }
