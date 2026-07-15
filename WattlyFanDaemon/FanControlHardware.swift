@@ -57,11 +57,14 @@ final class SMCFanControlHardware: FanControlHardware {
         return reply.kernel == KERN_SUCCESS && reply.smcResult == 0
     }
 
-    func setAutomatic(index: Int, modeKey: String) throws {
-        guard let reply = smc.write(modeKey, bytes: [0]),
-              reply.kernel == KERN_SUCCESS, reply.smcResult == 0 else {
-            throw FanControlFailure.hardware("automatic mode write failed for fan \(index)")
+    func setAutomatic(index: Int, modeKey: String) throws -> Bool {
+        guard try self.modeKey(for: index) == modeKey else {
+            throw FanControlFailure.hardware("automatic mode key changed for fan \(index)")
         }
+        guard let reply = smc.write(modeKey, bytes: [0]) else {
+            throw FanControlFailure.hardware("automatic mode write unavailable")
+        }
+        return reply.kernel == KERN_SUCCESS && reply.smcResult == 0
     }
 
     func limits(for index: Int) throws -> FanLimits {

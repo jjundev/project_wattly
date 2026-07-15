@@ -12,6 +12,7 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
     private var watchdogTimer: DispatchSourceTimer?
     private var signalSources: [DispatchSourceSignal] = []
     private var sleepObserver: NSObjectProtocol?
+    private var listenerResumed = false
 
     private final class Reply: @unchecked Sendable {
         private let callback: (Data?, NSError?) -> Void
@@ -34,7 +35,12 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
 
     func run() {
         listener.delegate = self
-        listener.resume()
+        // Do not expose the Mach service until every discovered fan has acknowledged automatic
+        // mode. If an acknowledgement fails, the timer below retains and retries that fan.
+        queue.sync { [self] in
+            engine.resetAllFansToAutomatic(now: now())
+            resumeListenerIfSafe()
+        }
         startTimers()
         observeSleep()
         observeTerminationSignals()
@@ -89,7 +95,9 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
     }
 
     private func startTimers() {
-        controlTimer = makeTimer(interval: FanControlPolicy.controlInterval)
+        // This drives stateful manual/automatic retries at the policy cadence. The engine
+        // independently limits successful target-RPM writes to `controlInterval`.
+        controlTimer = makeTimer(interval: FanControlPolicy.modeRetryDelay)
         watchdogTimer = makeTimer(interval: FanControlPolicy.heartbeatCheckInterval)
     }
 
@@ -99,6 +107,7 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
         timer.setEventHandler { [weak self] in
             guard let self else { return }
             try? engine.tick(now: now())
+            resumeListenerIfSafe()
         }
         timer.resume()
         return timer
@@ -131,6 +140,13 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
         queue.sync { [self] in
             engine.release(now: now(), reason: reason)
         }
+    }
+
+    /// Must run on `queue`. This keeps listener activation ordered after the startup SMC reset.
+    private func resumeListenerIfSafe() {
+        guard !listenerResumed, engine.isSafeToAcceptClients else { return }
+        listener.resume()
+        listenerResumed = true
     }
 
     private func isAllowedClient(_ connection: NSXPCConnection) -> Bool {
