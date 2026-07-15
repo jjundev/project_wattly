@@ -324,8 +324,17 @@ struct SettingsView: View {
     /// Installs the privileged helper via one admin-auth prompt, then applies the current curve to
     /// engage control. If the user cancels the prompt (or it fails), revert the opt-in so the toggle
     /// doesn't claim control that isn't running.
+    ///
+    /// Window-survival: this is an accessory (LSUIElement) app, and the admin-auth dialog
+    /// deactivates it long enough (on the success path, while the root script runs) for macOS to
+    /// destroy the Settings window — reopening it afterward proved unreliable. So instead we hold a
+    /// **regular activation policy for the duration of the install**: a regular app keeps its windows
+    /// when deactivated, so the Settings window is never torn down. The menubar-only policy (and its
+    /// absent Dock icon) is restored once the window is back up front.
     @MainActor private func installHelperThenEngage() async {
         installingHelper = true
+        let priorPolicy = NSApp.activationPolicy()
+        if priorPolicy != .regular { NSApp.setActivationPolicy(.regular) }
         do {
             try await FanHelperInstaller.install()
             editApplyDeadline = Date().addingTimeInterval(5)
@@ -334,25 +343,11 @@ struct SettingsView: View {
             fanControlEnabled = false
         }
         installingHelper = false
-        restoreSettingsWindow()
-    }
-
-    /// The admin-auth dialog deactivates this accessory (LSUIElement) app; on the longer success
-    /// path macOS fully CLOSES the Settings window, and the auth flow restores focus to the
-    /// previously-frontmost app a beat AFTER `osascript` returns — so a single immediate re-raise
-    /// loses that focus race. Reopen + activate several times over ~1.2s so the last attempt wins
-    /// after focus settles.
-    ///
-    /// Reopen is driven through the **app responder chain** (`showSettingsWindow:`), NOT the
-    /// `@Environment(\.openSettings)` action: once the window/view is torn down the captured
-    /// SwiftUI action goes inert (no-op), whereas the AppKit selector is app-global and reopens a
-    /// closed Settings scene reliably.
-    @MainActor private func restoreSettingsWindow() {
-        for delay in [0.1, 0.4, 0.8, 1.2] {
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                if !NSApp.sendAction(NSSelectorFromString("showSettingsWindow:"), to: nil, from: nil) {
-                    NSApp.sendAction(NSSelectorFromString("showPreferencesWindow:"), to: nil, from: nil)
-                }
+        NSApp.activate(ignoringOtherApps: true)
+        if priorPolicy != .regular {
+            // Restore after the window is front and settled; an immediate switch back can drop it.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                NSApp.setActivationPolicy(priorPolicy)
                 NSApp.activate(ignoringOtherApps: true)
             }
         }
