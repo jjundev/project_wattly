@@ -1,7 +1,9 @@
 import Foundation
 import IOKit
 
-/// Minimal read-only `AppleSMC` client (issue 07; reusable for issue 08 temperature). The
+/// Minimal `AppleSMC` client (issue 07; reusable for issue 08 temperature and the privileged
+/// fan-control helper). The application-facing fan transport remains read-only; raw writes are
+/// only consumed by the daemon target.
 /// SMC exposes LIVE (~1 s) power sensors the AppleSmartBattery gauge doesn't — `B0AP`
 /// (battery power mW, signed), `B0AV`/`B0AC` (battery mV/mA), `PSTR`/`PDTR`/`PPBR`
 /// (system/adapter/battery W). Verified on Mac17,2 (2026-06-21): every field updates each
@@ -31,6 +33,7 @@ final class SMCConnection: @unchecked Sendable {
         var bytes: Bytes32 = (0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
     }
     private static let cmdRead: UInt8 = 5
+    private static let cmdWrite: UInt8 = 6
     private static let cmdKeyInfo: UInt8 = 9
     private static let kernelIndex: UInt32 = 2
 
@@ -47,12 +50,22 @@ final class SMCConnection: @unchecked Sendable {
     }
     deinit { IOServiceClose(connection) }
 
-    private func callStruct(_ input: inout Param) -> Param? {
+    private func callStruct(_ input: inout Param) -> (kernel: kern_return_t, output: Param) {
         var output = Param()
         var outSize = MemoryLayout<Param>.stride
         let kr = IOConnectCallStructMethod(connection, Self.kernelIndex, &input,
                                            MemoryLayout<Param>.stride, &output, &outSize)
-        return kr == KERN_SUCCESS ? output : nil
+        return (kr, output)
+    }
+
+    /// Raw SMC key metadata, kept internal so the privileged helper can validate every write.
+    func keyInfo(_ key: String) -> (type: String, size: Int)? {
+        var probe = Param(); probe.key = Self.fourCC(key); probe.data8 = Self.cmdKeyInfo
+        let reply = callStruct(&probe)
+        guard reply.kernel == KERN_SUCCESS else { return nil }
+        let size = Int(reply.output.keyInfo.dataSize)
+        guard (1...32).contains(size) else { return nil }
+        return (Self.string(reply.output.keyInfo.dataType), size)
     }
 
     /// One 4-char SMC key as its FourCC type label + raw value bytes, or nil if the key is
@@ -60,14 +73,33 @@ final class SMCConnection: @unchecked Sendable {
     func read(_ key: String) -> (type: String, bytes: [UInt8])? {
         let k = Self.fourCC(key)
         var probe = Param(); probe.key = k; probe.data8 = Self.cmdKeyInfo
-        guard let info = callStruct(&probe) else { return nil }
+        let infoReply = callStruct(&probe)
+        guard infoReply.kernel == KERN_SUCCESS else { return nil }
+        let info = infoReply.output
         let size = Int(info.keyInfo.dataSize)
         guard size > 0, size <= 32 else { return nil }
         var request = Param(); request.key = k; request.keyInfo = info.keyInfo; request.data8 = Self.cmdRead
-        guard let out = callStruct(&request) else { return nil }
+        let readReply = callStruct(&request)
+        guard readReply.kernel == KERN_SUCCESS else { return nil }
+        let out = readReply.output
         var tuple = out.bytes
         let bytes = withUnsafeBytes(of: &tuple) { Array($0.prefix(size)) }
         return (Self.string(info.keyInfo.dataType), bytes)
+    }
+
+    /// Issues one raw SMC write. Callers must validate the key's type and exact data size with
+    /// `keyInfo(_:)`; this low-level primitive only accepts SMC's 1...32-byte payload range.
+    func write(_ key: String, bytes: [UInt8]) -> (kernel: kern_return_t, smcResult: UInt8)? {
+        guard (1...32).contains(bytes.count) else { return nil }
+        var request = Param()
+        request.key = Self.fourCC(key)
+        request.keyInfo.dataSize = UInt32(bytes.count)
+        request.data8 = Self.cmdWrite
+        withUnsafeMutableBytes(of: &request.bytes) { destination in
+            destination.copyBytes(from: bytes)
+        }
+        let reply = callStruct(&request)
+        return (reply.kernel, reply.output.result)
     }
 
     private static func fourCC(_ s: String) -> UInt32 { var r: UInt32 = 0; for b in s.utf8.prefix(4) { r = (r << 8) | UInt32(b) }; return r }
