@@ -35,6 +35,7 @@ targets:
     platform: macOS
     sources:
       - path: Wattly
+      - path: FanControlShared
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
@@ -49,6 +50,22 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         SWIFT_EMIT_LOC_STRINGS: YES
+
+  WattlyFanDaemon:
+    type: tool
+    platform: macOS
+    sources:
+      - path: WattlyFanDaemon
+      - path: FanControlShared
+      - path: Wattly/Core/SMC.swift
+      - path: Wattly/Core/BatteryPower.swift
+      - path: Wattly/Core/Temperature.swift
+      - path: Wattly/Core/HardwareModel.swift
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: dev.jjundev.WattlyFanDaemon
+        PRODUCT_NAME: WattlyFanDaemon
 
   WattlyTests:
     type: bundle.unit-test
@@ -70,6 +87,7 @@ schemes:
     build:
       targets:
         Wattly: all
+        WattlyFanDaemon: all
     run:
       config: Debug
     test:

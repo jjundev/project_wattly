@@ -124,6 +124,18 @@ struct FanTests {
         #expect(FanCurve(rawValue: "[1200,2500,4500,8000]")?.rpms == [1200, 2500, 4500, 8000])
     }
 
+    @Test func fanCurveCodableRejectsOutOfRangeFourRPMCurve() {
+        #expect(throws: (any Error).self) {
+            try JSONDecoder().decode(FanCurve.self, from: Data("[1200,2500,4500,20001]".utf8))
+        }
+    }
+
+    @Test func fanCurveCodableRejectsWrongLengthCurve() {
+        #expect(throws: (any Error).self) {
+            try JSONDecoder().decode(FanCurve.self, from: Data("[1200,2500,4500]".utf8))
+        }
+    }
+
     @Test func hottestCPUReturnsMaxHottestAcrossGroups() {
         let snap = TemperatureSnapshot(
             cpu: .reading(TemperatureReading(celsius: 70, groups: [

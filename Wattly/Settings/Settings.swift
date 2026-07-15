@@ -256,6 +256,8 @@ enum Defaults {
     /// Fan curve (Phase B-1): target RPMs at the fixed 40/60/80/95 °C anchors. A gentle ramp
     /// — quiet at idle, spinning up toward the fan's top end under sustained heat.
     static let fanCurve = FanCurve(rpms: [1200, 2500, 4500, 6000])
+    /// Opt-in only: without an explicit user choice the helper is never asked to take over.
+    static let fanControlEnabled = false
 }
 
 /// `@AppStorage` key names. `loginItem` is a mirror of `SMAppService.mainApp`
@@ -275,5 +277,6 @@ enum StorageKey {
     static let cardOrder = "cardOrder"
     static let thresholds = "thresholds"
     static let fanCurve = "fanCurve"
+    static let fanControlEnabled = "fanControlEnabled"
     static let expandedCards = "expandedCards"   // CSV of expanded card raw values (issue 04)
 }

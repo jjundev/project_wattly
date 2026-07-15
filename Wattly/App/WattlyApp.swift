@@ -5,6 +5,7 @@ import SwiftUI
 @main
 struct WattlyApp: App {
     @State private var monitor: SystemMonitor
+    @State private var fanControl = FanControlClient()
 
     init() {
         FontRegistration.register()   // bundle Pretendard before any view renders (A17)
@@ -30,12 +31,15 @@ struct WattlyApp: App {
                 // The bridge is always alive (the label never unmounts), so it owns seeding
                 // the poll policy AND starting the loop — start() lives here, nowhere else.
                 .background(PollPolicyBridge(monitor: monitor))
+                // The fan bridge is likewise always mounted. Closing a Settings window must
+                // never release control; only disabling the persisted opt-in may do that.
+                .background(FanControlBridge(client: fanControl))
         }
         .menuBarExtraStyle(.window)
 
         Settings {
             ThemedRoot {
-                SettingsView(monitor: monitor)
+                SettingsView(monitor: monitor, fanControl: fanControl)
             }
         }
         // Lock the prefs window to its 440-wide content (issue 13 §1) — a Settings NSWindow
