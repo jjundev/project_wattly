@@ -61,8 +61,10 @@ enum FanHelperInstaller {
 
     // MARK: - Internals
 
+    /// The embedded daemon is named after the build product (`WattlyFanDaemon`), NOT the launchd
+    /// label — the install destination below is what carries the `dev.jjundev.` label.
     private static var bundledDaemonURL: URL {
-        Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/\(label)")
+        Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/WattlyFanDaemon")
     }
 
     /// Writes `script` to a temp file and executes it as root via one `osascript` auth prompt.
