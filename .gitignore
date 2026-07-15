@@ -71,3 +71,6 @@ AuthKey_*.p8
 .idea/
 *.swp
 *~
+
+# Agent execution scratch
+.agents/
