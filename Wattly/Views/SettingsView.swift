@@ -342,27 +342,40 @@ struct SettingsView: View {
         let priorPolicy = NSApp.activationPolicy()
         let raised = priorPolicy != .regular
         if raised { NSApp.setActivationPolicy(.regular) }
+
+        var installed = true
         do {
             try await FanHelperInstaller.install()
-            editApplyDeadline = Date().addingTimeInterval(5)
-            await fanControl.apply(enabled: true, curve: fanCurve)
         } catch {
             fanControlEnabled = false
+            installed = false
         }
         installingHelper = false
-        // The auth flow returns focus to the previously-frontmost app a beat after osascript exits,
-        // leaving our window behind it. Re-raise the captured window itself (activate only raises the
-        // app, not this window above other apps') and retry over ~1.3s so the last attempt wins.
-        for _ in 0..<5 {
-            NSApp.activate(ignoringOtherApps: true)
-            settingsWindow?.makeKeyAndOrderFront(nil)
-            settingsWindow?.orderFrontRegardless()
-            try? await Task.sleep(for: .milliseconds(250))
+
+        // Re-raise Settings the INSTANT the auth dialog is gone — before the XPC `apply` below.
+        // `apply` connects to the just-started daemon and can stall for several seconds; doing it
+        // first was what left the window sunk for ~10s. `activate` only raises the app, so drive the
+        // captured window itself with `orderFrontRegardless`.
+        raiseFront(settingsWindow)
+
+        if installed {
+            editApplyDeadline = Date().addingTimeInterval(5)
+            await fanControl.apply(enabled: true, curve: fanCurve)
         }
-        // Drop the transient Dock icon only now, then front the window once more — restoring
-        // `.accessory` while another app is active would otherwise sink it again.
+
+        // Drop the transient Dock icon, then re-front once more (restoring `.accessory` while another
+        // app is active can sink the window), with a couple of retries to win any late focus steal.
         if raised { NSApp.setActivationPolicy(priorPolicy) }
-        settingsWindow?.orderFrontRegardless()
+        for _ in 0..<3 {
+            raiseFront(settingsWindow)
+            try? await Task.sleep(for: .milliseconds(300))
+        }
+    }
+
+    @MainActor private func raiseFront(_ window: NSWindow?) {
+        NSApp.activate(ignoringOtherApps: true)
+        window?.makeKeyAndOrderFront(nil)
+        window?.orderFrontRegardless()
     }
 
     /// Live control-state indicator: a colored dot + word driven by the opt-in and the
