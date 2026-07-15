@@ -333,6 +333,8 @@ struct SettingsView: View {
     /// absent Dock icon) is restored once the window is back up front.
     @MainActor private func installHelperThenEngage() async {
         installingHelper = true
+        // Capture the window the toggle lives in so we can re-raise exactly it afterward.
+        let settingsWindow = NSApp.keyWindow
         let priorPolicy = NSApp.activationPolicy()
         if priorPolicy != .regular { NSApp.setActivationPolicy(.regular) }
         do {
@@ -343,12 +345,23 @@ struct SettingsView: View {
             fanControlEnabled = false
         }
         installingHelper = false
-        NSApp.activate(ignoringOtherApps: true)
-        if priorPolicy != .regular {
-            // Restore after the window is front and settled; an immediate switch back can drop it.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                NSApp.setActivationPolicy(priorPolicy)
+        if priorPolicy != .regular { NSApp.setActivationPolicy(priorPolicy) }
+        raiseSettingsWindow(settingsWindow)
+    }
+
+    /// The `.regular` policy kept the Settings window alive through the auth dialog, but the auth
+    /// flow returns focus to the previously-frontmost app — leaving our window behind it — and
+    /// restoring `.accessory` while another app is active pushes it back too. `activate` alone only
+    /// raises the app, not this specific window above other apps' windows, so drive the window
+    /// itself with `orderFrontRegardless` (works even for an accessory app), retried over ~1s so the
+    /// last attempt lands after focus settles.
+    @MainActor private func raiseSettingsWindow(_ window: NSWindow?) {
+        Task { @MainActor in
+            for _ in 0..<4 {
                 NSApp.activate(ignoringOtherApps: true)
+                window?.makeKeyAndOrderFront(nil)
+                window?.orderFrontRegardless()
+                try? await Task.sleep(for: .milliseconds(350))
             }
         }
     }
