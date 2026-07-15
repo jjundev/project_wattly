@@ -88,12 +88,12 @@ struct FanTests {
 
     /// The full default ramp, reused across the model cases.
     private static let ramp: [Double] =
-        [1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400]
+        [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400]
 
     @Test func fanCurveEvaluateFlatBelowFirstAndAboveLast() {
-        let curve = FanCurve(rpms: Self.ramp)               // anchors 40…100 step 5
-        #expect(curve.evaluate(inputCelsius: 20) == 1000)   // below first anchor → first rpm
-        #expect(curve.evaluate(inputCelsius: 40) == 1000)   // at first anchor
+        let curve = FanCurve(rpms: Self.ramp)               // anchors 30…100 step 5
+        #expect(curve.evaluate(inputCelsius: 20) == 800)    // below first anchor (30) → first rpm
+        #expect(curve.evaluate(inputCelsius: 30) == 800)    // at first anchor
         #expect(curve.evaluate(inputCelsius: 100) == 7400)  // at last anchor
         #expect(curve.evaluate(inputCelsius: 120) == 7400)  // above last → last rpm
     }
@@ -107,31 +107,31 @@ struct FanTests {
     }
 
     @Test func fanCurveRawValueRoundTrips() {
-        let curve = FanCurve(rpms: [1000,1500,2000,2500,3000,3500,4000,4500,5000,5500,6000,6500,7000])
+        let curve = FanCurve(rpms: [500,750,1000,1500,2000,2500,3000,3500,4000,4500,5000,5500,6000,6500,7000])
         #expect(FanCurve(rawValue: curve.rawValue)?.rpms == curve.rpms)
     }
 
     @Test func fanCurveRejectsMalformedRawValue() {
         #expect(FanCurve(rawValue: "") == nil)
         #expect(FanCurve(rawValue: "not json") == nil)
-        #expect(FanCurve(rawValue: "[1,2,3]") == nil)        // wrong count (3, needs 13)
+        #expect(FanCurve(rawValue: "[1,2,3]") == nil)        // wrong count (3, needs 15)
         #expect(FanCurve(rawValue: "[1200,2500,4500,6000]") == nil)  // the OLD 4-length is now rejected
     }
 
     @Test func fanCurveRejectsOutOfRangeRawValue() {
         // A huge finite value would TRAP the `Int(...)` render sites — reject the whole curve so
         // `@AppStorage` falls back to `Defaults.fanCurve`.
-        #expect(FanCurve(rawValue: "[1000,1200,1500,1900,2400,3000,3600,4200,4800,5500,6200,6800,1e19]") == nil)
-        #expect(FanCurve(rawValue: "[-1,1200,1500,1900,2400,3000,3600,4200,4800,5500,6200,6800,7400]") == nil)
-        #expect(FanCurve(rawValue: "[1000,1200,1500,1900,2400,3000,3600,4200,4800,5500,6200,6800,8000]")?.rpms
-                == [1000,1200,1500,1900,2400,3000,3600,4200,4800,5500,6200,6800,8000])
+        #expect(FanCurve(rawValue: "[800,900,1000,1200,1500,1900,2400,3000,3600,4200,4800,5500,6200,6800,1e19]") == nil)
+        #expect(FanCurve(rawValue: "[-1,900,1000,1200,1500,1900,2400,3000,3600,4200,4800,5500,6200,6800,7400]") == nil)
+        #expect(FanCurve(rawValue: "[800,900,1000,1200,1500,1900,2400,3000,3600,4200,4800,5500,6200,6800,8000]")?.rpms
+                == [800,900,1000,1200,1500,1900,2400,3000,3600,4200,4800,5500,6200,6800,8000])
     }
 
     @Test func fanCurveCodableRejectsOutOfRangeCurve() {
         #expect(throws: (any Error).self) {
             try JSONDecoder().decode(
                 FanCurve.self,
-                from: Data("[1000,1200,1500,1900,2400,3000,3600,4200,4800,5500,6200,6800,20001]".utf8))
+                from: Data("[800,900,1000,1200,1500,1900,2400,3000,3600,4200,4800,5500,6200,6800,20001]".utf8))
         }
     }
 

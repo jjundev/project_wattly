@@ -6,7 +6,7 @@ struct FanCurveGeometryTests {
     // A fixed render size → plotRect = (34, 12, 266, 154): minX 34, maxX 300, minY 12, maxY 166.
     private let size = CGSize(width: 312, height: 190)
     private let ramp: [Double] =
-        [1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400]
+        [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400]
 
     @Test func plotRectInsetsTheCanvas() {
         let r = FanCurveGeometry.plotRect(in: size)
@@ -16,7 +16,7 @@ struct FanCurveGeometryTests {
 
     @Test func handlePointsSpanPlotWidthMonotonically() {
         let pts = FanCurveGeometry.handlePoints(ramp, in: size)
-        #expect(pts.count == 13)
+        #expect(pts.count == 15)
         #expect(pts.first!.x == 34)     // first anchor at plot left
         #expect(pts.last!.x == 300)     // last anchor at plot right
         #expect(zip(pts, pts.dropFirst()).allSatisfy { $0.x < $1.x })  // strictly increasing x
@@ -46,8 +46,8 @@ struct FanCurveGeometryTests {
 
     @Test func nearestAnchorIndexPicksClosestColumn() {
         let x70 = FanCurveGeometry.x(forCelsius: 70, in: size)
-        #expect(FanCurveGeometry.nearestAnchorIndex(toX: x70, in: size) == 6)  // 70 °C is anchor 6
+        #expect(FanCurveGeometry.nearestAnchorIndex(toX: x70, in: size) == 8)  // 70 °C is anchor 8 (30,35,…,70)
         #expect(FanCurveGeometry.nearestAnchorIndex(toX: -100, in: size) == 0) // far left → first
-        #expect(FanCurveGeometry.nearestAnchorIndex(toX: 9999, in: size) == 12)// far right → last
+        #expect(FanCurveGeometry.nearestAnchorIndex(toX: 9999, in: size) == 14)// far right → last
     }
 }

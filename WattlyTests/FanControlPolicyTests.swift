@@ -2,7 +2,7 @@ import Testing
 @testable import Wattly
 
 struct FanControlPolicyTests {
-    let curve = FanCurve(rpms: [1000,1200,1500,1900,2400,3000,3600,4200,4800,5500,6200,6800,7400])
+    let curve = FanCurve(rpms: [800,900,1000,1200,1500,1900,2400,3000,3600,4200,4800,5500,6200,6800,7400])
     let limits = FanLimits(minimum: 2317, maximum: 6550)
 
     @Test func curveOnlyRaisesFloor() {
@@ -11,7 +11,7 @@ struct FanControlPolicyTests {
     }
 
     @Test func targetClampsToFanMaximum() {
-        let aggressiveCurve = FanCurve(rpms: Array(repeating: 8000, count: 13))
+        let aggressiveCurve = FanCurve(rpms: Array(repeating: 8000, count: 15))
         #expect(FanControlPolicy.targetRPM(curve: aggressiveCurve, hottestCPU: 90, limits: limits) == 6550)
     }
 

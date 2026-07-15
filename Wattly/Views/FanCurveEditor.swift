@@ -148,7 +148,7 @@ struct FanCurveEditor: View {
 
 #Preview {
     struct Harness: View {
-        @State var curve = FanCurve(rpms: [1000,1200,1500,1900,2400,3000,3600,4200,4800,5500,6200,6800,7400])
+        @State var curve = FanCurve(rpms: [800,900,1000,1200,1500,1900,2400,3000,3600,4200,4800,5500,6200,6800,7400])
         var body: some View {
             FanCurveEditor(curve: $curve, currentCPU: 62)
                 .padding()

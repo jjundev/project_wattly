@@ -7,7 +7,7 @@ struct FanControlEngineTests {
         let hw = FakeFanControlHardware(modeKey: "F0md", hasFtst: false, hottestCPU: 40,
                                         limits: FanLimits(minimum: 2317, maximum: 6550))
         let engine = FanControlEngine(hardware: hw, sleeper: { _ in })
-        try engine.configure(.init(enabled: true, curve: .init(rpms: [1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 0)
+        try engine.configure(.init(enabled: true, curve: .init(rpms: [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 0)
         try engine.tick(now: 0)
         #expect(hw.writes == [.mode("F0md", 1), .target(0, 2317)])
         #expect(hw.forceTestWrites == 0)
@@ -17,7 +17,7 @@ struct FanControlEngineTests {
         let hw = FakeFanControlHardware(modeKey: "F0Md", hasFtst: true, modeFailures: 2, hottestCPU: 70,
                                         limits: FanLimits(minimum: 2000, maximum: 6000))
         let engine = FanControlEngine(hardware: hw)
-        try engine.configure(.init(enabled: true, curve: .init(rpms: [1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 0)
+        try engine.configure(.init(enabled: true, curve: .init(rpms: [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 0)
         try engine.tick(now: 0)
         #expect(hw.modeAttempts == 0)
         try engine.tick(now: 0.5)
@@ -32,7 +32,7 @@ struct FanControlEngineTests {
         let hw = FakeFanControlHardware(modeKey: "F0Md", hasFtst: true, hottestCPU: 70,
                                         limits: FanLimits(minimum: 2000, maximum: 6000))
         let engine = FanControlEngine(hardware: hw)
-        try engine.configure(.init(enabled: true, curve: .init(rpms: [1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 10)
+        try engine.configure(.init(enabled: true, curve: .init(rpms: [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 10)
         try engine.tick(now: 10)
         #expect(hw.forceTestWrites == 1)
         #expect(hw.modeAttempts == 0)
@@ -46,7 +46,7 @@ struct FanControlEngineTests {
         let hw = FakeFanControlHardware(modeKey: "F0md", hasFtst: false, modeFailures: 99, hottestCPU: 70,
                                         limits: FanLimits(minimum: 2000, maximum: 6000))
         let engine = FanControlEngine(hardware: hw)
-        try engine.configure(.init(enabled: true, curve: .init(rpms: [1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 0)
+        try engine.configure(.init(enabled: true, curve: .init(rpms: [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 0)
         try engine.tick(now: 0)
         #expect(hw.modeAttempts == 1)
         try engine.tick(now: 0.1)
@@ -60,7 +60,7 @@ struct FanControlEngineTests {
         let hw = FakeFanControlHardware(modeKey: "F0Md", hasFtst: true, hottestCPU: 70,
                                         limits: FanLimits(minimum: 2000, maximum: 6000))
         let engine = FanControlEngine(hardware: hw)
-        let enabled = FanControlConfiguration(enabled: true, curve: .init(rpms: [1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400]))
+        let enabled = FanControlConfiguration(enabled: true, curve: .init(rpms: [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400]))
         try engine.configure(enabled, now: 0)
         try engine.tick(now: 0) // Ftst schedules the delayed legacy attempt.
         try engine.configure(.init(enabled: false, curve: enabled.curve), now: 0.1)
@@ -73,7 +73,7 @@ struct FanControlEngineTests {
         let hw = FakeFanControlHardware(modeKey: "F0md", hasFtst: false, hottestCPU: 70,
                                         limits: FanLimits(minimum: 2000, maximum: 6000))
         let engine = FanControlEngine(hardware: hw, sleeper: { _ in })
-        try engine.configure(.init(enabled: true, curve: .init(rpms: [1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 0)
+        try engine.configure(.init(enabled: true, curve: .init(rpms: [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 0)
         try engine.tick(now: 0)
         try engine.tick(now: 15)
         #expect(hw.writes.last == .mode("F0md", 0))
@@ -84,9 +84,9 @@ struct FanControlEngineTests {
         let hw = FakeFanControlHardware(modeKey: "F0md", hasFtst: false, hottestCPU: 70,
                                         limits: FanLimits(minimum: 2000, maximum: 6000))
         let engine = FanControlEngine(hardware: hw, sleeper: { _ in })
-        try engine.configure(.init(enabled: true, curve: .init(rpms: [1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 0)
+        try engine.configure(.init(enabled: true, curve: .init(rpms: [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 0)
         try engine.tick(now: 0)
-        try engine.configure(.init(enabled: false, curve: .init(rpms: [1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 1)
+        try engine.configure(.init(enabled: false, curve: .init(rpms: [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 1)
         #expect(hw.writes.last == .mode("F0md", 0))
     }
 
@@ -94,7 +94,7 @@ struct FanControlEngineTests {
         let hw = FakeFanControlHardware(modeKey: "F0md", hasFtst: false, hottestCPU: 70,
                                         limits: FanLimits(minimum: 2000, maximum: 6000))
         let engine = FanControlEngine(hardware: hw, sleeper: { _ in })
-        try engine.configure(.init(enabled: true, curve: .init(rpms: [1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 0)
+        try engine.configure(.init(enabled: true, curve: .init(rpms: [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 0)
         try engine.tick(now: 0)
         hw.hottestCPU = nil
         try engine.tick(now: 1)
@@ -106,7 +106,7 @@ struct FanControlEngineTests {
                                         limits: FanLimits(minimum: 2000, maximum: 6000))
         let engine = FanControlEngine(hardware: hw)
         #expect(throws: FanControlFailure.self) {
-            try engine.configure(.init(enabled: true, curve: .init(rpms: [1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 0)
+            try engine.configure(.init(enabled: true, curve: .init(rpms: [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 0)
             for now in stride(from: 0.0, through: 10.0, by: 0.5) {
                 try engine.tick(now: now)
             }
@@ -121,7 +121,7 @@ struct FanControlEngineTests {
                                         limits: FanLimits(minimum: 2000, maximum: 6000))
         let engine = FanControlEngine(hardware: hw)
         let configuration = FanControlConfiguration(enabled: true,
-                                                    curve: .init(rpms: [1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400]))
+                                                    curve: .init(rpms: [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400]))
 
         // This models independently-connected XPC requests arriving in reverse order.
         engine.release(now: 0, reason: "앱에서 해제", clientGeneration: 2)
@@ -136,7 +136,7 @@ struct FanControlEngineTests {
         let hw = FakeFanControlHardware(modeKey: "F0md", hasFtst: false, hottestCPU: 70,
                                         limits: FanLimits(minimum: 2000, maximum: 6000))
         let engine = FanControlEngine(hardware: hw)
-        try engine.configure(.init(enabled: true, curve: .init(rpms: [1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 0)
+        try engine.configure(.init(enabled: true, curve: .init(rpms: [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 0)
         try engine.tick(now: 0)
         hw.automaticFailuresByFan[0] = 2
 
@@ -152,13 +152,13 @@ struct FanControlEngineTests {
         let hw = FakeFanControlHardware(modeKey: "F0md", hasFtst: false, hottestCPU: 70,
                                         limits: FanLimits(minimum: 2000, maximum: 6000))
         let engine = FanControlEngine(hardware: hw)
-        try engine.configure(.init(enabled: true, curve: .init(rpms: [1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 0)
+        try engine.configure(.init(enabled: true, curve: .init(rpms: [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 0)
         try engine.tick(now: 0)
         hw.automaticFailuresByFan[0] = 1
         engine.release(now: 1, reason: "test release")
         #expect(engine.status.mode == .failed)
         #expect(hw.automaticAttempts == 1)
-        try engine.configure(.init(enabled: true, curve: .init(rpms: [1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 1.1)
+        try engine.configure(.init(enabled: true, curve: .init(rpms: [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 1.1)
         #expect(engine.status.mode == .failed)
         try engine.tick(now: 1.49)
         #expect(hw.automaticAttempts == 1)
@@ -189,7 +189,7 @@ struct FanControlEngineTests {
                                         limits: FanLimits(minimum: 2000, maximum: 6000))
         let engine = FanControlEngine(hardware: hw, sleeper: { _ in })
         #expect(throws: FanControlFailure.self) {
-            try engine.configure(.init(enabled: true, curve: .init(rpms: [1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 0)
+            try engine.configure(.init(enabled: true, curve: .init(rpms: [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])), now: 0)
             for now in stride(from: 0.0, through: 10.0, by: 0.5) {
                 try engine.tick(now: now)
             }
