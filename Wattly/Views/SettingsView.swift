@@ -302,7 +302,10 @@ struct SettingsView: View {
             // the user cancels the prompt, revert the toggle so it reflects reality.
             .onChange(of: fanControlEnabled) { _, enabled in
                 guard enabled, fanControl.status.mode == .unavailable, !installingHelper else { return }
-                Task { await installHelperThenEngage() }
+                // Capture the Settings window HERE, synchronously — the toggle lives in it, so it is
+                // the key window right now. Reading it later (inside the async task) can race.
+                let window = NSApp.keyWindow
+                Task { await installHelperThenEngage(settingsWindow: window) }
             }
             // Close the grace window at its deadline so a failure that OUTLASTS the re-apply still
             // surfaces as "제어 실패" even if the daemon sends no further status report (the state
@@ -331,12 +334,14 @@ struct SettingsView: View {
     /// **regular activation policy for the duration of the install**: a regular app keeps its windows
     /// when deactivated, so the Settings window is never torn down. The menubar-only policy (and its
     /// absent Dock icon) is restored once the window is back up front.
-    @MainActor private func installHelperThenEngage() async {
+    @MainActor private func installHelperThenEngage(settingsWindow: NSWindow?) async {
         installingHelper = true
-        // Capture the window the toggle lives in so we can re-raise exactly it afterward.
-        let settingsWindow = NSApp.keyWindow
+        // Hold a regular activation policy across the whole flow: it keeps the Settings window
+        // alive through the auth-dialog deactivation AND lets it layer like a normal app's window
+        // while we re-raise it (an accessory app's window sinks behind the active app).
         let priorPolicy = NSApp.activationPolicy()
-        if priorPolicy != .regular { NSApp.setActivationPolicy(.regular) }
+        let raised = priorPolicy != .regular
+        if raised { NSApp.setActivationPolicy(.regular) }
         do {
             try await FanHelperInstaller.install()
             editApplyDeadline = Date().addingTimeInterval(5)
@@ -345,25 +350,19 @@ struct SettingsView: View {
             fanControlEnabled = false
         }
         installingHelper = false
-        if priorPolicy != .regular { NSApp.setActivationPolicy(priorPolicy) }
-        raiseSettingsWindow(settingsWindow)
-    }
-
-    /// The `.regular` policy kept the Settings window alive through the auth dialog, but the auth
-    /// flow returns focus to the previously-frontmost app — leaving our window behind it — and
-    /// restoring `.accessory` while another app is active pushes it back too. `activate` alone only
-    /// raises the app, not this specific window above other apps' windows, so drive the window
-    /// itself with `orderFrontRegardless` (works even for an accessory app), retried over ~1s so the
-    /// last attempt lands after focus settles.
-    @MainActor private func raiseSettingsWindow(_ window: NSWindow?) {
-        Task { @MainActor in
-            for _ in 0..<4 {
-                NSApp.activate(ignoringOtherApps: true)
-                window?.makeKeyAndOrderFront(nil)
-                window?.orderFrontRegardless()
-                try? await Task.sleep(for: .milliseconds(350))
-            }
+        // The auth flow returns focus to the previously-frontmost app a beat after osascript exits,
+        // leaving our window behind it. Re-raise the captured window itself (activate only raises the
+        // app, not this window above other apps') and retry over ~1.3s so the last attempt wins.
+        for _ in 0..<5 {
+            NSApp.activate(ignoringOtherApps: true)
+            settingsWindow?.makeKeyAndOrderFront(nil)
+            settingsWindow?.orderFrontRegardless()
+            try? await Task.sleep(for: .milliseconds(250))
         }
+        // Drop the transient Dock icon only now, then front the window once more — restoring
+        // `.accessory` while another app is active would otherwise sink it again.
+        if raised { NSApp.setActivationPolicy(priorPolicy) }
+        settingsWindow?.orderFrontRegardless()
     }
 
     /// Live control-state indicator: a colored dot + word driven by the opt-in and the
