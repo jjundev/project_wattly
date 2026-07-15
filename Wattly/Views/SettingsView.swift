@@ -330,20 +330,28 @@ struct SettingsView: View {
     /// doesn't claim control that isn't running.
     @MainActor private func installHelperThenEngage() async {
         installingHelper = true
-        // The admin-auth dialog deactivates this accessory (LSUIElement) app, which buries/dismisses
-        // the Settings window (same quirk `openSettingsRaised` handles). Re-raise it afterward, on
-        // both success and cancel, so cancelling the prompt doesn't take the Settings window with it.
-        defer {
-            installingHelper = false
-            openSettings()                            // reopen if a successful install closed the window
-            NSApp.activate(ignoringOtherApps: true)   // pull the accessory app (with Settings) to front
-        }
         do {
             try await FanHelperInstaller.install()
             editApplyDeadline = Date().addingTimeInterval(5)
             await fanControl.apply(enabled: true, curve: fanCurve)
         } catch {
             fanControlEnabled = false
+        }
+        installingHelper = false
+        restoreSettingsWindow()
+    }
+
+    /// The admin-auth dialog deactivates this accessory (LSUIElement) app; on the longer success
+    /// path macOS fully CLOSES the Settings window, and the auth flow restores focus to the
+    /// previously-frontmost app a beat AFTER `osascript` returns — so a single immediate re-raise
+    /// loses that focus race. Reopen + activate several times over ~1s so the last attempt wins
+    /// after focus settles. `openSettings()` reopens a closed window (or focuses an open one).
+    @MainActor private func restoreSettingsWindow() {
+        for delay in [0.0, 0.3, 0.6, 1.0] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                openSettings()
+                NSApp.activate(ignoringOtherApps: true)
+            }
         }
     }
 
