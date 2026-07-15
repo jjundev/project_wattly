@@ -15,4 +15,10 @@ struct FanControlProtocolTests {
             try FanControlCodec.decode(FanControlConfiguration.self, from: Data("{}".utf8))
         }
     }
+
+    @Test func controllingStatusRoundTrips() throws {
+        let input = FanControlServiceStatus(mode: .controlling, detail: "CPU 70°C", updatedAt: 100)
+        #expect(try FanControlCodec.decode(FanControlServiceStatus.self,
+                                          from: FanControlCodec.encode(input)) == input)
+    }
 }

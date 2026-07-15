@@ -61,6 +61,8 @@ targets:
       - path: Wattly/Core/BatteryPower.swift
       - path: Wattly/Core/Temperature.swift
       - path: Wattly/Core/HardwareModel.swift
+    resources:
+      - path: Resources/com.dev.jjundev.WattlyFanDaemon.plist
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
