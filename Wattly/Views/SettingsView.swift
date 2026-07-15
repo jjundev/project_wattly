@@ -240,22 +240,21 @@ struct SettingsView: View {
 
     private var fanCurveSection: some View {
         SettingsSection(title: "팬 커브") {
-            SettingsCard(padding: 14) {
-                VStack(alignment: .leading, spacing: 12) {
-                    SettingsToggleRow(isOn: $fanControlEnabled, divider: true) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            rowTitle("팬 커브 실제 적용")
-                            Text("Wattly가 macOS 기본 최소 RPM 이상으로만 팬을 제어합니다. Macs Fan Control은 종료해야 합니다.")
-                                .font(WattlyFont.at(11.5, weight: .regular))
-                                .foregroundStyle(t.faint)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    if let problem = fanControlProblemText {
-                        Text(problem)
+            // Card padding stays 0: the toggle row self-pads (its own 14) so its divider spans the
+            // full card width, and the graph block below adds a matching 14 inset — otherwise the
+            // padded card double-insets the toggle row and misaligns it against the graph.
+            SettingsCard {
+                SettingsToggleRow(isOn: $fanControlEnabled, divider: true) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        rowTitle("팬 커브 실제 적용")
+                        Text("Wattly가 macOS 기본 최소 RPM 이상으로만 팬을 제어합니다. Macs Fan Control은 종료해야 합니다.")
                             .font(WattlyFont.at(11.5, weight: .regular))
                             .foregroundStyle(t.faint)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
+                }
+                VStack(alignment: .leading, spacing: 12) {
+                    fanStatusIndicator
                     HStack {
                         Text("온도 → 팬 속도")
                             .font(WattlyFont.at(12, weight: .semibold))
@@ -275,20 +274,53 @@ struct SettingsView: View {
                     }
                     FanCurveEditor(curve: $fanCurve, currentCPU: currentHottestCPU)
                 }
+                .padding(EdgeInsets(top: 12, leading: 14, bottom: 14, trailing: 14))
+            }
+            // Live-apply: the fan bridge observes `fanCurve` through an @AppStorage of a custom
+            // RawRepresentable type, whose `onChange` does NOT fire on THIS window's writes (the
+            // Bool `enabled` toggle does — hence toggling re-applied but editing didn't). Push the
+            // edited curve to the client from here, the instance that actually mutates it. Guarded
+            // on the opt-in; a double-apply if the bridge ever fires too is harmless (the client's
+            // commands are generation-stamped, last-write-wins).
+            .onChange(of: fanCurve) { _, newCurve in
+                guard fanControlEnabled else { return }
+                Task { await fanControl.apply(enabled: true, curve: newCurve) }
             }
         }
     }
 
-    /// Only the *actionable* fan-control states get a line under the toggle. The persistent
-    /// "적용 중"/"자동 제어" copy was dropped (graph redesign 2026-07-15), but a missing helper or
-    /// a control failure still needs to surface — so those (and the transient 연결 중) show, and
-    /// the two nominal states show nothing.
-    private var fanControlProblemText: String? {
+    /// Live control-state indicator: a colored dot + word driven by the opt-in and the
+    /// daemon-reported `status.mode`, so the user can tell whether the current curve is actually
+    /// being applied (green 적용 중) — not just when something is wrong. Reading `fanControl.status`
+    /// in `body` tracks the @Observable client's updates.
+    private var fanStatusIndicator: some View {
+        HStack(spacing: 6) {
+            Circle().fill(fanStatusColor).frame(width: 7, height: 7)
+            Text(fanStatusText)
+                .font(WattlyFont.at(11.5, weight: .medium))
+                .foregroundStyle(t.sub)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var fanStatusColor: Color {
+        guard fanControlEnabled else { return t.faint }
         switch fanControl.status.mode {
+        case .controlling:          return Tokens.statusGreen
+        case .engaging, .automatic: return Tokens.statusOrange
+        case .unavailable, .failed: return Tokens.statusRed
+        }
+    }
+
+    private var fanStatusText: String {
+        guard fanControlEnabled else { return "꺼짐 · macOS 자동 제어" }
+        switch fanControl.status.mode {
+        case .controlling: return "적용 중 · 커브대로 제어"
+        case .engaging:    return "연결 중…"
+        case .automatic:   return "대기 중 · macOS 자동 제어"
         case .unavailable: return "도우미 미설치 — scripts/install-fan-helper.sh 실행"
-        case .engaging:    return "수동 제어 연결 중"
         case .failed:      return "제어 실패 — macOS 자동 제어로 복귀"
-        case .automatic, .controlling: return nil
         }
     }
 

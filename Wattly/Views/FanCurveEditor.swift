@@ -70,9 +70,13 @@ struct FanCurveEditor: View {
             var line = Path(); line.addLines(pts)
             ctx.stroke(line, with: .color(Tokens.accent), style: StrokeStyle(lineWidth: 2, lineJoin: .round))
 
-            // live-CPU marker (dashed vertical + dot on the curve + label)
-            if let cpu = currentCPU, cpu >= FanCurveGeometry.celsiusMin, cpu <= FanCurveGeometry.celsiusMax {
-                let x = FanCurveGeometry.x(forCelsius: cpu, in: size)
+            // live-CPU marker (dashed vertical + dot on the curve + label). Clamp the x to the
+            // plot's temperature range so the marker stays visible when the CPU idles below the
+            // first anchor (40°C) or spikes above the last (100°C) — it pins to the edge instead
+            // of vanishing. The label still shows the true reading.
+            if let cpu = currentCPU {
+                let markerC = min(max(cpu, FanCurveGeometry.celsiusMin), FanCurveGeometry.celsiusMax)
+                let x = FanCurveGeometry.x(forCelsius: markerC, in: size)
                 let yv = FanCurveGeometry.y(forRPM: curve.evaluate(inputCelsius: cpu), in: size)
                 var m = Path(); m.move(to: CGPoint(x: x, y: rect.minY)); m.addLine(to: CGPoint(x: x, y: rect.maxY))
                 ctx.stroke(m, with: .color(Tokens.statusOrange), style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
