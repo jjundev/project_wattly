@@ -60,6 +60,11 @@ struct SettingsView: View {
     @AppStorage(StorageKey.loginItem) private var loginMirror = Defaults.loginItem
     private let loginItem: LoginItemControlling = LoginItem()
 
+    // A short grace window after a curve edit: re-applying the curve makes the daemon blip through
+    // a transient `.failed` before it settles on `.controlling`, so within this window that one
+    // mode reads as "적용 중…" instead of the alarming "제어 실패". `nil` = no edit in flight.
+    @State private var editApplyDeadline: Date?
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
@@ -284,9 +289,24 @@ struct SettingsView: View {
             // commands are generation-stamped, last-write-wins).
             .onChange(of: fanCurve) { _, newCurve in
                 guard fanControlEnabled else { return }
+                editApplyDeadline = Date().addingTimeInterval(5)
                 Task { await fanControl.apply(enabled: true, curve: newCurve) }
             }
+            // Close the grace window at its deadline so a failure that OUTLASTS the re-apply still
+            // surfaces as "제어 실패" even if the daemon sends no further status report (the state
+            // change drives the re-render). Restarts on each edit; cancels cleanly on window change.
+            .task(id: editApplyDeadline) {
+                guard let deadline = editApplyDeadline else { return }
+                let remaining = deadline.timeIntervalSinceNow
+                if remaining > 0 { try? await Task.sleep(for: .seconds(remaining)) }
+                if !Task.isCancelled { editApplyDeadline = nil }
+            }
         }
+    }
+
+    /// True while the post-edit grace window is still open.
+    private var isWithinApplyGrace: Bool {
+        (editApplyDeadline?.timeIntervalSinceNow ?? -1) > 0
     }
 
     /// Live control-state indicator: a colored dot + word driven by the opt-in and the
@@ -306,6 +326,8 @@ struct SettingsView: View {
 
     private var fanStatusColor: Color {
         guard fanControlEnabled else { return t.faint }
+        // A `.failed` blip during the post-edit re-apply is recovering, not broken → keep it orange.
+        if isWithinApplyGrace, fanControl.status.mode == .failed { return Tokens.statusOrange }
         switch fanControl.status.mode {
         case .controlling:          return Tokens.statusGreen
         case .engaging, .automatic: return Tokens.statusOrange
@@ -315,6 +337,10 @@ struct SettingsView: View {
 
     private var fanStatusText: String {
         guard fanControlEnabled else { return "꺼짐 · macOS 자동 제어" }
+        // Just after an edit the curve re-engages, and the daemon can blip through `.failed` for a
+        // second or two before `.controlling`. Within the grace window show the reassuring "적용 중…"
+        // rather than the alarming "제어 실패"; a failure that outlasts the window still surfaces.
+        if isWithinApplyGrace, fanControl.status.mode == .failed { return "적용 중…" }
         switch fanControl.status.mode {
         case .controlling: return "적용 중 · 커브대로 제어"
         case .engaging:    return "연결 중…"
