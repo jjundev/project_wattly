@@ -59,8 +59,8 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
         queue.async { [weak self] in
             guard let self else { return }
             do {
-                let configuration = try FanControlCodec.decode(FanControlConfiguration.self, from: data)
-                try engine.configure(configuration, now: now())
+                let request = try FanControlCodec.decode(FanControlConfigurationRequest.self, from: data)
+                try engine.configure(request.configuration, clientGeneration: request.generation, now: now())
                 reply.send((try encodedStatus(), nil))
             } catch {
                 reply.send((nil, error as NSError))
@@ -77,12 +77,17 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
         }
     }
 
-    func release(withReply reply: @escaping (Data?, NSError?) -> Void) {
+    func release(_ data: Data, withReply reply: @escaping (Data?, NSError?) -> Void) {
         let reply = Reply(reply)
         queue.async { [weak self] in
             guard let self else { return }
-            engine.release(now: now(), reason: "앱에서 해제")
-            reply.send(statusResult())
+            do {
+                let request = try FanControlCodec.decode(FanControlReleaseRequest.self, from: data)
+                engine.release(now: now(), reason: "앱에서 해제", clientGeneration: request.generation)
+                reply.send(statusResult())
+            } catch {
+                reply.send((nil, error as NSError))
+            }
         }
     }
 
@@ -128,17 +133,28 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
             signal(signalNumber, SIG_IGN)
             let source = DispatchSource.makeSignalSource(signal: signalNumber, queue: .main)
             source.setEventHandler { [weak self] in
-                self?.releaseSynchronously(reason: "daemon terminated")
-                exit(0)
+                // Do not terminate while a controlled fan lacks a confirmed mode-0 write. A
+                // bounded synchronous recovery gives shutdown a fast path; on failure, leave the
+                // daemon alive so its normal timer keeps retrying the retained fan ownership.
+                if self?.releaseSynchronously(reason: "daemon terminated") == true {
+                    exit(0)
+                }
             }
             source.resume()
             signalSources.append(source)
         }
     }
 
-    private func releaseSynchronously(reason: String) {
+    @discardableResult
+    private func releaseSynchronously(reason: String) -> Bool {
         queue.sync { [self] in
             engine.release(now: now(), reason: reason)
+            let deadline = now() + FanControlPolicy.modeRetryDeadline
+            while true {
+                if engine.recoverAutomaticSynchronously(now: now()) { return true }
+                guard now() < deadline else { return false }
+                Thread.sleep(forTimeInterval: FanControlPolicy.modeRetryDelay)
+            }
         }
     }
 

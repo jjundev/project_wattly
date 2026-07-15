@@ -5,6 +5,18 @@ struct FanControlConfiguration: Codable, Equatable, Sendable {
     var curve: FanCurve
 }
 
+/// Every state-changing app request carries a client-issued generation. The helper ignores a
+/// request that arrives after a newer request, which prevents a delayed enable from undoing a
+/// later disable when the two calls use separate XPC connections.
+struct FanControlConfigurationRequest: Codable, Equatable, Sendable {
+    var configuration: FanControlConfiguration
+    var generation: UInt64
+}
+
+struct FanControlReleaseRequest: Codable, Equatable, Sendable {
+    var generation: UInt64
+}
+
 enum FanControlServiceMode: String, Codable, Equatable, Sendable {
     case unavailable, automatic, engaging, controlling, failed
 }
@@ -29,7 +41,7 @@ enum FanControlCodec {
 protocol FanControlXPCService {
     func configure(_ data: Data, withReply reply: @escaping (Data?, NSError?) -> Void)
     func heartbeat(withReply reply: @escaping (Data?, NSError?) -> Void)
-    func release(withReply reply: @escaping (Data?, NSError?) -> Void)
+    func release(_ data: Data, withReply reply: @escaping (Data?, NSError?) -> Void)
     func status(withReply reply: @escaping (Data?, NSError?) -> Void)
 }
 

@@ -36,6 +36,7 @@ final class FanControlEngine {
     private let hardware: any FanControlHardware
     private var configuration: FanControlConfiguration?
     private var configurationGeneration: UInt64 = 0
+    private var latestClientCommandGeneration: UInt64?
     private var lastHeartbeat: TimeInterval?
     private var controlled: [ControlledFan] = []
     private var pendingManual: [PendingManual] = []
@@ -62,14 +63,29 @@ final class FanControlEngine {
         self.init(hardware: hardware)
     }
 
+    /// Convenience entry point for in-process callers and tests. XPC callers must use their
+    /// client-issued generation overload below.
     func configure(_ configuration: FanControlConfiguration, now: TimeInterval) throws {
+        configureAccepted(configuration, now: now)
+    }
+
+    /// Applies a state-changing client command only if it is newer than every accepted command.
+    /// This is deliberately checked by the helper, rather than relying on XPC delivery order.
+    func configure(_ configuration: FanControlConfiguration,
+                   clientGeneration: UInt64,
+                   now: TimeInterval) throws {
+        guard acceptClientCommand(generation: clientGeneration) else { return }
+        configureAccepted(configuration, now: now)
+    }
+
+    private func configureAccepted(_ configuration: FanControlConfiguration, now: TimeInterval) {
         configurationGeneration &+= 1
         pendingManual.removeAll()
         engagementGeneration = nil
         nextTargetUpdateAt = nil
 
         guard configuration.enabled else {
-            release(now: now, reason: "control disabled")
+            releaseAccepted(now: now, reason: "control disabled")
             return
         }
         guard controlled.isEmpty else {
@@ -163,6 +179,17 @@ final class FanControlEngine {
     /// Begins automatic-mode recovery. A failed write intentionally retains the fan in
     /// `controlled`; ownership is cleared only after the SMC acknowledges automatic mode.
     func release(now: TimeInterval, reason: String) {
+        releaseAccepted(now: now, reason: reason)
+    }
+
+    /// Returns without side effects for a stale request. A caller can always read `status` to
+    /// learn the result of the newest accepted command.
+    func release(now: TimeInterval, reason: String, clientGeneration: UInt64) {
+        guard acceptClientCommand(generation: clientGeneration) else { return }
+        releaseAccepted(now: now, reason: reason)
+    }
+
+    private func releaseAccepted(now: TimeInterval, reason: String) {
         configuration = nil
         lastHeartbeat = nil
         pendingManual.removeAll()
@@ -176,6 +203,16 @@ final class FanControlEngine {
         } else {
             retryAutomaticIfDue(now: now)
         }
+    }
+
+    /// Makes one immediate, confirmation-based automatic-mode recovery attempt. The daemon uses
+    /// this only during synchronous sleep/signal cleanup; ordinary retries remain timer-driven.
+    @discardableResult
+    func recoverAutomaticSynchronously(now: TimeInterval) -> Bool {
+        guard !controlled.isEmpty else { return true }
+        nextAutomaticRetryAt = now
+        retryAutomaticIfDue(now: now)
+        return controlled.isEmpty
     }
 
     private func engageIfNeeded(now: TimeInterval) throws {
@@ -220,7 +257,9 @@ final class FanControlEngine {
         var remaining: [PendingManual] = []
         for var pending in pendingManual {
             guard pending.generation == configurationGeneration, configuration != nil else { continue }
-            if now >= pending.deadline { throw FanControlFailure.engagementTimedOut(pending.index) }
+            // The deadline is inclusive: a due write at exactly 10.0 seconds is the final
+            // permitted engagement attempt. The following tick reports the timeout.
+            if now > pending.deadline { throw FanControlFailure.engagementTimedOut(pending.index) }
             guard now >= pending.nextAttemptAt else {
                 remaining.append(pending)
                 continue
@@ -260,5 +299,11 @@ final class FanControlEngine {
                            detail: "\(automaticReason): automatic-mode recovery failed for fan \(indexes)",
                            updatedAt: now)
         }
+    }
+
+    private func acceptClientCommand(generation: UInt64) -> Bool {
+        guard latestClientCommandGeneration.map({ generation > $0 }) ?? true else { return false }
+        latestClientCommandGeneration = generation
+        return true
     }
 }

@@ -10,9 +10,15 @@ import Observation
         detail: "도우미에 연결되지 않음",
         updatedAt: 0
     )
+    // Seed above the previous app process's sequence if its helper is still running. Microseconds
+    // leave ample room for local increments while avoiding a persisted client-side counter.
+    private var commandGeneration = UInt64(Date().timeIntervalSince1970 * 1_000_000)
 
     func apply(enabled: Bool, curve: FanCurve) async {
-        guard let data = try? FanControlCodec.encode(FanControlConfiguration(enabled: enabled, curve: curve)) else {
+        guard let data = try? FanControlCodec.encode(FanControlConfigurationRequest(
+            configuration: .init(enabled: enabled, curve: curve),
+            generation: nextCommandGeneration()
+        )) else {
             updateUnavailable("팬 커브를 인코딩할 수 없음")
             return
         }
@@ -24,7 +30,11 @@ import Observation
     }
 
     func release() async {
-        await send { service, reply in service.release(withReply: reply) }
+        guard let data = try? FanControlCodec.encode(FanControlReleaseRequest(generation: nextCommandGeneration())) else {
+            updateUnavailable("팬 제어 해제 요청을 인코딩할 수 없음")
+            return
+        }
+        await send { service, reply in service.release(data, withReply: reply) }
     }
 
     private func send(_ call: @escaping @Sendable (any FanControlXPCService,
@@ -74,6 +84,11 @@ import Observation
         status = .init(mode: .unavailable,
                        detail: detail,
                        updatedAt: Date().timeIntervalSince1970)
+    }
+
+    private func nextCommandGeneration() -> UInt64 {
+        commandGeneration &+= 1
+        return commandGeneration
     }
 }
 

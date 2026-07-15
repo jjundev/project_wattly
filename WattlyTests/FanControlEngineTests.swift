@@ -101,7 +101,7 @@ struct FanControlEngineTests {
         #expect(hw.writes.last == .mode("F0md", 0))
     }
 
-    @Test func acquisitionDeadlineLeavesAutomaticMode() {
+    @Test func acquisitionDeadlineIncludesTenSecondAttemptThenLeavesAutomaticMode() {
         let hw = FakeFanControlHardware(modeKey: "F0md", hasFtst: false, modeFailures: 99, hottestCPU: 70,
                                         limits: FanLimits(minimum: 2000, maximum: 6000))
         let engine = FanControlEngine(hardware: hw)
@@ -110,8 +110,42 @@ struct FanControlEngineTests {
             for now in stride(from: 0.0, through: 10.0, by: 0.5) {
                 try engine.tick(now: now)
             }
+            #expect(hw.modeAttempts == 21)
+            try engine.tick(now: 10.5)
         }
         #expect(engine.status.mode == .automatic)
+    }
+
+    @Test func staleEnableAfterNewerDisableCannotReengageManualMode() throws {
+        let hw = FakeFanControlHardware(modeKey: "F0md", hasFtst: false, hottestCPU: 70,
+                                        limits: FanLimits(minimum: 2000, maximum: 6000))
+        let engine = FanControlEngine(hardware: hw)
+        let configuration = FanControlConfiguration(enabled: true,
+                                                    curve: .init(rpms: [1200, 2500, 4500, 6000]))
+
+        // This models independently-connected XPC requests arriving in reverse order.
+        engine.release(now: 0, reason: "앱에서 해제", clientGeneration: 2)
+        try engine.configure(configuration, clientGeneration: 1, now: 0.1)
+        try engine.tick(now: 0.1)
+
+        #expect(hw.modeAttempts == 0)
+        #expect(engine.status.mode == .automatic)
+    }
+
+    @Test func synchronousRecoveryDoesNotReportSuccessBeforeAutomaticModeIsConfirmed() throws {
+        let hw = FakeFanControlHardware(modeKey: "F0md", hasFtst: false, hottestCPU: 70,
+                                        limits: FanLimits(minimum: 2000, maximum: 6000))
+        let engine = FanControlEngine(hardware: hw)
+        try engine.configure(.init(enabled: true, curve: .init(rpms: [1200, 2500, 4500, 6000])), now: 0)
+        try engine.tick(now: 0)
+        hw.automaticFailuresByFan[0] = 2
+
+        engine.release(now: 1, reason: "daemon terminated") // first confirmation fails
+        #expect(!engine.recoverAutomaticSynchronously(now: 1.5))
+        #expect(engine.status.mode == .failed)
+        #expect(engine.recoverAutomaticSynchronously(now: 2.0))
+        #expect(engine.status.mode == .automatic)
+        #expect(hw.automaticAttempts == 3)
     }
 
     @Test func failedAutomaticWriteRemainsOwnedAndIsRetried() throws {
@@ -159,6 +193,7 @@ struct FanControlEngineTests {
             for now in stride(from: 0.0, through: 10.0, by: 0.5) {
                 try engine.tick(now: now)
             }
+            try engine.tick(now: 10.5)
         }
         #expect(hw.writes.contains(.mode("F0md", 0)))
     }
