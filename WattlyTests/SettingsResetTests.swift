@@ -91,4 +91,13 @@ struct SettingsResetTests {
         #expect(raw == Defaults.fanCurve.rawValue)
         #expect(FanCurve(rawValue: raw ?? "")?.rpms == Defaults.fanCurve.rpms)
     }
+
+    @Test func resetDisablesFanControl() {
+        let defaults = makeDefaults(#function)
+        defaults.set(true, forKey: StorageKey.fanControlEnabled)
+
+        SettingsReset.applyDefaults(into: defaults)
+
+        #expect(defaults.bool(forKey: StorageKey.fanControlEnabled) == false)
+    }
 }

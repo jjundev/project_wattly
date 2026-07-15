@@ -15,8 +15,12 @@ struct SettingsView: View {
     /// scene is reliable (same `@Observable` instance, read in `body`); the poll keeps
     /// running via the always-alive `PollPolicyBridge`, independent of which window is open.
     let monitor: SystemMonitor
+    let fanControl: FanControlClient
 
-    init(monitor: SystemMonitor) { self.monitor = monitor }
+    init(monitor: SystemMonitor, fanControl: FanControlClient) {
+        self.monitor = monitor
+        self.fanControl = fanControl
+    }
 
     // Theme / poll / smoothing / menubar text.
     @AppStorage(StorageKey.theme) private var theme = Defaults.theme
@@ -31,6 +35,7 @@ struct SettingsView: View {
     @AppStorage(StorageKey.menubarTextEnabled) private var menubarText = Defaults.menubarTextEnabled
     @AppStorage(StorageKey.thresholds) private var thresholds = Defaults.thresholds
     @AppStorage(StorageKey.fanCurve) private var fanCurve = Defaults.fanCurve
+    @AppStorage(StorageKey.fanControlEnabled) private var fanControlEnabled = Defaults.fanControlEnabled
 
     // 표시 지표 — one flag per card (mirrors PollPolicyBridge; gating is automatic).
     @AppStorage(StorageKey.show(.power))   private var showPower   = Defaults.show[.power]   ?? true
@@ -231,12 +236,24 @@ struct SettingsView: View {
         Rectangle().fill(t.line).frame(height: 1)
     }
 
-    // MARK: 팬 커브 (Phase B-1 — preview only, no control)
+    // MARK: 팬 커브
 
     private var fanCurveSection: some View {
         SettingsSection(title: "팬 커브") {
             SettingsCard(padding: 14) {
                 VStack(alignment: .leading, spacing: 12) {
+                    SettingsToggleRow(isOn: $fanControlEnabled, divider: true) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            rowTitle("팬 커브 실제 적용")
+                            Text("Wattly가 macOS 기본 최소 RPM 이상으로만 팬을 제어합니다. Macs Fan Control은 종료해야 합니다.")
+                                .font(WattlyFont.at(11.5, weight: .regular))
+                                .foregroundStyle(t.faint)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    Text(fanControlStatusText)
+                        .font(WattlyFont.at(11.5, weight: .regular))
+                        .foregroundStyle(t.faint)
                     ForEach(Array(FanCurve.anchorsCelsius.enumerated()), id: \.offset) { i, temp in
                         HStack(spacing: 9) {
                             Text("\(Int(temp))°C")
@@ -275,10 +292,25 @@ struct SettingsView: View {
                     .font(WattlyFont.at(12, weight: .regular))
                     .foregroundStyle(t.faint)
             }
-            Text("미리보기입니다 — 실제 팬 제어는 아직 지원되지 않습니다")
+            Text("현재 팬 커브 미리보기")
                 .font(WattlyFont.at(11.5, weight: .regular))
                 .foregroundStyle(t.faint)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var fanControlStatusText: String {
+        switch fanControl.status.mode {
+        case .unavailable:
+            "도우미 미설치 — scripts/install-fan-helper.sh 실행"
+        case .automatic:
+            "macOS 자동 제어"
+        case .engaging:
+            "수동 제어 연결 중"
+        case .controlling:
+            "팬 커브 적용 중"
+        case .failed:
+            "제어 실패 — macOS 자동 제어로 복귀"
         }
     }
 

@@ -97,9 +97,11 @@
 		D0E1282AFC9B1A74DE556B85 /* PanelPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FC4B0A6E07A2BA0DBE34A4F /* PanelPresentationTests.swift */; };
 		D43BD771779302A73C41B245 /* CPUProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95D9BB66FA468EDC722C9692 /* CPUProvider.swift */; };
 		D97CEF0FEFA4CF334E3DB6F1 /* SmoothingOverlayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADCD49E78A7446DE396FBE48 /* SmoothingOverlayTests.swift */; };
+		DB1D95D3E3404E6A9FE7C004 /* FanControlClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BF38B0353D3ED11BCAD6D5 /* FanControlClient.swift */; };
 		DB5376908CFC7D56976E43DE /* MemoryUsageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F4F7AF2CAC7816F6FA756B2 /* MemoryUsageTests.swift */; };
 		DD797447DC0387B4C33B8A20 /* FanCurve.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E19061EEFC33CF7AA70F56 /* FanCurve.swift */; };
 		E6D4F1BE411CB7202D52B89D /* BatteryPowerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B193EC77CC4F6135B8F3566 /* BatteryPowerTests.swift */; };
+		F09A382CFB4D0A12620EE56F /* FanControlBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 140F7DBFC4FAB83E2B10015A /* FanControlBridge.swift */; };
 		F10C0DA94A81731AD5BAEDD8 /* FanControlPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = E81B47E3252A5121772114A7 /* FanControlPolicy.swift */; };
 		F2CB4E2A4AE442F961B0E497 /* PowerEnergyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8019EC757BBE28FC570B71D /* PowerEnergyTests.swift */; };
 		F38F679D33E6DD796A2A578A /* PopoverHeroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43761373E1878A83B8F6365E /* PopoverHeroView.swift */; };
@@ -126,6 +128,8 @@
 		07C1BF327FACCDB9FAB5213C /* SettingsResetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsResetTests.swift; sourceTree = "<group>"; };
 		09A53C49214CBBFA066B1697 /* Fan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fan.swift; sourceTree = "<group>"; };
 		10635C5861EA5A327ED9CC2F /* PowerEnergy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerEnergy.swift; sourceTree = "<group>"; };
+		11BF38B0353D3ED11BCAD6D5 /* FanControlClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanControlClient.swift; sourceTree = "<group>"; };
+		140F7DBFC4FAB83E2B10015A /* FanControlBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanControlBridge.swift; sourceTree = "<group>"; };
 		14B2BDFF1DB69E370CC26C75 /* SettingsReset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsReset.swift; sourceTree = "<group>"; };
 		16699BC4854BB993A0BB6073 /* FontRegistration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FontRegistration.swift; sourceTree = "<group>"; };
 		1BEE551AD87114CD8B769E6B /* FanProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanProviderTests.swift; sourceTree = "<group>"; };
@@ -264,9 +268,18 @@
 			path = Core;
 			sourceTree = "<group>";
 		};
+		20A01E5F41CFE0A074C1F1A2 /* Control */ = {
+			isa = PBXGroup;
+			children = (
+				11BF38B0353D3ED11BCAD6D5 /* FanControlClient.swift */,
+			);
+			path = Control;
+			sourceTree = "<group>";
+		};
 		491F74191B36107B4E82A8AC /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				140F7DBFC4FAB83E2B10015A /* FanControlBridge.swift */,
 				70F55E227946867EDB8D1BC9 /* MenuBarLabel.swift */,
 				91C76F1ADD8A1D0EC7C3CCCC /* MetricCardView.swift */,
 				8CB2A49DA4F828109BC87F53 /* PollPolicyBridge.swift */,
@@ -381,6 +394,7 @@
 			isa = PBXGroup;
 			children = (
 				5E4A16070CE151CA813306D6 /* App */,
+				20A01E5F41CFE0A074C1F1A2 /* Control */,
 				1B4DC2B8547C7A7C02CCEBE4 /* Core */,
 				A2F5C549418FCA4D31AE65D8 /* DesignSystem */,
 				B24F6F41D45A1B4FA014DC94 /* Fonts */,
@@ -608,6 +622,8 @@
 				67087007F09610655F68D44C /* Clock.swift in Sources */,
 				ACDC80B0A710B12831C2F88D /* FakeProvider.swift in Sources */,
 				6D464930823FC1EA22FCC2DB /* Fan.swift in Sources */,
+				F09A382CFB4D0A12620EE56F /* FanControlBridge.swift in Sources */,
+				DB1D95D3E3404E6A9FE7C004 /* FanControlClient.swift in Sources */,
 				00A74CF529FE67DA3E141D39 /* FanControlEngine.swift in Sources */,
 				F10C0DA94A81731AD5BAEDD8 /* FanControlPolicy.swift in Sources */,
 				7963017E57BF95A4D225224D /* FanControlProtocol.swift in Sources */,

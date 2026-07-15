@@ -23,6 +23,7 @@ enum SettingsReset {
         defaults.set(Defaults.cardOrder.rawValue, forKey: StorageKey.cardOrder)
         defaults.set(Defaults.thresholds.rawValue, forKey: StorageKey.thresholds)
         defaults.set(Defaults.fanCurve.rawValue, forKey: StorageKey.fanCurve)
+        defaults.set(Defaults.fanControlEnabled, forKey: StorageKey.fanControlEnabled)
         defaults.set("", forKey: StorageKey.expandedCards)        // collapse all cards (가정 C)
         defaults.set(Defaults.loginItem, forKey: StorageKey.loginItem)
 
