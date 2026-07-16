@@ -36,7 +36,7 @@ struct MetricCardView: View {
         }
         .padding(EdgeInsets(top: 11, leading: 12, bottom: 11, trailing: 12))
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 12).fill(t.cardBg))
+        .background(RoundedRectangle(cornerRadius: Tokens.cardRadius).fill(t.cardBg))
         .contentShape(Rectangle())
         .onTapGesture { onToggleExpand?() }
     }
@@ -138,8 +138,8 @@ struct MetricCardView: View {
         }
         .padding(EdgeInsets(top: 11, leading: 12, bottom: 11, trailing: 12))
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color.rgba(255, 146, 0, 0.07)))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.rgba(255, 146, 0, 0.22), lineWidth: 1))
+        .background(RoundedRectangle(cornerRadius: Tokens.cardRadius).fill(Color.rgba(255, 146, 0, 0.07)))
+        .overlay(RoundedRectangle(cornerRadius: Tokens.cardRadius).strokeBorder(Color.rgba(255, 146, 0, 0.22), lineWidth: 1))
     }
 
     // Dashed slash-circle card (prototype lines 105–108).
@@ -156,7 +156,7 @@ struct MetricCardView: View {
         }
         .padding(EdgeInsets(top: 11, leading: 12, bottom: 11, trailing: 12))
         .frame(maxWidth: .infinity, alignment: .leading)
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+        .overlay(RoundedRectangle(cornerRadius: Tokens.cardRadius).strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
             .foregroundStyle(t.panelBorder))
     }
 
@@ -177,7 +177,7 @@ struct MetricCardView: View {
         }
         .padding(EdgeInsets(top: 11, leading: 12, bottom: 11, trailing: 12))
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 12).fill(t.cardBg))
+        .background(RoundedRectangle(cornerRadius: Tokens.cardRadius).fill(t.cardBg))
     }
 
     // MARK: Card-family attributes
