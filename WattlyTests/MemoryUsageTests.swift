@@ -85,6 +85,28 @@ struct MemoryUsageTests {
         #expect(bare.pressure == nil)
     }
 
+    // MARK: memoryPressurePercent — kernel free% → pressure% (100 − free, clamped)
+
+    @Test func pressurePercentInvertsAndClamps() {
+        // memorystatus_get_level returns FREE %, so pressure = 100 − free.
+        #expect(memoryPressurePercent(freeLevel: 60) == 40)   // 활동 상태 보기와 동일
+        #expect(memoryPressurePercent(freeLevel: 100) == 0)   // all free → no pressure
+        #expect(memoryPressurePercent(freeLevel: 0) == 100)   // none free → max pressure
+        // Defensive clamp: a garbage free > 100 never yields a negative percent.
+        #expect(memoryPressurePercent(freeLevel: 150) == 0)
+    }
+
+    @Test func memorySampleCarriesPressurePercentWhenGiven() {
+        let s = memorySample(active: 0, wire: 0, compressor: 0,
+                             pageSize: 16384, memsize: 16 * gib, processes: [],
+                             pressurePercent: 42)
+        #expect(s.pressurePercent == 42)
+        // Default is nil — the path where the syscall was unavailable / not requested.
+        let bare = memorySample(active: 0, wire: 0, compressor: 0,
+                                pageSize: 16384, memsize: 16 * gib, processes: [])
+        #expect(bare.pressurePercent == nil)
+    }
+
     // MARK: topProcesses
 
     @Test func topProcessesSortsDescAndCapsAtThree() {
