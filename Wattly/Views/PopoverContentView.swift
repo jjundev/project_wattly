@@ -16,9 +16,10 @@ struct PopoverContentView: View {
     @Environment(\.openSettings) private var openSettings
     @AppStorage(StorageKey.cardOrder) private var cardOrder = Defaults.cardOrder
     /// Chosen popover layout. `.a` = the stacked cards below (issue 19); `.b` = the compact grid
-    /// (`PopoverGridView`); `.c` = the hero + list (`PopoverHeroView`, plan 20). Edit/drag and
-    /// per-process expansion are `.a`-only (see `body`'s onChange + the task gating). Read as
-    /// `@AppStorage` so a settings change re-renders the panel live.
+    /// (`PopoverGridView`); `.c` = the hero + list (`PopoverHeroView`, plan 20). Edit/drag is
+    /// `.a`-only (see `body`'s onChange); per-process expansion fires for mode A's stack rows
+    /// OR mode C's hero card (see `hero`/`memEnumActive`/`powerEnumActive`, plan: hero card
+    /// expand). Read as `@AppStorage` so a settings change re-renders the panel live.
     @AppStorage(StorageKey.panelMode) private var panelMode = Defaults.panelMode
     /// Power-type cards (프로세서 전력 + 배터리): show the EMA-smoothed value/sparkline
     /// (steady, tracks the real sustained draw) vs the raw 1-second reading. Default on.
@@ -129,8 +130,9 @@ struct PopoverContentView: View {
             if mode != .a { editMode = false; draggingCard = nil; dragOffset = 0; homeShift = 0 }
         }
         // Gate per-process enumeration (memory Top-3 / power Top-3) to when this panel is
-        // open, mode A, AND that card is expanded (issue 05 §M11/M18, issue 16 follow-up,
-        // issue 19 review row 6); .onDisappear reliably turns each off on close.
+        // open, mode A's stack row OR mode C's hero, AND that card is expanded (issue 05
+        // §M11/M18, issue 16 follow-up, issue 19 review row 6, plan: hero card expand);
+        // .onDisappear reliably turns each off on close.
         .task(id: memEnumActive) { monitor.setMemoryProcessEnumeration(memEnumActive) }
         .task(id: powerEnumActive) { monitor.setPowerProcessEnumeration(powerEnumActive) }
         .onDisappear {

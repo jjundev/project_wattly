@@ -135,7 +135,13 @@ private struct HeroCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 14).fill(Self.heroBg))
         .contentShape(Rectangle())
-        .onTapGesture { onToggleExpand?() }
+        // Gated on `hasChevron`, not just `onToggleExpand != nil`: an expandable card
+        // that's currently `.unavailable` has neither a chevron nor an expand region to
+        // toggle (mirrors `MetricCardView`, which routes unavailable cards to a separate
+        // `unavailableCard` layout with no tap gesture at all) — without this guard, a tap
+        // would silently flip that card's entry in the SHARED expand set with no visible
+        // effect until it becomes available again.
+        .onTapGesture { if hasChevron { onToggleExpand?() } }
     }
 
     /// The hero's spoken summary — its own VoiceOver element, a SIBLING of the expand region
