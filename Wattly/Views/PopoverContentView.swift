@@ -16,9 +16,10 @@ struct PopoverContentView: View {
     @Environment(\.openSettings) private var openSettings
     @AppStorage(StorageKey.cardOrder) private var cardOrder = Defaults.cardOrder
     /// Chosen popover layout. `.a` = the stacked cards below (issue 19); `.b` = the compact grid
-    /// (`PopoverGridView`); `.c` = the hero + list (`PopoverHeroView`, plan 20). Edit/drag and
-    /// per-process expansion are `.a`-only (see `body`'s onChange + the task gating). Read as
-    /// `@AppStorage` so a settings change re-renders the panel live.
+    /// (`PopoverGridView`); `.c` = the hero + list (`PopoverHeroView`, plan 20). Edit/drag is
+    /// `.a`-only (see `body`'s onChange); per-process expansion fires for mode A's stack rows
+    /// OR mode C's hero card (see `hero`/`memEnumActive`/`powerEnumActive`, plan: hero card
+    /// expand). Read as `@AppStorage` so a settings change re-renders the panel live.
     @AppStorage(StorageKey.panelMode) private var panelMode = Defaults.panelMode
     /// Power-type cards (프로세서 전력 + 배터리): show the EMA-smoothed value/sparkline
     /// (steady, tracks the real sustained draw) vs the raw 1-second reading. Default on.
@@ -27,6 +28,11 @@ struct PopoverContentView: View {
     /// into each card; an `@AppStorage` change re-renders the cards, so a slider edit recolors
     /// the panel live with no extra observer.
     @AppStorage(StorageKey.thresholds) private var thresholds = Defaults.thresholds
+    /// Mode C's hero metric (plan 20). Read independently here — NOT passed down from
+    /// `PopoverHeroView` — purely to resolve `hero` below for the process-enumeration gate
+    /// (plan: hero card expand). Mirrors how `PopoverHeroView`/`SettingsView` each read this
+    /// same key independently.
+    @AppStorage(StorageKey.heroMetric) private var heroMetric = Defaults.heroMetric
 
     @State private var editMode = false
     /// Edit-mode drag state (issue 12). `draggingCard` drives the 0.45 dim + float, `dragOffset`
@@ -67,19 +73,27 @@ struct PopoverContentView: View {
     @AppStorage(StorageKey.show(.batTemp)) private var showBatTemp = Defaults.show[.batTemp] ?? true
     @AppStorage(StorageKey.show(.fan))     private var showFan     = Defaults.show[.fan]     ?? true
 
-    private var expanded: Set<CardKind> {
-        Set(expandedRaw.split(separator: ",").compactMap { CardKind(rawValue: String($0)) })
-    }
+    private var expanded: Set<CardKind> { CardPresentation.expandedCards(from: expandedRaw) }
 
     private var memExpanded: Bool { expanded.contains(.mem) }
     private var powerExpanded: Bool { expanded.contains(.power) }
 
-    // Per-process enumeration is only meaningful in mode A (the only layout with an expand
-    // region). Gating on `panelMode == .a` too means switching A→B mid-session — while the
-    // mem/power card is expanded — turns the sweep off, instead of leaking it into a layout
-    // that never shows the Top-3 (review row 6). Composite so the `.task` re-fires on switch.
-    private var memEnumActive: Bool { panelMode == .a && memExpanded }
-    private var powerEnumActive: Bool { panelMode == .a && powerExpanded }
+    // Mode C's hero card (plan: hero card expand) reuses the SAME expand mechanism —
+    // resolved independently here (not passed down from `PopoverHeroView`) via the same pure
+    // `resolveHero`, the same `heroMetric`/`cardOrder` AppStorage, and the same `visibleCards`
+    // this view already computes. `nil` outside mode C, so the `hero == <card>` checks below
+    // are inherently panelMode-gated without repeating `panelMode == .c` in each one.
+    private var hero: CardKind? {
+        panelMode == .c ? CardPresentation.resolveHero(persisted: heroMetric, visible: visibleCards) : nil
+    }
+
+    // Per-process enumeration is only meaningful in mode A's stack rows OR mode C's hero card
+    // (the only two layouts with an expand region — mode B never shows one). Gating on the
+    // mode too means switching away mid-session — while the mem/power card is expanded — turns
+    // the sweep off, instead of leaking it into a layout that never shows the Top-3 (review row
+    // 6). Composite so the `.task` re-fires on switch.
+    private var memEnumActive: Bool { memExpanded && (panelMode == .a || hero == .mem) }
+    private var powerEnumActive: Bool { powerExpanded && (panelMode == .a || hero == .power) }
 
     var body: some View {
         // The cards region caps itself to the menu-bar screen and scrolls the overflow
@@ -116,8 +130,9 @@ struct PopoverContentView: View {
             if mode != .a { editMode = false; draggingCard = nil; dragOffset = 0; homeShift = 0 }
         }
         // Gate per-process enumeration (memory Top-3 / power Top-3) to when this panel is
-        // open, mode A, AND that card is expanded (issue 05 §M11/M18, issue 16 follow-up,
-        // issue 19 review row 6); .onDisappear reliably turns each off on close.
+        // open, mode A's stack row OR mode C's hero, AND that card is expanded (issue 05
+        // §M11/M18, issue 16 follow-up, issue 19 review row 6, plan: hero card expand);
+        // .onDisappear reliably turns each off on close.
         .task(id: memEnumActive) { monitor.setMemoryProcessEnumeration(memEnumActive) }
         .task(id: powerEnumActive) { monitor.setPowerProcessEnumeration(powerEnumActive) }
         .onDisappear {
@@ -406,9 +421,7 @@ struct PopoverContentView: View {
     }
 
     private func toggleExpand(_ card: CardKind) {
-        var s = expanded
-        if s.contains(card) { s.remove(card) } else { s.insert(card) }
-        expandedRaw = s.map(\.rawValue).sorted().joined(separator: ",")
+        expandedRaw = CardPresentation.togglingExpanded(card, in: expandedRaw)
     }
 }
 

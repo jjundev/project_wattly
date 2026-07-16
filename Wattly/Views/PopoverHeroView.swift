@@ -6,11 +6,23 @@ import SwiftUI
 /// (`cardOrder ∩ isPresent ∩ isShown`); the hero choice is the shared `@AppStorage(heroMetric)`,
 /// so the settings picker and a row tap stay in sync for free.
 ///
+/// The hero card also supports the SAME tap-to-expand as mode A's stack rows (plan: hero card
+/// expand) — `isExpandable` cards get a chevron and reveal `CardExpandRegion` beneath the
+/// sub-line on tap. The expand SET is the shared `@AppStorage(expandedCards)` mode A already
+/// uses (one CSV Set keyed by `CardKind`, not per-mode) — a card left expanded in mode A shows
+/// expanded here too if it becomes the hero, and vice versa; this is a deliberate, accepted
+/// consequence of reusing "which cards are expanded" as one concept rather than inventing a
+/// second mode-C-only flag.
+///
 /// Because the hero card is dark in BOTH themes, its text and the neutral/accent spark colors are
 /// hardcoded light-on-dark — they CANNOT reuse the theme tokens (`t.spark`/`Tokens.accent`) the
-/// way modes A/B do, or they'd vanish in light mode. Threshold-driven cards still reuse the theme-
-/// independent status colors. The list below the hero sits on the panel background and uses the
-/// theme tokens normally. Power-type cards get the EMA-smoothed series (same toggle as mode A).
+/// way modes A/B do, or they'd vanish in light mode. The expand region is the one exception: it
+/// reuses `CardExpandRegion` (shared with mode A) but with `Tokens.dark` force-injected via
+/// `.environment(\.tokens, ...)`, since `Tokens.dark`'s colors are computed independent of the
+/// app's current theme and already match the hero's fixed dark background (see `Tokens.swift`).
+/// Threshold-driven cards still reuse the theme-independent status colors. The list below the
+/// hero sits on the panel background and uses the theme tokens normally. Power-type cards get
+/// the EMA-smoothed series (same toggle as mode A).
 struct PopoverHeroView: View {
     let cards: [CardKind]
     let monitor: SystemMonitor
@@ -18,11 +30,15 @@ struct PopoverHeroView: View {
     var powerSmoothed: Bool
 
     @AppStorage(StorageKey.heroMetric) private var heroMetric = Defaults.heroMetric
+    // Shared with mode A's `PopoverContentView.expandedRaw` — same key, same CSV Set (see the
+    // doc comment above).
+    @AppStorage(StorageKey.expandedCards) private var expandedRaw = ""
     @Environment(\.tokens) private var t
 
     private var hero: CardKind? {
         CardPresentation.resolveHero(persisted: heroMetric, visible: cards)
     }
+    private var expanded: Set<CardKind> { CardPresentation.expandedCards(from: expandedRaw) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -31,11 +47,17 @@ struct PopoverHeroView: View {
                 HeroCard(card: hero,
                          state: monitor.cardState(hero, smoothed: powerSmoothed),
                          historyValues: monitor.historyValues(for: hero, smoothed: powerSmoothed),
-                         thresholds: thresholds)
+                         thresholds: thresholds,
+                         isExpanded: expanded.contains(hero),
+                         onToggleExpand: hero.isExpandable ? { toggleExpand(hero) } : nil)
                 list(excluding: hero)
             }
         }
         .padding(.vertical, 1)
+    }
+
+    private func toggleExpand(_ card: CardKind) {
+        expandedRaw = CardPresentation.togglingExpanded(card, in: expandedRaw)
     }
 
     // The list = the visible cards minus the hero, in `cardOrder` order (prototype 213–220).
@@ -85,11 +107,15 @@ struct PopoverHeroView: View {
 
 /// The dark hero card (prototype line 208): fixed `#171719` in both themes, radius 14, padding 16.
 /// Its text + the neutral/accent spark colors are hardcoded light-on-dark (see `PopoverHeroView`).
+/// `isExpandable` cards get the same chevron + tap-to-expand as mode A's stack rows (plan: hero
+/// card expand) — the whole card is the tap target, matching `MetricCardView.standardCard`.
 private struct HeroCard: View {
     let card: CardKind
     let state: MetricState
     var historyValues: [Double] = []
     var thresholds: Thresholds = Defaults.thresholds
+    var isExpanded: Bool = false
+    var onToggleExpand: (() -> Void)? = nil
 
     // Hardcoded light-on-dark surface/text (prototype line 208).
     private static let heroBg = Color(hex: "#171719")
@@ -99,10 +125,44 @@ private struct HeroCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(CardPresentation.label(card))
-                .font(WattlyFont.at(11.5, weight: .semibold))
-                .foregroundStyle(Self.labelColor)
-                .lineLimit(1)
+            summary
+            if isExpanded, hasChevron {
+                CardExpandRegion(card: card, state: state, thresholds: thresholds)
+                    .environment(\.tokens, Tokens.dark)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 14).fill(Self.heroBg))
+        .contentShape(Rectangle())
+        // Gated on `hasChevron`, not just `onToggleExpand != nil`: an expandable card
+        // that's currently `.unavailable` has neither a chevron nor an expand region to
+        // toggle (mirrors `MetricCardView`, which routes unavailable cards to a separate
+        // `unavailableCard` layout with no tap gesture at all) — without this guard, a tap
+        // would silently flip that card's entry in the SHARED expand set with no visible
+        // effect until it becomes available again.
+        .onTapGesture { if hasChevron { onToggleExpand?() } }
+    }
+
+    /// The hero's spoken summary — its own VoiceOver element, a SIBLING of the expand region
+    /// (mirrors `MetricCardView.summaryGroup`/`expandRegion`, issue 15 §2/§6), so the expand
+    /// rows stay individually navigable instead of being swallowed into one combined element.
+    /// Mouse taps toggle via `HeroCard.body`'s `.onTapGesture`; VoiceOver toggles via the
+    /// `.accessibilityAction` here (a gesture VO can't otherwise actuate).
+    @ViewBuilder
+    private var summary: some View {
+        let content = VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 5) {
+                Text(CardPresentation.label(card))
+                    .font(WattlyFont.at(11.5, weight: .semibold))
+                    .foregroundStyle(Self.labelColor)
+                    .lineLimit(1)
+                if hasChevron {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(Self.labelColor)
+                }
+            }
             switch state {
             case .unavailable(let reason):
                 // Hero unavailable (prototype line 211): same dark card + the full reason.
@@ -114,12 +174,17 @@ private struct HeroCard: View {
                 valueBody
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 14).fill(Self.heroBg))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Accessibility.cardLabel(card, state))
         .accessibilityValue(Accessibility.stateWord(card, state, thresholds) ?? "")
+
+        if hasChevron {
+            content
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction { onToggleExpand?() }
+        } else {
+            content
+        }
     }
 
     // value 40/700 white + unit 16/600 → spark (h32, area+line) → sub 11 (prototype 208).
@@ -164,4 +229,9 @@ private struct HeroCard: View {
     }
 
     private var hasValue: Bool { if case .value = state { return true }; return false }
+
+    // No chevron/expand for an unavailable card — mirrors `MetricCardView`, which renders a
+    // completely separate `unavailableCard` layout with no header/chevron machinery at all.
+    private var isUnavailable: Bool { if case .unavailable = state { return true }; return false }
+    private var hasChevron: Bool { card.isExpandable && !isUnavailable }
 }

@@ -218,6 +218,36 @@ struct CardPresentationTests {
         #expect(CardPresentation.ghzText(1.2) == "1.20 GHz")
     }
 
+    // MARK: Expand-set persistence (CSV codec) — shared by mode A's stack rows and mode C's
+    // hero card expand (plan: hero card expand)
+
+    @Test func expandedCardsParsesCSV() {
+        #expect(CardPresentation.expandedCards(from: "") == [])
+        #expect(CardPresentation.expandedCards(from: "cpu") == [.cpu])
+        #expect(CardPresentation.expandedCards(from: "battery,cpu,mem") == [.battery, .cpu, .mem])
+    }
+
+    @Test func expandedCardsDropsUnknownTokens() {
+        // A stale/unknown raw value (e.g. a renamed CardKind case) is dropped, not crashed on.
+        #expect(CardPresentation.expandedCards(from: "cpu,notACard,mem") == [.cpu, .mem])
+    }
+
+    @Test func togglingExpandedAddsAndRemoves() {
+        let added = CardPresentation.togglingExpanded(.cpu, in: "")
+        #expect(added == "cpu")
+        let addedMore = CardPresentation.togglingExpanded(.battery, in: added)
+        #expect(CardPresentation.expandedCards(from: addedMore) == [.battery, .cpu])
+        let removed = CardPresentation.togglingExpanded(.cpu, in: addedMore)
+        #expect(CardPresentation.expandedCards(from: removed) == [.battery])
+    }
+
+    @Test func togglingExpandedSortsDeterministically() {
+        // Insertion order (mem then battery) still serializes alphabetically by rawValue.
+        let raw = CardPresentation.togglingExpanded(.battery,
+                    in: CardPresentation.togglingExpanded(.mem, in: ""))
+        #expect(raw == "battery,mem")
+    }
+
     // MARK: CardKind structural facts (D) — single home for the card-family flags
 
     @Test func cardKindStructuralFlags() {
