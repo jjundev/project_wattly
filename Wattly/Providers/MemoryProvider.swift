@@ -6,6 +6,16 @@ import Foundation
 /// on-screen — issue 05 §M11). Every buffer here is caller-allocated, so unlike
 /// `CPUProvider` (which frees `host_processor_info`'s array) there is nothing to
 /// `vm_deallocate`. Only the Sendable `MemorySample` crosses the actor boundary.
+
+/// Private XNU syscall #453 — the exact call `/usr/bin/memory_pressure` and the
+/// open-source *Stats* app use to read the free-memory percentage that backs Activity
+/// Monitor's "메모리 압력" graph. There is no public API for this number (Apple DTS
+/// explicitly discourages any free-memory statistic), and the `host_statistics64`
+/// occupancy ratio does NOT match the kernel's figure — so we bind the syscall directly.
+/// Distinct Swift name via `@_silgen_name` so it never shadows a future SDK import.
+@_silgen_name("memorystatus_get_level")
+private func wattly_memorystatus_get_level(_ level: UnsafeMutablePointer<UInt32>) -> Int32
+
 actor MemoryProvider: MetricProvider, ProcessEnumerating {
     let kind: ProviderKind = .memory
 
@@ -26,6 +36,8 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
         // Kernel memory-pressure verdict — cheap scalar read every poll (no gating). nil on
         // failure → the card falls back to the used% band (CardPresentation).
         let pressure = Self.sysctlInt32("kern.memorystatus_vm_pressure_level").map(MemoryPressure.init(fromSysctl:))
+        // Exact RAM-pressure percentage (Activity Monitor "메모리 압력") — the sub-line readout.
+        let pressurePercent = Self.pressurePercent()
         return .value(.memory(memorySample(
             active: UInt64(vm.active_count),
             wire: UInt64(vm.wire_count),
@@ -34,6 +46,7 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
             memsize: memsize,
             processes: procs,
             pressure: pressure,
+            pressurePercent: pressurePercent,
             swapUsedBytes: Self.swapUsedBytes())))
     }
 
@@ -82,6 +95,16 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
         var size = MemoryLayout<xsw_usage>.size
         guard sysctlbyname("vm.swapusage", &usage, &size, nil, 0) == 0 else { return 0 }
         return usage.xsu_used
+    }
+
+    /// Kernel RAM-pressure percent (0–100) via `memorystatus_get_level` (#453). The syscall
+    /// fills a free-memory percentage; `memoryPressurePercent` inverts it. nil on failure →
+    /// the card omits the 압력 segment rather than showing a wrong number. A cheap scalar
+    /// read every poll (no gating), like `kern.memorystatus_vm_pressure_level`.
+    private static func pressurePercent() -> Int? {
+        var free: UInt32 = 0
+        guard wattly_memorystatus_get_level(&free) == 0 else { return nil }
+        return memoryPressurePercent(freeLevel: free)
     }
 
     // MARK: Top processes (libproc — no entitlement; own-user procs only, §M10)
