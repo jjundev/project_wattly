@@ -34,7 +34,6 @@ enum SettingsReset {
             defaults.set(Defaults.menuMetrics[card] ?? false, forKey: StorageKey.menu(card))
         }
         defaults.set(Defaults.menuMemPressureEnabled, forKey: StorageKey.menuMemPressure)
-        defaults.set(Defaults.menuSelfPowerEnabled, forKey: StorageKey.menuSelfPower)
 
         // Re-sync the real login item to the default (ON). Best-effort.
         try? login?.setEnabled(Defaults.loginItem)

@@ -79,12 +79,4 @@ enum MenuBarText {
         guard case .value(.memory(let s)) = state, let p = s.pressurePercent else { return "압력 —" }
         return "압력 \(p)%"
     }
-
-    /// The self-power chip's compact part (menubar items update) — Wattly's own consumption,
-    /// the same EMA-smoothed figure the Settings footer shows. "자체 —" before the first
-    /// 30 s sample lands (issue 16).
-    static func selfPowerPart(_ watts: Double?) -> String {
-        guard let watts else { return "자체 —" }
-        return "자체 \(CardPresentation.f1(watts)) W"
-    }
 }

@@ -23,7 +23,6 @@ struct MenuBarLabel: View {
     @AppStorage(StorageKey.menu(.gpuTemp)) private var menuGpuTemp = Defaults.menuMetrics[.gpuTemp] ?? false
     @AppStorage(StorageKey.menu(.batTemp)) private var menuBatTemp = Defaults.menuMetrics[.batTemp] ?? false
     @AppStorage(StorageKey.menu(.fan))     private var menuFan     = Defaults.menuMetrics[.fan]     ?? false
-    @AppStorage(StorageKey.menuSelfPower)  private var menuSelfPower = Defaults.menuSelfPowerEnabled
 
     var body: some View {
         let label = assembled
@@ -86,13 +85,12 @@ struct MenuBarLabel: View {
         return s
     }
 
-    /// Pre-formatted parts for the two menubar-only figures that have no `CardKind` (memory
-    /// pressure % is independent of the `.mem` GB chip; self-power has no popover card at all —
-    /// menubar items update). Read directly off the monitor, independent of `selected`.
+    /// Pre-formatted parts for the menubar-only figure that has no `CardKind` (memory
+    /// pressure % is independent of the `.mem` GB chip — menubar items update). Read
+    /// directly off the monitor, independent of `selected`.
     private var extraParts: [String] {
         var parts: [String] = []
         if menuMemPressure { parts.append(MenuBarText.memPressurePart(monitor.cardState(.mem))) }
-        if menuSelfPower   { parts.append(MenuBarText.selfPowerPart(monitor.selfPower)) }
         return parts
     }
 }

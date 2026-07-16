@@ -116,7 +116,6 @@ struct SettingsView: View {
     @AppStorage(StorageKey.menu(.gpuTemp)) private var menuGpuTemp = Defaults.menuMetrics[.gpuTemp] ?? false
     @AppStorage(StorageKey.menu(.batTemp)) private var menuBatTemp = Defaults.menuMetrics[.batTemp] ?? false
     @AppStorage(StorageKey.menu(.fan))     private var menuFan     = Defaults.menuMetrics[.fan]     ?? false
-    @AppStorage(StorageKey.menuSelfPower)  private var menuSelfPower = Defaults.menuSelfPowerEnabled
 
     // Login item: @AppStorage is the display MIRROR; `loginItem` (SMAppService) is authoritative.
     @AppStorage(StorageKey.loginItem) private var loginMirror = Defaults.loginItem
@@ -628,7 +627,6 @@ struct SettingsView: View {
             WattlyChip(label: "GPU 온도 (°C)", isOn: menuGpuTemp) { menuGpuTemp.toggle() }
             WattlyChip(label: "배터리 온도 (°C)", isOn: menuBatTemp) { menuBatTemp.toggle() }
             WattlyChip(label: "팬 (RPM)", isOn: menuFan) { menuFan.toggle() }
-            WattlyChip(label: "자체 소비 전력 (W)", isOn: menuSelfPower) { menuSelfPower.toggle() }
         }
         .padding(3)
         .background(RoundedRectangle(cornerRadius: 8).fill(t.segTrack))

@@ -68,15 +68,13 @@ struct SettingsResetTests {
         #expect(d.bool(forKey: StorageKey.menu(.battery)) == false)
     }
 
-    @Test func resetWritesMenuMemPressureAndSelfPowerKeys() {
+    @Test func resetWritesMenuMemPressureKey() {
         let d = makeDefaults(#function)
         d.set(true, forKey: StorageKey.menuMemPressure)
-        d.set(true, forKey: StorageKey.menuSelfPower)
 
         SettingsReset.applyDefaults(into: d, login: nil)
 
         #expect(d.bool(forKey: StorageKey.menuMemPressure) == Defaults.menuMemPressureEnabled)
-        #expect(d.bool(forKey: StorageKey.menuSelfPower) == Defaults.menuSelfPowerEnabled)
     }
 
     @Test func resetReenablesLoginItem() {

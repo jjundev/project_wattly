@@ -95,9 +95,4 @@ struct MenuBarTextTests {
         #expect(MenuBarText.memPressurePart(st) == "압력 —")
         #expect(MenuBarText.memPressurePart(.loading) == "압력 —")
     }
-
-    @Test func selfPowerPartShowsOneDecimalWatts() {
-        #expect(MenuBarText.selfPowerPart(0.34) == "자체 0.3 W")
-        #expect(MenuBarText.selfPowerPart(nil) == "자체 —")
-    }
 }
