@@ -190,9 +190,11 @@ struct SettingsView: View {
 
     private var themeSection: some View {
         SettingsSection(title: "테마") {
-            WattlySegment(selection: $theme, options: [
-                (.light, "라이트"), (.dark, "다크"), (.system, "시스템 설정"),
-            ])
+            SettingsCard(padding: Tokens.cardPadding) {
+                WattlySegment(selection: $theme, options: [
+                    (.light, "라이트"), (.dark, "다크"), (.system, "시스템 설정"),
+                ])
+            }
         }
     }
 
@@ -204,10 +206,14 @@ struct SettingsView: View {
     /// extra section scrolls rather than overflowing.
     private var layoutSection: some View {
         SettingsSection(title: "레이아웃") {
-            WattlySegment(selection: $panelMode, options: [
-                (.a, PanelMode.a.label), (.b, PanelMode.b.label), (.c, PanelMode.c.label),
-            ])
-            if panelMode == .c { heroPicker }
+            SettingsCard(padding: Tokens.cardPadding) {
+                VStack(alignment: .leading, spacing: 10) {
+                    WattlySegment(selection: $panelMode, options: [
+                        (.a, PanelMode.a.label), (.b, PanelMode.b.label), (.c, PanelMode.c.label),
+                    ])
+                    if panelMode == .c { heroPicker }
+                }
+            }
         }
     }
 
@@ -642,13 +648,17 @@ struct SettingsView: View {
 
     private var powerModeSection: some View {
         SettingsSection(title: "동작 모드") {
-            WattlySegment(selection: $powerMode, options: [
-                (.eco, PowerMode.eco.label), (.performance, PowerMode.performance.label),
-            ])
-            Text(powerModeDescription)
-                .font(WattlyFont.at(11.5, weight: .regular))
-                .foregroundStyle(t.faint)
-                .fixedSize(horizontal: false, vertical: true)
+            SettingsCard(padding: Tokens.cardPadding) {
+                VStack(alignment: .leading, spacing: 10) {
+                    WattlySegment(selection: $powerMode, options: [
+                        (.eco, PowerMode.eco.label), (.performance, PowerMode.performance.label),
+                    ])
+                    Text(powerModeDescription)
+                        .font(WattlyFont.at(11.5, weight: .regular))
+                        .foregroundStyle(t.faint)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
         }
     }
 
