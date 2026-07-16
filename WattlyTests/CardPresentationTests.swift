@@ -32,12 +32,33 @@ struct CardPresentationTests {
             netW: 12.0, milliamps: 944, volts: 12.7, charging: false, externalConnected: false,
             average1mW: 10.4)))
         #expect(CardPresentation.valueText(.battery, discharging) == "\(minus)12.0")
-        #expect(CardPresentation.subText(discharging) == "−944 mA · 12.7 V · 방전 중 · 1분 평균 10.4 W")
+        #expect(CardPresentation.subText(discharging) == "−944 mA · 12.7 V · 방전 중 · 1분 평균 \(minus)10.4 W")
 
         let zero = MetricState.value(.battery(BatterySample(
             netW: 0.0, milliamps: 0, volts: 12.7, charging: false, externalConnected: true)))
         #expect(CardPresentation.valueText(.battery, zero) == "0.0")
         #expect(CardPresentation.subText(zero) == "0 mA · 12.7 V · 방전 중")
+    }
+
+    @Test func batteryAverageSignFollowsItsOwnDirection() {
+        // Average trending to charge (negative) while the instantaneous state is discharging —
+        // the sign must follow the average's own direction, not `charging`.
+        let trendingCharge = MetricState.value(.battery(BatterySample(
+            netW: 12.0, milliamps: 944, volts: 12.7, charging: false, externalConnected: false,
+            average1mW: -3.0)))
+        #expect(CardPresentation.subText(trendingCharge) == "−944 mA · 12.7 V · 방전 중 · 1분 평균 +3.0 W")
+
+        // Average trending to discharge (positive) while the instantaneous state is charging.
+        let trendingDischarge = MetricState.value(.battery(BatterySample(
+            netW: -5.0, milliamps: 400, volts: 12.7, charging: true, externalConnected: true,
+            average1mW: 2.0)))
+        #expect(CardPresentation.subText(trendingDischarge) == "+400 mA · 12.7 V · 충전 중 · 1분 평균 \(minus)2.0 W")
+
+        // Near-zero average magnitude (< 0.05) drops the sign, matching the headline rule (#17).
+        let flatAverage = MetricState.value(.battery(BatterySample(
+            netW: 12.0, milliamps: 944, volts: 12.7, charging: false, externalConnected: false,
+            average1mW: 0.02)))
+        #expect(CardPresentation.subText(flatAverage) == "−944 mA · 12.7 V · 방전 중 · 1분 평균 0.0 W")
     }
 
     // MARK: CPU

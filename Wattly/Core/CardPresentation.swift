@@ -165,7 +165,11 @@ enum CardPresentation {
             let sign = batterySign(netW: s.netW, charging: s.charging)
             let base = "\(sign)\(s.milliamps) mA · \(f1(s.volts)) V · \(s.charging ? "충전 중" : "방전 중")"
             guard let average = s.average1mW else { return base }
-            return "\(base) · 1분 평균 \(f1(abs(average))) W"
+            // The average's OWN sign — not `s.charging` — since the 1-minute trend can point
+            // the opposite way from the instantaneous state (e.g. just plugged in after a
+            // minute of discharge).
+            let avgSign = batterySign(netW: average, charging: average < 0)
+            return "\(base) · 1분 평균 \(avgSign)\(f1(abs(average))) W"
         case .cpu(let s):
             // Order-based (not name-coupled): runtime perf-level names ("Performance"/
             // "Efficiency" → "P"/"E") differ from the prototype's "S". Guard
