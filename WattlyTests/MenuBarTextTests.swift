@@ -14,6 +14,11 @@ struct MenuBarTextTests {
         return .value(.temperature(TemperatureSnapshot(cpu: cat(cpu), gpu: cat(gpu), battery: cat(bat))))
     }
 
+    private func battery(netW: Double, charging: Bool) -> MetricState {
+        .value(.battery(BatterySample(netW: netW, milliamps: 1000, volts: 11.5,
+                                      charging: charging, externalConnected: charging)))
+    }
+
     @Test func cpuRoundsToInteger() {
         #expect(MenuBarText.part(.cpu, cpu(42.4)) == "CPU 42%")
         #expect(MenuBarText.part(.cpu, cpu(42.6)) == "CPU 43%")
@@ -61,5 +66,38 @@ struct MenuBarTextTests {
     @Test func assembleMissingStateFallsBackToCold() {
         // A selected metric with no state entry → treated as loading → its cold placeholder.
         #expect(MenuBarText.assemble(selected: [.cpu], states: [:]) == "CPU —")
+    }
+
+    @Test func batteryUsesSignAndOneDecimal() {
+        #expect(MenuBarText.part(.battery, battery(netW: 8.42, charging: false)) == "−8.4 W")
+        #expect(MenuBarText.part(.battery, battery(netW: 5.0, charging: true)) == "+5.0 W")
+    }
+
+    @Test func batterySignDropsNearZero() {
+        // #17 rule reused: |net| rounding to 0.0 drops the sign, never a meaningless "−0.0".
+        #expect(MenuBarText.part(.battery, battery(netW: 0.02, charging: false)) == "0.0 W")
+    }
+
+    @Test func batteryJoinsRightAfterPower() {
+        let states: [CardKind: MetricState] = [.power: power(8.4), .battery: battery(netW: 3.0, charging: false)]
+        let s = MenuBarText.assemble(selected: [.battery, .power], states: states)
+        #expect(s == "8.4 W  ·  −3.0 W")
+    }
+
+    @Test func memPressurePartShowsPercent() {
+        let st = MetricState.value(.memory(MemorySample(
+            usedGB: 9, totalGB: 16, wiredGB: 0, compressedGB: 0, pressurePercent: 46)))
+        #expect(MenuBarText.memPressurePart(st) == "압력 46%")
+    }
+
+    @Test func memPressurePartColdWhenPercentMissing() {
+        let st = MetricState.value(.memory(MemorySample(usedGB: 9, totalGB: 16, wiredGB: 0, compressedGB: 0)))
+        #expect(MenuBarText.memPressurePart(st) == "압력 —")
+        #expect(MenuBarText.memPressurePart(.loading) == "압력 —")
+    }
+
+    @Test func selfPowerPartShowsOneDecimalWatts() {
+        #expect(MenuBarText.selfPowerPart(0.34) == "자체 0.3 W")
+        #expect(MenuBarText.selfPowerPart(nil) == "자체 —")
     }
 }
