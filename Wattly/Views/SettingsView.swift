@@ -10,18 +10,49 @@ import AppKit
 /// window directly, on every reactive update, fixes it. Deliberately scoped to the Settings
 /// window only — the `MenuBarExtra` popover paints its own background from tokens (plan 11), so
 /// it doesn't need this and is left untouched.
-private struct WindowAppearanceSync: NSViewRepresentable {
-    let appearance: NSAppearance?
-
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        // `view.window` is nil until the view is inserted into the hierarchy; defer one tick.
-        DispatchQueue.main.async { view.window?.appearance = appearance }
-        return view
+///
+/// `.system` needs its OWN concrete `NSAppearance`, not `nil`: on-device testing showed that once
+/// the window's appearance has been explicitly forced (light or dark), reassigning `nil` — "no
+/// override, follow the app" — does not reliably repaint the already-visible chrome back to the
+/// system value (forced-to-forced transitions repaint fine; forced-to-nil does not). So `.system`
+/// resolves to whichever concrete appearance the OS currently prefers, via the same code path that
+/// already works, and re-resolves live off `NSApp.effectiveAppearance` — which is KVO-observable
+/// and is Apple's documented way to detect system Light/Dark/Auto changes — so a `.system` window
+/// left open keeps following the OS instead of freezing at the value snapshotted on toggle.
+private final class WindowAppearanceSyncView: NSView {
+    var mode: ThemeMode = .system {
+        didSet { applyAppearance() }
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {
-        nsView.window?.appearance = appearance
+    private var systemAppearanceObservation: NSKeyValueObservation?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        applyAppearance()
+        systemAppearanceObservation = NSApp.observe(\.effectiveAppearance) { [weak self] _, _ in
+            DispatchQueue.main.async { self?.applyAppearance() }
+        }
+    }
+
+    private func applyAppearance() {
+        guard mode == .system else {
+            window?.appearance = ThemeResolver.nsAppearance(mode)
+            return
+        }
+        let systemIsDark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        window?.appearance = NSAppearance(named: systemIsDark ? .darkAqua : .aqua)
+    }
+}
+
+private struct WindowAppearanceSync: NSViewRepresentable {
+    let mode: ThemeMode
+
+    func makeNSView(context: Context) -> WindowAppearanceSyncView {
+        WindowAppearanceSyncView()
+    }
+
+    func updateNSView(_ nsView: WindowAppearanceSyncView, context: Context) {
+        nsView.mode = mode
     }
 }
 
@@ -115,7 +146,7 @@ struct SettingsView: View {
         }
         .frame(width: 440, height: 560)
         .background(t.settingsBg)
-        .background(WindowAppearanceSync(appearance: ThemeResolver.nsAppearance(theme)))
+        .background(WindowAppearanceSync(mode: theme))
         // Reconcile the display mirror with the real registration on open (F1).
         .task { loginMirror = loginItem.isEnabled }
     }
