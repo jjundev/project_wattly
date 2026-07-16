@@ -36,6 +36,22 @@ targets:
     sources:
       - path: Wattly
       - path: FanControlShared
+    # Embeds the built WattlyFanDaemon executable into the app bundle at
+    # Contents/Helpers, where FanHelperInstaller.swift reads it from to install
+    # it as a privileged LaunchDaemon (feat: in-app helper install via
+    # admin-auth prompt). Was previously a hand-edited PBXCopyFilesBuildPhase +
+    # PBXTargetDependency in project.pbxproj with no project.yml counterpart —
+    # any `xcodegen generate` silently regenerated the pbxproj without them,
+    # dropping the embed. Declared here so it survives regeneration.
+    dependencies:
+      - target: WattlyFanDaemon
+        embed: true
+        link: false        # a standalone tool executable, not something to link
+        codeSign: false    # matches the original hand-added phase (no CodeSignOnCopy attribute)
+        removeHeaders: false   # matches the original (no RemoveHeadersOnCopy attribute; no headers to remove anyway)
+        copy:
+          destination: wrapper
+          subpath: Contents/Helpers
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES

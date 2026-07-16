@@ -10,6 +10,7 @@
 		00A20B4C0894C6BEAB66BC13 /* FanCurveEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D946C27E4FCBE51115DBA82 /* FanCurveEditor.swift */; };
 		00A74CF529FE67DA3E141D39 /* FanControlEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E92DBEAC072A56D8DCF1D665 /* FanControlEngine.swift */; };
 		03C1B6D30296659A3095B84D /* FanCurveGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBB7155B2535718E387DA449 /* FanCurveGeometryTests.swift */; };
+		05A74F528E537DFEA675834F /* WattlyFanDaemon in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = C48EFA903806186E968B2D77 /* WattlyFanDaemon */; settings = {ATTRIBUTES = (); }; };
 		0B15660FC42EBB6A706855A7 /* SelfEnergy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 990E14E2DD88DEDA9CE98146 /* SelfEnergy.swift */; };
 		0B545B279B2A4B89D8325660 /* LoginItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0BC034680A8F9989B9D773 /* LoginItem.swift */; };
 		0B7B21D60A125A31A2D729F0 /* BatteryPower.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0BB325E6C8D3C6B7207404B /* BatteryPower.swift */; };
@@ -118,6 +119,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		14A5B67C0C43F0744BE91BAA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7ACCBC865A2369A582CFBCD6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 039B6BDDAF6FEDBD6CC30A32;
+			remoteInfo = WattlyFanDaemon;
+		};
 		528517CBEDE77F5F82BD7C86 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 7ACCBC865A2369A582CFBCD6 /* Project object */;
@@ -126,6 +134,20 @@
 			remoteInfo = Wattly;
 		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		087C1317D851836EE6901FB2 /* Embed Dependencies */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Contents/Helpers;
+			dstSubfolderSpec = 1;
+			files = (
+				05A74F528E537DFEA675834F /* WattlyFanDaemon in Embed Dependencies */,
+			);
+			name = "Embed Dependencies";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		00082133CD88B0F35342BB85 /* SparklineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparklineView.swift; sourceTree = "<group>"; };
@@ -499,10 +521,12 @@
 			buildPhases = (
 				596C88E1C025C1A94C297D8C /* Sources */,
 				C2CB2893692AFC5E33BDA57C /* Resources */,
+				087C1317D851836EE6901FB2 /* Embed Dependencies */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				D76E6BF268A3A468783D7558 /* PBXTargetDependency */,
 			);
 			name = Wattly;
 			packageProductDependencies = (
@@ -699,6 +723,11 @@
 			isa = PBXTargetDependency;
 			target = 6AA7BFBB43C66ED8C791FC43 /* Wattly */;
 			targetProxy = 528517CBEDE77F5F82BD7C86 /* PBXContainerItemProxy */;
+		};
+		D76E6BF268A3A468783D7558 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 039B6BDDAF6FEDBD6CC30A32 /* WattlyFanDaemon */;
+			targetProxy = 14A5B67C0C43F0744BE91BAA /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
