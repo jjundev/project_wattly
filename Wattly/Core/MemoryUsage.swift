@@ -35,6 +35,15 @@ enum MemoryPressure: Sendable, Equatable {
     }
 }
 
+/// Kernel free-memory percent → RAM-pressure percent. `memorystatus_get_level` (XNU
+/// syscall #453) reports the FREE percentage, so pressure is its inverse. Clamped to
+/// 0…100 so a corrupt kernel read can never produce a negative or >100 value. Pure and
+/// table-tested (issue 18) — the provider does the syscall I/O and hands the raw free%
+/// here, mirroring `MemoryPressure(fromSysctl:)`.
+func memoryPressurePercent(freeLevel: UInt32) -> Int {
+    max(0, min(100, 100 - Int(freeLevel)))
+}
+
 /// "Used" memory = (active + wired + compressed) pages × page size, in bytes
 /// (plan 05 §In-2 — matches the `HOST_VM_INFO64` fields the provider reads).
 func usedBytes(active: UInt64, wire: UInt64, compressor: UInt64, pageSize: UInt64) -> UInt64 {
@@ -48,6 +57,7 @@ func memorySample(active: UInt64, wire: UInt64, compressor: UInt64,
                   pageSize: UInt64, memsize: UInt64,
                   processes: [ProcessUsage],
                   pressure: MemoryPressure? = nil,
+                  pressurePercent: Int? = nil,
                   swapUsedBytes: UInt64 = 0) -> MemorySample {
     MemorySample(
         usedGB: Double(usedBytes(active: active, wire: wire, compressor: compressor, pageSize: pageSize)) / bytesPerGiB,
@@ -56,7 +66,8 @@ func memorySample(active: UInt64, wire: UInt64, compressor: UInt64,
         compressedGB: Double(compressor * pageSize) / bytesPerGiB,
         swapUsedGB: Double(swapUsedBytes) / bytesPerGiB,
         processes: topProcesses(processes),
-        pressure: pressure)
+        pressure: pressure,
+        pressurePercent: pressurePercent)
 }
 
 /// Top-N processes by physical footprint, descending (plan 05 §M8).

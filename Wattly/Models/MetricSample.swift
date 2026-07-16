@@ -49,6 +49,12 @@ struct MemorySample: Sendable, Equatable {
     /// "활성 상태 보기" model: color by pressure, not occupancy). `nil` = sysctl
     /// unavailable → the card falls back to the used% threshold band.
     var pressure: MemoryPressure? = nil
+    /// The kernel's RAM-pressure percentage (0–100), from `memorystatus_get_level` — the
+    /// same number Activity Monitor's "메모리 압력" graph shows (`100 − free%`). Distinct from
+    /// `pressure` (the coarse NORMAL/WARN/CRITICAL band that colors the card): this is the
+    /// precise readout the sub-line prints. `nil` = the syscall was unavailable this poll →
+    /// the sub-line drops the 압력 segment (never a fake 0%).
+    var pressurePercent: Int? = nil
 }
 
 /// One process row in the memory card's expand (issue 05). `footprintBytes` is
