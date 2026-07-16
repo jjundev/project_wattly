@@ -77,6 +77,17 @@ struct SettingsResetTests {
         #expect(d.bool(forKey: StorageKey.menuMemPressure) == Defaults.menuMemPressureEnabled)
     }
 
+    @Test func resetWritesEveryCoreClockKey() {
+        let d = makeDefaults(#function)
+        for prefix in ["S", "P", "E"] { d.set(true, forKey: StorageKey.menuCoreClock(prefix)) }
+
+        SettingsReset.applyDefaults(into: d, login: nil)
+
+        for prefix in ["S", "P", "E"] {
+            #expect(d.bool(forKey: StorageKey.menuCoreClock(prefix)) == (Defaults.menuCoreClockEnabled[prefix] ?? false))
+        }
+    }
+
     @Test func resetReenablesLoginItem() {
         let d = makeDefaults(#function)
         let login = FakeLoginItem(enabled: false)

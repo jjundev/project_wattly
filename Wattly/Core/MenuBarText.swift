@@ -79,4 +79,20 @@ enum MenuBarText {
         guard case .value(.memory(let s)) = state, let p = s.pressurePercent else { return "압력 —" }
         return "압력 \(p)%"
     }
+
+    /// A CPU cluster's active clock, selected by its runtime-name prefix letter (S/P/E —
+    /// Apple Silicon chip generations name their fast cluster "Performance" (P/E chips,
+    /// M1–M4) or "Super" (S/E chips, e.g. M5); exposing all three as independent menubar
+    /// toggles lets one persisted choice work across hardware, since only the cluster(s)
+    /// actually present on a given Mac ever produce a live reading (menubar items update).
+    /// "<prefix> 코어 클럭 —" when no cluster with this prefix exists this poll, or its
+    /// clock source has no reading yet (baseline poll / unsupported DVFS residency source).
+    static func coreClockPart(_ prefix: String, _ state: MetricState) -> String {
+        let cold = "\(prefix) 코어 클럭 —"
+        guard case .value(.cpu(let s)) = state,
+              let level = s.perfLevels.first(where: { CardPresentation.corePrefix($0.name) == prefix }),
+              let ghz = level.activeGHz
+        else { return cold }
+        return "\(prefix) \(CardPresentation.ghzText(ghz))"
+    }
 }

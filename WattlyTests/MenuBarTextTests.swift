@@ -95,4 +95,34 @@ struct MenuBarTextTests {
         #expect(MenuBarText.memPressurePart(st) == "압력 —")
         #expect(MenuBarText.memPressurePart(.loading) == "압력 —")
     }
+
+    @Test func coreClockPartShowsGHzForMatchingCluster() {
+        let st = MetricState.value(.cpu(CPUSample(overall: 40, perfLevels: [
+            PerfLevelUsage(name: "Super", usage: 30, activeGHz: 3.52),
+            PerfLevelUsage(name: "Efficiency", usage: 12, activeGHz: 2.10),
+        ])))
+        #expect(MenuBarText.coreClockPart("S", st) == "S 3.52 GHz")
+        #expect(MenuBarText.coreClockPart("E", st) == "E 2.10 GHz")
+    }
+
+    @Test func coreClockPartColdWhenClusterMissing() {
+        // Performance/Efficiency (P/E) chip — no "Super" cluster, so selecting S is cold.
+        let st = MetricState.value(.cpu(CPUSample(overall: 40, perfLevels: [
+            PerfLevelUsage(name: "Performance", usage: 30, activeGHz: 3.0),
+            PerfLevelUsage(name: "Efficiency", usage: 12, activeGHz: 2.0),
+        ])))
+        #expect(MenuBarText.coreClockPart("S", st) == "S 코어 클럭 —")
+        #expect(MenuBarText.coreClockPart("P", st) == "P 3.00 GHz")
+    }
+
+    @Test func coreClockPartColdWhenGHzUnavailable() {
+        let st = MetricState.value(.cpu(CPUSample(overall: 40, perfLevels: [
+            PerfLevelUsage(name: "Performance", usage: 30, activeGHz: nil),
+        ])))
+        #expect(MenuBarText.coreClockPart("P", st) == "P 코어 클럭 —")
+    }
+
+    @Test func coreClockPartColdWhenNotCPUState() {
+        #expect(MenuBarText.coreClockPart("P", .loading) == "P 코어 클럭 —")
+    }
 }

@@ -15,6 +15,9 @@ struct MenuBarLabel: View {
     @AppStorage(StorageKey.menubarTextEnabled) private var textEnabled = Defaults.menubarTextEnabled
     @AppStorage(StorageKey.powerSmoothed)      private var powerSmoothed = Defaults.powerSmoothed
     @AppStorage(StorageKey.menu(.cpu))     private var menuCPU     = Defaults.menuMetrics[.cpu]     ?? false
+    @AppStorage(StorageKey.menuCoreClock("S")) private var menuSClock = Defaults.menuCoreClockEnabled["S"] ?? false
+    @AppStorage(StorageKey.menuCoreClock("P")) private var menuPClock = Defaults.menuCoreClockEnabled["P"] ?? false
+    @AppStorage(StorageKey.menuCoreClock("E")) private var menuEClock = Defaults.menuCoreClockEnabled["E"] ?? false
     @AppStorage(StorageKey.menu(.power))   private var menuPower   = Defaults.menuMetrics[.power]   ?? false
     @AppStorage(StorageKey.menu(.battery)) private var menuBattery = Defaults.menuMetrics[.battery] ?? false
     @AppStorage(StorageKey.menu(.mem))     private var menuMem     = Defaults.menuMetrics[.mem]     ?? false
@@ -85,12 +88,17 @@ struct MenuBarLabel: View {
         return s
     }
 
-    /// Pre-formatted parts for the menubar-only figure that has no `CardKind` (memory
-    /// pressure % is independent of the `.mem` GB chip — menubar items update). Read
-    /// directly off the monitor, independent of `selected`.
+    /// Pre-formatted parts for the menubar-only figures that have no `CardKind` (memory
+    /// pressure % is independent of the `.mem` GB chip; the S/P/E cluster clocks are
+    /// independent of the `.cpu` % chip — menubar items update). Read directly off the
+    /// monitor, independent of `selected`.
     private var extraParts: [String] {
         var parts: [String] = []
         if menuMemPressure { parts.append(MenuBarText.memPressurePart(monitor.cardState(.mem))) }
+        let cpuState = monitor.cardState(.cpu)
+        if menuSClock { parts.append(MenuBarText.coreClockPart("S", cpuState)) }
+        if menuPClock { parts.append(MenuBarText.coreClockPart("P", cpuState)) }
+        if menuEClock { parts.append(MenuBarText.coreClockPart("E", cpuState)) }
         return parts
     }
 }

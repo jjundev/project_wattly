@@ -29,6 +29,9 @@ struct PollPolicyBridge: View {
     // The menubar metric chips (issue 14). Pushed alongside `shownCards` so a metric shown
     // ONLY in the menubar keeps its provider polled even while its card is hidden.
     @AppStorage(StorageKey.menu(.cpu))     private var menuCPU     = Defaults.menuMetrics[.cpu]     ?? false
+    @AppStorage(StorageKey.menuCoreClock("S")) private var menuSClock = Defaults.menuCoreClockEnabled["S"] ?? false
+    @AppStorage(StorageKey.menuCoreClock("P")) private var menuPClock = Defaults.menuCoreClockEnabled["P"] ?? false
+    @AppStorage(StorageKey.menuCoreClock("E")) private var menuEClock = Defaults.menuCoreClockEnabled["E"] ?? false
     @AppStorage(StorageKey.menu(.power))   private var menuPower   = Defaults.menuMetrics[.power]   ?? false
     @AppStorage(StorageKey.menu(.battery)) private var menuBattery = Defaults.menuMetrics[.battery] ?? false
     @AppStorage(StorageKey.menu(.mem))     private var menuMem     = Defaults.menuMetrics[.mem]     ?? false
@@ -53,11 +56,15 @@ struct PollPolicyBridge: View {
     }
 
     /// The menubar-selected metrics, from the per-chip flags (mirrors `MenuBarLabel.selected`).
-    /// `menuMemPressure` also inserts `.mem` (menubar items update) so the memory provider
-    /// stays polled when the user wants pressure% in the menubar but not the GB chip.
+    /// `menuMemPressure` also inserts `.mem`, and any of the S/P/E core-clock toggles also
+    /// insert `.cpu` (menubar items update) — so the memory/CPU providers stay polled when the
+    /// user wants pressure%/a cluster clock in the menubar but not the GB/CPU% chip.
     private var menubarMetrics: Set<CardKind> {
         var s = Set<CardKind>()
         if menuCPU        { s.insert(.cpu) }
+        if menuSClock     { s.insert(.cpu) }
+        if menuPClock     { s.insert(.cpu) }
+        if menuEClock     { s.insert(.cpu) }
         if menuPower      { s.insert(.power) }
         if menuBattery    { s.insert(.battery) }
         if menuMem        { s.insert(.mem) }
