@@ -158,6 +158,23 @@ struct WattlyChip: View {
 
 // MARK: - Layout wrappers
 
+/// A top-level group label (표시/동작 in `SettingsView`) — larger and bolder than
+/// `SettingsSection`'s per-section caption, with no divider line (settings-card-unification).
+/// Used ONLY above groups with 2+ sections; a lone-section group (시스템) reuses its single
+/// section's own `SettingsSection` caption instead, so two redundant captions never stack
+/// directly on top of each other.
+struct SettingsGroupHeader: View {
+    let title: String
+    @Environment(\.tokens) private var t
+
+    var body: some View {
+        Text(title)
+            .font(WattlyFont.at(12, weight: .bold))
+            .tracking(0.4)
+            .foregroundStyle(t.faint)
+    }
+}
+
 /// A titled section: the 11px/700/tracking caption + its content (prototype gap 9).
 struct SettingsSection<Content: View>: View {
     let title: String
@@ -175,7 +192,9 @@ struct SettingsSection<Content: View>: View {
     }
 }
 
-/// The bordered rounded container that groups rows (prototype `rowBg`/`rowBorder`, radius 10).
+/// The bordered rounded container that groups rows (prototype `rowBg`/`rowBorder`). Radius
+/// matches the popover's Mode A/B cards via `Tokens.cardRadius` (settings-card-unification) —
+/// previously a separately-chosen literal `10`.
 struct SettingsCard<Content: View>: View {
     var padding: CGFloat = 0
     @ViewBuilder var content: () -> Content
@@ -184,8 +203,8 @@ struct SettingsCard<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) { content() }
             .padding(padding)
-            .background(RoundedRectangle(cornerRadius: 10).fill(t.rowBg))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(t.rowBorder, lineWidth: 1))
+            .background(RoundedRectangle(cornerRadius: Tokens.cardRadius).fill(t.rowBg))
+            .overlay(RoundedRectangle(cornerRadius: Tokens.cardRadius).strokeBorder(t.rowBorder, lineWidth: 1))
     }
 }
 
