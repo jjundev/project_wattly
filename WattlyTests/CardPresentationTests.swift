@@ -221,7 +221,7 @@ struct CardPresentationTests {
     // MARK: CardKind structural facts (D) — single home for the card-family flags
 
     @Test func cardKindStructuralFlags() {
-        #expect(CardKind.allCases.filter(\.isExpandable) == [.power, .cpu, .mem, .cpuTemp, .fan])
+        #expect(CardKind.allCases.filter(\.isExpandable) == [.power, .battery, .cpu, .mem, .cpuTemp, .fan])
         #expect(CardKind.allCases.filter(\.hasSparkArea) == [.power, .cpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
         #expect(CardKind.allCases.filter(\.isAccented) == [.power])
     }
