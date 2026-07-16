@@ -64,8 +64,9 @@ private struct WindowAppearanceSync: NSViewRepresentable {
 /// prefs window already draws exactly close-enabled + disabled minimize/zoom; grill #1). All
 /// state is `@AppStorage`, so a change reflects in the popover live and survives restart.
 ///
-/// Sections (prototype order): 일반(로그인) · 테마 · 표시 지표 · 전력 표시(EMA) · 그래프 임곗값 ·
-/// 메뉴바 · 동작 모드 · 업데이트 주기 · 되돌리기 · 푸터.
+/// Sections (그룹 순서, settings-card-unification): 시스템(일반) · 표시(테마·레이아웃·표시 지표·
+/// 메뉴바) · 동작(전력 표시·그래프 임곗값·팬 커브·동작 모드·업데이트 주기) · 되돌리기 · 푸터.
+/// 팬 커브는 팬이 없는 Mac(desktop)에서 여전히 조건부로 숨는다(`monitor.isPresent(.fan)`).
 struct SettingsView: View {
     @Environment(\.tokens) private var t
 
@@ -137,15 +138,8 @@ struct SettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 generalSection
-                themeSection
-                layoutSection
-                showSection
-                smoothingSection
-                thresholdSection
-                if monitor.isPresent(.fan) { fanCurveSection }
-                menubarSection
-                powerModeSection
-                pollSection
+                displayGroup
+                behaviorGroup
                 resetButton
                 footer
             }
@@ -157,6 +151,37 @@ struct SettingsView: View {
         .background(WindowAppearanceSync(mode: theme))
         // Reconcile the display mirror with the real registration on open (F1).
         .task { loginMirror = loginItem.isEnabled }
+    }
+
+    // MARK: 표시 (그룹)
+
+    /// 표시 그룹: 테마 · 레이아웃 · 표시 지표 · 메뉴바 — 화면에 무엇이 보이는지를 다루는
+    /// 섹션들. `시스템` 그룹(아래 `generalSection`, `body`)은 섹션이 하나뿐이라 그룹 헤더를
+    /// 붙이지 않고 자신의 `SettingsSection` 캡션만 쓰지만, 이 그룹은 4개라 헤더가 붙는다.
+    private var displayGroup: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            SettingsGroupHeader(title: "표시")
+            themeSection
+            layoutSection
+            showSection
+            menubarSection
+        }
+    }
+
+    // MARK: 동작 (그룹)
+
+    /// 동작 그룹: 전력 표시(EMA) · 그래프 임곗값 · 팬 커브(조건부) · 동작 모드 · 업데이트 주기.
+    /// 팬 커브는 재배치 이전과 동일하게 `monitor.isPresent(.fan)`일 때만 렌더 — 이 가드를
+    /// 빠뜨리면 팬 없는 desktop Mac에서 팬 커브 카드가 항상 노출되는 회귀가 생긴다.
+    private var behaviorGroup: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            SettingsGroupHeader(title: "동작")
+            smoothingSection
+            thresholdSection
+            if monitor.isPresent(.fan) { fanCurveSection }
+            powerModeSection
+            pollSection
+        }
     }
 
     // MARK: 일반 (로그인)
@@ -298,7 +323,7 @@ struct SettingsView: View {
 
     private var thresholdSection: some View {
         SettingsSection(title: "그래프 임곗값") {
-            SettingsCard(padding: 14) {
+            SettingsCard(padding: Tokens.cardPadding) {
                 VStack(alignment: .leading, spacing: 16) {
                     thresholdBlock(title: "CPU 사용률 (%)", keyPath: \.cpu,
                                    warnRange: 10...95, critRange: 20...100, suffix: "%")
@@ -675,7 +700,7 @@ struct SettingsView: View {
 
     private var pollSection: some View {
         SettingsSection(title: "업데이트 주기") {
-            SettingsCard(padding: 12) {
+            SettingsCard(padding: Tokens.cardPadding) {
                 VStack(alignment: .leading, spacing: 10) {
                     WattlySegment(selection: $pollInterval,
                                   options: PollInterval.allCases.map { ($0, $0.label) },
