@@ -191,8 +191,8 @@ enum CardPresentation {
 
     // MARK: Shared display rules
 
-    /// The battery sign rule (#17), one home: drop the ± when |netW| rounds to 0.0 so
-    /// the value and the mA sub-line never disagree. `""` / `"+"` (charging) / `"−"`.
+    /// The battery sign rule (#17), one home: drop the ± when |netW| rounds to 0.0.
+    /// Shared by headline value, expand-row text, and average-sign logic. `""` / `"+"` (charging) / `"−"`.
     static func batterySign(netW: Double, charging: Bool) -> String {
         abs(netW) < 0.05 ? "" : (charging ? "+" : "−")
     }
