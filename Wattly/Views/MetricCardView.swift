@@ -110,6 +110,8 @@ struct MetricCardView: View {
     private var expandRegion: some View {
         if card == .power, case .value(.power(let s)) = state {
             powerExpand(s)
+        } else if card == .battery, case .value(.battery(let s)) = state {
+            batteryExpand(s)
         } else if card == .cpu, case .value(.cpu(let s)) = state {
             cpuExpand(s)
         } else if card == .mem, case .value(.memory(let s)) = state {
@@ -232,6 +234,36 @@ struct MetricCardView: View {
             }
         }
         .padding(.top, 4)
+    }
+
+    // MARK: Battery expand — voltage/current (plan: battery stack-mode display)
+
+    /// Voltage + current, hidden from the collapsed sub-line (moved here so "스택 행" mode
+    /// only shows them once the card is tapped open) — mirrors the other cards' expand-
+    /// reveals-detail pattern (`cpuExpand`'s per-core, `memExpand`'s Top-3). There's no
+    /// natural 0–100 scale to bar-fill for volts/mA, so this is a plain label/value pair,
+    /// unlike `tempGroupRow`/`fanRow`.
+    private func batteryExpand(_ s: BatterySample) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            batteryDetailRow(label: "전류", value: CardPresentation.batteryCurrentText(s))
+            batteryDetailRow(label: "전압", value: CardPresentation.batteryVoltageText(s))
+        }
+        .padding(.top, 8)
+    }
+
+    private func batteryDetailRow(label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(WattlyFont.at(10.5, weight: .semibold))
+                .foregroundStyle(t.faint)
+            Spacer(minLength: 8)
+            Text(value)
+                .font(WattlyFont.at(10.5, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(t.sub)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(label), \(value)")
     }
 
     // Process row, pixel-matched to the prototype (lines 138–141): name 74 ellipsis

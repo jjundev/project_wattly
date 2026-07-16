@@ -161,11 +161,13 @@ enum CardPresentation {
         case .power(let s):
             return "CPU \(f1(s.cpuW)) W · GPU \(f1(s.gpuW)) W · NPU \(f1(s.npuW)) W"
         case .battery(let s):
-            // #17: same zero-magnitude → no-sign rule as the value (keeps mA in step).
-            let sign = batterySign(netW: s.netW, charging: s.charging)
-            let base = "\(sign)\(s.milliamps) mA · \(f1(s.volts)) V · \(s.charging ? "충전 중" : "방전 중")"
+            let base = s.charging ? "충전 중" : "방전 중"
             guard let average = s.average1mW else { return base }
-            return "\(base) · 1분 평균 \(f1(abs(average))) W"
+            // The average's OWN sign — not `s.charging` — since the 1-minute trend can point
+            // the opposite way from the instantaneous state (e.g. just plugged in after a
+            // minute of discharge).
+            let avgSign = batterySign(netW: average, charging: average < 0)
+            return "\(base) · 1분 평균 \(avgSign)\(f1(abs(average))) W"
         case .cpu(let s):
             // Order-based (not name-coupled): runtime perf-level names ("Performance"/
             // "Efficiency" → "P"/"E") differ from the prototype's "S". Guard
@@ -189,10 +191,21 @@ enum CardPresentation {
 
     // MARK: Shared display rules
 
-    /// The battery sign rule (#17), one home: drop the ± when |netW| rounds to 0.0 so
-    /// the value and the mA sub-line never disagree. `""` / `"+"` (charging) / `"−"`.
+    /// The battery sign rule (#17), one home: drop the ± when |netW| rounds to 0.0.
+    /// Shared by headline value, expand-row text, and average-sign logic. `""` / `"+"` (charging) / `"−"`.
     static func batterySign(netW: Double, charging: Bool) -> String {
         abs(netW) < 0.05 ? "" : (charging ? "+" : "−")
+    }
+
+    /// Battery current text for the expand-only 전류 row (plan: battery stack-mode display) —
+    /// sign + magnitude, the mA the collapsed sub-line used to show inline.
+    static func batteryCurrentText(_ s: BatterySample) -> String {
+        "\(batterySign(netW: s.netW, charging: s.charging))\(s.milliamps) mA"
+    }
+
+    /// Battery voltage text for the expand-only 전압 row (plan: battery stack-mode display).
+    static func batteryVoltageText(_ s: BatterySample) -> String {
+        "\(f1(s.volts)) V"
     }
 
     /// Runtime perf-level name → single-letter label prefix ("Performance" → "P").
