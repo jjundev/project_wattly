@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// Three-way theme (plan 11). `system` follows the OS; `light`/`dark` force it
 /// regardless of the OS — which is exactly why tokens are a value type selected
@@ -35,6 +36,19 @@ enum ThemeResolver {
             case .system: scheme == .dark
         }
         return dark ? .dark : .light
+    }
+
+    /// The concrete `NSAppearance` a hosting `NSWindow` should adopt for this mode. `nil` =
+    /// follow the system, same convention as `preferredColorScheme`. SwiftUI's
+    /// `.preferredColorScheme` only sets a window's appearance at window-creation time — it does
+    /// not re-apply on a live theme change — so callers that need the window itself to update
+    /// while already open (the Settings window) must assign this value reactively themselves.
+    static func nsAppearance(_ mode: ThemeMode) -> NSAppearance? {
+        switch mode {
+        case .light: NSAppearance(named: .aqua)
+        case .dark: NSAppearance(named: .darkAqua)
+        case .system: nil
+        }
     }
 }
 

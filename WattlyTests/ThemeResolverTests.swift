@@ -29,4 +29,12 @@ struct ThemeResolverTests {
         #expect(ThemeResolver.tokens(.system, environment: .light) == .light)
         #expect(ThemeResolver.tokens(.system, environment: .dark) == .dark)
     }
+
+    // MARK: nsAppearance — the concrete AppKit appearance a hosting NSWindow should adopt
+
+    @Test func modesMapToTheirNativeAppearance() {
+        #expect(ThemeResolver.nsAppearance(.light)?.name == .aqua)
+        #expect(ThemeResolver.nsAppearance(.dark)?.name == .darkAqua)
+        #expect(ThemeResolver.nsAppearance(.system) == nil)
+    }
 }
