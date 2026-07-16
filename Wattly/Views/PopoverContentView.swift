@@ -67,9 +67,7 @@ struct PopoverContentView: View {
     @AppStorage(StorageKey.show(.batTemp)) private var showBatTemp = Defaults.show[.batTemp] ?? true
     @AppStorage(StorageKey.show(.fan))     private var showFan     = Defaults.show[.fan]     ?? true
 
-    private var expanded: Set<CardKind> {
-        Set(expandedRaw.split(separator: ",").compactMap { CardKind(rawValue: String($0)) })
-    }
+    private var expanded: Set<CardKind> { CardPresentation.expandedCards(from: expandedRaw) }
 
     private var memExpanded: Bool { expanded.contains(.mem) }
     private var powerExpanded: Bool { expanded.contains(.power) }
@@ -406,9 +404,7 @@ struct PopoverContentView: View {
     }
 
     private func toggleExpand(_ card: CardKind) {
-        var s = expanded
-        if s.contains(card) { s.remove(card) } else { s.insert(card) }
-        expandedRaw = s.map(\.rawValue).sorted().joined(separator: ",")
+        expandedRaw = CardPresentation.togglingExpanded(card, in: expandedRaw)
     }
 }
 

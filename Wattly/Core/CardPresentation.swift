@@ -48,6 +48,22 @@ enum CardPresentation {
         visible.contains(persisted) ? persisted : visible.first
     }
 
+    /// Parse the persisted CSV of expanded card raw values. Mode A's stack rows AND mode C's
+    /// hero card share ONE set (plan: hero card expand) — a card expanded in one mode stays
+    /// expanded if it's shown in the other. Unknown/stale tokens (e.g. a renamed `CardKind`
+    /// case) are silently dropped rather than crashing the parse.
+    static func expandedCards(from raw: String) -> Set<CardKind> {
+        Set(raw.split(separator: ",").compactMap { CardKind(rawValue: String($0)) })
+    }
+
+    /// Toggle one card's membership in the persisted expand set, returning the new CSV to
+    /// write back. Sorted so the stored string is deterministic (stable diffs, stable tests).
+    static func togglingExpanded(_ card: CardKind, in raw: String) -> String {
+        var s = expandedCards(from: raw)
+        if s.contains(card) { s.remove(card) } else { s.insert(card) }
+        return s.map(\.rawValue).sorted().joined(separator: ",")
+    }
+
     /// One compact list-row value for the mode-C list (plan 20). **Total** over `MetricState`,
     /// reusing `valueText`/`unitText` so the battery sign (#17) and every unit stay correct and in
     /// step with the cards — including the battery-temperature `°C` the prototype `rowOf` (lines
