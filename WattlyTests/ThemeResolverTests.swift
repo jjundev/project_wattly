@@ -29,4 +29,26 @@ struct ThemeResolverTests {
         #expect(ThemeResolver.tokens(.system, environment: .light) == .light)
         #expect(ThemeResolver.tokens(.system, environment: .dark) == .dark)
     }
+
+    // MARK: nsAppearance — the concrete AppKit appearance a hosting NSWindow should adopt
+
+    @Test func modesMapToTheirNativeAppearance() {
+        #expect(ThemeResolver.nsAppearance(.light)?.name == .aqua)
+        #expect(ThemeResolver.nsAppearance(.dark)?.name == .darkAqua)
+        #expect(ThemeResolver.nsAppearance(.system) == nil)
+    }
+
+    // MARK: scheme — the CONCRETE scheme (never nil), resolving .system from the OS preference
+
+    @Test func schemeForcesLightAndDarkRegardlessOfSystem() {
+        for systemDark in [true, false] {
+            #expect(ThemeResolver.scheme(.light, systemDark: systemDark) == .light)
+            #expect(ThemeResolver.scheme(.dark, systemDark: systemDark) == .dark)
+        }
+    }
+
+    @Test func schemeFollowsSystemPreferenceForSystemMode() {
+        #expect(ThemeResolver.scheme(.system, systemDark: true) == .dark)
+        #expect(ThemeResolver.scheme(.system, systemDark: false) == .light)
+    }
 }

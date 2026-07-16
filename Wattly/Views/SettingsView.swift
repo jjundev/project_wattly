@@ -1,6 +1,64 @@
 import SwiftUI
 import AppKit
 
+/// Reactively syncs the Settings window's own `NSAppearance` to the theme setting.
+/// `.preferredColorScheme` (applied by `ThemedRoot.body`) only sets the color-scheme
+/// trait SwiftUI content renders with — it does NOT re-resolve an already-visible `NSWindow`'s
+/// AppKit-drawn chrome (the native titlebar) after the theme changes; that chrome only picks up
+/// the new value the next time the window is created. That gap is exactly why toggling the theme
+/// previously required closing and reopening Settings. Assigning `.appearance` on the hosting
+/// window directly, on every reactive update, fixes it. Deliberately scoped to the Settings
+/// window only — the `MenuBarExtra` popover paints its own background from tokens (plan 11), so
+/// it doesn't need this and is left untouched.
+///
+/// `.system` needs its OWN concrete `NSAppearance`, not `nil`: on-device testing showed that once
+/// the window's appearance has been explicitly forced (light or dark), reassigning `nil` — "no
+/// override, follow the app" — does not reliably repaint the already-visible chrome back to the
+/// system value (forced-to-forced transitions repaint fine; forced-to-nil does not). So `.system`
+/// resolves to whichever concrete appearance the OS currently prefers, via the same code path that
+/// already works, and re-resolves live off `NSApp.effectiveAppearance` — which is KVO-observable
+/// and is Apple's documented way to detect system Light/Dark/Auto changes — so a `.system` window
+/// left open keeps following the OS instead of freezing at the value snapshotted on toggle.
+private final class WindowAppearanceSyncView: NSView {
+    var mode: ThemeMode = .system {
+        didSet { applyAppearance() }
+    }
+
+    private var systemAppearanceObservation: NSKeyValueObservation?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        applyAppearance()
+        // Follow the OS live in `.system` mode: re-apply whenever the app's effective appearance
+        // changes (system Light/Dark toggle or an Auto transition) while the window stays open.
+        systemAppearanceObservation = NSApp.observe(\.effectiveAppearance) { [weak self] _, _ in
+            DispatchQueue.main.async { self?.applyAppearance() }
+        }
+    }
+
+    private func applyAppearance() {
+        // `.system` needs a CONCRETE appearance, not `nil`: reassigning `nil` to an already-forced
+        // window does not reliably repaint its chrome back to the system value. Resolve `.system`
+        // to whatever the OS currently prefers — the same concrete path `.light`/`.dark` use.
+        let resolved: NSAppearance? = mode == .system
+            ? NSAppearance(named: SystemAppearance.isDark() ? .darkAqua : .aqua)
+            : ThemeResolver.nsAppearance(mode)
+        window?.appearance = resolved
+    }
+}
+
+private struct WindowAppearanceSync: NSViewRepresentable {
+    let mode: ThemeMode
+
+    func makeNSView(context: Context) -> WindowAppearanceSyncView {
+        WindowAppearanceSyncView()
+    }
+
+    func updateNSView(_ nsView: WindowAppearanceSyncView, context: Context) {
+        nsView.mode = mode
+    }
+}
+
 /// The settings window (issue 13). SwiftUI `Settings` scene, native window
 /// chrome (the prototype's fake traffic-light titlebar is a web-prototype artifact — a real
 /// prefs window already draws exactly close-enabled + disabled minimize/zoom; grill #1). All
@@ -91,6 +149,7 @@ struct SettingsView: View {
         }
         .frame(width: 440, height: 560)
         .background(t.settingsBg)
+        .background(WindowAppearanceSync(mode: theme))
         // Reconcile the display mirror with the real registration on open (F1).
         .task { loginMirror = loginItem.isEnabled }
     }
