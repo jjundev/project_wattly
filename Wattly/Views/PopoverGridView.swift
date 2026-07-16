@@ -82,7 +82,7 @@ private struct GridTile: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(t.gridBorder, lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: Tokens.cardRadius).strokeBorder(t.gridBorder, lineWidth: 1))
     }
 
     // Unavailable tile (prototype lines 182–183): dashed border + label + short reason.
@@ -101,7 +101,7 @@ private struct GridTile: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .overlay(RoundedRectangle(cornerRadius: 12)
+        .overlay(RoundedRectangle(cornerRadius: Tokens.cardRadius)
             .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
             .foregroundStyle(t.panelBorder))
     }

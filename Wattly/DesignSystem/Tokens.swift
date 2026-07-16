@@ -29,6 +29,15 @@ struct Tokens: Sendable, Equatable {
     static let statusOrange = Color(hex: "#ff9200")
     static let statusRed = Color(hex: "#ff4242")
 
+    // Shared card geometry (settings-card-unification). `cardRadius` is the single corner
+    // radius used by the popover's Mode A/B cards AND (from here on) every Settings card —
+    // previously two independently-chosen literals (12 vs 10). `cardPadding` is the content
+    // inset used by Settings' text-only cards (thresholds/poll/newly-carded segment
+    // sections). Popover Hero (14) and the outer panel (16) stay separate, un-tokenized
+    // literals on purpose — they're a different visual role, not an oversight.
+    static let cardRadius: CGFloat = 12
+    static let cardPadding: CGFloat = 14
+
     // Panel shadow (plan 01 line 20):
     //   0 4px 8px -2px rgba(23,23,23,.18), 0 16px 32px rgba(23,23,23,.28)
     static let shadowNear = (color: Color.rgba(23, 23, 23, 0.18), radius: 4.0, y: 4.0)
