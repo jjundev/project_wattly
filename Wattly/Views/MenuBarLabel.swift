@@ -16,11 +16,14 @@ struct MenuBarLabel: View {
     @AppStorage(StorageKey.powerSmoothed)      private var powerSmoothed = Defaults.powerSmoothed
     @AppStorage(StorageKey.menu(.cpu))     private var menuCPU     = Defaults.menuMetrics[.cpu]     ?? false
     @AppStorage(StorageKey.menu(.power))   private var menuPower   = Defaults.menuMetrics[.power]   ?? false
+    @AppStorage(StorageKey.menu(.battery)) private var menuBattery = Defaults.menuMetrics[.battery] ?? false
     @AppStorage(StorageKey.menu(.mem))     private var menuMem     = Defaults.menuMetrics[.mem]     ?? false
+    @AppStorage(StorageKey.menuMemPressure) private var menuMemPressure = Defaults.menuMemPressureEnabled
     @AppStorage(StorageKey.menu(.cpuTemp)) private var menuCpuTemp = Defaults.menuMetrics[.cpuTemp] ?? false
     @AppStorage(StorageKey.menu(.gpuTemp)) private var menuGpuTemp = Defaults.menuMetrics[.gpuTemp] ?? false
     @AppStorage(StorageKey.menu(.batTemp)) private var menuBatTemp = Defaults.menuMetrics[.batTemp] ?? false
     @AppStorage(StorageKey.menu(.fan))     private var menuFan     = Defaults.menuMetrics[.fan]     ?? false
+    @AppStorage(StorageKey.menuSelfPower)  private var menuSelfPower = Defaults.menuSelfPowerEnabled
 
     var body: some View {
         let label = assembled
@@ -53,7 +56,7 @@ struct MenuBarLabel: View {
     private var accessibilityLabel: String {
         let states = Dictionary(uniqueKeysWithValues:
             selected.map { ($0, monitor.cardState($0, smoothed: powerSmoothed)) })
-        return Accessibility.menuBarLabel(selected: selected, states: states)
+        return Accessibility.menuBarLabel(selected: selected, states: states, extraParts: extraParts)
     }
 
     /// The composed menubar string, or nil → icon only (text off, or no metric selected).
@@ -63,7 +66,10 @@ struct MenuBarLabel: View {
         guard textEnabled else { return nil }
         let states = Dictionary(uniqueKeysWithValues:
             selected.map { ($0, monitor.cardState($0, smoothed: powerSmoothed)) })
-        return MenuBarText.assemble(selected: selected, states: states)
+        var parts: [String] = []
+        if let base = MenuBarText.assemble(selected: selected, states: states) { parts.append(base) }
+        parts.append(contentsOf: extraParts)
+        return parts.isEmpty ? nil : parts.joined(separator: "  ·  ")
     }
 
     /// Selected menubar metrics, from the per-chip flags (mirrors the settings grid).
@@ -71,12 +77,23 @@ struct MenuBarLabel: View {
         var s = Set<CardKind>()
         if menuCPU     { s.insert(.cpu) }
         if menuPower   { s.insert(.power) }
+        if menuBattery { s.insert(.battery) }
         if menuMem     { s.insert(.mem) }
         if menuCpuTemp { s.insert(.cpuTemp) }
         if menuGpuTemp { s.insert(.gpuTemp) }
         if menuBatTemp { s.insert(.batTemp) }
         if menuFan     { s.insert(.fan) }
         return s
+    }
+
+    /// Pre-formatted parts for the two menubar-only figures that have no `CardKind` (memory
+    /// pressure % is independent of the `.mem` GB chip; self-power has no popover card at all —
+    /// menubar items update). Read directly off the monitor, independent of `selected`.
+    private var extraParts: [String] {
+        var parts: [String] = []
+        if menuMemPressure { parts.append(MenuBarText.memPressurePart(monitor.cardState(.mem))) }
+        if menuSelfPower   { parts.append(MenuBarText.selfPowerPart(monitor.selfPower)) }
+        return parts
     }
 }
 

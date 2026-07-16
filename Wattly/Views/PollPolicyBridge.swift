@@ -30,7 +30,9 @@ struct PollPolicyBridge: View {
     // ONLY in the menubar keeps its provider polled even while its card is hidden.
     @AppStorage(StorageKey.menu(.cpu))     private var menuCPU     = Defaults.menuMetrics[.cpu]     ?? false
     @AppStorage(StorageKey.menu(.power))   private var menuPower   = Defaults.menuMetrics[.power]   ?? false
+    @AppStorage(StorageKey.menu(.battery)) private var menuBattery = Defaults.menuMetrics[.battery] ?? false
     @AppStorage(StorageKey.menu(.mem))     private var menuMem     = Defaults.menuMetrics[.mem]     ?? false
+    @AppStorage(StorageKey.menuMemPressure) private var menuMemPressure = Defaults.menuMemPressureEnabled
     @AppStorage(StorageKey.menu(.cpuTemp)) private var menuCpuTemp = Defaults.menuMetrics[.cpuTemp] ?? false
     @AppStorage(StorageKey.menu(.gpuTemp)) private var menuGpuTemp = Defaults.menuMetrics[.gpuTemp] ?? false
     @AppStorage(StorageKey.menu(.batTemp)) private var menuBatTemp = Defaults.menuMetrics[.batTemp] ?? false
@@ -51,15 +53,19 @@ struct PollPolicyBridge: View {
     }
 
     /// The menubar-selected metrics, from the per-chip flags (mirrors `MenuBarLabel.selected`).
+    /// `menuMemPressure` also inserts `.mem` (menubar items update) so the memory provider
+    /// stays polled when the user wants pressure% in the menubar but not the GB chip.
     private var menubarMetrics: Set<CardKind> {
         var s = Set<CardKind>()
-        if menuCPU     { s.insert(.cpu) }
-        if menuPower   { s.insert(.power) }
-        if menuMem     { s.insert(.mem) }
-        if menuCpuTemp { s.insert(.cpuTemp) }
-        if menuGpuTemp { s.insert(.gpuTemp) }
-        if menuBatTemp { s.insert(.batTemp) }
-        if menuFan     { s.insert(.fan) }
+        if menuCPU        { s.insert(.cpu) }
+        if menuPower      { s.insert(.power) }
+        if menuBattery    { s.insert(.battery) }
+        if menuMem        { s.insert(.mem) }
+        if menuMemPressure { s.insert(.mem) }
+        if menuCpuTemp    { s.insert(.cpuTemp) }
+        if menuGpuTemp    { s.insert(.gpuTemp) }
+        if menuBatTemp    { s.insert(.batTemp) }
+        if menuFan        { s.insert(.fan) }
         return s
     }
 
