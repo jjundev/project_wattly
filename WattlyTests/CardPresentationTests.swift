@@ -139,6 +139,21 @@ struct CardPresentationTests {
         #expect(CardPresentation.subText(st) == "고정 3.2 GB · 압축 1.1 GB · 스왑 5.0 GB")
     }
 
+    @Test func memorySubShowsPressurePercent() {
+        // When the syscall supplied a pressure %, it leads the sub-line as its own segment.
+        let st = MetricState.value(.memory(MemorySample(
+            usedGB: 8.37, totalGB: 16, wiredGB: 3.21, compressedGB: 1.05,
+            swapUsedGB: 0.0, pressurePercent: 46)))
+        #expect(CardPresentation.subText(st) == "압력 46% · 고정 3.2 GB · 압축 1.1 GB · 스왑 0.0 GB")
+    }
+
+    @Test func memorySubOmitsPressureWhenUnavailable() {
+        // No pressure % (syscall failed / not set) → the sub-line is exactly as before.
+        let st = MetricState.value(.memory(MemorySample(
+            usedGB: 8.37, totalGB: 16, wiredGB: 3.21, compressedGB: 1.05)))
+        #expect(CardPresentation.subText(st) == "고정 3.2 GB · 압축 1.1 GB · 스왑 0.0 GB")
+    }
+
     // MARK: Power — the only accented card
 
     @Test func powerValueSubAndTint() {

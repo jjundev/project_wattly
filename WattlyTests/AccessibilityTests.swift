@@ -63,6 +63,13 @@ struct AccessibilityTests {
                 == "메모리, 9.2 GB, 고정 1.0 GB · 압축 0.5 GB · 스왑 0.0 GB")
     }
 
+    @Test func memoryFoldsPressurePercentIntoLabel() {
+        let st = MetricState.value(.memory(MemorySample(
+            usedGB: 9.18, totalGB: 16, wiredGB: 1, compressedGB: 0.5, pressurePercent: 46)))
+        #expect(Accessibility.cardLabel(.mem, st)
+                == "메모리, 9.2 GB, 압력 46% · 고정 1.0 GB · 압축 0.5 GB · 스왑 0.0 GB")
+    }
+
     @Test func temperatureUsesDegreeSymbol() {
         #expect(Accessibility.cardLabel(.cpuTemp, temp(cpu: 54.0)) == "CPU 온도, 54.0°C")
     }

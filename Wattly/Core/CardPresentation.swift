@@ -195,7 +195,11 @@ enum CardPresentation {
             let a = s.perfLevels[0], b = s.perfLevels[1]
             return "\(clusterSubText(a)) · \(clusterSubText(b))"
         case .memory(let s):
-            return "고정 \(f1(s.wiredGB)) GB · 압축 \(f1(s.compressedGB)) GB · 스왑 \(f1(s.swapUsedGB)) GB"
+            let detail = "고정 \(f1(s.wiredGB)) GB · 압축 \(f1(s.compressedGB)) GB · 스왑 \(f1(s.swapUsedGB)) GB"
+            // Lead with the exact RAM-pressure % (Activity Monitor "메모리 압력") when the kernel
+            // syscall supplied it; drop the segment entirely when it's unavailable (never "0%").
+            guard let p = s.pressurePercent else { return detail }
+            return "압력 \(p)% · \(detail)"
         case .fan(let s):
             guard !s.fans.isEmpty, let maxMax = s.fans.map(\.maxRPM).max() else { return nil }
             let avgTarget = s.fans.map(\.targetRPM).reduce(0, +) / Double(s.fans.count)
