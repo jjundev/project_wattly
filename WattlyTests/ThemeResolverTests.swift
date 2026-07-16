@@ -37,4 +37,18 @@ struct ThemeResolverTests {
         #expect(ThemeResolver.nsAppearance(.dark)?.name == .darkAqua)
         #expect(ThemeResolver.nsAppearance(.system) == nil)
     }
+
+    // MARK: scheme — the CONCRETE scheme (never nil), resolving .system from the OS preference
+
+    @Test func schemeForcesLightAndDarkRegardlessOfSystem() {
+        for systemDark in [true, false] {
+            #expect(ThemeResolver.scheme(.light, systemDark: systemDark) == .light)
+            #expect(ThemeResolver.scheme(.dark, systemDark: systemDark) == .dark)
+        }
+    }
+
+    @Test func schemeFollowsSystemPreferenceForSystemMode() {
+        #expect(ThemeResolver.scheme(.system, systemDark: true) == .dark)
+        #expect(ThemeResolver.scheme(.system, systemDark: false) == .light)
+    }
 }

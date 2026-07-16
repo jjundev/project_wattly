@@ -29,18 +29,21 @@ private final class WindowAppearanceSyncView: NSView {
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         applyAppearance()
+        // Follow the OS live in `.system` mode: re-apply whenever the app's effective appearance
+        // changes (system Light/Dark toggle or an Auto transition) while the window stays open.
         systemAppearanceObservation = NSApp.observe(\.effectiveAppearance) { [weak self] _, _ in
             DispatchQueue.main.async { self?.applyAppearance() }
         }
     }
 
     private func applyAppearance() {
-        guard mode == .system else {
-            window?.appearance = ThemeResolver.nsAppearance(mode)
-            return
-        }
-        let systemIsDark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-        window?.appearance = NSAppearance(named: systemIsDark ? .darkAqua : .aqua)
+        // `.system` needs a CONCRETE appearance, not `nil`: reassigning `nil` to an already-forced
+        // window does not reliably repaint its chrome back to the system value. Resolve `.system`
+        // to whatever the OS currently prefers — the same concrete path `.light`/`.dark` use.
+        let resolved: NSAppearance? = mode == .system
+            ? NSAppearance(named: SystemAppearance.isDark() ? .darkAqua : .aqua)
+            : ThemeResolver.nsAppearance(mode)
+        window?.appearance = resolved
     }
 }
 
