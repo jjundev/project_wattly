@@ -244,9 +244,15 @@ enum Defaults {
         .cpuTemp: true, .gpuTemp: true, .batTemp: true, .fan: true,
     ]
     static let menuMetrics: [CardKind: Bool] = [
-        .cpu: true, .power: false, .mem: false,
+        .cpu: true, .power: false, .battery: false, .mem: false,
         .cpuTemp: false, .gpuTemp: false, .batTemp: false, .fan: false,
     ]
+    /// Menubar-only figures with no `CardKind` of their own (menubar items update): memory
+    /// pressure % is a distinct figure from the `.mem` GB chip (independently toggleable —
+    /// user decision), and self-power (issue 16's footer figure) has no popover card at all.
+    /// Both default off, matching every non-CPU menubar chip.
+    static let menuMemPressureEnabled = false
+    static let menuSelfPowerEnabled = false
 
     static let cardOrder = CardOrder([.power, .battery, .cpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
     static let thresholds = Thresholds(
@@ -278,5 +284,7 @@ enum StorageKey {
     static let thresholds = "thresholds"
     static let fanCurve = "fanCurve"
     static let fanControlEnabled = "fanControlEnabled"
+    static let menuMemPressure = "menu.memPressure"
+    static let menuSelfPower = "menu.selfPower"
     static let expandedCards = "expandedCards"   // CSV of expanded card raw values (issue 04)
 }

@@ -61,12 +61,22 @@ struct SettingsResetTests {
         for card in CardKind.allCases {
             #expect(d.object(forKey: StorageKey.show(card)) != nil)
             #expect(d.bool(forKey: StorageKey.show(card)) == (Defaults.show[card] ?? true))
-            // Every card gets a menu key — even `.battery`, absent from Defaults.menuMetrics (F7).
+            // Every card gets a menu key, including `.battery` (a real menu chip now, default off).
             #expect(d.object(forKey: StorageKey.menu(card)) != nil)
             #expect(d.bool(forKey: StorageKey.menu(card)) == (Defaults.menuMetrics[card] ?? false))
         }
-        // `.battery` is intentionally not a menu metric → defaults to false, key present.
         #expect(d.bool(forKey: StorageKey.menu(.battery)) == false)
+    }
+
+    @Test func resetWritesMenuMemPressureAndSelfPowerKeys() {
+        let d = makeDefaults(#function)
+        d.set(true, forKey: StorageKey.menuMemPressure)
+        d.set(true, forKey: StorageKey.menuSelfPower)
+
+        SettingsReset.applyDefaults(into: d, login: nil)
+
+        #expect(d.bool(forKey: StorageKey.menuMemPressure) == Defaults.menuMemPressureEnabled)
+        #expect(d.bool(forKey: StorageKey.menuSelfPower) == Defaults.menuSelfPowerEnabled)
     }
 
     @Test func resetReenablesLoginItem() {
