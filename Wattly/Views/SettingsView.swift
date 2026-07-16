@@ -696,17 +696,16 @@ struct SettingsView: View {
             SettingsReset.applyDefaults(login: loginItem)
             loginMirror = loginItem.isEnabled
         } label: {
-            HStack(spacing: 7) {
-                Image(systemName: "arrow.counterclockwise")
-                    .font(.system(size: 13, weight: .semibold))
-                Text("기본값으로 되돌리기")
-                    .font(WattlyFont.at(13, weight: .semibold))
+            SettingsCard(padding: 11) {
+                HStack(spacing: 7) {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.system(size: 13, weight: .semibold))
+                    Text("기본값으로 되돌리기")
+                        .font(WattlyFont.at(13, weight: .semibold))
+                }
+                .foregroundStyle(t.text)
+                .frame(maxWidth: .infinity)
             }
-            .foregroundStyle(t.text)
-            .frame(maxWidth: .infinity)
-            .padding(11)
-            .background(RoundedRectangle(cornerRadius: 10).fill(t.rowBg))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(t.rowBorder, lineWidth: 1))
         }
         .buttonStyle(.plain)
     }
