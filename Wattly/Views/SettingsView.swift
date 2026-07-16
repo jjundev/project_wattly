@@ -1,6 +1,30 @@
 import SwiftUI
 import AppKit
 
+/// Reactively syncs the Settings window's own `NSAppearance` to the theme setting.
+/// `.preferredColorScheme` (applied by `ThemedRoot`, `Theme.swift:56`) only sets the color-scheme
+/// trait SwiftUI content renders with — it does NOT re-resolve an already-visible `NSWindow`'s
+/// AppKit-drawn chrome (the native titlebar) after the theme changes; that chrome only picks up
+/// the new value the next time the window is created. That gap is exactly why toggling the theme
+/// previously required closing and reopening Settings. Assigning `.appearance` on the hosting
+/// window directly, on every reactive update, fixes it. Deliberately scoped to the Settings
+/// window only — the `MenuBarExtra` popover paints its own background from tokens (plan 11), so
+/// it doesn't need this and is left untouched.
+private struct WindowAppearanceSync: NSViewRepresentable {
+    let appearance: NSAppearance?
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        // `view.window` is nil until the view is inserted into the hierarchy; defer one tick.
+        DispatchQueue.main.async { view.window?.appearance = appearance }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        nsView.window?.appearance = appearance
+    }
+}
+
 /// The settings window (issue 13). SwiftUI `Settings` scene, native window
 /// chrome (the prototype's fake traffic-light titlebar is a web-prototype artifact — a real
 /// prefs window already draws exactly close-enabled + disabled minimize/zoom; grill #1). All
@@ -91,6 +115,7 @@ struct SettingsView: View {
         }
         .frame(width: 440, height: 560)
         .background(t.settingsBg)
+        .background(WindowAppearanceSync(appearance: ThemeResolver.nsAppearance(theme)))
         // Reconcile the display mirror with the real registration on open (F1).
         .task { loginMirror = loginItem.isEnabled }
     }
