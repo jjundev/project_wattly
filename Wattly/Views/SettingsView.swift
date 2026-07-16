@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 /// Reactively syncs the Settings window's own `NSAppearance` to the theme setting.
-/// `.preferredColorScheme` (applied by `ThemedRoot`, `Theme.swift:56`) only sets the color-scheme
+/// `.preferredColorScheme` (applied by `ThemedRoot.body`) only sets the color-scheme
 /// trait SwiftUI content renders with — it does NOT re-resolve an already-visible `NSWindow`'s
 /// AppKit-drawn chrome (the native titlebar) after the theme changes; that chrome only picks up
 /// the new value the next time the window is created. That gap is exactly why toggling the theme
