@@ -11,9 +11,11 @@ import Foundation
 /// "프로세서 전력 —" for cold power and "CPU 온도 54°C" for warm temps — both wrong.
 /// Verbatim from the prototype (lines 663–668).
 enum MenuBarText {
-    /// Canonical menubar order = the prototype's source order. Battery net-power is not
-    /// menubar-eligible (there is no battery chip — see `Defaults.menuMetrics`).
-    static let order: [CardKind] = [.cpu, .power, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan]
+    /// Canonical menubar order = the prototype's source order, with `.battery` inserted right
+    /// after `.power` (menubar items update — matches `Defaults.cardOrder`'s power/battery
+    /// grouping). Memory-pressure % and self-power have no `CardKind` and are NOT in this
+    /// list — they're appended as pre-formatted "extra parts" by the caller (`MenuBarLabel`).
+    static let order: [CardKind] = [.cpu, .power, .battery, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan]
 
     /// The joined menubar string for the selected metrics in canonical order, or `nil`
     /// when none is selected (→ icon only, the prototype's `hasMenuMetric`). Parts join
@@ -33,6 +35,8 @@ enum MenuBarText {
         switch (card, sample) {
         case (.cpu, .cpu(let s)):             return "CPU \(Int(s.overall.rounded()))%"
         case (.power, .power(let s)):         return "\(CardPresentation.f1(s.totalW)) W"
+        case (.battery, .battery(let s)):
+            return "\(CardPresentation.batterySign(netW: s.netW, charging: s.charging))\(CardPresentation.f1(abs(s.netW))) W"
         case (.mem, .memory(let s)):          return "\(CardPresentation.f1(s.usedGB)) GB"
         case (.cpuTemp, .temperature(let s)): return tempPart("CPU", longLabel(card), s.cpu)
         case (.gpuTemp, .temperature(let s)): return tempPart("GPU", longLabel(card), s.gpu)
@@ -55,7 +59,7 @@ enum MenuBarText {
         case .gpuTemp: "GPU 온도"
         case .batTemp: "배터리 온도"
         case .fan: "팬"
-        case .battery: "배터리"   // not menubar-eligible; present only so the switch is total
+        case .battery: "배터리"
         }
     }
 
@@ -65,5 +69,30 @@ enum MenuBarText {
     private static func tempPart(_ shortLabel: String, _ longLabel: String, _ category: CategoryReading) -> String {
         if case .reading(let r) = category { return "\(shortLabel) \(Int(r.celsius.rounded()))°C" }
         return "\(longLabel) —"
+    }
+
+    /// The memory-pressure-percent chip's compact part (menubar items update) — independent
+    /// of the `.mem` GB chip, since pressure and GB are separately selectable. "압력 —" when
+    /// the card isn't a live memory reading, or the kernel didn't supply a percent this poll
+    /// (never a fake "압력 0%" — mirrors the card sub-line's own rule).
+    static func memPressurePart(_ state: MetricState) -> String {
+        guard case .value(.memory(let s)) = state, let p = s.pressurePercent else { return "압력 —" }
+        return "압력 \(p)%"
+    }
+
+    /// A CPU cluster's active clock, selected by its runtime-name prefix letter (S/P/E —
+    /// Apple Silicon chip generations name their fast cluster "Performance" (P/E chips,
+    /// M1–M4) or "Super" (S/E chips, e.g. M5); exposing all three as independent menubar
+    /// toggles lets one persisted choice work across hardware, since only the cluster(s)
+    /// actually present on a given Mac ever produce a live reading (menubar items update).
+    /// "<prefix> 코어 클럭 —" when no cluster with this prefix exists this poll, or its
+    /// clock source has no reading yet (baseline poll / unsupported DVFS residency source).
+    static func coreClockPart(_ prefix: String, _ state: MetricState) -> String {
+        let cold = "\(prefix) 코어 클럭 —"
+        guard case .value(.cpu(let s)) = state,
+              let level = s.perfLevels.first(where: { CardPresentation.corePrefix($0.name) == prefix }),
+              let ghz = level.activeGHz
+        else { return cold }
+        return "\(prefix) \(CardPresentation.ghzText(ghz))"
     }
 }

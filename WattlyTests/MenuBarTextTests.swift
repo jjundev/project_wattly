@@ -14,6 +14,11 @@ struct MenuBarTextTests {
         return .value(.temperature(TemperatureSnapshot(cpu: cat(cpu), gpu: cat(gpu), battery: cat(bat))))
     }
 
+    private func battery(netW: Double, charging: Bool) -> MetricState {
+        .value(.battery(BatterySample(netW: netW, milliamps: 1000, volts: 11.5,
+                                      charging: charging, externalConnected: charging)))
+    }
+
     @Test func cpuRoundsToInteger() {
         #expect(MenuBarText.part(.cpu, cpu(42.4)) == "CPU 42%")
         #expect(MenuBarText.part(.cpu, cpu(42.6)) == "CPU 43%")
@@ -61,5 +66,63 @@ struct MenuBarTextTests {
     @Test func assembleMissingStateFallsBackToCold() {
         // A selected metric with no state entry → treated as loading → its cold placeholder.
         #expect(MenuBarText.assemble(selected: [.cpu], states: [:]) == "CPU —")
+    }
+
+    @Test func batteryUsesSignAndOneDecimal() {
+        #expect(MenuBarText.part(.battery, battery(netW: 8.42, charging: false)) == "−8.4 W")
+        #expect(MenuBarText.part(.battery, battery(netW: 5.0, charging: true)) == "+5.0 W")
+    }
+
+    @Test func batterySignDropsNearZero() {
+        // #17 rule reused: |net| rounding to 0.0 drops the sign, never a meaningless "−0.0".
+        #expect(MenuBarText.part(.battery, battery(netW: 0.02, charging: false)) == "0.0 W")
+    }
+
+    @Test func batteryJoinsRightAfterPower() {
+        let states: [CardKind: MetricState] = [.power: power(8.4), .battery: battery(netW: 3.0, charging: false)]
+        let s = MenuBarText.assemble(selected: [.battery, .power], states: states)
+        #expect(s == "8.4 W  ·  −3.0 W")
+    }
+
+    @Test func memPressurePartShowsPercent() {
+        let st = MetricState.value(.memory(MemorySample(
+            usedGB: 9, totalGB: 16, wiredGB: 0, compressedGB: 0, pressurePercent: 46)))
+        #expect(MenuBarText.memPressurePart(st) == "압력 46%")
+    }
+
+    @Test func memPressurePartColdWhenPercentMissing() {
+        let st = MetricState.value(.memory(MemorySample(usedGB: 9, totalGB: 16, wiredGB: 0, compressedGB: 0)))
+        #expect(MenuBarText.memPressurePart(st) == "압력 —")
+        #expect(MenuBarText.memPressurePart(.loading) == "압력 —")
+    }
+
+    @Test func coreClockPartShowsGHzForMatchingCluster() {
+        let st = MetricState.value(.cpu(CPUSample(overall: 40, perfLevels: [
+            PerfLevelUsage(name: "Super", usage: 30, activeGHz: 3.52),
+            PerfLevelUsage(name: "Efficiency", usage: 12, activeGHz: 2.10),
+        ])))
+        #expect(MenuBarText.coreClockPart("S", st) == "S 3.52 GHz")
+        #expect(MenuBarText.coreClockPart("E", st) == "E 2.10 GHz")
+    }
+
+    @Test func coreClockPartColdWhenClusterMissing() {
+        // Performance/Efficiency (P/E) chip — no "Super" cluster, so selecting S is cold.
+        let st = MetricState.value(.cpu(CPUSample(overall: 40, perfLevels: [
+            PerfLevelUsage(name: "Performance", usage: 30, activeGHz: 3.0),
+            PerfLevelUsage(name: "Efficiency", usage: 12, activeGHz: 2.0),
+        ])))
+        #expect(MenuBarText.coreClockPart("S", st) == "S 코어 클럭 —")
+        #expect(MenuBarText.coreClockPart("P", st) == "P 3.00 GHz")
+    }
+
+    @Test func coreClockPartColdWhenGHzUnavailable() {
+        let st = MetricState.value(.cpu(CPUSample(overall: 40, perfLevels: [
+            PerfLevelUsage(name: "Performance", usage: 30, activeGHz: nil),
+        ])))
+        #expect(MenuBarText.coreClockPart("P", st) == "P 코어 클럭 —")
+    }
+
+    @Test func coreClockPartColdWhenNotCPUState() {
+        #expect(MenuBarText.coreClockPart("P", .loading) == "P 코어 클럭 —")
     }
 }

@@ -43,9 +43,18 @@ enum Accessibility {
     /// computed regardless of whether the visible text is on (issue 15 §1). Decision A: an
     /// empty selection reads just "Wattly". Reuses the #14 assembler so the symbol copy
     /// matches the menubar text exactly.
-    static func menuBarLabel(selected: Set<CardKind>, states: [CardKind: MetricState]) -> String {
-        guard let metrics = MenuBarText.assemble(selected: selected, states: states) else { return "Wattly" }
-        return "Wattly, \(metrics)"
+    ///
+    /// `extraParts` (menubar items update) carries the pre-formatted memory-pressure/self-power
+    /// figures — they have no `CardKind`, so they can't flow through `selected`/`states`, and
+    /// the caller (`MenuBarLabel`) formats them via `MenuBarText.memPressurePart`/`selfPowerPart`
+    /// before passing them in. Defaults to `[]` so every existing call site is unaffected.
+    static func menuBarLabel(selected: Set<CardKind>, states: [CardKind: MetricState],
+                              extraParts: [String] = []) -> String {
+        var parts: [String] = []
+        if let metrics = MenuBarText.assemble(selected: selected, states: states) { parts.append(metrics) }
+        parts.append(contentsOf: extraParts)
+        guard !parts.isEmpty else { return "Wattly" }
+        return "Wattly, \(parts.joined(separator: "  ·  "))"
     }
 
     /// The spoken "value unit" for a live card. Symbols per decision B; the battery uses a

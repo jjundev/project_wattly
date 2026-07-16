@@ -108,8 +108,13 @@ struct SettingsView: View {
 
     // 메뉴바 칩 (multi-select). Persisted now; the visible menubar effect lands with issue 14.
     @AppStorage(StorageKey.menu(.cpu))     private var menuCPU     = Defaults.menuMetrics[.cpu]     ?? false
+    @AppStorage(StorageKey.menuCoreClock("S")) private var menuSClock = Defaults.menuCoreClockEnabled["S"] ?? false
+    @AppStorage(StorageKey.menuCoreClock("P")) private var menuPClock = Defaults.menuCoreClockEnabled["P"] ?? false
+    @AppStorage(StorageKey.menuCoreClock("E")) private var menuEClock = Defaults.menuCoreClockEnabled["E"] ?? false
     @AppStorage(StorageKey.menu(.power))   private var menuPower   = Defaults.menuMetrics[.power]   ?? false
+    @AppStorage(StorageKey.menu(.battery)) private var menuBattery = Defaults.menuMetrics[.battery] ?? false
     @AppStorage(StorageKey.menu(.mem))     private var menuMem     = Defaults.menuMetrics[.mem]     ?? false
+    @AppStorage(StorageKey.menuMemPressure) private var menuMemPressure = Defaults.menuMemPressureEnabled
     @AppStorage(StorageKey.menu(.cpuTemp)) private var menuCpuTemp = Defaults.menuMetrics[.cpuTemp] ?? false
     @AppStorage(StorageKey.menu(.gpuTemp)) private var menuGpuTemp = Defaults.menuMetrics[.gpuTemp] ?? false
     @AppStorage(StorageKey.menu(.batTemp)) private var menuBatTemp = Defaults.menuMetrics[.batTemp] ?? false
@@ -617,8 +622,13 @@ struct SettingsView: View {
         let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 3)
         return LazyVGrid(columns: columns, spacing: 4) {
             WattlyChip(label: "CPU (%)", isOn: menuCPU) { menuCPU.toggle() }
+            WattlyChip(label: "S 코어 클럭 (GHz)", isOn: menuSClock) { menuSClock.toggle() }
+            WattlyChip(label: "P 코어 클럭 (GHz)", isOn: menuPClock) { menuPClock.toggle() }
+            WattlyChip(label: "E 코어 클럭 (GHz)", isOn: menuEClock) { menuEClock.toggle() }
             WattlyChip(label: "전력 (W)", isOn: menuPower) { menuPower.toggle() }
+            WattlyChip(label: "배터리 (W)", isOn: menuBattery) { menuBattery.toggle() }
             WattlyChip(label: "메모리 (GB)", isOn: menuMem) { menuMem.toggle() }
+            WattlyChip(label: "메모리 압력 (%)", isOn: menuMemPressure) { menuMemPressure.toggle() }
             WattlyChip(label: "CPU 온도 (°C)", isOn: menuCpuTemp) { menuCpuTemp.toggle() }
             WattlyChip(label: "GPU 온도 (°C)", isOn: menuGpuTemp) { menuGpuTemp.toggle() }
             WattlyChip(label: "배터리 온도 (°C)", isOn: menuBatTemp) { menuBatTemp.toggle() }

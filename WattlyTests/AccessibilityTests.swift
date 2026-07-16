@@ -116,6 +116,17 @@ struct AccessibilityTests {
                 == "Wattly, CPU 42%  ·  8.4 W")
     }
 
+    @Test func menuBarLabelAppendsExtraParts() {
+        let states: [CardKind: MetricState] = [.cpu: cpu(42)]
+        let s = Accessibility.menuBarLabel(selected: [.cpu], states: states, extraParts: ["압력 46%"])
+        #expect(s == "Wattly, CPU 42%  ·  압력 46%")
+    }
+
+    @Test func menuBarLabelExtraPartsAloneWithNoCardKindSelection() {
+        let s = Accessibility.menuBarLabel(selected: [], states: [:], extraParts: ["자체 0.3 W"])
+        #expect(s == "Wattly, 자체 0.3 W")
+    }
+
     // MARK: Fan-curve anchor copy
 
     @Test func fanAnchorLabelSpeaksTempAndRole() {

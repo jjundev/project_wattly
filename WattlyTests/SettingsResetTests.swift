@@ -61,12 +61,31 @@ struct SettingsResetTests {
         for card in CardKind.allCases {
             #expect(d.object(forKey: StorageKey.show(card)) != nil)
             #expect(d.bool(forKey: StorageKey.show(card)) == (Defaults.show[card] ?? true))
-            // Every card gets a menu key — even `.battery`, absent from Defaults.menuMetrics (F7).
+            // Every card gets a menu key, including `.battery` (a real menu chip now, default off).
             #expect(d.object(forKey: StorageKey.menu(card)) != nil)
             #expect(d.bool(forKey: StorageKey.menu(card)) == (Defaults.menuMetrics[card] ?? false))
         }
-        // `.battery` is intentionally not a menu metric → defaults to false, key present.
         #expect(d.bool(forKey: StorageKey.menu(.battery)) == false)
+    }
+
+    @Test func resetWritesMenuMemPressureKey() {
+        let d = makeDefaults(#function)
+        d.set(true, forKey: StorageKey.menuMemPressure)
+
+        SettingsReset.applyDefaults(into: d, login: nil)
+
+        #expect(d.bool(forKey: StorageKey.menuMemPressure) == Defaults.menuMemPressureEnabled)
+    }
+
+    @Test func resetWritesEveryCoreClockKey() {
+        let d = makeDefaults(#function)
+        for prefix in ["S", "P", "E"] { d.set(true, forKey: StorageKey.menuCoreClock(prefix)) }
+
+        SettingsReset.applyDefaults(into: d, login: nil)
+
+        for prefix in ["S", "P", "E"] {
+            #expect(d.bool(forKey: StorageKey.menuCoreClock(prefix)) == (Defaults.menuCoreClockEnabled[prefix] ?? false))
+        }
     }
 
     @Test func resetReenablesLoginItem() {

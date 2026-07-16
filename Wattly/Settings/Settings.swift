@@ -244,9 +244,17 @@ enum Defaults {
         .cpuTemp: true, .gpuTemp: true, .batTemp: true, .fan: true,
     ]
     static let menuMetrics: [CardKind: Bool] = [
-        .cpu: true, .power: false, .mem: false,
+        .cpu: true, .power: false, .battery: false, .mem: false,
         .cpuTemp: false, .gpuTemp: false, .batTemp: false, .fan: false,
     ]
+    /// Memory pressure % is a menubar-only figure with no `CardKind` of its own — a distinct
+    /// figure from the `.mem` GB chip (independently toggleable — user decision). Default off,
+    /// matching every non-CPU menubar chip.
+    static let menuMemPressureEnabled = false
+    /// Per-cluster CPU clock menubar toggles, keyed by runtime-name prefix letter (S/P/E —
+    /// see `MenuBarText.coreClockPart`). All default off; only the letter(s) matching a given
+    /// Mac's actual clusters ever show a live reading once enabled.
+    static let menuCoreClockEnabled: [String: Bool] = ["S": false, "P": false, "E": false]
 
     static let cardOrder = CardOrder([.power, .battery, .cpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
     static let thresholds = Thresholds(
@@ -266,6 +274,7 @@ enum Defaults {
 enum StorageKey {
     static func show(_ c: CardKind) -> String { "show.\(c.rawValue)" }
     static func menu(_ c: CardKind) -> String { "menu.\(c.rawValue)" }
+    static func menuCoreClock(_ prefix: String) -> String { "menu.coreClock.\(prefix)" }
     static let theme = "theme"
     static let pollInterval = "pollInterval"
     static let powerMode = "powerMode"
@@ -278,5 +287,6 @@ enum StorageKey {
     static let thresholds = "thresholds"
     static let fanCurve = "fanCurve"
     static let fanControlEnabled = "fanControlEnabled"
+    static let menuMemPressure = "menu.memPressure"
     static let expandedCards = "expandedCards"   // CSV of expanded card raw values (issue 04)
 }
