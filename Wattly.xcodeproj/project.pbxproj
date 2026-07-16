@@ -7,7 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		00A20B4C0894C6BEAB66BC13 /* FanCurveEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D946C27E4FCBE51115DBA82 /* FanCurveEditor.swift */; };
 		00A74CF529FE67DA3E141D39 /* FanControlEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E92DBEAC072A56D8DCF1D665 /* FanControlEngine.swift */; };
+		03C1B6D30296659A3095B84D /* FanCurveGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBB7155B2535718E387DA449 /* FanCurveGeometryTests.swift */; };
 		0B15660FC42EBB6A706855A7 /* SelfEnergy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 990E14E2DD88DEDA9CE98146 /* SelfEnergy.swift */; };
 		0B545B279B2A4B89D8325660 /* LoginItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0BC034680A8F9989B9D773 /* LoginItem.swift */; };
 		0B7B21D60A125A31A2D729F0 /* BatteryPower.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0BB325E6C8D3C6B7207404B /* BatteryPower.swift */; };
@@ -35,13 +37,13 @@
 		34B7DAF861D1D07C5F31775B /* MetricProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CC07BAFD29885CF7E76FF5D /* MetricProvider.swift */; };
 		351A26180194AB3D3EF7C3F2 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4533B30821882929BD063FA4 /* Theme.swift */; };
 		36349F6A02D7C184EADAAD51 /* SparklineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEB8384534F32A983330C07B /* SparklineTests.swift */; };
-		5FE09CB5881DE5DC6065689E /* FanCurveGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E24B45ACF6729D1FC1DCE07C /* FanCurveGeometryTests.swift */; };
 		3B88FC69C5E47ED84C95CAB3 /* SystemMonitorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE8B45929FB77AE51839080D /* SystemMonitorTests.swift */; };
 		4219CC4B500EF72AA9C617E6 /* CardPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FADA80FC02FE00A50BB9B45 /* CardPresentation.swift */; };
 		4246E0D4D39477B3418FAF05 /* MetricState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8438B433DF80F449BCB80630 /* MetricState.swift */; };
 		42D2D7E93A275138AD2FD1BB /* FanControlProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8986A56C6D4C7B2671573BA6 /* FanControlProtocol.swift */; };
 		459C8A0FEDF87980EB44E521 /* ProcessPowerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE68DC8258B9BDE754435964 /* ProcessPowerTests.swift */; };
 		485735366A6681DDDB9B001C /* CPUUsageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C6277EFF84708F461754CA3 /* CPUUsageTests.swift */; };
+		4D6D1758D912C9665D61B30E /* FanHelperInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBFEAF99D7BA99D508081973 /* FanHelperInstaller.swift */; };
 		4E447F926511D41AB43E6AF4 /* PopoverContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D03B5C644C704D63E5F86C20 /* PopoverContentView.swift */; };
 		509F33FACE47668FBB3B3535 /* HardwareModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F29DD358CE8F3D499D04E593 /* HardwareModel.swift */; };
 		53A6845B9DDC236E2AA8BC7B /* PretendardVariable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2416472810E29E43641FBC70 /* PretendardVariable.ttf */; };
@@ -56,6 +58,7 @@
 		6BDFC180CB5F311F17D45B9A /* FanCurve.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E19061EEFC33CF7AA70F56 /* FanCurve.swift */; };
 		6D464930823FC1EA22FCC2DB /* Fan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A53C49214CBBFA066B1697 /* Fan.swift */; };
 		6F774A27D580235290B80753 /* PowerProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3BF59076BCF45AF5DFB2F47 /* PowerProvider.swift */; };
+		700B876AF70BF2F2DFEA98DF /* FanCurveGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EE3D08AD79BD8AD5E0DC35E /* FanCurveGeometry.swift */; };
 		704B65E517FECD08B4CD6DC4 /* PowerSmoothing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A4050A1C7B99C5FDEB0117D /* PowerSmoothing.swift */; };
 		709CA63AA1B889F23AB4AE04 /* ThemeResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EC101CF7C8E5F2E38102F96 /* ThemeResolverTests.swift */; };
 		73E2133420A33E60F7329D42 /* HistoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 832652672791FAC9750165B6 /* HistoryTests.swift */; };
@@ -85,9 +88,6 @@
 		B84ADFB9A7B85CE18C766236 /* PowerEnergy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10635C5861EA5A327ED9CC2F /* PowerEnergy.swift */; };
 		BA684AC2BA23B20C13094637 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 9044978DE889FEBEC87F3486 /* README.md */; };
 		BBADDDEE7D705F9308877FFA /* Sparkline.swift in Sources */ = {isa = PBXBuildFile; fileRef = E16EB2DF75F2A90917F1881D /* Sparkline.swift */; };
-		2412D5EF9B44D588E4D48860 /* WattlyFanDaemon in Embed Fan Helper */ = {isa = PBXBuildFile; fileRef = C48EFA903806186E968B2D77 /* WattlyFanDaemon */; };
-		F1C72B2DD3B6C005070C24A2 /* FanCurveGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86583EB759B3302FC18048B0 /* FanCurveGeometry.swift */; };
-		9D2ACC31526FCD5E599091F6 /* FanCurveEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12EAB022144109A89EF1895 /* FanCurveEditor.swift */; };
 		BD761BDF0E37A136ABC6749E /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30CFB92C90260B259E7D218E /* main.swift */; };
 		BFB09690120FD774F4E0221C /* MenuBarText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE63A3412207498B4F2A877 /* MenuBarText.swift */; };
 		C1C941C245940A942552E3B6 /* Temperature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0721DEAA1855EE4C25F48F35 /* Temperature.swift */; };
@@ -102,7 +102,6 @@
 		D43BD771779302A73C41B245 /* CPUProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95D9BB66FA468EDC722C9692 /* CPUProvider.swift */; };
 		D97CEF0FEFA4CF334E3DB6F1 /* SmoothingOverlayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADCD49E78A7446DE396FBE48 /* SmoothingOverlayTests.swift */; };
 		DB1D95D3E3404E6A9FE7C004 /* FanControlClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BF38B0353D3ED11BCAD6D5 /* FanControlClient.swift */; };
-		E9CE764ECB5AAFD8F2C41683 /* FanHelperInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68A44514772BA5AF370D0D56 /* FanHelperInstaller.swift */; };
 		DB5376908CFC7D56976E43DE /* MemoryUsageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F4F7AF2CAC7816F6FA756B2 /* MemoryUsageTests.swift */; };
 		DD797447DC0387B4C33B8A20 /* FanCurve.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E19061EEFC33CF7AA70F56 /* FanCurve.swift */; };
 		E6D4F1BE411CB7202D52B89D /* BatteryPowerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B193EC77CC4F6135B8F3566 /* BatteryPowerTests.swift */; };
@@ -110,6 +109,7 @@
 		F10C0DA94A81731AD5BAEDD8 /* FanControlPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = E81B47E3252A5121772114A7 /* FanControlPolicy.swift */; };
 		F2CB4E2A4AE442F961B0E497 /* PowerEnergyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8019EC757BBE28FC570B71D /* PowerEnergyTests.swift */; };
 		F38F679D33E6DD796A2A578A /* PopoverHeroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43761373E1878A83B8F6365E /* PopoverHeroView.swift */; };
+		F44A4D3FC723BB45C7C6802A /* CardExpandRegion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C57CD51031CA86CBEF2930C /* CardExpandRegion.swift */; };
 		F75BBDEA46E53B9724E142FA /* FanControlPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A194EF1DED33C4B8EE27DF65 /* FanControlPolicyTests.swift */; };
 		F80BC2C8905EECB7EAE8DA5C /* SystemMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F61FA5F6DFF92047EE2B7B8E /* SystemMonitor.swift */; };
 		F8C06B1EF48C88E986B44520 /* ProcessPower.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21242F142598B4648C88DB0C /* ProcessPower.swift */; };
@@ -125,28 +125,7 @@
 			remoteGlobalIDString = 6AA7BFBB43C66ED8C791FC43;
 			remoteInfo = Wattly;
 		};
-		E0B5AD6C5CC9D1BB84C82BA6 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 7ACCBC865A2369A582CFBCD6 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 039B6BDDAF6FEDBD6CC30A32;
-			remoteInfo = WattlyFanDaemon;
-		};
 /* End PBXContainerItemProxy section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		1FAF5B894F2D455E536995F1 /* Embed Fan Helper */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "Contents/Helpers";
-			dstSubfolderSpec = 1;
-			files = (
-				2412D5EF9B44D588E4D48860 /* WattlyFanDaemon in Embed Fan Helper */,
-			);
-			name = "Embed Fan Helper";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		00082133CD88B0F35342BB85 /* SparklineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparklineView.swift; sourceTree = "<group>"; };
@@ -155,7 +134,6 @@
 		09A53C49214CBBFA066B1697 /* Fan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fan.swift; sourceTree = "<group>"; };
 		10635C5861EA5A327ED9CC2F /* PowerEnergy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerEnergy.swift; sourceTree = "<group>"; };
 		11BF38B0353D3ED11BCAD6D5 /* FanControlClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanControlClient.swift; sourceTree = "<group>"; };
-		68A44514772BA5AF370D0D56 /* FanHelperInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanHelperInstaller.swift; sourceTree = "<group>"; };
 		140F7DBFC4FAB83E2B10015A /* FanControlBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanControlBridge.swift; sourceTree = "<group>"; };
 		14B2BDFF1DB69E370CC26C75 /* SettingsReset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsReset.swift; sourceTree = "<group>"; };
 		16699BC4854BB993A0BB6073 /* FontRegistration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FontRegistration.swift; sourceTree = "<group>"; };
@@ -172,6 +150,7 @@
 		32D8574AAFF0BFEF6380060D /* FakeProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeProvider.swift; sourceTree = "<group>"; };
 		3A4050A1C7B99C5FDEB0117D /* PowerSmoothing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerSmoothing.swift; sourceTree = "<group>"; };
 		3CC07BAFD29885CF7E76FF5D /* MetricProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricProvider.swift; sourceTree = "<group>"; };
+		3D946C27E4FCBE51115DBA82 /* FanCurveEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanCurveEditor.swift; sourceTree = "<group>"; };
 		3F5BBBFEC7E20B1DBE033A22 /* PowerSmoothingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerSmoothingTests.swift; sourceTree = "<group>"; };
 		416979B2919C07DC814AE533 /* Glyphs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glyphs.swift; sourceTree = "<group>"; };
 		419C0BB5C63DC6C6DCEE8BBF /* TemperatureProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemperatureProvider.swift; sourceTree = "<group>"; };
@@ -183,6 +162,7 @@
 		4EC101CF7C8E5F2E38102F96 /* ThemeResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeResolverTests.swift; sourceTree = "<group>"; };
 		5280F85A9A3EAB8E9FF4F733 /* MetricSample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricSample.swift; sourceTree = "<group>"; };
 		5C6277EFF84708F461754CA3 /* CPUUsageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUUsageTests.swift; sourceTree = "<group>"; };
+		5EE3D08AD79BD8AD5E0DC35E /* FanCurveGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanCurveGeometry.swift; sourceTree = "<group>"; };
 		5FADA80FC02FE00A50BB9B45 /* CardPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardPresentation.swift; sourceTree = "<group>"; };
 		5FC4B0A6E07A2BA0DBE34A4F /* PanelPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelPresentationTests.swift; sourceTree = "<group>"; };
 		67FE518CDA8ED1E9E6BAB874 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -196,6 +176,7 @@
 		8438B433DF80F449BCB80630 /* MetricState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricState.swift; sourceTree = "<group>"; };
 		8986A56C6D4C7B2671573BA6 /* FanControlProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanControlProtocol.swift; sourceTree = "<group>"; };
 		8ACAEB9B7EE979F55ECF5CC3 /* History.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = History.swift; sourceTree = "<group>"; };
+		8C57CD51031CA86CBEF2930C /* CardExpandRegion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardExpandRegion.swift; sourceTree = "<group>"; };
 		8CB2A49DA4F828109BC87F53 /* PollPolicyBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollPolicyBridge.swift; sourceTree = "<group>"; };
 		9044978DE889FEBEC87F3486 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		9174C12241D59747340FB7CC /* WattlyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WattlyApp.swift; sourceTree = "<group>"; };
@@ -215,9 +196,9 @@
 		ACDC5AEC1E8EC996DFF101D8 /* HeroSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeroSelectionTests.swift; sourceTree = "<group>"; };
 		ADCD49E78A7446DE396FBE48 /* SmoothingOverlayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmoothingOverlayTests.swift; sourceTree = "<group>"; };
 		AEB8384534F32A983330C07B /* SparklineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparklineTests.swift; sourceTree = "<group>"; };
-		E24B45ACF6729D1FC1DCE07C /* FanCurveGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanCurveGeometryTests.swift; sourceTree = "<group>"; };
 		B2D20B3A555B467EDAEC27F5 /* WattlyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WattlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B8D87FCAC4528FF3B73DFD05 /* BatteryProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryProvider.swift; sourceTree = "<group>"; };
+		BBB7155B2535718E387DA449 /* FanCurveGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanCurveGeometryTests.swift; sourceTree = "<group>"; };
 		BCB3DFDA1EFD1E038E9B49C0 /* MenuBarTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarTextTests.swift; sourceTree = "<group>"; };
 		BD971C88D016C636CC8D43E6 /* SettingsComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsComponents.swift; sourceTree = "<group>"; };
 		C48EFA903806186E968B2D77 /* WattlyFanDaemon */ = {isa = PBXFileReference; includeInIndex = 0; path = WattlyFanDaemon; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -237,8 +218,6 @@
 		DECFD3734A1569FA8CFE4AF5 /* OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = OFL.txt; sourceTree = "<group>"; };
 		E0AD4C82FC1A9EA5F33B69B3 /* CardPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardPresentationTests.swift; sourceTree = "<group>"; };
 		E16EB2DF75F2A90917F1881D /* Sparkline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sparkline.swift; sourceTree = "<group>"; };
-		86583EB759B3302FC18048B0 /* FanCurveGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanCurveGeometry.swift; sourceTree = "<group>"; };
-		E12EAB022144109A89EF1895 /* FanCurveEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanCurveEditor.swift; sourceTree = "<group>"; };
 		E81B47E3252A5121772114A7 /* FanControlPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanControlPolicy.swift; sourceTree = "<group>"; };
 		E92DBEAC072A56D8DCF1D665 /* FanControlEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanControlEngine.swift; sourceTree = "<group>"; };
 		EBCFA8BD7953C7F1E6ED403C /* MemoryProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryProvider.swift; sourceTree = "<group>"; };
@@ -250,6 +229,7 @@
 		F61FA5F6DFF92047EE2B7B8E /* SystemMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMonitor.swift; sourceTree = "<group>"; };
 		F9AB5AA6871BCF1DC1EEBBE7 /* CPUUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUUsage.swift; sourceTree = "<group>"; };
 		FA98B2B1F73BCF4A0B7AC05B /* MemoryUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryUsage.swift; sourceTree = "<group>"; };
+		FBFEAF99D7BA99D508081973 /* FanHelperInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanHelperInstaller.swift; sourceTree = "<group>"; };
 		FE0BC034680A8F9989B9D773 /* LoginItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItem.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -275,6 +255,7 @@
 				D620F32C016A23C9A9478E15 /* CPUFrequency.swift */,
 				F9AB5AA6871BCF1DC1EEBBE7 /* CPUUsage.swift */,
 				09A53C49214CBBFA066B1697 /* Fan.swift */,
+				5EE3D08AD79BD8AD5E0DC35E /* FanCurveGeometry.swift */,
 				F29DD358CE8F3D499D04E593 /* HardwareModel.swift */,
 				8ACAEB9B7EE979F55ECF5CC3 /* History.swift */,
 				FE0BC034680A8F9989B9D773 /* LoginItem.swift */,
@@ -292,7 +273,6 @@
 				CB9717A4622D508E51C16FA8 /* SMC.swift */,
 				A61C78982D0A278875AC6792 /* SmoothingOverlay.swift */,
 				E16EB2DF75F2A90917F1881D /* Sparkline.swift */,
-				86583EB759B3302FC18048B0 /* FanCurveGeometry.swift */,
 				F61FA5F6DFF92047EE2B7B8E /* SystemMonitor.swift */,
 				0721DEAA1855EE4C25F48F35 /* Temperature.swift */,
 			);
@@ -303,7 +283,7 @@
 			isa = PBXGroup;
 			children = (
 				11BF38B0353D3ED11BCAD6D5 /* FanControlClient.swift */,
-				68A44514772BA5AF370D0D56 /* FanHelperInstaller.swift */,
+				FBFEAF99D7BA99D508081973 /* FanHelperInstaller.swift */,
 			);
 			path = Control;
 			sourceTree = "<group>";
@@ -311,8 +291,9 @@
 		491F74191B36107B4E82A8AC /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				8C57CD51031CA86CBEF2930C /* CardExpandRegion.swift */,
 				140F7DBFC4FAB83E2B10015A /* FanControlBridge.swift */,
-				E12EAB022144109A89EF1895 /* FanCurveEditor.swift */,
+				3D946C27E4FCBE51115DBA82 /* FanCurveEditor.swift */,
 				70F55E227946867EDB8D1BC9 /* MenuBarLabel.swift */,
 				91C76F1ADD8A1D0EC7C3CCCC /* MetricCardView.swift */,
 				8CB2A49DA4F828109BC87F53 /* PollPolicyBridge.swift */,
@@ -377,6 +358,7 @@
 				9AA3E6D04D62D0E0B1F64EF6 /* FanControlEngineTests.swift */,
 				A194EF1DED33C4B8EE27DF65 /* FanControlPolicyTests.swift */,
 				A52795641AA21F78A0711276 /* FanControlProtocolTests.swift */,
+				BBB7155B2535718E387DA449 /* FanCurveGeometryTests.swift */,
 				1BEE551AD87114CD8B769E6B /* FanProviderTests.swift */,
 				4889AE37A893CA3BEB6CED49 /* FanTests.swift */,
 				ACDC5AEC1E8EC996DFF101D8 /* HeroSelectionTests.swift */,
@@ -392,7 +374,6 @@
 				07C1BF327FACCDB9FAB5213C /* SettingsResetTests.swift */,
 				ADCD49E78A7446DE396FBE48 /* SmoothingOverlayTests.swift */,
 				AEB8384534F32A983330C07B /* SparklineTests.swift */,
-				E24B45ACF6729D1FC1DCE07C /* FanCurveGeometryTests.swift */,
 				CE8B45929FB77AE51839080D /* SystemMonitorTests.swift */,
 				F1A07555B3221FE4D57FED44 /* TemperatureTests.swift */,
 				4EC101CF7C8E5F2E38102F96 /* ThemeResolverTests.swift */,
@@ -518,12 +499,10 @@
 			buildPhases = (
 				596C88E1C025C1A94C297D8C /* Sources */,
 				C2CB2893692AFC5E33BDA57C /* Resources */,
-				1FAF5B894F2D455E536995F1 /* Embed Fan Helper */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				896678C5D041A77D02F67699 /* PBXTargetDependency */,
 			);
 			name = Wattly;
 			packageProductDependencies = (
@@ -601,6 +580,7 @@
 				27C614EC4DFE85A7F86C4603 /* FanControlEngineTests.swift in Sources */,
 				F75BBDEA46E53B9724E142FA /* FanControlPolicyTests.swift in Sources */,
 				A1D749891DA5E51B14BA3BE7 /* FanControlProtocolTests.swift in Sources */,
+				03C1B6D30296659A3095B84D /* FanCurveGeometryTests.swift in Sources */,
 				96CC0B6CE6DB4D8F39E0807F /* FanProviderTests.swift in Sources */,
 				7CDFFB9049B05C9C3F18F4F5 /* FanTests.swift in Sources */,
 				5AADB450E100B4CB2C611335 /* HeroSelectionTests.swift in Sources */,
@@ -616,7 +596,6 @@
 				ADD80CA70B5601FAC82CA262 /* SettingsResetTests.swift in Sources */,
 				D97CEF0FEFA4CF334E3DB6F1 /* SmoothingOverlayTests.swift in Sources */,
 				36349F6A02D7C184EADAAD51 /* SparklineTests.swift in Sources */,
-				5FE09CB5881DE5DC6065689E /* FanCurveGeometryTests.swift in Sources */,
 				3B88FC69C5E47ED84C95CAB3 /* SystemMonitorTests.swift in Sources */,
 				15DAB5064926E774708AA4A3 /* TemperatureTests.swift in Sources */,
 				709CA63AA1B889F23AB4AE04 /* ThemeResolverTests.swift in Sources */,
@@ -654,6 +633,7 @@
 				5B2049F789C31AF111AF490A /* CPUFrequency.swift in Sources */,
 				D43BD771779302A73C41B245 /* CPUProvider.swift in Sources */,
 				0DFE06348B464F92F5334297 /* CPUUsage.swift in Sources */,
+				F44A4D3FC723BB45C7C6802A /* CardExpandRegion.swift in Sources */,
 				FCFFB2CEE33152456E33982A /* CardKind.swift in Sources */,
 				4219CC4B500EF72AA9C617E6 /* CardPresentation.swift in Sources */,
 				67087007F09610655F68D44C /* Clock.swift in Sources */,
@@ -661,11 +641,13 @@
 				6D464930823FC1EA22FCC2DB /* Fan.swift in Sources */,
 				F09A382CFB4D0A12620EE56F /* FanControlBridge.swift in Sources */,
 				DB1D95D3E3404E6A9FE7C004 /* FanControlClient.swift in Sources */,
-				E9CE764ECB5AAFD8F2C41683 /* FanHelperInstaller.swift in Sources */,
 				00A74CF529FE67DA3E141D39 /* FanControlEngine.swift in Sources */,
 				F10C0DA94A81731AD5BAEDD8 /* FanControlPolicy.swift in Sources */,
 				7963017E57BF95A4D225224D /* FanControlProtocol.swift in Sources */,
 				DD797447DC0387B4C33B8A20 /* FanCurve.swift in Sources */,
+				00A20B4C0894C6BEAB66BC13 /* FanCurveEditor.swift in Sources */,
+				700B876AF70BF2F2DFEA98DF /* FanCurveGeometry.swift in Sources */,
+				4D6D1758D912C9665D61B30E /* FanHelperInstaller.swift in Sources */,
 				771C21215370277A12B55257 /* FanProvider.swift in Sources */,
 				1A2C69151BFE413F8609A063 /* FontRegistration.swift in Sources */,
 				24E614EA3299409018DD6491 /* Glyphs.swift in Sources */,
@@ -699,8 +681,6 @@
 				C9E719E7D0D0152859146746 /* SettingsView.swift in Sources */,
 				1E0778BF5B4D3664E6C18C9B /* SmoothingOverlay.swift in Sources */,
 				BBADDDEE7D705F9308877FFA /* Sparkline.swift in Sources */,
-				F1C72B2DD3B6C005070C24A2 /* FanCurveGeometry.swift in Sources */,
-				9D2ACC31526FCD5E599091F6 /* FanCurveEditor.swift in Sources */,
 				222AEAEE28AEA0F1432E10D0 /* SparklineView.swift in Sources */,
 				F80BC2C8905EECB7EAE8DA5C /* SystemMonitor.swift in Sources */,
 				32A2E4A4DC43E9ED03E0ADA7 /* Temperature.swift in Sources */,
@@ -719,11 +699,6 @@
 			isa = PBXTargetDependency;
 			target = 6AA7BFBB43C66ED8C791FC43 /* Wattly */;
 			targetProxy = 528517CBEDE77F5F82BD7C86 /* PBXContainerItemProxy */;
-		};
-		896678C5D041A77D02F67699 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 039B6BDDAF6FEDBD6CC30A32 /* WattlyFanDaemon */;
-			targetProxy = E0B5AD6C5CC9D1BB84C82BA6 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
