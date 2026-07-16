@@ -73,4 +73,10 @@ enum Accessibility {
         default:  return "\(mag) W"
         }
     }
+
+    /// Fan-curve editor: the spoken label for one temperature anchor's handle ("40°C 팬 속도")
+    /// and its value ("1200 RPM"). Pure so the copy is table-tested (issue 15), matching the
+    /// symbol-based unit style of the rest of this file.
+    static func fanAnchorLabel(celsius: Double) -> String { "\(Int(celsius))°C 팬 속도" }
+    static func fanAnchorValue(rpm: Double) -> String { "\(Int(rpm.rounded())) RPM" }
 }

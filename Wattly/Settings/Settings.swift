@@ -253,9 +253,9 @@ enum Defaults {
         cpu: ThresholdPair(warn: 70, crit: 90),
         mem: ThresholdPair(warn: 70, crit: 85),
         temp: ThresholdPair(warn: 70, crit: 90))
-    /// Fan curve (Phase B-1): target RPMs at the fixed 40/60/80/95 °C anchors. A gentle ramp
-    /// — quiet at idle, spinning up toward the fan's top end under sustained heat.
-    static let fanCurve = FanCurve(rpms: [1200, 2500, 4500, 6000])
+    /// Fan curve: target RPMs at the fixed 30…100 °C anchors (5° steps). A gentle ramp — quiet
+    /// at idle, spinning up toward the fan's top end under sustained heat.
+    static let fanCurve = FanCurve(rpms: [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])
     /// Opt-in only: without an explicit user choice the helper is never asked to take over.
     static let fanControlEnabled = false
 }

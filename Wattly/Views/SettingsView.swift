@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// The settings window (issue 13). SwiftUI `Settings` scene, native window
 /// chrome (the prototype's fake traffic-light titlebar is a web-prototype artifact — a real
@@ -59,6 +60,15 @@ struct SettingsView: View {
     // Login item: @AppStorage is the display MIRROR; `loginItem` (SMAppService) is authoritative.
     @AppStorage(StorageKey.loginItem) private var loginMirror = Defaults.loginItem
     private let loginItem: LoginItemControlling = LoginItem()
+
+
+    // A short grace window after a curve edit: re-applying the curve makes the daemon blip through
+    // a transient `.failed` before it settles on `.controlling`, so within this window that one
+    // mode reads as "적용 중…" instead of the alarming "제어 실패". `nil` = no edit in flight.
+    @State private var editApplyDeadline: Date?
+
+    // True while the privileged helper install (admin auth prompt) is running.
+    @State private var installingHelper = false
 
     var body: some View {
         ScrollView {
@@ -240,77 +250,187 @@ struct SettingsView: View {
 
     private var fanCurveSection: some View {
         SettingsSection(title: "팬 커브") {
-            SettingsCard(padding: 14) {
-                VStack(alignment: .leading, spacing: 12) {
-                    SettingsToggleRow(isOn: $fanControlEnabled, divider: true) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            rowTitle("팬 커브 실제 적용")
-                            Text("Wattly가 macOS 기본 최소 RPM 이상으로만 팬을 제어합니다. Macs Fan Control은 종료해야 합니다.")
-                                .font(WattlyFont.at(11.5, weight: .regular))
-                                .foregroundStyle(t.faint)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+            // Card padding stays 0: the toggle row self-pads (its own 14) so its divider spans the
+            // full card width, and the graph block below adds a matching 14 inset — otherwise the
+            // padded card double-insets the toggle row and misaligns it against the graph.
+            SettingsCard {
+                SettingsToggleRow(isOn: $fanControlEnabled, divider: true) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        rowTitle("팬 커브 실제 적용")
+                        Text("Wattly가 macOS 기본 최소 RPM 이상으로만 팬을 제어합니다. Macs Fan Control은 종료해야 합니다.")
+                            .font(WattlyFont.at(11.5, weight: .regular))
+                            .foregroundStyle(t.faint)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    Text(fanControlStatusText)
-                        .font(WattlyFont.at(11.5, weight: .regular))
-                        .foregroundStyle(t.faint)
-                    ForEach(Array(FanCurve.anchorsCelsius.enumerated()), id: \.offset) { i, temp in
-                        HStack(spacing: 9) {
-                            Text("\(Int(temp))°C")
-                                .font(WattlyFont.at(12, weight: .semibold))
-                                .monospacedDigit()
-                                .foregroundStyle(t.sub)
-                                .frame(width: 44, alignment: .leading)
-                            Slider(value: fanCurveRpmBinding(i), in: 0...8000, step: 100)
-                                .tint(Tokens.accent)
-                            Text("\(Int(fanCurveRpmBinding(i).wrappedValue)) RPM")
-                                .font(WattlyFont.at(12, weight: .bold))
-                                .monospacedDigit()
-                                .foregroundStyle(t.text)
-                                .frame(width: 76, alignment: .trailing)
-                        }
-                        .accessibilityElement(children: .combine)
-                    }
-                    Rectangle().fill(t.line).frame(height: 1)
-                    fanCurvePreview
                 }
+                VStack(alignment: .leading, spacing: 12) {
+                    fanStatusIndicator
+                    HStack {
+                        Text("온도 → 팬 속도")
+                            .font(WattlyFont.at(12, weight: .semibold))
+                            .foregroundStyle(t.sub)
+                        Spacer()
+                        Button { fanCurve = Defaults.fanCurve } label: {
+                            Text("기본값")
+                                .font(WattlyFont.at(11, weight: .semibold))
+                                .foregroundStyle(t.sub)
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 3)
+                                .background(RoundedRectangle(cornerRadius: 6).fill(t.cardBg))
+                                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(t.rowBorder, lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("팬 커브 기본값으로 되돌리기")
+                    }
+                    FanCurveEditor(curve: $fanCurve, currentCPU: currentHottestCPU)
+                }
+                .padding(EdgeInsets(top: 12, leading: 14, bottom: 14, trailing: 14))
+            }
+            // Live-apply: the fan bridge observes `fanCurve` through an @AppStorage of a custom
+            // RawRepresentable type, whose `onChange` does NOT fire on THIS window's writes (the
+            // Bool `enabled` toggle does — hence toggling re-applied but editing didn't). Push the
+            // edited curve to the client from here, the instance that actually mutates it. Guarded
+            // on the opt-in; a double-apply if the bridge ever fires too is harmless (the client's
+            // commands are generation-stamped, last-write-wins).
+            .onChange(of: fanCurve) { _, newCurve in
+                guard fanControlEnabled else { return }
+                editApplyDeadline = Date().addingTimeInterval(5)
+                Task { await fanControl.apply(enabled: true, curve: newCurve) }
+            }
+            // Turning the opt-in ON while the helper isn't installed auto-runs the in-app installer
+            // (one macOS admin-auth prompt). On success the curve is applied to engage control; if
+            // the user cancels the prompt, revert the toggle so it reflects reality.
+            .onChange(of: fanControlEnabled) { _, enabled in
+                guard enabled, fanControl.status.mode == .unavailable, !installingHelper else { return }
+                // Capture the Settings window HERE, synchronously — the toggle lives in it, so it is
+                // the key window right now. Reading it later (inside the async task) can race.
+                let window = NSApp.keyWindow
+                Task { await installHelperThenEngage(settingsWindow: window) }
+            }
+            // Close the grace window at its deadline so a failure that OUTLASTS the re-apply still
+            // surfaces as "제어 실패" even if the daemon sends no further status report (the state
+            // change drives the re-render). Restarts on each edit; cancels cleanly on window change.
+            .task(id: editApplyDeadline) {
+                guard let deadline = editApplyDeadline else { return }
+                let remaining = deadline.timeIntervalSinceNow
+                if remaining > 0 { try? await Task.sleep(for: .seconds(remaining)) }
+                if !Task.isCancelled { editApplyDeadline = nil }
             }
         }
     }
 
-    private var fanCurvePreview: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if let c = currentHottestCPU {
-                (Text("현재 CPU \(Int(c.rounded()))°C → 커브 목표 ")
-                    + Text("\(Int(fanCurve.evaluate(inputCelsius: c).rounded())) RPM")
-                        .foregroundColor(t.text))
-                    .font(WattlyFont.at(12, weight: .regular))
-                    .monospacedDigit()
-                    .foregroundStyle(t.sub)
-            } else {
-                Text("CPU 온도를 읽을 수 없음")
-                    .font(WattlyFont.at(12, weight: .regular))
-                    .foregroundStyle(t.faint)
+    /// True while the post-edit grace window is still open.
+    private var isWithinApplyGrace: Bool {
+        (editApplyDeadline?.timeIntervalSinceNow ?? -1) > 0
+    }
+
+    /// Installs the privileged helper via one admin-auth prompt, then applies the current curve to
+    /// engage control. If the user cancels the prompt (or it fails), revert the opt-in so the toggle
+    /// doesn't claim control that isn't running.
+    ///
+    /// Window-survival: this is an accessory (LSUIElement) app, and the admin-auth dialog
+    /// deactivates it long enough (on the success path, while the root script runs) for macOS to
+    /// destroy the Settings window — reopening it afterward proved unreliable. So instead we hold a
+    /// **regular activation policy for the duration of the install**: a regular app keeps its windows
+    /// when deactivated, so the Settings window is never torn down. The menubar-only policy (and its
+    /// absent Dock icon) is restored once the window is back up front.
+    @MainActor private func installHelperThenEngage(settingsWindow: NSWindow?) async {
+        installingHelper = true
+        // Hold a regular activation policy across the whole flow: it keeps the Settings window
+        // alive through the auth-dialog deactivation AND lets it layer like a normal app's window
+        // while we re-raise it (an accessory app's window sinks behind the active app).
+        let priorPolicy = NSApp.activationPolicy()
+        let raised = priorPolicy != .regular
+        if raised { NSApp.setActivationPolicy(.regular) }
+
+        // Keep the Settings window visible UNDER the auth panel for the whole prompt + script run
+        // (~seconds): order it front every 0.4s so it doesn't sink behind other apps. Crucially this
+        // uses `orderFrontRegardless` only — NOT `activate`, which would steal keyboard focus from the
+        // password field. `install()` runs its `osascript` on a background thread, so the main actor
+        // is free to run this loop while we await it.
+        let keepVisible = Task { @MainActor in
+            while !Task.isCancelled {
+                settingsWindow?.orderFrontRegardless()
+                try? await Task.sleep(for: .milliseconds(400))
             }
-            Text("현재 팬 커브 미리보기")
-                .font(WattlyFont.at(11.5, weight: .regular))
-                .foregroundStyle(t.faint)
+        }
+
+        var installed = true
+        do {
+            try await FanHelperInstaller.install()
+        } catch {
+            fanControlEnabled = false
+            installed = false
+        }
+        keepVisible.cancel()
+        installingHelper = false
+
+        // Re-raise Settings the INSTANT the auth dialog is gone — before the XPC `apply` below.
+        // `apply` connects to the just-started daemon and can stall for several seconds; doing it
+        // first was what left the window sunk for ~10s. `activate` only raises the app, so drive the
+        // captured window itself with `orderFrontRegardless`.
+        raiseFront(settingsWindow)
+
+        if installed {
+            editApplyDeadline = Date().addingTimeInterval(5)
+            await fanControl.apply(enabled: true, curve: fanCurve)
+        }
+
+        // Drop the transient Dock icon, then re-front once more (restoring `.accessory` while another
+        // app is active can sink the window), with a couple of retries to win any late focus steal.
+        if raised { NSApp.setActivationPolicy(priorPolicy) }
+        for _ in 0..<3 {
+            raiseFront(settingsWindow)
+            try? await Task.sleep(for: .milliseconds(300))
+        }
+    }
+
+    @MainActor private func raiseFront(_ window: NSWindow?) {
+        NSApp.activate(ignoringOtherApps: true)
+        window?.makeKeyAndOrderFront(nil)
+        window?.orderFrontRegardless()
+    }
+
+    /// Live control-state indicator: a colored dot + word driven by the opt-in and the
+    /// daemon-reported `status.mode`, so the user can tell whether the current curve is actually
+    /// being applied (green 적용 중) — not just when something is wrong. Reading `fanControl.status`
+    /// in `body` tracks the @Observable client's updates.
+    private var fanStatusIndicator: some View {
+        HStack(spacing: 6) {
+            Circle().fill(fanStatusColor).frame(width: 7, height: 7)
+            Text(fanStatusText)
+                .font(WattlyFont.at(11.5, weight: .medium))
+                .foregroundStyle(t.sub)
                 .fixedSize(horizontal: false, vertical: true)
         }
+        .accessibilityElement(children: .combine)
     }
 
-    private var fanControlStatusText: String {
+    private var fanStatusColor: Color {
+        guard fanControlEnabled else { return t.faint }
+        if installingHelper { return Tokens.statusOrange }
+        // A `.failed` blip during the post-edit re-apply is recovering, not broken → keep it orange.
+        if isWithinApplyGrace, fanControl.status.mode == .failed { return Tokens.statusOrange }
         switch fanControl.status.mode {
-        case .unavailable:
-            "도우미 미설치 — scripts/install-fan-helper.sh 실행"
-        case .automatic:
-            "macOS 자동 제어"
-        case .engaging:
-            "수동 제어 연결 중"
-        case .controlling:
-            "팬 커브 적용 중"
-        case .failed:
-            "제어 실패 — macOS 자동 제어로 복귀"
+        case .controlling:          return Tokens.statusGreen
+        case .engaging, .automatic: return Tokens.statusOrange
+        case .unavailable, .failed: return Tokens.statusRed
+        }
+    }
+
+    private var fanStatusText: String {
+        guard fanControlEnabled else { return "꺼짐 · macOS 자동 제어" }
+        if installingHelper { return "도우미 설치 중… (관리자 인증)" }
+        // Just after an edit the curve re-engages, and the daemon can blip through `.failed` for a
+        // second or two before `.controlling`. Within the grace window show the reassuring "적용 중…"
+        // rather than the alarming "제어 실패"; a failure that outlasts the window still surfaces.
+        if isWithinApplyGrace, fanControl.status.mode == .failed { return "적용 중…" }
+        switch fanControl.status.mode {
+        case .controlling: return "적용 중 · 커브대로 제어"
+        case .engaging:    return "연결 중…"
+        case .automatic:   return "대기 중 · macOS 자동 제어"
+        case .unavailable: return "도우미 미설치 — 토글을 켜면 설치됩니다"
+        case .failed:      return "제어 실패 — macOS 자동 제어로 복귀"
         }
     }
 
@@ -399,19 +519,6 @@ struct SettingsView: View {
                 var next = thresholds
                 next[keyPath: keyPath] = next[keyPath: keyPath].setting(control, to: newValue)
                 thresholds = next
-            }
-        )
-    }
-
-    /// Clamping `Double` binding into one anchor's RPM; reassigns the whole `FanCurve` so the
-    /// `@AppStorage` re-encodes (same idiom as `thresholdBinding`). Rounds to a whole RPM.
-    private func fanCurveRpmBinding(_ index: Int) -> Binding<Double> {
-        Binding(
-            get: { fanCurve.rpms.indices.contains(index) ? fanCurve.rpms[index] : 0 },
-            set: { newValue in
-                var next = fanCurve
-                if next.rpms.indices.contains(index) { next.rpms[index] = newValue.rounded() }
-                fanCurve = next
             }
         )
     }

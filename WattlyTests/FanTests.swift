@@ -84,55 +84,60 @@ struct FanTests {
         #expect(plausibleRPM(12001, in: 0...12000) == 0)       // just past the bound
     }
 
-    // MARK: Fan curve (Phase B-1) — pure model
+    // MARK: Fan curve — pure model (13 anchors, 40–100 °C, 5° steps)
+
+    /// The full default ramp, reused across the model cases.
+    private static let ramp: [Double] =
+        [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400]
 
     @Test func fanCurveEvaluateFlatBelowFirstAndAboveLast() {
-        let curve = FanCurve(rpms: [1200, 2500, 4500, 6000])   // anchors 40/60/80/95
-        #expect(curve.evaluate(inputCelsius: 20) == 1200)      // below first anchor → first rpm
-        #expect(curve.evaluate(inputCelsius: 40) == 1200)      // at first anchor
-        #expect(curve.evaluate(inputCelsius: 95) == 6000)      // at last anchor
-        #expect(curve.evaluate(inputCelsius: 110) == 6000)     // above last → last rpm
+        let curve = FanCurve(rpms: Self.ramp)               // anchors 30…100 step 5
+        #expect(curve.evaluate(inputCelsius: 20) == 800)    // below first anchor (30) → first rpm
+        #expect(curve.evaluate(inputCelsius: 30) == 800)    // at first anchor
+        #expect(curve.evaluate(inputCelsius: 100) == 7400)  // at last anchor
+        #expect(curve.evaluate(inputCelsius: 120) == 7400)  // above last → last rpm
     }
 
     @Test func fanCurveEvaluateInterpolatesLinearly() {
-        let curve = FanCurve(rpms: [1200, 2500, 4500, 6000])
-        // Midpoint of the 60→80 segment (70 °C) between 2500 and 4500 → 3500.
-        #expect(curve.evaluate(inputCelsius: 70) == 3500)
-        // Quarter into the 40→60 segment (45 °C) between 1200 and 2500 → 1200 + 0.25*1300 = 1525.
-        #expect(curve.evaluate(inputCelsius: 45) == 1525)
+        let curve = FanCurve(rpms: Self.ramp)
+        // Midpoint of the 70→75 segment (72.5 °C) between 3600 and 4200 → 3900.
+        #expect(curve.evaluate(inputCelsius: 72.5) == 3900)
+        // 0.2 into the 40→45 segment (41 °C) between 1000 and 1200 → 1000 + 0.2*200 = 1040.
+        #expect(curve.evaluate(inputCelsius: 41) == 1040)
     }
 
     @Test func fanCurveRawValueRoundTrips() {
-        let curve = FanCurve(rpms: [1000, 3000, 5000, 6500])
+        let curve = FanCurve(rpms: [500,750,1000,1500,2000,2500,3000,3500,4000,4500,5000,5500,6000,6500,7000])
         #expect(FanCurve(rawValue: curve.rawValue)?.rpms == curve.rpms)
     }
 
     @Test func fanCurveRejectsMalformedRawValue() {
         #expect(FanCurve(rawValue: "") == nil)
         #expect(FanCurve(rawValue: "not json") == nil)
-        #expect(FanCurve(rawValue: "[1,2,3]") == nil)          // wrong count (3, needs 4)
-        #expect(FanCurve(rawValue: "[1,2,3,4,5]") == nil)      // wrong count (5)
+        #expect(FanCurve(rawValue: "[1,2,3]") == nil)        // wrong count (3, needs 15)
+        #expect(FanCurve(rawValue: "[1200,2500,4500,6000]") == nil)  // the OLD 4-length is now rejected
     }
 
     @Test func fanCurveRejectsOutOfRangeRawValue() {
-        // A huge finite value would TRAP the `Int(...)` render sites in `SettingsView`
-        // (slider readout, curve preview) — same crash class as
-        // `plausibleRPMHugeFiniteIsZeroNotTrap`. The whole curve is rejected so
+        // A huge finite value would TRAP the `Int(...)` render sites — reject the whole curve so
         // `@AppStorage` falls back to `Defaults.fanCurve`.
-        #expect(FanCurve(rawValue: "[1200,2500,4500,1e19]") == nil)
-        #expect(FanCurve(rawValue: "[-1,2500,4500,6000]") == nil)
-        #expect(FanCurve(rawValue: "[1200,2500,4500,8000]")?.rpms == [1200, 2500, 4500, 8000])
+        #expect(FanCurve(rawValue: "[800,900,1000,1200,1500,1900,2400,3000,3600,4200,4800,5500,6200,6800,1e19]") == nil)
+        #expect(FanCurve(rawValue: "[-1,900,1000,1200,1500,1900,2400,3000,3600,4200,4800,5500,6200,6800,7400]") == nil)
+        #expect(FanCurve(rawValue: "[800,900,1000,1200,1500,1900,2400,3000,3600,4200,4800,5500,6200,6800,8000]")?.rpms
+                == [800,900,1000,1200,1500,1900,2400,3000,3600,4200,4800,5500,6200,6800,8000])
     }
 
-    @Test func fanCurveCodableRejectsOutOfRangeFourRPMCurve() {
+    @Test func fanCurveCodableRejectsOutOfRangeCurve() {
         #expect(throws: (any Error).self) {
-            try JSONDecoder().decode(FanCurve.self, from: Data("[1200,2500,4500,20001]".utf8))
+            try JSONDecoder().decode(
+                FanCurve.self,
+                from: Data("[800,900,1000,1200,1500,1900,2400,3000,3600,4200,4800,5500,6200,6800,20001]".utf8))
         }
     }
 
     @Test func fanCurveCodableRejectsWrongLengthCurve() {
         #expect(throws: (any Error).self) {
-            try JSONDecoder().decode(FanCurve.self, from: Data("[1200,2500,4500]".utf8))
+            try JSONDecoder().decode(FanCurve.self, from: Data("[1200,2500,4500]".utf8))  // 3 ≠ 13
         }
     }
 

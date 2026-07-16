@@ -88,6 +88,22 @@ final class FanControlEngine {
             releaseAccepted(now: now, reason: "control disabled")
             return
         }
+
+        // Live update while already controlling (e.g. an edited fan curve): swap the configuration
+        // in place and keep control engaged. Requiring a release/re-engage here would DROP the new
+        // curve — the daemon would keep evaluating the old one and the fan would never follow graph
+        // edits. `configurationGeneration` was already bumped above, so the next `tick` re-evaluates
+        // with the new curve; `engageIfNeeded` sees the fans already in `controlled` and re-engages
+        // nothing.
+        if self.configuration != nil, !controlled.isEmpty {
+            self.configuration = configuration
+            lastHeartbeat = now
+            status = .init(mode: .controlling, detail: "curve updated", updatedAt: now)
+            return
+        }
+
+        // Otherwise fans must be in a clean state before a fresh engagement: any still owned from a
+        // prior session are mid automatic-mode recovery, so defer until that completes.
         guard controlled.isEmpty else {
             status = .init(mode: .failed, detail: "automatic-mode recovery pending", updatedAt: now)
             return
