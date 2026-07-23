@@ -29,6 +29,24 @@ import Observation
         await send { service, reply in service.heartbeat(withReply: reply) }
     }
 
+    /// Reads the helper's current state without changing fan ownership. This is separate from
+    /// heartbeat because a menu-bar open must distinguish automatic mode from an active session.
+    func refreshStatus() async {
+        await send { service, reply in service.status(withReply: reply) }
+    }
+
+    /// Repairs the session that the daemon intentionally released during system sleep. The
+    /// caller snapshots its @AppStorage values before awaiting so a settings change cannot alter
+    /// the request halfway through this menu-bar-open transaction.
+    func reconcileAfterMenuBarOpen(enabled: Bool, curve: FanCurve) async {
+        guard enabled else { return }
+        await refreshStatus()
+        guard FanControlPolicy.shouldReapplyAfterMenuBarOpen(enabled: enabled, mode: status.mode) else {
+            return
+        }
+        await apply(enabled: true, curve: curve)
+    }
+
     func release() async {
         guard let data = try? FanControlCodec.encode(FanControlReleaseRequest(generation: nextCommandGeneration())) else {
             updateUnavailable("팬 제어 해제 요청을 인코딩할 수 없음")

@@ -23,4 +23,12 @@ enum FanControlPolicy {
     static func heartbeatExpired(last: TimeInterval, now: TimeInterval) -> Bool {
         now - last >= heartbeatTimeout
     }
+
+    /// A menu-bar open should repair a lost Wattly session only when the user still opted in
+    /// and the helper confirms that every fan is back in macOS automatic mode. Other states are
+    /// either already progressing, already controlling, or unsafe to override blindly.
+    static func shouldReapplyAfterMenuBarOpen(enabled: Bool,
+                                               mode: FanControlServiceMode) -> Bool {
+        enabled && mode == .automatic
+    }
 }

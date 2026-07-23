@@ -33,4 +33,13 @@ struct FanControlProtocolTests {
         #expect(try FanControlCodec.decode(FanControlServiceStatus.self,
                                           from: FanControlCodec.encode(input)) == input)
     }
+
+    @Test func menuBarRecoveryOnlyReappliesWhenEnabledAndAutomatic() {
+        #expect(FanControlPolicy.shouldReapplyAfterMenuBarOpen(enabled: true, mode: .automatic))
+        #expect(!FanControlPolicy.shouldReapplyAfterMenuBarOpen(enabled: true, mode: .controlling))
+        #expect(!FanControlPolicy.shouldReapplyAfterMenuBarOpen(enabled: true, mode: .engaging))
+        #expect(!FanControlPolicy.shouldReapplyAfterMenuBarOpen(enabled: true, mode: .failed))
+        #expect(!FanControlPolicy.shouldReapplyAfterMenuBarOpen(enabled: true, mode: .unavailable))
+        #expect(!FanControlPolicy.shouldReapplyAfterMenuBarOpen(enabled: false, mode: .automatic))
+    }
 }
