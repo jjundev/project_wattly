@@ -11,9 +11,12 @@ private struct DragSlot { let card: CardKind; let minY: CGFloat; let height: CGF
 /// unchanged. The connector-arrow triangle is cosmetic and omitted (issue 02 memo).
 struct PopoverContentView: View {
     let monitor: SystemMonitor
+    let fanControl: FanControlClient
 
     @Environment(\.tokens) private var t
     @Environment(\.openSettings) private var openSettings
+    @AppStorage(StorageKey.fanControlEnabled) private var fanControlEnabled = Defaults.fanControlEnabled
+    @AppStorage(StorageKey.fanCurve) private var fanCurve = Defaults.fanCurve
     @AppStorage(StorageKey.cardOrder) private var cardOrder = Defaults.cardOrder
     /// Chosen popover layout. `.a` = the stacked cards below (issue 19); `.b` = the compact grid
     /// (`PopoverGridView`); `.c` = the hero + list (`PopoverHeroView`, plan 20). Edit/drag is
@@ -117,6 +120,15 @@ struct PopoverContentView: View {
         // here — it must reach the monitor even while this view is unmounted.)
         .onAppear {
             monitor.setPanelVisible(true)
+            // Opening the MenuBarExtra is the user-visible recovery action. Snapshot the
+            // persisted values before awaiting XPC so a concurrent Settings edit is handled by
+            // the normal bridge/onChange path rather than changing this transaction mid-flight.
+            let shouldControlFans = fanControlEnabled
+            let curveForRecovery = fanCurve
+            Task {
+                await fanControl.reconcileAfterMenuBarOpen(enabled: shouldControlFans,
+                                                            curve: curveForRecovery)
+            }
             // Cap the scrollable cards to the menu-bar screen — screens.first (index 0 = the
             // menu-bar display), NOT NSScreen.main which tracks the key window and is wrong on
             // multi-display. visibleFrame already excludes the menu bar + Dock; subtract the
