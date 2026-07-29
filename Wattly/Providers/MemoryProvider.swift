@@ -32,9 +32,16 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
         guard let vm = vmStatistics() else {
             return .unavailable(.providerError("메모리 통계를 읽을 수 없음"))
         }
-        let processLimit = memoryProcessLimit(
-            UserDefaults.standard.object(forKey: StorageKey.memoryProcessLimit) as? Int)
-        let procs = enumerating ? Self.topMemoryProcesses(limit: processLimit) : []
+        let processLimit: Int
+        let procs: [ProcessUsage]
+        if enumerating {
+            processLimit = memoryProcessLimit(
+                UserDefaults.standard.object(forKey: StorageKey.memoryProcessLimit) as? Int)
+            procs = Self.topMemoryProcesses(limit: processLimit)
+        } else {
+            processLimit = memoryProcessLimit(nil)
+            procs = []
+        }
         // Kernel memory-pressure verdict — cheap scalar read every poll (no gating). nil on
         // failure → the card falls back to the used% band (CardPresentation).
         let pressure = Self.sysctlInt32("kern.memorystatus_vm_pressure_level").map(MemoryPressure.init(fromSysctl:))
