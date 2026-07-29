@@ -228,6 +228,19 @@ enum CardPresentation {
         "\(f1(s.volts)) V"
     }
 
+    static let batteryRemainingCapacityLabel = "남은 용량"
+    static let batteryRemainingTimeLabel = "남은 사용시간"
+
+    static func batteryRemainingCapacityText(_ s: BatterySample) -> String? {
+        guard let wh = s.remainingWh, wh.isFinite, wh >= 0 else { return nil }
+        return "\(f1(wh)) Wh"
+    }
+
+    static func batteryRemainingTimeText(_ s: BatterySample) -> String? {
+        guard let totalMinutes = s.timeRemainingMinutes, totalMinutes > 0 else { return nil }
+        return "\(totalMinutes / 60)h \(totalMinutes % 60)m"
+    }
+
     /// Runtime perf-level name → single-letter label prefix ("Performance" → "P").
     static func corePrefix(_ name: String) -> String {
         name.first.map { String($0).uppercased() } ?? "C"

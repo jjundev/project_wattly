@@ -149,6 +149,12 @@ struct CardExpandRegion: View {
 
     private func batteryExpand(_ s: BatterySample) -> some View {
         VStack(alignment: .leading, spacing: 10) {
+            if let value = CardPresentation.batteryRemainingCapacityText(s) {
+                batteryDetailRow(label: CardPresentation.batteryRemainingCapacityLabel, value: value)
+            }
+            if let value = CardPresentation.batteryRemainingTimeText(s) {
+                batteryDetailRow(label: CardPresentation.batteryRemainingTimeLabel, value: value)
+            }
             batteryDetailRow(label: "전류", value: CardPresentation.batteryCurrentText(s))
             batteryDetailRow(label: "전압", value: CardPresentation.batteryVoltageText(s))
         }

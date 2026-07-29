@@ -77,6 +77,30 @@ struct CardPresentationTests {
         #expect(CardPresentation.batteryCurrentText(zero) == "0 mA")
     }
 
+    @Test func batteryRemainingCapacityAndTimeTextForExpand() {
+        let populated = BatterySample(
+            netW: 12.0,
+            milliamps: 944,
+            volts: 12.7,
+            charging: false,
+            externalConnected: false,
+            remainingWh: 49.457568,
+            timeRemainingMinutes: 210)
+        #expect(CardPresentation.batteryRemainingCapacityLabel == "남은 용량")
+        #expect(CardPresentation.batteryRemainingTimeLabel == "남은 사용시간")
+        #expect(CardPresentation.batteryRemainingCapacityText(populated) == "49.5 Wh")
+        #expect(CardPresentation.batteryRemainingTimeText(populated) == "3h 30m")
+
+        let unavailable = BatterySample(
+            netW: -10.0,
+            milliamps: 800,
+            volts: 12.0,
+            charging: true,
+            externalConnected: true)
+        #expect(CardPresentation.batteryRemainingCapacityText(unavailable) == nil)
+        #expect(CardPresentation.batteryRemainingTimeText(unavailable) == nil)
+    }
+
     // MARK: CPU
 
     @Test func cpuValueRoundsAndSub() {
