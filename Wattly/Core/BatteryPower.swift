@@ -48,6 +48,40 @@ func batteryMilliamps(batteryMilliwatts mw: Int, volts: Double) -> Int {
     volts > 0 ? Int((Double(mw) / volts).rounded()) : 0
 }
 
+/// Convert AppleSmartBattery raw remaining capacity (mAh) at current pack voltage into Wh.
+/// Invalid registry inputs remain absent rather than becoming a misleading 0 Wh.
+func remainingWattHours(rawCapacityMilliampHours: Int, volts: Double) -> Double? {
+    guard rawCapacityMilliampHours > 0, volts.isFinite, volts > 0 else { return nil }
+    return Double(rawCapacityMilliampHours) * volts / 1_000.0
+}
+
+/// TimeRemaining is an estimated minute count. Suppress zero, sentinels such as 65535,
+/// and values outside a one-day laptop runtime so corrupt values cannot reach the UI.
+func validatedTimeRemainingMinutes(_ minutes: Int?) -> Int? {
+    guard let minutes, (1...1_440).contains(minutes) else { return nil }
+    return minutes
+}
+
+/// Battery health/efficiency from the current maximum charge capacity relative to
+/// original design capacity. Values slightly above 100 are legitimate manufacturing
+/// tolerance; values outside 0...200 indicate corrupt registry input.
+func batteryEfficiencyPercent(
+    maxCapacityMilliampHours: Int,
+    designCapacityMilliampHours: Int
+) -> Double? {
+    guard maxCapacityMilliampHours > 0, designCapacityMilliampHours > 0 else { return nil }
+    let percent = Double(maxCapacityMilliampHours) / Double(designCapacityMilliampHours) * 100
+    guard percent.isFinite, (0...200).contains(percent) else { return nil }
+    return percent
+}
+
+/// CycleCount is a non-negative hardware counter. Ten thousand is well above supported
+/// Apple battery life while still allowing a defensively validated value type.
+func validatedBatteryCycleCount(_ count: Int?) -> Int? {
+    guard let count, (0...10_000).contains(count) else { return nil }
+    return count
+}
+
 /// Decode an SMC value's raw bytes to a Double in its native unit (issue 07 live path).
 /// `flt ` is a 32-bit little-endian IEEE float (e.g. `PSTR`/`PPBR` watts); `si*`/`ui*` are
 /// little-endian integers (the SMC returns these LE on Apple silicon — verified: `B0AV`

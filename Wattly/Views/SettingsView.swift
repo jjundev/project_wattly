@@ -92,6 +92,7 @@ struct SettingsView: View {
     @AppStorage(StorageKey.pollInterval) private var pollInterval = Defaults.pollInterval
     @AppStorage(StorageKey.powerMode) private var powerMode = Defaults.powerMode
     @AppStorage(StorageKey.powerSmoothed) private var powerSmoothed = Defaults.powerSmoothed
+    @AppStorage(StorageKey.showBatteryEfficiency) private var showBatteryEfficiency = Defaults.showBatteryEfficiency
     @AppStorage(StorageKey.menubarTextEnabled) private var menubarText = Defaults.menubarTextEnabled
     @AppStorage(StorageKey.thresholds) private var thresholds = Defaults.thresholds
     @AppStorage(StorageKey.fanCurve) private var fanCurve = Defaults.fanCurve
@@ -291,6 +292,7 @@ struct SettingsView: View {
             SettingsCard {
                 SettingsToggleRow(isOn: $showPower, divider: true) { rowTitle("SoC 전력 (IOReport)") }
                 SettingsToggleRow(isOn: $showBattery, divider: true) { rowTitle("배터리") }
+                SettingsToggleRow(isOn: $showBatteryEfficiency, divider: true) { rowTitle("배터리 효율 보기") }
                 SettingsToggleRow(isOn: $showCPU, divider: true) { rowTitle("CPU 사용률") }
                 SettingsToggleRow(isOn: $showMem, divider: true) { rowTitle("메모리") }
                 SettingsToggleRow(isOn: $showCpuTemp, divider: true) { rowTitleWithSuffix("CPU 온도", "· 최고값") }

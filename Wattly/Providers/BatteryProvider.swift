@@ -26,52 +26,100 @@ actor BatteryProvider: MetricProvider {
     private var smcAttempted = false
     private var smc: SMCConnection?
 
+    private struct AppleSmartBatterySnapshot {
+        var volts: Double?
+        var externalConnected: Bool
+        var batteryMilliwatts: Int?
+        var rawCurrentCapacityMilliampHours: Int?
+        var timeRemainingMinutes: Int?
+        var rawMaxCapacityMilliampHours: Int?
+        var designCapacityMilliampHours: Int?
+        var cycleCount: Int?
+    }
+
     func read(at instant: ContinuousClock.Instant) async -> ProviderReading {
+        let registry = appleSmartBatterySnapshot()
         if !smcAttempted { smcAttempted = true; smc = SMCConnection() }
-        if let sample = smcSample() { return .value(.battery(sample)) }
-        return appleSmartBatteryReading()
+        if let sample = smcSample(registry: registry) { return .value(.battery(sample)) }
+        return appleSmartBatteryReading(registry: registry)
     }
 
     /// Live SMC path. nil if the SMC or its battery keys are absent (desktop / unsupported
     /// model) → the caller falls back to AppleSmartBattery.
-    private func smcSample() -> BatterySample? {
+    private func smcSample(registry: AppleSmartBatterySnapshot?) -> BatterySample? {
         guard let smc,
               let power = smc.read("B0AP"),
               let voltage = smc.read("B0AV") else { return nil }
-        let milliwatts = Int(smcDouble(power.bytes, type: power.type).rounded())   // mW, signed
+        let milliwatts = Int(smcDouble(power.bytes, type: power.type).rounded())
         let volts = smcDouble(voltage.bytes, type: voltage.type) / 1000.0
         let netW = netWatts(batteryMilliwatts: milliwatts)
         let mA = smc.read("B0AC").map { Int(smcDouble($0.bytes, type: $0.type).rounded()) }
             ?? batteryMilliamps(batteryMilliwatts: milliwatts, volts: volts)
         let adapterW = smc.read("PDTR").map { smcDouble($0.bytes, type: $0.type) } ?? 0
-        return BatterySample(netW: netW, milliamps: abs(mA), volts: volts,
-                             charging: isCharging(netW: netW), externalConnected: adapterW > 0.5)
+        return BatterySample(
+            netW: netW,
+            milliamps: abs(mA),
+            volts: volts,
+            charging: isCharging(netW: netW),
+            externalConnected: adapterW > 0.5,
+            remainingWh: remainingWattHours(
+                rawCapacityMilliampHours: registry?.rawCurrentCapacityMilliampHours ?? 0,
+                volts: volts),
+            timeRemainingMinutes: validatedTimeRemainingMinutes(registry?.timeRemainingMinutes),
+            efficiencyPercent: batteryEfficiencyPercent(
+                maxCapacityMilliampHours: registry?.rawMaxCapacityMilliampHours ?? 0,
+                designCapacityMilliampHours: registry?.designCapacityMilliampHours ?? 0),
+            cycleCount: validatedBatteryCycleCount(registry?.cycleCount))
+    }
+
+    private func appleSmartBatterySnapshot() -> AppleSmartBatterySnapshot? {
+        let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"))
+        guard service != 0 else { return nil }
+        defer { IOObjectRelease(service) }
+
+        let volts = number(service, "Voltage").map { Double($0.int64Value) / 1000.0 }
+        let externalConnected = bool(service, "ExternalConnected") ?? false
+        let batteryMilliwatts: Int?
+        if let telemetry = dict(service, "PowerTelemetryData"),
+           let raw = (telemetry["BatteryPower"] as? NSNumber)?.uint64Value {
+            batteryMilliwatts = twosComplement(raw)
+        } else if let rawAmp = number(service, "InstantAmperage")?.uint64Value, let volts {
+            batteryMilliwatts = Int((Double(twosComplement(rawAmp)) * volts).rounded())
+        } else {
+            batteryMilliwatts = nil
+        }
+        return AppleSmartBatterySnapshot(
+            volts: volts,
+            externalConnected: externalConnected,
+            batteryMilliwatts: batteryMilliwatts,
+            rawCurrentCapacityMilliampHours: number(service, "AppleRawCurrentCapacity")?.intValue,
+            timeRemainingMinutes: number(service, "TimeRemaining")?.intValue,
+            rawMaxCapacityMilliampHours: number(service, "AppleRawMaxCapacity")?.intValue,
+            designCapacityMilliampHours: number(service, "DesignCapacity")?.intValue,
+            cycleCount: number(service, "CycleCount")?.intValue)
     }
 
     /// Fallback: AppleSmartBattery `PowerTelemetryData.BatteryPower` (mW, signed) — coarse but
     /// documented, and the desktop path (no service → `.notPresent`).
-    private func appleSmartBatteryReading() -> ProviderReading {
-        let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"))
-        guard service != 0 else { return .unavailable(.notPresent(Self.notPresentMessage)) }
-        defer { IOObjectRelease(service) }
-        guard let mv = number(service, "Voltage")?.int64Value else { return .pending }
-        let volts = Double(mv) / 1000.0
-        let externalConnected = bool(service, "ExternalConnected") ?? false
-        let milliwatts: Int
-        if let telemetry = dict(service, "PowerTelemetryData"),
-           let raw = (telemetry["BatteryPower"] as? NSNumber)?.uint64Value {
-            milliwatts = twosComplement(raw)
-        } else if let rawAmp = number(service, "InstantAmperage")?.uint64Value {
-            milliwatts = Int((Double(twosComplement(rawAmp)) * volts).rounded())   // mA × V = mW
-        } else {
-            return .pending
-        }
+    private func appleSmartBatteryReading(registry: AppleSmartBatterySnapshot?) -> ProviderReading {
+        guard let registry else { return .unavailable(.notPresent(Self.notPresentMessage)) }
+        guard let volts = registry.volts, let milliwatts = registry.batteryMilliwatts else { return .pending }
         // BatteryPower/InstantAmperage signs are unreliable here (observed flipping while
         // discharging) — resolve direction from ExternalConnected, keep only the magnitude.
-        let netW = fallbackNetWatts(batteryMilliwatts: milliwatts, externalConnected: externalConnected)
+        let netW = fallbackNetWatts(
+            batteryMilliwatts: milliwatts,
+            externalConnected: registry.externalConnected)
         return .value(.battery(BatterySample(
             netW: netW, milliamps: abs(batteryMilliamps(batteryMilliwatts: milliwatts, volts: volts)),
-            volts: volts, charging: isCharging(netW: netW), externalConnected: externalConnected)))
+            volts: volts, charging: isCharging(netW: netW), externalConnected: registry.externalConnected,
+            remainingWh: remainingWattHours(
+                rawCapacityMilliampHours: registry.rawCurrentCapacityMilliampHours ?? 0,
+                volts: volts),
+            timeRemainingMinutes: validatedTimeRemainingMinutes(registry.timeRemainingMinutes),
+            efficiencyPercent: batteryEfficiencyPercent(
+                maxCapacityMilliampHours: registry.rawMaxCapacityMilliampHours ?? 0,
+                designCapacityMilliampHours: registry.designCapacityMilliampHours ?? 0),
+            cycleCount: validatedBatteryCycleCount(registry.cycleCount))))
     }
 
     private func number(_ service: io_service_t, _ key: String) -> NSNumber? {

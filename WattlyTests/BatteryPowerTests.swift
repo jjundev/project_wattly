@@ -93,4 +93,51 @@ struct BatteryPowerTests {
     @Test func smcSignedPositiveStaysPositive() {
         #expect(smcDouble([0x88, 0x13], type: "si16") == 5000)                 // +5000 (charging current)
     }
+
+    // MARK: Remaining battery energy/time — AppleSmartBattery raw capacity + estimate
+
+    @Test func remainingWattHoursUsesRawMilliampHoursAndPackVoltage() {
+        let wh = remainingWattHours(rawCapacityMilliampHours: 4_128, volts: 11.981)
+        #expect(abs((wh ?? 0) - 49.457568) < 0.000_001)
+    }
+
+    @Test func remainingWattHoursRejectsInvalidCapacityOrVoltage() {
+        #expect(remainingWattHours(rawCapacityMilliampHours: 0, volts: 12.0) == nil)
+        #expect(remainingWattHours(rawCapacityMilliampHours: -1, volts: 12.0) == nil)
+        #expect(remainingWattHours(rawCapacityMilliampHours: 4_128, volts: 0) == nil)
+        #expect(remainingWattHours(rawCapacityMilliampHours: 4_128, volts: .infinity) == nil)
+    }
+
+    @Test func timeRemainingAcceptsOnlyPlausiblePositiveMinutes() {
+        #expect(validatedTimeRemainingMinutes(210) == 210)
+        #expect(validatedTimeRemainingMinutes(1) == 1)
+        #expect(validatedTimeRemainingMinutes(1_440) == 1_440)
+        #expect(validatedTimeRemainingMinutes(0) == nil)
+        #expect(validatedTimeRemainingMinutes(-1) == nil)
+        #expect(validatedTimeRemainingMinutes(65_535) == nil)
+        #expect(validatedTimeRemainingMinutes(1_441) == nil)
+    }
+
+    @Test func batteryEfficiencyUsesMaximumOverDesignCapacity() {
+        let percent = batteryEfficiencyPercent(
+            maxCapacityMilliampHours: 6_222,
+            designCapacityMilliampHours: 6_249)
+        #expect(abs((percent ?? 0) - 99.56793086893903) < 0.000_000_1)
+    }
+
+    @Test func batteryEfficiencyRejectsInvalidCapacityPairs() {
+        #expect(batteryEfficiencyPercent(maxCapacityMilliampHours: 0, designCapacityMilliampHours: 6_249) == nil)
+        #expect(batteryEfficiencyPercent(maxCapacityMilliampHours: 6_222, designCapacityMilliampHours: 0) == nil)
+        #expect(batteryEfficiencyPercent(maxCapacityMilliampHours: -1, designCapacityMilliampHours: 6_249) == nil)
+        #expect(batteryEfficiencyPercent(maxCapacityMilliampHours: 20_000, designCapacityMilliampHours: 6_249) == nil)
+    }
+
+    @Test func cycleCountAcceptsPlausibleNonNegativeValues() {
+        #expect(validatedBatteryCycleCount(0) == 0)
+        #expect(validatedBatteryCycleCount(77) == 77)
+        #expect(validatedBatteryCycleCount(10_000) == 10_000)
+        #expect(validatedBatteryCycleCount(nil) == nil)
+        #expect(validatedBatteryCycleCount(-1) == nil)
+        #expect(validatedBatteryCycleCount(10_001) == nil)
+    }
 }
