@@ -138,8 +138,30 @@ struct MemoryUsageTests {
             (key: "/Applications/C.app", bytes: 20),
         ], limit: 2)
 
-        #expect(top.map(\.id) == ["/Applications/A.app", "/Applications/B.app"])
-        #expect(top.map(\.footprintBytes) == [40, 40])
+        #expect(top.map(\.id) == ["/Applications/A.app", "/Applications/B.app", "/Applications/C.app"])
+        #expect(top.map(\.footprintBytes) == [40, 40, 20])
+    }
+
+    @Test func topMemoryAppsClampsDirectLimit() {
+        let processes = [
+            (key: "/Applications/A.app", bytes: UInt64(8)),
+            (key: "/Applications/B.app", bytes: UInt64(7)),
+            (key: "/Applications/C.app", bytes: UInt64(6)),
+            (key: "/Applications/D.app", bytes: UInt64(5)),
+            (key: "/Applications/E.app", bytes: UInt64(4)),
+            (key: "/Applications/F.app", bytes: UInt64(3)),
+            (key: "/Applications/G.app", bytes: UInt64(2)),
+            (key: "/Applications/H.app", bytes: UInt64(1)),
+        ]
+
+        #expect(topMemoryApps(perProcess: processes, limit: 1).map(\.id) == [
+            "/Applications/A.app", "/Applications/B.app", "/Applications/C.app",
+        ])
+        #expect(topMemoryApps(perProcess: processes, limit: 99).map(\.id) == [
+            "/Applications/A.app", "/Applications/B.app", "/Applications/C.app",
+            "/Applications/D.app", "/Applications/E.app", "/Applications/F.app",
+            "/Applications/G.app",
+        ])
     }
 
     @Test func memoryProcessLimitClampsToSupportedRange() {

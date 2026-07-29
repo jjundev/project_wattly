@@ -82,7 +82,7 @@ func topMemoryApps(perProcess: [(key: String, bytes: UInt64)], limit: Int) -> [P
     return sums.sorted { lhs, rhs in
         lhs.value > rhs.value || (lhs.value == rhs.value && lhs.key < rhs.key)
     }
-    .prefix(max(0, limit))
+    .prefix(memoryProcessLimit(limit))
     .map { key, bytes in
         ProcessUsage(id: key, name: appDisplayName(forKey: key), footprintBytes: bytes, iconPath: key)
     }
