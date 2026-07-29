@@ -24,6 +24,9 @@ final class SystemMonitor {
     /// Kept separate from the 4 s headline EMA; reset on adapter regime changes.
     private(set) var batteryOneMinuteAverage: Double?
     private var batteryOneMinuteInstant: ContinuousClock.Instant?
+    /// Projects a whole-minute battery runtime between unchanged registry/fallback values.
+    /// It is reset with the battery regime so elapsed time never crosses an adapter change.
+    private var batteryRuntimeProjection = BatteryRuntimeProjection()
 
     /// Wattly's own EMA-smoothed power draw in watts (issue 16), or nil until the first
     /// valid interval (the settings footer shows "—"). Doubles as the EMA's previous
@@ -302,13 +305,12 @@ final class SystemMonitor {
             states[kind] = .loading
         case .unavailable(let reason):
             states[kind] = .unavailable(reason)
-        case .value(let rawSample):
-            let sample: MetricSample
-            if case .battery(let battery) = rawSample {
-                sample = .battery(suppressingStaleTimeAfterDisconnect(battery))
-            } else {
-                sample = rawSample
-            }
+        case .value(.battery(let rawBattery)):
+            let battery = preparedBattery(rawBattery, at: instant)
+            let sample = MetricSample.battery(battery)
+            states[kind] = .value(sample)
+            recordHistory(for: kind, sample: sample, at: instant)
+        case .value(let sample):
             states[kind] = .value(sample)
             recordHistory(for: kind, sample: sample, at: instant)
         }
@@ -348,30 +350,35 @@ final class SystemMonitor {
         return sample
     }
 
-    private func recordHistory(for kind: ProviderKind, sample: MetricSample, at instant: ContinuousClock.Instant) {
-        if case .battery(let s) = sample {
-            if let last = lastExternalConnected, last != s.externalConnected {
-                history[.battery] = HistoryBuffer()      // adapter plugged/unplugged → fresh raw graph
-                batteryOverlay.reset()                   // …and restart smoothing: don't blend regimes
-                batteryOneMinuteAverage = nil
-                batteryOneMinuteInstant = nil
-            }
-            lastExternalConnected = s.externalConnected
-            let averageDt = batteryOneMinuteInstant.map { seconds(from: $0, to: instant) } ?? 0
-            batteryOneMinuteAverage = PowerSmoothing.emaStep(
-                previous: batteryOneMinuteAverage, raw: s.netW, dt: averageDt, tau: 60)
-            batteryOneMinuteInstant = instant
-            var presented = s
-            presented.average1mW = batteryOneMinuteAverage
-            // Smooth only netW, then re-derive mA + charge direction from it (so the value,
-            // the mA, and the 충전/방전 label never disagree). Policy stays here, by the card.
-            batteryOverlay.ingest(at: instant,
-                smooth: { previous, dt in
-                    let netW = PowerSmoothing.emaStep(previous: previous?.netW, raw: presented.netW, dt: dt)
-                    return Self.batterySmoothed(from: presented, netW: netW)
-                },
-                series: \.netW)
+    private func preparedBattery(_ raw: BatterySample, at instant: ContinuousClock.Instant) -> BatterySample {
+        let sample = suppressingStaleTimeAfterDisconnect(raw)
+        if let last = lastExternalConnected, last != sample.externalConnected {
+            history[.battery] = HistoryBuffer()
+            batteryOverlay.reset()
+            batteryOneMinuteAverage = nil
+            batteryOneMinuteInstant = nil
+            batteryRuntimeProjection.reset()
         }
+        lastExternalConnected = sample.externalConnected
+
+        let averageDt = batteryOneMinuteInstant.map { seconds(from: $0, to: instant) } ?? 0
+        batteryOneMinuteAverage = PowerSmoothing.emaStep(
+            previous: batteryOneMinuteAverage, raw: sample.netW, dt: averageDt, tau: 60)
+        batteryOneMinuteInstant = instant
+
+        var presented = sample
+        presented.average1mW = batteryOneMinuteAverage
+        presented.projectedTimeRemainingMinutes = batteryRuntimeProjection.ingest(presented, at: instant)
+        batteryOverlay.ingest(at: instant,
+            smooth: { previous, dt in
+                let netW = PowerSmoothing.emaStep(previous: previous?.netW, raw: presented.netW, dt: dt)
+                return Self.batterySmoothed(from: presented, netW: netW)
+            },
+            series: \.netW)
+        return presented
+    }
+
+    private func recordHistory(for kind: ProviderKind, sample: MetricSample, at instant: ContinuousClock.Instant) {
         if case .power(let s) = sample {
             powerOverlay.ingest(at: instant,
                 smooth: { previous, dt in PowerSmoothing.step(previous: previous, raw: s, dt: dt) },
@@ -398,6 +405,7 @@ final class SystemMonitor {
             externalConnected: raw.externalConnected,
             remainingWh: raw.remainingWh,
             timeRemainingMinutes: raw.timeRemainingMinutes,
+            projectedTimeRemainingMinutes: raw.projectedTimeRemainingMinutes,
             efficiencyPercent: raw.efficiencyPercent,
             cycleCount: raw.cycleCount,
             average1mW: raw.average1mW)

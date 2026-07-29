@@ -124,6 +124,9 @@ struct BatterySample: Sendable, Equatable {
     /// AppleSmartBattery estimated time remaining in minutes. nil when unavailable,
     /// sentinel, or implausible; it is not inferred from instantaneous wattage.
     var timeRemainingMinutes: Int? = nil
+    /// Monitor-owned display value projected between telemetry updates. The provider never
+    /// assigns it; nil means runtime is unavailable or intentionally hidden.
+    var projectedTimeRemainingMinutes: Int? = nil
     /// Health/efficiency: AppleRawMaxCapacity ÷ DesignCapacity × 100. nil when the
     /// registry capacity pair is absent or invalid.
     var efficiencyPercent: Double? = nil

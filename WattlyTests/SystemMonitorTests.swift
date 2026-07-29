@@ -203,7 +203,7 @@ struct SystemMonitorTests {
             Issue.record("battery card should have a value after unplug"); return
         }
         #expect(afterUnplug.timeRemainingMinutes == nil)
-        #expect(CardPresentation.batteryRemainingTimeSummary(afterUnplug) == "3시간 47분 남음")
+        #expect(CardPresentation.batteryRemainingTimeSummary(afterUnplug) == "약 3시간 47분 남음")
 
         clock.advance(by: .seconds(1))
         await monitor.pollOnce()
@@ -211,7 +211,7 @@ struct SystemMonitorTests {
             Issue.record("battery card should retain a value while stale time repeats"); return
         }
         #expect(repeatedStaleTime.timeRemainingMinutes == nil)
-        #expect(CardPresentation.batteryRemainingTimeSummary(repeatedStaleTime) == "3시간 47분 남음")
+        #expect(CardPresentation.batteryRemainingTimeSummary(repeatedStaleTime) == "약 3시간 47분 남음")
 
         clock.advance(by: .seconds(1))
         await monitor.pollOnce()
@@ -219,7 +219,38 @@ struct SystemMonitorTests {
             Issue.record("battery card should have a value after registry time changes"); return
         }
         #expect(updatedRegistryTime.timeRemainingMinutes == 230)
-        #expect(CardPresentation.batteryRemainingTimeSummary(updatedRegistryTime) == "3시간 50분 남음")
+        #expect(CardPresentation.batteryRemainingTimeSummary(updatedRegistryTime) == "약 3시간 50분 남음")
+    }
+
+    @Test func batteryProjectedMinutesSurviveTheSmoothedCardState() async {
+        func battery() -> ProviderReading {
+            .value(.battery(BatterySample(
+                netW: 30,
+                milliamps: 2_400,
+                volts: 12.5,
+                charging: false,
+                externalConnected: false,
+                remainingWh: 60,
+                timeRemainingMinutes: nil)))
+        }
+
+        let provider = ScriptedProvider(kind: .battery, [battery(), battery()])
+        let clock = ManualClock()
+        let monitor = SystemMonitor(providers: [provider], clock: clock)
+
+        await monitor.pollOnce()
+        // Mirror the open panel's normal five-second battery reads. This keeps every
+        // observation below the projection module's 30-second sleep/wake gap limit.
+        for _ in 1...12 {
+            clock.advance(by: .seconds(5))
+            await monitor.pollOnce()
+        }
+
+        guard case .value(.battery(let sample)) = monitor.cardState(.battery, smoothed: true) else {
+            Issue.record("smoothed battery card should have a value"); return
+        }
+        #expect(sample.projectedTimeRemainingMinutes == 119)
+        #expect(CardPresentation.batteryRemainingTimeSummary(sample) == "약 1시간 59분 남음")
     }
 
     @Test func batteryPlugInResetsHistory() async {

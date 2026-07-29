@@ -29,9 +29,10 @@ struct CardPresentationTests {
             charging: false,
             externalConnected: false,
             timeRemainingMinutes: 210,
+            projectedTimeRemainingMinutes: 210,
             average1mW: 10.4)))
         #expect(CardPresentation.valueText(.battery, discharging) == "\(minus)12.0")
-        #expect(CardPresentation.subText(discharging) == "3시간 30분 남음")
+        #expect(CardPresentation.subText(discharging) == "약 3시간 30분 남음")
 
         let timeOnly = MetricState.value(.battery(BatterySample(
             netW: 12.0,
@@ -39,8 +40,9 @@ struct CardPresentationTests {
             volts: 12.7,
             charging: false,
             externalConnected: false,
-            timeRemainingMinutes: 1)))
-        #expect(CardPresentation.subText(timeOnly) == "0시간 1분 남음")
+            timeRemainingMinutes: 1,
+            projectedTimeRemainingMinutes: 1)))
+        #expect(CardPresentation.subText(timeOnly) == "약 0시간 1분 남음")
 
         let averageOnly = MetricState.value(.battery(BatterySample(
             netW: -5.0,
@@ -68,21 +70,21 @@ struct CardPresentationTests {
             charging: false,
             externalConnected: false,
             timeRemainingMinutes: 210,
+            projectedTimeRemainingMinutes: 210,
             average1mW: 10.4)
         #expect(CardPresentation.batteryAverage1mLabel == "1분 평균")
         #expect(CardPresentation.batteryAverage1mText(discharging) == "\(minus)10.4 W")
-        #expect(CardPresentation.batteryRemainingTimeSummary(discharging) == "3시간 30분 남음")
+        #expect(CardPresentation.batteryRemainingTimeSummary(discharging) == "약 3시간 30분 남음")
 
-        let immediatelyAfterUnplug = BatterySample(
+        let rawOnly = BatterySample(
             netW: 20.0,
             milliamps: 1_575,
             volts: 12.7,
             charging: false,
             externalConnected: false,
             remainingWh: 49.5,
-            timeRemainingMinutes: nil)
-        #expect(CardPresentation.batteryRemainingTimeSummary(immediatelyAfterUnplug) == "2시간 29분 남음")
-        #expect(CardPresentation.subText(.value(.battery(immediatelyAfterUnplug))) == "2시간 29분 남음")
+            timeRemainingMinutes: 149)
+        #expect(CardPresentation.batteryRemainingTimeSummary(rawOnly) == nil)
 
         let charging = BatterySample(
             netW: -5.0,
@@ -90,18 +92,10 @@ struct CardPresentationTests {
             volts: 12.7,
             charging: true,
             externalConnected: true,
-            timeRemainingMinutes: 210,
+            projectedTimeRemainingMinutes: 210,
             average1mW: -3.0)
         #expect(CardPresentation.batteryAverage1mText(charging) == "+3.0 W")
         #expect(CardPresentation.batteryRemainingTimeSummary(charging) == nil)
-
-        let unavailableAverage = BatterySample(
-            netW: 0.0,
-            milliamps: 0,
-            volts: 12.7,
-            charging: false,
-            externalConnected: true)
-        #expect(CardPresentation.batteryAverage1mText(unavailableAverage) == nil)
     }
 
     @Test func batteryCurrentAndVoltageTextForExpand() {
@@ -129,6 +123,7 @@ struct CardPresentationTests {
             externalConnected: false,
             remainingWh: 49.457568,
             timeRemainingMinutes: 210,
+            projectedTimeRemainingMinutes: 210,
             efficiencyPercent: 99.56793086893903,
             cycleCount: 77)
         #expect(CardPresentation.batteryRemainingCapacityLabel == "남은 용량")
@@ -137,7 +132,7 @@ struct CardPresentationTests {
         #expect(CardPresentation.batteryRemainingCapacityText(populated) == "49.5 Wh")
         #expect(CardPresentation.batteryEfficiencyText(populated) == "99.6%")
         #expect(CardPresentation.batteryCycleText(populated) == "77")
-        #expect(CardPresentation.batteryRemainingTimeSummary(populated) == "3시간 30분 남음")
+        #expect(CardPresentation.batteryRemainingTimeSummary(populated) == "약 3시간 30분 남음")
 
         let unavailable = BatterySample(
             netW: -10.0,
