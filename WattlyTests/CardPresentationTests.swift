@@ -21,44 +21,43 @@ struct CardPresentationTests {
         #expect(CardPresentation.batterySign(netW: 0.05, charging: false) == minus)   // boundary: not < 0.05 → sign
     }
 
-    @Test func batteryValueAndSub() {
-        let charging = MetricState.value(.battery(BatterySample(
-            netW: -30.0, milliamps: 2362, volts: 12.7, charging: true, externalConnected: true)))
-        #expect(CardPresentation.valueText(.battery, charging) == "+30.0")
-        #expect(CardPresentation.unitText(.battery, charging) == "W")
-        #expect(CardPresentation.subText(charging) == "충전 중")
-
+    @Test func batteryValueAndCollapsedSummary() {
         let discharging = MetricState.value(.battery(BatterySample(
-            netW: 12.0, milliamps: 944, volts: 12.7, charging: false, externalConnected: false,
+            netW: 12.0,
+            milliamps: 944,
+            volts: 12.7,
+            charging: false,
+            externalConnected: false,
+            timeRemainingMinutes: 210,
             average1mW: 10.4)))
         #expect(CardPresentation.valueText(.battery, discharging) == "\(minus)12.0")
-        #expect(CardPresentation.subText(discharging) == "방전 중 · 1분 평균 \(minus)10.4 W")
+        #expect(CardPresentation.subText(discharging) == "3시간 30분 남음 · 1분 평균 \(minus)10.4 W")
 
-        let zero = MetricState.value(.battery(BatterySample(
-            netW: 0.0, milliamps: 0, volts: 12.7, charging: false, externalConnected: true)))
-        #expect(CardPresentation.valueText(.battery, zero) == "0.0")
-        #expect(CardPresentation.subText(zero) == "방전 중")
-    }
+        let timeOnly = MetricState.value(.battery(BatterySample(
+            netW: 12.0,
+            milliamps: 944,
+            volts: 12.7,
+            charging: false,
+            externalConnected: false,
+            timeRemainingMinutes: 1)))
+        #expect(CardPresentation.subText(timeOnly) == "0시간 1분 남음")
 
-    @Test func batteryAverageSignFollowsItsOwnDirection() {
-        // Average trending to charge (negative) while the instantaneous state is discharging —
-        // the sign must follow the average's own direction, not `charging`.
-        let trendingCharge = MetricState.value(.battery(BatterySample(
-            netW: 12.0, milliamps: 944, volts: 12.7, charging: false, externalConnected: false,
+        let averageOnly = MetricState.value(.battery(BatterySample(
+            netW: -5.0,
+            milliamps: 400,
+            volts: 12.7,
+            charging: true,
+            externalConnected: true,
             average1mW: -3.0)))
-        #expect(CardPresentation.subText(trendingCharge) == "방전 중 · 1분 평균 +3.0 W")
+        #expect(CardPresentation.subText(averageOnly) == "1분 평균 +3.0 W")
 
-        // Average trending to discharge (positive) while the instantaneous state is charging.
-        let trendingDischarge = MetricState.value(.battery(BatterySample(
-            netW: -5.0, milliamps: 400, volts: 12.7, charging: true, externalConnected: true,
-            average1mW: 2.0)))
-        #expect(CardPresentation.subText(trendingDischarge) == "충전 중 · 1분 평균 \(minus)2.0 W")
-
-        // Near-zero average magnitude (< 0.05) drops the sign, matching the headline rule (#17).
-        let flatAverage = MetricState.value(.battery(BatterySample(
-            netW: 12.0, milliamps: 944, volts: 12.7, charging: false, externalConnected: false,
-            average1mW: 0.02)))
-        #expect(CardPresentation.subText(flatAverage) == "방전 중 · 1분 평균 0.0 W")
+        let noDetail = MetricState.value(.battery(BatterySample(
+            netW: 0.0,
+            milliamps: 0,
+            volts: 12.7,
+            charging: false,
+            externalConnected: true)))
+        #expect(CardPresentation.subText(noDetail) == nil)
     }
 
     @Test func batteryCurrentAndVoltageTextForExpand() {
@@ -77,7 +76,7 @@ struct CardPresentationTests {
         #expect(CardPresentation.batteryCurrentText(zero) == "0 mA")
     }
 
-    @Test func batteryRemainingCapacityAndTimeTextForExpand() {
+    @Test func batteryRemainingCapacityEfficiencyAndCycleTextForExpand() {
         let populated = BatterySample(
             netW: 12.0,
             milliamps: 944,
@@ -85,11 +84,16 @@ struct CardPresentationTests {
             charging: false,
             externalConnected: false,
             remainingWh: 49.457568,
-            timeRemainingMinutes: 210)
+            timeRemainingMinutes: 210,
+            efficiencyPercent: 99.56793086893903,
+            cycleCount: 77)
         #expect(CardPresentation.batteryRemainingCapacityLabel == "남은 용량")
-        #expect(CardPresentation.batteryRemainingTimeLabel == "남은 사용시간")
+        #expect(CardPresentation.batteryEfficiencyLabel == "배터리 효율")
+        #expect(CardPresentation.batteryCycleLabel == "사이클")
         #expect(CardPresentation.batteryRemainingCapacityText(populated) == "49.5 Wh")
-        #expect(CardPresentation.batteryRemainingTimeText(populated) == "3h 30m")
+        #expect(CardPresentation.batteryEfficiencyText(populated) == "99.6%")
+        #expect(CardPresentation.batteryCycleText(populated) == "77회")
+        #expect(CardPresentation.batteryRemainingTimeSummary(populated) == "3시간 30분 남음")
 
         let unavailable = BatterySample(
             netW: -10.0,
@@ -97,17 +101,21 @@ struct CardPresentationTests {
             volts: 12.0,
             charging: true,
             externalConnected: true)
-        #expect(CardPresentation.batteryRemainingCapacityText(unavailable) == nil)
-        #expect(CardPresentation.batteryRemainingTimeText(unavailable) == nil)
+        #expect(CardPresentation.batteryEfficiencyText(unavailable) == nil)
+        #expect(CardPresentation.batteryCycleText(unavailable) == nil)
 
-        let outOfRange = BatterySample(
+        let invalid = BatterySample(
             netW: 12.0,
-            milliamps: 944,
-            volts: 12.7,
+            milliamps: 800,
+            volts: 12.0,
             charging: false,
             externalConnected: false,
-            timeRemainingMinutes: 1_441)
-        #expect(CardPresentation.batteryRemainingTimeText(outOfRange) == nil)
+            timeRemainingMinutes: 1_441,
+            efficiencyPercent: 201,
+            cycleCount: 10_001)
+        #expect(CardPresentation.batteryRemainingTimeSummary(invalid) == nil)
+        #expect(CardPresentation.batteryEfficiencyText(invalid) == nil)
+        #expect(CardPresentation.batteryCycleText(invalid) == nil)
     }
 
     // MARK: CPU

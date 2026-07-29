@@ -177,13 +177,15 @@ enum CardPresentation {
         case .power(let s):
             return "CPU \(f1(s.cpuW)) W · GPU \(f1(s.gpuW)) W · NPU \(f1(s.npuW)) W"
         case .battery(let s):
-            let base = s.charging ? "충전 중" : "방전 중"
-            guard let average = s.average1mW else { return base }
-            // The average's OWN sign — not `s.charging` — since the 1-minute trend can point
-            // the opposite way from the instantaneous state (e.g. just plugged in after a
-            // minute of discharge).
-            let avgSign = batterySign(netW: average, charging: average < 0)
-            return "\(base) · 1분 평균 \(avgSign)\(f1(abs(average))) W"
+            var segments: [String] = []
+            if let time = batteryRemainingTimeSummary(s) {
+                segments.append(time)
+            }
+            if let average = s.average1mW {
+                let avgSign = batterySign(netW: average, charging: average < 0)
+                segments.append("1분 평균 \(avgSign)\(f1(abs(average))) W")
+            }
+            return segments.isEmpty ? nil : segments.joined(separator: " · ")
         case .cpu(let s):
             // Order-based (not name-coupled): runtime perf-level names ("Performance"/
             // "Efficiency" → "P"/"E") differ from the prototype's "S". Guard
@@ -229,17 +231,30 @@ enum CardPresentation {
     }
 
     static let batteryRemainingCapacityLabel = "남은 용량"
-    static let batteryRemainingTimeLabel = "남은 사용시간"
+    static let batteryEfficiencyLabel = "배터리 효율"
+    static let batteryCycleLabel = "사이클"
 
     static func batteryRemainingCapacityText(_ s: BatterySample) -> String? {
         guard let wh = s.remainingWh, wh.isFinite, wh >= 0 else { return nil }
         return "\(f1(wh)) Wh"
     }
 
-    static func batteryRemainingTimeText(_ s: BatterySample) -> String? {
+    static func batteryRemainingTimeSummary(_ s: BatterySample) -> String? {
         guard let totalMinutes = s.timeRemainingMinutes,
               (1...1_440).contains(totalMinutes) else { return nil }
-        return "\(totalMinutes / 60)h \(totalMinutes % 60)m"
+        return "\(totalMinutes / 60)시간 \(totalMinutes % 60)분 남음"
+    }
+
+    static func batteryEfficiencyText(_ s: BatterySample) -> String? {
+        guard let percent = s.efficiencyPercent,
+              percent.isFinite,
+              (0...200).contains(percent) else { return nil }
+        return "\(f1(percent))%"
+    }
+
+    static func batteryCycleText(_ s: BatterySample) -> String? {
+        guard let count = s.cycleCount, (0...10_000).contains(count) else { return nil }
+        return "\(count)회"
     }
 
     /// Runtime perf-level name → single-letter label prefix ("Performance" → "P").

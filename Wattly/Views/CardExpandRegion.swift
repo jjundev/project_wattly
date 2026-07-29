@@ -152,8 +152,11 @@ struct CardExpandRegion: View {
             if let value = CardPresentation.batteryRemainingCapacityText(s) {
                 batteryDetailRow(label: CardPresentation.batteryRemainingCapacityLabel, value: value)
             }
-            if let value = CardPresentation.batteryRemainingTimeText(s) {
-                batteryDetailRow(label: CardPresentation.batteryRemainingTimeLabel, value: value)
+            if let value = CardPresentation.batteryEfficiencyText(s) {
+                batteryDetailRow(label: CardPresentation.batteryEfficiencyLabel, value: value)
+            }
+            if let value = CardPresentation.batteryCycleText(s) {
+                batteryDetailRow(label: CardPresentation.batteryCycleLabel, value: value)
             }
             batteryDetailRow(label: "전류", value: CardPresentation.batteryCurrentText(s))
             batteryDetailRow(label: "전압", value: CardPresentation.batteryVoltageText(s))
