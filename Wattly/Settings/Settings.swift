@@ -240,6 +240,7 @@ enum Defaults {
     static let powerSmoothed = true        // 프로세서 전력 + 배터리 카드: EMA-smoothed display (raw spikes mislead)
     /// Battery health can feel sensitive as it declines from 100%, so keep it opt-in.
     static let showBatteryEfficiency = false
+    static let memoryProcessLimit = 3
 
     static let show: [CardKind: Bool] = [
         .power: true, .battery: true, .cpu: true, .mem: true,
@@ -286,6 +287,7 @@ enum StorageKey {
     static let menubarTextEnabled = "menubarTextEnabled"
     static let powerSmoothed = "powerSmoothed"
     static let showBatteryEfficiency = "showBatteryEfficiency"
+    static let memoryProcessLimit = "memoryProcessLimit"
     static let cardOrder = "cardOrder"
     static let thresholds = "thresholds"
     static let fanCurve = "fanCurve"

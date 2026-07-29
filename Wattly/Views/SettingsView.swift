@@ -65,7 +65,7 @@ private struct WindowAppearanceSync: NSViewRepresentable {
 /// state is `@AppStorage`, so a change reflects in the popover live and survives restart.
 ///
 /// Sections (그룹 순서, settings-card-unification): 시스템(일반) · 표시(테마·레이아웃·표시 지표·
-/// 메뉴바) · 동작(전력 표시·그래프 임곗값·팬 커브·동작 모드·업데이트 주기) · 되돌리기 · 푸터.
+/// 메모리 프로세스·메뉴바) · 동작(전력 표시·그래프 임곗값·팬 커브·동작 모드·업데이트 주기) · 되돌리기 · 푸터.
 /// 팬 커브는 팬이 없는 Mac(desktop)에서 여전히 조건부로 숨는다(`monitor.isPresent(.fan)`).
 struct SettingsView: View {
     @Environment(\.tokens) private var t
@@ -93,6 +93,7 @@ struct SettingsView: View {
     @AppStorage(StorageKey.powerMode) private var powerMode = Defaults.powerMode
     @AppStorage(StorageKey.powerSmoothed) private var powerSmoothed = Defaults.powerSmoothed
     @AppStorage(StorageKey.showBatteryEfficiency) private var showBatteryEfficiency = Defaults.showBatteryEfficiency
+    @AppStorage(StorageKey.memoryProcessLimit) private var memoryProcessLimit = Defaults.memoryProcessLimit
     @AppStorage(StorageKey.menubarTextEnabled) private var menubarText = Defaults.menubarTextEnabled
     @AppStorage(StorageKey.thresholds) private var thresholds = Defaults.thresholds
     @AppStorage(StorageKey.fanCurve) private var fanCurve = Defaults.fanCurve
@@ -156,15 +157,16 @@ struct SettingsView: View {
 
     // MARK: 표시 (그룹)
 
-    /// 표시 그룹: 테마 · 레이아웃 · 표시 지표 · 메뉴바 — 화면에 무엇이 보이는지를 다루는
+    /// 표시 그룹: 테마 · 레이아웃 · 표시 지표 · 메모리 프로세스 · 메뉴바 — 화면에 무엇이 보이는지를 다루는
     /// 섹션들. `시스템` 그룹(아래 `generalSection`, `body`)은 섹션이 하나뿐이라 그룹 헤더를
-    /// 붙이지 않고 자신의 `SettingsSection` 캡션만 쓰지만, 이 그룹은 4개라 헤더가 붙는다.
+    /// 붙이지 않고 자신의 `SettingsSection` 캡션만 쓰지만, 이 그룹은 5개라 헤더가 붙는다.
     private var displayGroup: some View {
         VStack(alignment: .leading, spacing: 18) {
             SettingsGroupHeader(title: "표시")
             themeSection
             layoutSection
             showSection
+            memoryProcessLimitSection
             menubarSection
         }
     }
@@ -299,6 +301,23 @@ struct SettingsView: View {
                 SettingsToggleRow(isOn: $showGpuTemp, divider: true) { rowTitleWithSuffix("GPU 온도", "· 최고값") }
                 SettingsToggleRow(isOn: $showBatTemp, divider: true) { rowTitle("배터리 온도") }
                 SettingsToggleRow(isOn: $showFan, divider: false) { rowTitle("팬 속도") }
+            }
+        }
+    }
+
+    // MARK: 메모리 프로세스
+
+    private var memoryProcessLimitSection: some View {
+        SettingsSection(title: "메모리 프로세스") {
+            SettingsCard(padding: Tokens.cardPadding) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("펼침 목록 최대 표시")
+                        .font(WattlyFont.at(11.5, weight: .regular))
+                        .foregroundStyle(t.faint)
+                    WattlySegment(selection: $memoryProcessLimit, options: [
+                        (3, "3개"), (4, "4개"), (5, "5개"), (6, "6개"), (7, "7개"),
+                    ], fontSize: 11.5, pillVPadding: 6)
+                }
             }
         }
     }
