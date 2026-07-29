@@ -62,6 +62,21 @@ func validatedTimeRemainingMinutes(_ minutes: Int?) -> Int? {
     return minutes
 }
 
+/// Estimated remaining runtime from current energy and live discharge power. This fills the
+/// AppleSmartBattery TimeRemaining gap immediately after an unplug, until the gas gauge has
+/// recalculated its own estimate. It intentionally rejects charging, near-idle, non-finite,
+/// and implausible inputs rather than displaying a misleading duration.
+func estimatedTimeRemainingMinutes(remainingWattHours: Double?, netW: Double) -> Int? {
+    guard let remainingWattHours,
+          remainingWattHours.isFinite,
+          remainingWattHours > 0,
+          netW.isFinite,
+          netW > 0.2 else { return nil }
+    let minutes = remainingWattHours / netW * 60
+    guard minutes.isFinite, (1...1_440).contains(minutes) else { return nil }
+    return Int(minutes.rounded())
+}
+
 /// Battery health/efficiency from the current maximum charge capacity relative to
 /// original design capacity. Values slightly above 100 are legitimate manufacturing
 /// tolerance; values outside 0...200 indicate corrupt registry input.

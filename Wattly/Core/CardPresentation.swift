@@ -239,9 +239,10 @@ enum CardPresentation {
     }
 
     static func batteryRemainingTimeSummary(_ s: BatterySample) -> String? {
-        guard !s.charging,
-              let totalMinutes = s.timeRemainingMinutes,
-              (1...1_440).contains(totalMinutes) else { return nil }
+        guard !s.charging else { return nil }
+        guard let totalMinutes = validatedTimeRemainingMinutes(s.timeRemainingMinutes)
+            ?? estimatedTimeRemainingMinutes(remainingWattHours: s.remainingWh, netW: s.netW)
+        else { return nil }
         return "\(totalMinutes / 60)시간 \(totalMinutes % 60)분 남음"
     }
 

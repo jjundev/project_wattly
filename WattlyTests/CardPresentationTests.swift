@@ -73,6 +73,17 @@ struct CardPresentationTests {
         #expect(CardPresentation.batteryAverage1mText(discharging) == "\(minus)10.4 W")
         #expect(CardPresentation.batteryRemainingTimeSummary(discharging) == "3시간 30분 남음")
 
+        let immediatelyAfterUnplug = BatterySample(
+            netW: 20.0,
+            milliamps: 1_575,
+            volts: 12.7,
+            charging: false,
+            externalConnected: false,
+            remainingWh: 49.5,
+            timeRemainingMinutes: nil)
+        #expect(CardPresentation.batteryRemainingTimeSummary(immediatelyAfterUnplug) == "2시간 29분 남음")
+        #expect(CardPresentation.subText(.value(.battery(immediatelyAfterUnplug))) == "2시간 29분 남음")
+
         let charging = BatterySample(
             netW: -5.0,
             milliamps: 400,

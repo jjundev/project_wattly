@@ -118,6 +118,23 @@ struct BatteryPowerTests {
         #expect(validatedTimeRemainingMinutes(1_441) == nil)
     }
 
+    @Test func estimatedTimeRemainingUsesRemainingEnergyAndDischargePower() {
+        // 49.5 Wh ÷ 20 W × 60 = 148.5 min → nearest whole minute, 149.
+        #expect(estimatedTimeRemainingMinutes(remainingWattHours: 49.5, netW: 20.0) == 149)
+        #expect(estimatedTimeRemainingMinutes(remainingWattHours: 12.0, netW: 8.0) == 90)
+    }
+
+    @Test func estimatedTimeRemainingRejectsUnsafeOrImplausibleInputs() {
+        #expect(estimatedTimeRemainingMinutes(remainingWattHours: nil, netW: 20.0) == nil)
+        #expect(estimatedTimeRemainingMinutes(remainingWattHours: 0, netW: 20.0) == nil)
+        #expect(estimatedTimeRemainingMinutes(remainingWattHours: .infinity, netW: 20.0) == nil)
+        #expect(estimatedTimeRemainingMinutes(remainingWattHours: 49.5, netW: 0.2) == nil)
+        #expect(estimatedTimeRemainingMinutes(remainingWattHours: 49.5, netW: 0) == nil)
+        #expect(estimatedTimeRemainingMinutes(remainingWattHours: 49.5, netW: -.infinity) == nil)
+        #expect(estimatedTimeRemainingMinutes(remainingWattHours: 49.5, netW: -20.0) == nil)
+        #expect(estimatedTimeRemainingMinutes(remainingWattHours: 49.5, netW: 1.0) == nil)
+    }
+
     @Test func batteryEfficiencyUsesMaximumOverDesignCapacity() {
         let percent = batteryEfficiencyPercent(
             maxCapacityMilliampHours: 6_222,
