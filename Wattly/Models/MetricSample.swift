@@ -39,7 +39,7 @@ struct MemorySample: Sendable, Equatable {
     /// Swap used, GiB (macOS `vm.swapusage` `xsu_used` — the number Activity Monitor's
     /// "사용된 스왑 공간" shows). 0 when there's no swap OR the sysctl was unavailable.
     var swapUsedGB: Double = 0
-    /// Top memory-consuming processes (issue 05). Populated only while the memory
+    /// Top-N memory-consuming applications (issue 05). Populated only while the memory
     /// card's expand is on-screen (gating keeps the routine poll cheap); empty
     /// otherwise. MUST stay `Equatable` — the whole `MetricSample`/`MetricState`
     /// chain synthesises `Equatable` through this field.
@@ -57,18 +57,16 @@ struct MemorySample: Sendable, Equatable {
     var pressurePercent: Int? = nil
 }
 
-/// One process row in the memory card's expand (issue 05). `footprintBytes` is
-/// `ri_phys_footprint` from `proc_pid_rusage`. Identifiable by pid for stable
-/// SwiftUI diffing across polls.
+/// One application row in the memory card's expand. `footprintBytes` is the sum of
+/// readable member processes' `ri_phys_footprint`; `id` is the outer `.app` bundle
+/// path (or executable-path fallback), stable across helper-process churn.
 struct ProcessUsage: Sendable, Equatable, Identifiable {
-    var pid: Int32
+    var id: String
     var name: String
     var footprintBytes: UInt64
-    /// Responsible app-bundle (or executable) path for the row icon — resolved in
-    /// the provider via `appBundlePath`. A `String` (not `NSImage`) so the sample
-    /// stays `Sendable`; the view turns it into an icon with `NSWorkspace`. nil → no icon.
+    /// App-bundle (or executable) path used by `NSWorkspace` for the row icon.
+    /// It is a String rather than an `NSImage` so the sample remains Sendable.
     var iconPath: String? = nil
-    var id: Int32 { pid }
 }
 
 struct PowerSample: Sendable, Equatable {

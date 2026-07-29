@@ -104,9 +104,12 @@ actor FakeProvider: MetricProvider {
             let used = v("mem")
             let gib = 1024.0 * 1024.0 * 1024.0
             let procs = [
-                ProcessUsage(pid: 1, name: "Chrome", footprintBytes: UInt64(used * 0.30 * gib)),
-                ProcessUsage(pid: 2, name: "Xcode", footprintBytes: UInt64(used * 0.21 * gib)),
-                ProcessUsage(pid: 3, name: "Figma", footprintBytes: UInt64(used * 0.13 * gib)),
+                ProcessUsage(id: "/Applications/Google Chrome.app", name: "Google Chrome",
+                             footprintBytes: UInt64(used * 0.30 * gib), iconPath: "/Applications/Google Chrome.app"),
+                ProcessUsage(id: "/Applications/Xcode.app", name: "Xcode",
+                             footprintBytes: UInt64(used * 0.21 * gib), iconPath: "/Applications/Xcode.app"),
+                ProcessUsage(id: "/Applications/Figma.app", name: "Figma",
+                             footprintBytes: UInt64(used * 0.13 * gib), iconPath: "/Applications/Figma.app"),
             ]
             // Synthesise pressure from the occupancy ratio so the fake/dev harness still
             // demos the pressure-colored card (the real sysctl drives it at runtime).

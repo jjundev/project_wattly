@@ -21,6 +21,7 @@ enum SettingsReset {
         defaults.set(Defaults.menubarTextEnabled, forKey: StorageKey.menubarTextEnabled)
         defaults.set(Defaults.powerSmoothed, forKey: StorageKey.powerSmoothed)
         defaults.set(Defaults.showBatteryEfficiency, forKey: StorageKey.showBatteryEfficiency)
+        defaults.set(Defaults.memoryProcessLimit, forKey: StorageKey.memoryProcessLimit)
         defaults.set(Defaults.cardOrder.rawValue, forKey: StorageKey.cardOrder)
         defaults.set(Defaults.thresholds.rawValue, forKey: StorageKey.thresholds)
         defaults.set(Defaults.fanCurve.rawValue, forKey: StorageKey.fanCurve)

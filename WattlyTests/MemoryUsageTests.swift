@@ -107,23 +107,85 @@ struct MemoryUsageTests {
         #expect(bare.pressurePercent == nil)
     }
 
-    // MARK: topProcesses
+    @Test func memorySampleUsesSelectedProcessLimit() {
+        let sample = memorySample(
+            active: 0, wire: 0, compressor: 0, pageSize: 16384, memsize: 16 * gib,
+            processes: [
+                ProcessUsage(id: "a", name: "a", footprintBytes: 7),
+                ProcessUsage(id: "b", name: "b", footprintBytes: 6),
+                ProcessUsage(id: "c", name: "c", footprintBytes: 5),
+                ProcessUsage(id: "d", name: "d", footprintBytes: 4),
+                ProcessUsage(id: "e", name: "e", footprintBytes: 3),
+            ],
+            processLimit: 5)
 
-    @Test func topProcessesSortsDescAndCapsAtThree() {
-        let procs = [
-            ProcessUsage(pid: 1, name: "a", footprintBytes: 10),
-            ProcessUsage(pid: 2, name: "b", footprintBytes: 50),
-            ProcessUsage(pid: 3, name: "c", footprintBytes: 30),
-            ProcessUsage(pid: 4, name: "d", footprintBytes: 40),
-        ]
-        let top = topProcesses(procs)
-        #expect(top.count == 3)
-        #expect(top.map(\.pid) == [2, 4, 3])     // 50, 40, 30
+        #expect(sample.processes.map(\.id) == ["a", "b", "c", "d", "e"])
     }
 
-    @Test func topProcessesHandlesFewerThanLimit() {
-        #expect(topProcesses([ProcessUsage(pid: 1, name: "a", footprintBytes: 10)]).map(\.pid) == [1])
-        #expect(topProcesses([]).isEmpty)
+    // MARK: topMemoryApps
+
+    @Test func topMemoryAppsCoalescesHelpersAndUsesAppName() {
+        let top = topMemoryApps(perProcess: [
+            (key: "/Applications/Codex.app", bytes: 50),
+            (key: "/Applications/Codex.app", bytes: 30),
+            (key: "/Applications/Google Chrome.app", bytes: 70),
+            (key: "/Applications/Xcode.app", bytes: 20),
+        ], limit: 7)
+
+        #expect(top.map(\.id) == [
+            "/Applications/Codex.app",
+            "/Applications/Google Chrome.app",
+            "/Applications/Xcode.app",
+        ])
+        #expect(top.map(\.name) == ["Codex", "Google Chrome", "Xcode"])
+        #expect(top.map(\.footprintBytes) == [80, 70, 20])
+        #expect(top.map(\.iconPath) == [
+            "/Applications/Codex.app",
+            "/Applications/Google Chrome.app",
+            "/Applications/Xcode.app",
+        ])
+    }
+
+    @Test func topMemoryAppsRanksBySumThenStableKeyAndCaps() {
+        let top = topMemoryApps(perProcess: [
+            (key: "/Applications/B.app", bytes: 40),
+            (key: "/Applications/A.app", bytes: 40),
+            (key: "/Applications/C.app", bytes: 20),
+        ], limit: 2)
+
+        #expect(top.map(\.id) == ["/Applications/A.app", "/Applications/B.app", "/Applications/C.app"])
+        #expect(top.map(\.footprintBytes) == [40, 40, 20])
+    }
+
+    @Test func topMemoryAppsClampsDirectLimit() {
+        let processes = [
+            (key: "/Applications/A.app", bytes: UInt64(8)),
+            (key: "/Applications/B.app", bytes: UInt64(7)),
+            (key: "/Applications/C.app", bytes: UInt64(6)),
+            (key: "/Applications/D.app", bytes: UInt64(5)),
+            (key: "/Applications/E.app", bytes: UInt64(4)),
+            (key: "/Applications/F.app", bytes: UInt64(3)),
+            (key: "/Applications/G.app", bytes: UInt64(2)),
+            (key: "/Applications/H.app", bytes: UInt64(1)),
+        ]
+
+        #expect(topMemoryApps(perProcess: processes, limit: 1).map(\.id) == [
+            "/Applications/A.app", "/Applications/B.app", "/Applications/C.app",
+        ])
+        #expect(topMemoryApps(perProcess: processes, limit: 99).map(\.id) == [
+            "/Applications/A.app", "/Applications/B.app", "/Applications/C.app",
+            "/Applications/D.app", "/Applications/E.app", "/Applications/F.app",
+            "/Applications/G.app",
+        ])
+    }
+
+    @Test func memoryProcessLimitClampsToSupportedRange() {
+        #expect(memoryProcessLimit(nil) == 3)
+        #expect(memoryProcessLimit(1) == 3)
+        #expect(memoryProcessLimit(3) == 3)
+        #expect(memoryProcessLimit(5) == 5)
+        #expect(memoryProcessLimit(7) == 7)
+        #expect(memoryProcessLimit(99) == 7)
     }
 
     // MARK: barFraction — zero-denominator guard

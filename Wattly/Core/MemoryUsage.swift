@@ -55,7 +55,7 @@ func usedBytes(active: UInt64, wire: UInt64, compressor: UInt64, pageSize: UInt6
 /// (plan 05 §M5). The process list is reduced to the top-N here.
 func memorySample(active: UInt64, wire: UInt64, compressor: UInt64,
                   pageSize: UInt64, memsize: UInt64,
-                  processes: [ProcessUsage],
+                  processes: [ProcessUsage], processLimit: Int = 3,
                   pressure: MemoryPressure? = nil,
                   pressurePercent: Int? = nil,
                   swapUsedBytes: UInt64 = 0) -> MemorySample {
@@ -65,14 +65,34 @@ func memorySample(active: UInt64, wire: UInt64, compressor: UInt64,
         wiredGB: Double(wire * pageSize) / bytesPerGiB,
         compressedGB: Double(compressor * pageSize) / bytesPerGiB,
         swapUsedGB: Double(swapUsedBytes) / bytesPerGiB,
-        processes: topProcesses(processes),
+        processes: topProcesses(processes, limit: memoryProcessLimit(processLimit)),
         pressure: pressure,
         pressurePercent: pressurePercent)
 }
 
-/// Top-N processes by physical footprint, descending (plan 05 §M8).
-func topProcesses(_ all: [ProcessUsage], limit: Int = 3) -> [ProcessUsage] {
-    Array(all.sorted { $0.footprintBytes > $1.footprintBytes }.prefix(limit))
+func memoryProcessLimit(_ persisted: Int?) -> Int {
+    min(7, max(3, persisted ?? 3))
+}
+
+func topMemoryApps(perProcess: [(key: String, bytes: UInt64)], limit: Int) -> [ProcessUsage] {
+    var sums: [String: UInt64] = [:]
+    for process in perProcess {
+        sums[process.key, default: 0] += process.bytes
+    }
+    return sums.sorted { lhs, rhs in
+        lhs.value > rhs.value || (lhs.value == rhs.value && lhs.key < rhs.key)
+    }
+    .prefix(memoryProcessLimit(limit))
+    .map { key, bytes in
+        ProcessUsage(id: key, name: appDisplayName(forKey: key), footprintBytes: bytes, iconPath: key)
+    }
+}
+
+func topProcesses(_ all: [ProcessUsage], limit: Int) -> [ProcessUsage] {
+    Array(all.sorted {
+        $0.footprintBytes > $1.footprintBytes
+            || ($0.footprintBytes == $1.footprintBytes && $0.id < $1.id)
+    }.prefix(memoryProcessLimit(limit)))
 }
 
 /// Bar width fraction (0…1) relative to the largest process, guarded against a
