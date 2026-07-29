@@ -302,7 +302,13 @@ final class SystemMonitor {
             states[kind] = .loading
         case .unavailable(let reason):
             states[kind] = .unavailable(reason)
-        case .value(let sample):
+        case .value(let rawSample):
+            let sample: MetricSample
+            if case .battery(let battery) = rawSample {
+                sample = .battery(suppressingStaleTimeAfterDisconnect(battery))
+            } else {
+                sample = rawSample
+            }
             states[kind] = .value(sample)
             recordHistory(for: kind, sample: sample, at: instant)
         }
@@ -314,6 +320,33 @@ final class SystemMonitor {
     /// connection flag (which flips instantly) rather than the current-derived direction
     /// (issue 07 §2). Held here, not in the provider, so `BatteryProvider` stays stateless.
     private var lastExternalConnected: Bool?
+    /// Last non-nil registry time observed while an adapter was connected. A matching value
+    /// immediately after unplug is the charging-era estimate, not a fresh discharge estimate.
+    private var lastConnectedTimeRemainingMinutes: Int?
+    /// The connected-era value to suppress until AppleSmartBattery publishes a different,
+    /// non-nil discharge estimate. nil means no stale value is being tracked.
+    private var staleTimeRemainingAfterDisconnect: Int?
+
+    private func suppressingStaleTimeAfterDisconnect(_ raw: BatterySample) -> BatterySample {
+        var sample = raw
+        let rawTime = raw.timeRemainingMinutes
+
+        if raw.externalConnected {
+            lastConnectedTimeRemainingMinutes = rawTime
+            staleTimeRemainingAfterDisconnect = nil
+        } else if lastExternalConnected == true {
+            staleTimeRemainingAfterDisconnect = lastConnectedTimeRemainingMinutes
+        } else if let stale = staleTimeRemainingAfterDisconnect,
+                  let rawTime,
+                  rawTime != stale {
+            staleTimeRemainingAfterDisconnect = nil
+        }
+
+        if rawTime == staleTimeRemainingAfterDisconnect {
+            sample.timeRemainingMinutes = nil
+        }
+        return sample
+    }
 
     private func recordHistory(for kind: ProviderKind, sample: MetricSample, at instant: ContinuousClock.Instant) {
         if case .battery(let s) = sample {
