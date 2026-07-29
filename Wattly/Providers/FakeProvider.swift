@@ -83,9 +83,7 @@ actor FakeProvider: MetricProvider {
                 milliamps: Int((mag / 12.0 * 1000).rounded()),
                 volts: 12.0,
                 charging: charging,
-                externalConnected: charging,
-                remainingWh: 49.5,
-                timeRemainingMinutes: net > 0.05 ? 210 : nil))   // synthetic dev harness — AC iff charging
+                externalConnected: charging))   // synthetic dev harness — AC iff charging
         case .cpu:
             let c = v("cpu")
             // Real M-series names (issue 04): drives the same prefix logic ("P"/"E")
