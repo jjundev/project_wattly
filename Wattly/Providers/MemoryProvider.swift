@@ -120,7 +120,7 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
         }
         return footprints.sorted { $0.bytes > $1.bytes }.prefix(limit).map { entry in
             let path = pidPath(entry.pid)
-            return ProcessUsage(pid: entry.pid,
+            return ProcessUsage(id: "PID \(entry.pid)",
                                 name: procName(of: entry.pid, path: path),
                                 footprintBytes: entry.bytes,
                                 iconPath: appBundlePath(forExecutable: path))

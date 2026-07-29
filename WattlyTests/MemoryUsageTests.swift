@@ -107,23 +107,48 @@ struct MemoryUsageTests {
         #expect(bare.pressurePercent == nil)
     }
 
-    // MARK: topProcesses
+    // MARK: topMemoryApps
 
-    @Test func topProcessesSortsDescAndCapsAtThree() {
-        let procs = [
-            ProcessUsage(pid: 1, name: "a", footprintBytes: 10),
-            ProcessUsage(pid: 2, name: "b", footprintBytes: 50),
-            ProcessUsage(pid: 3, name: "c", footprintBytes: 30),
-            ProcessUsage(pid: 4, name: "d", footprintBytes: 40),
-        ]
-        let top = topProcesses(procs)
-        #expect(top.count == 3)
-        #expect(top.map(\.pid) == [2, 4, 3])     // 50, 40, 30
+    @Test func topMemoryAppsCoalescesHelpersAndUsesAppName() {
+        let top = topMemoryApps(perProcess: [
+            (key: "/Applications/Codex.app", bytes: 50),
+            (key: "/Applications/Codex.app", bytes: 30),
+            (key: "/Applications/Google Chrome.app", bytes: 70),
+            (key: "/Applications/Xcode.app", bytes: 20),
+        ], limit: 7)
+
+        #expect(top.map(\.id) == [
+            "/Applications/Codex.app",
+            "/Applications/Google Chrome.app",
+            "/Applications/Xcode.app",
+        ])
+        #expect(top.map(\.name) == ["Codex", "Google Chrome", "Xcode"])
+        #expect(top.map(\.footprintBytes) == [80, 70, 20])
+        #expect(top.map(\.iconPath) == [
+            "/Applications/Codex.app",
+            "/Applications/Google Chrome.app",
+            "/Applications/Xcode.app",
+        ])
     }
 
-    @Test func topProcessesHandlesFewerThanLimit() {
-        #expect(topProcesses([ProcessUsage(pid: 1, name: "a", footprintBytes: 10)]).map(\.pid) == [1])
-        #expect(topProcesses([]).isEmpty)
+    @Test func topMemoryAppsRanksBySumThenStableKeyAndCaps() {
+        let top = topMemoryApps(perProcess: [
+            (key: "/Applications/B.app", bytes: 40),
+            (key: "/Applications/A.app", bytes: 40),
+            (key: "/Applications/C.app", bytes: 20),
+        ], limit: 2)
+
+        #expect(top.map(\.id) == ["/Applications/A.app", "/Applications/B.app"])
+        #expect(top.map(\.footprintBytes) == [40, 40])
+    }
+
+    @Test func memoryProcessLimitClampsToSupportedRange() {
+        #expect(memoryProcessLimit(nil) == 3)
+        #expect(memoryProcessLimit(1) == 3)
+        #expect(memoryProcessLimit(3) == 3)
+        #expect(memoryProcessLimit(5) == 5)
+        #expect(memoryProcessLimit(7) == 7)
+        #expect(memoryProcessLimit(99) == 7)
     }
 
     // MARK: barFraction — zero-denominator guard

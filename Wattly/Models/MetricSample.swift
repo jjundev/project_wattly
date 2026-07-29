@@ -57,18 +57,16 @@ struct MemorySample: Sendable, Equatable {
     var pressurePercent: Int? = nil
 }
 
-/// One process row in the memory card's expand (issue 05). `footprintBytes` is
-/// `ri_phys_footprint` from `proc_pid_rusage`. Identifiable by pid for stable
-/// SwiftUI diffing across polls.
+/// One application row in the memory card's expand. `footprintBytes` is the sum of
+/// readable member processes' `ri_phys_footprint`; `id` is the outer `.app` bundle
+/// path (or executable-path fallback), stable across helper-process churn.
 struct ProcessUsage: Sendable, Equatable, Identifiable {
-    var pid: Int32
+    var id: String
     var name: String
     var footprintBytes: UInt64
-    /// Responsible app-bundle (or executable) path for the row icon — resolved in
-    /// the provider via `appBundlePath`. A `String` (not `NSImage`) so the sample
-    /// stays `Sendable`; the view turns it into an icon with `NSWorkspace`. nil → no icon.
+    /// App-bundle (or executable) path used by `NSWorkspace` for the row icon.
+    /// It is a String rather than an `NSImage` so the sample remains Sendable.
     var iconPath: String? = nil
-    var id: Int32 { pid }
 }
 
 struct PowerSample: Sendable, Equatable {
