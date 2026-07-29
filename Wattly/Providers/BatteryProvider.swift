@@ -32,6 +32,9 @@ actor BatteryProvider: MetricProvider {
         var batteryMilliwatts: Int?
         var rawCurrentCapacityMilliampHours: Int?
         var timeRemainingMinutes: Int?
+        var rawMaxCapacityMilliampHours: Int?
+        var designCapacityMilliampHours: Int?
+        var cycleCount: Int?
     }
 
     func read(at instant: ContinuousClock.Instant) async -> ProviderReading {
@@ -62,7 +65,11 @@ actor BatteryProvider: MetricProvider {
             remainingWh: remainingWattHours(
                 rawCapacityMilliampHours: registry?.rawCurrentCapacityMilliampHours ?? 0,
                 volts: volts),
-            timeRemainingMinutes: validatedTimeRemainingMinutes(registry?.timeRemainingMinutes))
+            timeRemainingMinutes: validatedTimeRemainingMinutes(registry?.timeRemainingMinutes),
+            efficiencyPercent: batteryEfficiencyPercent(
+                maxCapacityMilliampHours: registry?.rawMaxCapacityMilliampHours ?? 0,
+                designCapacityMilliampHours: registry?.designCapacityMilliampHours ?? 0),
+            cycleCount: validatedBatteryCycleCount(registry?.cycleCount))
     }
 
     private func appleSmartBatterySnapshot() -> AppleSmartBatterySnapshot? {
@@ -86,7 +93,10 @@ actor BatteryProvider: MetricProvider {
             externalConnected: externalConnected,
             batteryMilliwatts: batteryMilliwatts,
             rawCurrentCapacityMilliampHours: number(service, "AppleRawCurrentCapacity")?.intValue,
-            timeRemainingMinutes: number(service, "TimeRemaining")?.intValue)
+            timeRemainingMinutes: number(service, "TimeRemaining")?.intValue,
+            rawMaxCapacityMilliampHours: number(service, "AppleRawMaxCapacity")?.intValue,
+            designCapacityMilliampHours: number(service, "DesignCapacity")?.intValue,
+            cycleCount: number(service, "CycleCount")?.intValue)
     }
 
     /// Fallback: AppleSmartBattery `PowerTelemetryData.BatteryPower` (mW, signed) — coarse but
@@ -105,7 +115,11 @@ actor BatteryProvider: MetricProvider {
             remainingWh: remainingWattHours(
                 rawCapacityMilliampHours: registry.rawCurrentCapacityMilliampHours ?? 0,
                 volts: volts),
-            timeRemainingMinutes: validatedTimeRemainingMinutes(registry.timeRemainingMinutes))))
+            timeRemainingMinutes: validatedTimeRemainingMinutes(registry.timeRemainingMinutes),
+            efficiencyPercent: batteryEfficiencyPercent(
+                maxCapacityMilliampHours: registry.rawMaxCapacityMilliampHours ?? 0,
+                designCapacityMilliampHours: registry.designCapacityMilliampHours ?? 0),
+            cycleCount: validatedBatteryCycleCount(registry.cycleCount))))
     }
 
     private func number(_ service: io_service_t, _ key: String) -> NSNumber? {

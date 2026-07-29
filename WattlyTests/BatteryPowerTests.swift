@@ -117,4 +117,27 @@ struct BatteryPowerTests {
         #expect(validatedTimeRemainingMinutes(65_535) == nil)
         #expect(validatedTimeRemainingMinutes(1_441) == nil)
     }
+
+    @Test func batteryEfficiencyUsesMaximumOverDesignCapacity() {
+        let percent = batteryEfficiencyPercent(
+            maxCapacityMilliampHours: 6_222,
+            designCapacityMilliampHours: 6_249)
+        #expect(abs((percent ?? 0) - 99.56793086893903) < 0.000_000_1)
+    }
+
+    @Test func batteryEfficiencyRejectsInvalidCapacityPairs() {
+        #expect(batteryEfficiencyPercent(maxCapacityMilliampHours: 0, designCapacityMilliampHours: 6_249) == nil)
+        #expect(batteryEfficiencyPercent(maxCapacityMilliampHours: 6_222, designCapacityMilliampHours: 0) == nil)
+        #expect(batteryEfficiencyPercent(maxCapacityMilliampHours: -1, designCapacityMilliampHours: 6_249) == nil)
+        #expect(batteryEfficiencyPercent(maxCapacityMilliampHours: 20_000, designCapacityMilliampHours: 6_249) == nil)
+    }
+
+    @Test func cycleCountAcceptsPlausibleNonNegativeValues() {
+        #expect(validatedBatteryCycleCount(0) == 0)
+        #expect(validatedBatteryCycleCount(77) == 77)
+        #expect(validatedBatteryCycleCount(10_000) == 10_000)
+        #expect(validatedBatteryCycleCount(nil) == nil)
+        #expect(validatedBatteryCycleCount(-1) == nil)
+        #expect(validatedBatteryCycleCount(10_001) == nil)
+    }
 }

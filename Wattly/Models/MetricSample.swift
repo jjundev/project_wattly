@@ -126,6 +126,11 @@ struct BatterySample: Sendable, Equatable {
     /// AppleSmartBattery estimated time remaining in minutes. nil when unavailable,
     /// sentinel, or implausible; it is not inferred from instantaneous wattage.
     var timeRemainingMinutes: Int? = nil
+    /// Health/efficiency: AppleRawMaxCapacity ÷ DesignCapacity × 100. nil when the
+    /// registry capacity pair is absent or invalid.
+    var efficiencyPercent: Double? = nil
+    /// AppleSmartBattery cycle count. nil when absent or outside the plausible range.
+    var cycleCount: Int? = nil
     /// Display-only one-minute EMA of signed net power. Providers leave this nil;
     /// `SystemMonitor` attaches it so the battery sub-line can show sustained draw.
     var average1mW: Double? = nil

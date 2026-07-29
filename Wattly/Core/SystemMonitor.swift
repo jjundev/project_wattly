@@ -365,6 +365,8 @@ final class SystemMonitor {
             externalConnected: raw.externalConnected,
             remainingWh: raw.remainingWh,
             timeRemainingMinutes: raw.timeRemainingMinutes,
+            efficiencyPercent: raw.efficiencyPercent,
+            cycleCount: raw.cycleCount,
             average1mW: raw.average1mW)
     }
 
