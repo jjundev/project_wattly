@@ -99,6 +99,15 @@ struct CardPresentationTests {
             externalConnected: true)
         #expect(CardPresentation.batteryRemainingCapacityText(unavailable) == nil)
         #expect(CardPresentation.batteryRemainingTimeText(unavailable) == nil)
+
+        let outOfRange = BatterySample(
+            netW: 12.0,
+            milliamps: 944,
+            volts: 12.7,
+            charging: false,
+            externalConnected: false,
+            timeRemainingMinutes: 1_441)
+        #expect(CardPresentation.batteryRemainingTimeText(outOfRange) == nil)
     }
 
     // MARK: CPU

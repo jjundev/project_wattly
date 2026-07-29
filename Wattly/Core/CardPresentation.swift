@@ -237,7 +237,8 @@ enum CardPresentation {
     }
 
     static func batteryRemainingTimeText(_ s: BatterySample) -> String? {
-        guard let totalMinutes = s.timeRemainingMinutes, totalMinutes > 0 else { return nil }
+        guard let totalMinutes = s.timeRemainingMinutes,
+              (1...1_440).contains(totalMinutes) else { return nil }
         return "\(totalMinutes / 60)h \(totalMinutes % 60)m"
     }
 
