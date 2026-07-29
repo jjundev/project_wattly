@@ -175,6 +175,53 @@ struct SystemMonitorTests {
         #expect(monitor.cardState(.battery, smoothed: true) == .value(.battery(monitor.batteryOverlay.sample!)))
     }
 
+    @Test func batteryDisconnectSuppressesUnchangedChargingTimeUntilRegistryChanges() async {
+        func battery(netW: Double, connected: Bool, time: Int?) -> ProviderReading {
+            .value(.battery(BatterySample(
+                netW: netW,
+                milliamps: Int((abs(netW) * 1_000 / 12.5).rounded()),
+                volts: 12.5,
+                charging: netW < -0.2,
+                externalConnected: connected,
+                remainingWh: 63.8,
+                timeRemainingMinutes: time)))
+        }
+
+        let provider = ScriptedProvider(kind: .battery, [
+            battery(netW: -16.9, connected: true, time: 58),
+            battery(netW: 16.9, connected: false, time: 58),
+            battery(netW: 16.9, connected: false, time: 58),
+            battery(netW: 16.9, connected: false, time: 230),
+        ])
+        let clock = ManualClock()
+        let monitor = SystemMonitor(providers: [provider], clock: clock)
+
+        await monitor.pollOnce()
+        clock.advance(by: .seconds(1))
+        await monitor.pollOnce()
+        guard case .value(.battery(let afterUnplug)) = monitor.cardState(.battery, smoothed: true) else {
+            Issue.record("battery card should have a value after unplug"); return
+        }
+        #expect(afterUnplug.timeRemainingMinutes == nil)
+        #expect(CardPresentation.batteryRemainingTimeSummary(afterUnplug) == "3시간 47분 남음")
+
+        clock.advance(by: .seconds(1))
+        await monitor.pollOnce()
+        guard case .value(.battery(let repeatedStaleTime)) = monitor.cardState(.battery, smoothed: true) else {
+            Issue.record("battery card should retain a value while stale time repeats"); return
+        }
+        #expect(repeatedStaleTime.timeRemainingMinutes == nil)
+        #expect(CardPresentation.batteryRemainingTimeSummary(repeatedStaleTime) == "3시간 47분 남음")
+
+        clock.advance(by: .seconds(1))
+        await monitor.pollOnce()
+        guard case .value(.battery(let updatedRegistryTime)) = monitor.cardState(.battery, smoothed: true) else {
+            Issue.record("battery card should have a value after registry time changes"); return
+        }
+        #expect(updatedRegistryTime.timeRemainingMinutes == 230)
+        #expect(CardPresentation.batteryRemainingTimeSummary(updatedRegistryTime) == "3시간 50분 남음")
+    }
+
     @Test func batteryPlugInResetsHistory() async {
         // On battery (discharging), then the adapter is plugged in → ExternalConnected
         // flips → the battery sparkline resets at once (not when the lagging current

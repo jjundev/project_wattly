@@ -177,15 +177,7 @@ enum CardPresentation {
         case .power(let s):
             return "CPU \(f1(s.cpuW)) W · GPU \(f1(s.gpuW)) W · NPU \(f1(s.npuW)) W"
         case .battery(let s):
-            var segments: [String] = []
-            if let average = s.average1mW {
-                let avgSign = batterySign(netW: average, charging: average < 0)
-                segments.append("1분 평균 \(avgSign)\(f1(abs(average))) W")
-            }
-            if let time = batteryRemainingTimeSummary(s) {
-                segments.append(time)
-            }
-            return segments.isEmpty ? nil : segments.joined(separator: " · ")
+            return batteryRemainingTimeSummary(s)
         case .cpu(let s):
             // Order-based (not name-coupled): runtime perf-level names ("Performance"/
             // "Efficiency" → "P"/"E") differ from the prototype's "S". Guard
@@ -230,9 +222,16 @@ enum CardPresentation {
         "\(f1(s.volts)) V"
     }
 
+    static let batteryAverage1mLabel = "1분 평균"
     static let batteryRemainingCapacityLabel = "남은 용량"
     static let batteryEfficiencyLabel = "배터리 효율"
     static let batteryCycleLabel = "사이클"
+
+    static func batteryAverage1mText(_ s: BatterySample) -> String? {
+        guard let average = s.average1mW, average.isFinite else { return nil }
+        let sign = batterySign(netW: average, charging: average < 0)
+        return "\(sign)\(f1(abs(average))) W"
+    }
 
     static func batteryRemainingCapacityText(_ s: BatterySample) -> String? {
         guard let wh = s.remainingWh, wh.isFinite, wh >= 0 else { return nil }
@@ -240,8 +239,10 @@ enum CardPresentation {
     }
 
     static func batteryRemainingTimeSummary(_ s: BatterySample) -> String? {
-        guard let totalMinutes = s.timeRemainingMinutes,
-              (1...1_440).contains(totalMinutes) else { return nil }
+        guard !s.charging else { return nil }
+        guard let totalMinutes = validatedTimeRemainingMinutes(s.timeRemainingMinutes)
+            ?? estimatedTimeRemainingMinutes(remainingWattHours: s.remainingWh, netW: s.netW)
+        else { return nil }
         return "\(totalMinutes / 60)시간 \(totalMinutes % 60)분 남음"
     }
 
