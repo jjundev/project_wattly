@@ -107,6 +107,21 @@ struct MemoryUsageTests {
         #expect(bare.pressurePercent == nil)
     }
 
+    @Test func memorySampleUsesSelectedProcessLimit() {
+        let sample = memorySample(
+            active: 0, wire: 0, compressor: 0, pageSize: 16384, memsize: 16 * gib,
+            processes: [
+                ProcessUsage(id: "a", name: "a", footprintBytes: 7),
+                ProcessUsage(id: "b", name: "b", footprintBytes: 6),
+                ProcessUsage(id: "c", name: "c", footprintBytes: 5),
+                ProcessUsage(id: "d", name: "d", footprintBytes: 4),
+                ProcessUsage(id: "e", name: "e", footprintBytes: 3),
+            ],
+            processLimit: 5)
+
+        #expect(sample.processes.map(\.id) == ["a", "b", "c", "d", "e"])
+    }
+
     // MARK: topMemoryApps
 
     @Test func topMemoryAppsCoalescesHelpersAndUsesAppName() {

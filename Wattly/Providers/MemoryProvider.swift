@@ -2,7 +2,7 @@ import Foundation
 
 /// Real memory provider (issue 05) — no entitlements. Reads VM statistics +
 /// physical memory size every poll (cheap), and enumerates the top memory-using
-/// processes via `libproc` ONLY while enabled (the memory card's expand is
+/// applications via `libproc` ONLY while enabled (the memory card's expand is
 /// on-screen — issue 05 §M11). Every buffer here is caller-allocated, so unlike
 /// `CPUProvider` (which frees `host_processor_info`'s array) there is nothing to
 /// `vm_deallocate`. Only the Sendable `MemorySample` crosses the actor boundary.
@@ -32,7 +32,9 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
         guard let vm = vmStatistics() else {
             return .unavailable(.providerError("메모리 통계를 읽을 수 없음"))
         }
-        let procs = enumerating ? Self.topMemoryProcesses(limit: 3) : []
+        let processLimit = memoryProcessLimit(
+            UserDefaults.standard.object(forKey: StorageKey.memoryProcessLimit) as? Int)
+        let procs = enumerating ? Self.topMemoryProcesses(limit: processLimit) : []
         // Kernel memory-pressure verdict — cheap scalar read every poll (no gating). nil on
         // failure → the card falls back to the used% band (CardPresentation).
         let pressure = Self.sysctlInt32("kern.memorystatus_vm_pressure_level").map(MemoryPressure.init(fromSysctl:))
@@ -45,6 +47,7 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
             pageSize: pageSize == 0 ? 16384 : pageSize,
             memsize: memsize,
             processes: procs,
+            processLimit: processLimit,
             pressure: pressure,
             pressurePercent: pressurePercent,
             swapUsedBytes: Self.swapUsedBytes())))
@@ -107,24 +110,20 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
         return memoryPressurePercent(freeLevel: free)
     }
 
-    // MARK: Top processes (libproc — no entitlement; own-user procs only, §M10)
+    // MARK: Top applications (libproc — no entitlement; own-user procs only, §M10)
 
     private static func topMemoryProcesses(limit: Int) -> [ProcessUsage] {
-        // Footprint-only sweep over all readable pids (cheap), then resolve name +
-        // icon path for JUST the top-N — avoids hundreds of proc_name/proc_pidpath
-        // calls per refresh (skip unreadable: other user / system, §M10). The pid list
-        // + name/path helpers are shared with the power Top-3 (`ProcessList`).
-        var footprints: [(pid: pid_t, bytes: UInt64)] = []
+        // Resolve an application key for every readable PID before ranking: several helper
+        // processes can together outrank a single larger process. The pid list + path helper
+        // are shared with the power Top-N provider (`ProcessList`).
+        var perProcess: [(key: String, bytes: UInt64)] = []
         for pid in listPIDs() where pid > 0 {
-            if let bytes = physFootprint(pid) { footprints.append((pid, bytes)) }
+            guard let bytes = physFootprint(pid) else { continue }
+            let path = pidPath(pid)
+            let key = appBundlePath(forExecutable: path) ?? "PID \(pid)"
+            perProcess.append((key: key, bytes: bytes))
         }
-        return footprints.sorted { $0.bytes > $1.bytes }.prefix(limit).map { entry in
-            let path = pidPath(entry.pid)
-            return ProcessUsage(id: "PID \(entry.pid)",
-                                name: procName(of: entry.pid, path: path),
-                                footprintBytes: entry.bytes,
-                                iconPath: appBundlePath(forExecutable: path))
-        }
+        return topMemoryApps(perProcess: perProcess, limit: limit)
     }
 
     /// `ri_phys_footprint` via `proc_pid_rusage`; nil if the process is unreadable.
