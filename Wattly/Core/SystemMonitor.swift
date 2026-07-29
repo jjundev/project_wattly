@@ -357,9 +357,15 @@ final class SystemMonitor {
     /// pass through from the raw sample (volts is stable; connection is a discrete state).
     private static func batterySmoothed(from raw: BatterySample, netW: Double) -> BatterySample {
         let mA = raw.volts > 0 ? Int((abs(netW) * 1000 / raw.volts).rounded()) : raw.milliamps
-        return BatterySample(netW: netW, milliamps: mA, volts: raw.volts,
-                             charging: isCharging(netW: netW), externalConnected: raw.externalConnected,
-                             average1mW: raw.average1mW)
+        return BatterySample(
+            netW: netW,
+            milliamps: mA,
+            volts: raw.volts,
+            charging: isCharging(netW: netW),
+            externalConnected: raw.externalConnected,
+            remainingWh: raw.remainingWh,
+            timeRemainingMinutes: raw.timeRemainingMinutes,
+            average1mW: raw.average1mW)
     }
 
     // MARK: Derivation — the 7-card fan-out

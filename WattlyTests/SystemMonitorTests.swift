@@ -124,8 +124,14 @@ struct SystemMonitorTests {
 
     @Test func batteryDisplaySmoothingDampsAndResetsOnPlug() async {
         func bat(_ netW: Double, ext: Bool = false) -> ProviderReading {
-            .value(.battery(BatterySample(netW: netW, milliamps: Int((abs(netW) * 1000 / 12.0).rounded()),
-                                          volts: 12.0, charging: netW < -0.2, externalConnected: ext)))
+            .value(.battery(BatterySample(
+                netW: netW,
+                milliamps: Int((abs(netW) * 1000 / 12.0).rounded()),
+                volts: 12.0,
+                charging: netW < -0.2,
+                externalConnected: ext,
+                remainingWh: 48.0,
+                timeRemainingMinutes: netW > 0.05 ? 180 : nil)))
         }
         // Discharging 16 W then a 24 W spike, then plug in (charging −30 W).
         let battery = ScriptedProvider(kind: .battery, [bat(16), bat(24), bat(-30, ext: true)])
@@ -142,6 +148,8 @@ struct SystemMonitorTests {
         #expect(sm.netW > 16 && sm.netW < 24)              // EMA, not the full spike
         #expect(sm.charging == false)                      // direction re-derived from smoothed netW
         #expect(sm.milliamps == Int((abs(sm.netW) * 1000 / 12.0).rounded()))  // mA consistent w/ smoothed netW
+        #expect(sm.remainingWh == 48.0)
+        #expect(sm.timeRemainingMinutes == 180)
         #expect(monitor.historyValues(for: .battery, smoothed: false) == [16, 24])   // raw series untouched
         let expected1m = PowerSmoothing.emaStep(previous: 16, raw: 24, dt: 1, tau: 60)
         #expect(abs((monitor.batteryOneMinuteAverage ?? 0) - expected1m) < 1e-12)
@@ -155,6 +163,8 @@ struct SystemMonitorTests {
         #expect(monitor.batteryOverlay.sample?.netW == -30)      // seeds to the charging value at once (no blend)
         #expect(monitor.batteryOneMinuteAverage == -30)          // 1-minute trend resets across regimes too
         #expect(monitor.batteryOverlay.sample?.charging == true)
+        #expect(monitor.batteryOverlay.sample?.remainingWh == 48.0)
+        #expect(monitor.batteryOverlay.sample?.timeRemainingMinutes == nil)
         #expect(monitor.batteryOverlay.history.values == [-30])
         #expect(monitor.cardState(.battery, smoothed: true) == .value(.battery(monitor.batteryOverlay.sample!)))
     }
