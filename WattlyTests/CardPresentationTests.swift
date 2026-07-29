@@ -31,7 +31,7 @@ struct CardPresentationTests {
             timeRemainingMinutes: 210,
             average1mW: 10.4)))
         #expect(CardPresentation.valueText(.battery, discharging) == "\(minus)12.0")
-        #expect(CardPresentation.subText(discharging) == "1분 평균 \(minus)10.4 W · 3시간 30분 남음")
+        #expect(CardPresentation.subText(discharging) == "3시간 30분 남음")
 
         let timeOnly = MetricState.value(.battery(BatterySample(
             netW: 12.0,
@@ -49,7 +49,7 @@ struct CardPresentationTests {
             charging: true,
             externalConnected: true,
             average1mW: -3.0)))
-        #expect(CardPresentation.subText(averageOnly) == "1분 평균 +3.0 W")
+        #expect(CardPresentation.subText(averageOnly) == nil)
 
         let noDetail = MetricState.value(.battery(BatterySample(
             netW: 0.0,
@@ -58,6 +58,39 @@ struct CardPresentationTests {
             charging: false,
             externalConnected: true)))
         #expect(CardPresentation.subText(noDetail) == nil)
+    }
+
+    @Test func batteryAverageAndRemainingTimeVisibilityRules() {
+        let discharging = BatterySample(
+            netW: 12.0,
+            milliamps: 944,
+            volts: 12.7,
+            charging: false,
+            externalConnected: false,
+            timeRemainingMinutes: 210,
+            average1mW: 10.4)
+        #expect(CardPresentation.batteryAverage1mLabel == "1분 평균")
+        #expect(CardPresentation.batteryAverage1mText(discharging) == "\(minus)10.4 W")
+        #expect(CardPresentation.batteryRemainingTimeSummary(discharging) == "3시간 30분 남음")
+
+        let charging = BatterySample(
+            netW: -5.0,
+            milliamps: 400,
+            volts: 12.7,
+            charging: true,
+            externalConnected: true,
+            timeRemainingMinutes: 210,
+            average1mW: -3.0)
+        #expect(CardPresentation.batteryAverage1mText(charging) == "+3.0 W")
+        #expect(CardPresentation.batteryRemainingTimeSummary(charging) == nil)
+
+        let unavailableAverage = BatterySample(
+            netW: 0.0,
+            milliamps: 0,
+            volts: 12.7,
+            charging: false,
+            externalConnected: true)
+        #expect(CardPresentation.batteryAverage1mText(unavailableAverage) == nil)
     }
 
     @Test func batteryCurrentAndVoltageTextForExpand() {

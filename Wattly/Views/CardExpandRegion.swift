@@ -150,6 +150,9 @@ struct CardExpandRegion: View {
 
     private func batteryExpand(_ s: BatterySample) -> some View {
         VStack(alignment: .leading, spacing: 10) {
+            if let value = CardPresentation.batteryAverage1mText(s) {
+                batteryDetailRow(label: CardPresentation.batteryAverage1mLabel, value: value)
+            }
             if let value = CardPresentation.batteryRemainingCapacityText(s) {
                 batteryDetailRow(label: CardPresentation.batteryRemainingCapacityLabel, value: value)
             }
