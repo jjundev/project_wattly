@@ -48,6 +48,20 @@ func batteryMilliamps(batteryMilliwatts mw: Int, volts: Double) -> Int {
     volts > 0 ? Int((Double(mw) / volts).rounded()) : 0
 }
 
+/// Convert AppleSmartBattery raw remaining capacity (mAh) at current pack voltage into Wh.
+/// Invalid registry inputs remain absent rather than becoming a misleading 0 Wh.
+func remainingWattHours(rawCapacityMilliampHours: Int, volts: Double) -> Double? {
+    guard rawCapacityMilliampHours > 0, volts.isFinite, volts > 0 else { return nil }
+    return Double(rawCapacityMilliampHours) * volts / 1_000.0
+}
+
+/// TimeRemaining is an estimated minute count. Suppress zero, sentinels such as 65535,
+/// and values outside a one-day laptop runtime so corrupt values cannot reach the UI.
+func validatedTimeRemainingMinutes(_ minutes: Int?) -> Int? {
+    guard let minutes, (1...1_440).contains(minutes) else { return nil }
+    return minutes
+}
+
 /// Decode an SMC value's raw bytes to a Double in its native unit (issue 07 live path).
 /// `flt ` is a 32-bit little-endian IEEE float (e.g. `PSTR`/`PPBR` watts); `si*`/`ui*` are
 /// little-endian integers (the SMC returns these LE on Apple silicon — verified: `B0AV`

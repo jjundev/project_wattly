@@ -93,4 +93,28 @@ struct BatteryPowerTests {
     @Test func smcSignedPositiveStaysPositive() {
         #expect(smcDouble([0x88, 0x13], type: "si16") == 5000)                 // +5000 (charging current)
     }
+
+    // MARK: Remaining battery energy/time — AppleSmartBattery raw capacity + estimate
+
+    @Test func remainingWattHoursUsesRawMilliampHoursAndPackVoltage() {
+        let wh = remainingWattHours(rawCapacityMilliampHours: 4_128, volts: 11.981)
+        #expect(abs((wh ?? 0) - 49.457568) < 0.000_001)
+    }
+
+    @Test func remainingWattHoursRejectsInvalidCapacityOrVoltage() {
+        #expect(remainingWattHours(rawCapacityMilliampHours: 0, volts: 12.0) == nil)
+        #expect(remainingWattHours(rawCapacityMilliampHours: -1, volts: 12.0) == nil)
+        #expect(remainingWattHours(rawCapacityMilliampHours: 4_128, volts: 0) == nil)
+        #expect(remainingWattHours(rawCapacityMilliampHours: 4_128, volts: .infinity) == nil)
+    }
+
+    @Test func timeRemainingAcceptsOnlyPlausiblePositiveMinutes() {
+        #expect(validatedTimeRemainingMinutes(210) == 210)
+        #expect(validatedTimeRemainingMinutes(1) == 1)
+        #expect(validatedTimeRemainingMinutes(1_440) == 1_440)
+        #expect(validatedTimeRemainingMinutes(0) == nil)
+        #expect(validatedTimeRemainingMinutes(-1) == nil)
+        #expect(validatedTimeRemainingMinutes(65_535) == nil)
+        #expect(validatedTimeRemainingMinutes(1_441) == nil)
+    }
 }

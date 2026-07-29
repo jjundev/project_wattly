@@ -120,6 +120,12 @@ struct BatterySample: Sendable, Equatable {
     /// Hardware `ExternalConnected` (AC adapter present). Flips immediately on
     /// plug/unplug; `SystemMonitor` resets the battery sparkline when it changes.
     var externalConnected: Bool
+    /// Remaining energy estimated from AppleSmartBattery raw remaining mAh and the
+    /// live pack voltage. nil when the registry does not expose valid capacity.
+    var remainingWh: Double? = nil
+    /// AppleSmartBattery estimated time remaining in minutes. nil when unavailable,
+    /// sentinel, or implausible; it is not inferred from instantaneous wattage.
+    var timeRemainingMinutes: Int? = nil
     /// Display-only one-minute EMA of signed net power. Providers leave this nil;
     /// `SystemMonitor` attaches it so the battery sub-line can show sustained draw.
     var average1mW: Double? = nil
