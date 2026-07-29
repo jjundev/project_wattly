@@ -178,12 +178,12 @@ enum CardPresentation {
             return "CPU \(f1(s.cpuW)) W · GPU \(f1(s.gpuW)) W · NPU \(f1(s.npuW)) W"
         case .battery(let s):
             var segments: [String] = []
-            if let time = batteryRemainingTimeSummary(s) {
-                segments.append(time)
-            }
             if let average = s.average1mW {
                 let avgSign = batterySign(netW: average, charging: average < 0)
                 segments.append("1분 평균 \(avgSign)\(f1(abs(average))) W")
+            }
+            if let time = batteryRemainingTimeSummary(s) {
+                segments.append(time)
             }
             return segments.isEmpty ? nil : segments.joined(separator: " · ")
         case .cpu(let s):
@@ -254,7 +254,7 @@ enum CardPresentation {
 
     static func batteryCycleText(_ s: BatterySample) -> String? {
         guard let count = s.cycleCount, (0...10_000).contains(count) else { return nil }
-        return "\(count)회"
+        return "\(count)"
     }
 
     /// Runtime perf-level name → single-letter label prefix ("Performance" → "P").

@@ -31,7 +31,7 @@ struct CardPresentationTests {
             timeRemainingMinutes: 210,
             average1mW: 10.4)))
         #expect(CardPresentation.valueText(.battery, discharging) == "\(minus)12.0")
-        #expect(CardPresentation.subText(discharging) == "3시간 30분 남음 · 1분 평균 \(minus)10.4 W")
+        #expect(CardPresentation.subText(discharging) == "1분 평균 \(minus)10.4 W · 3시간 30분 남음")
 
         let timeOnly = MetricState.value(.battery(BatterySample(
             netW: 12.0,
@@ -92,7 +92,7 @@ struct CardPresentationTests {
         #expect(CardPresentation.batteryCycleLabel == "사이클")
         #expect(CardPresentation.batteryRemainingCapacityText(populated) == "49.5 Wh")
         #expect(CardPresentation.batteryEfficiencyText(populated) == "99.6%")
-        #expect(CardPresentation.batteryCycleText(populated) == "77회")
+        #expect(CardPresentation.batteryCycleText(populated) == "77")
         #expect(CardPresentation.batteryRemainingTimeSummary(populated) == "3시간 30분 남음")
 
         let unavailable = BatterySample(
