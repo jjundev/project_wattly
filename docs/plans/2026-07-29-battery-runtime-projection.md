@@ -391,8 +391,12 @@ In the existing `batteryDisconnectSuppressesUnchangedChargingTimeUntilRegistryCh
         let monitor = SystemMonitor(providers: [provider], clock: clock)
 
         await monitor.pollOnce()
-        clock.advance(by: .seconds(60))
-        await monitor.pollOnce()
+        // Mirror the open panel's normal five-second battery reads. This keeps every
+        // observation below the projection module's 30-second sleep/wake gap limit.
+        for _ in 1...12 {
+            clock.advance(by: .seconds(5))
+            await monitor.pollOnce()
+        }
 
         guard case .value(.battery(let sample)) = monitor.cardState(.battery, smoothed: true) else {
             Issue.record("smoothed battery card should have a value"); return
