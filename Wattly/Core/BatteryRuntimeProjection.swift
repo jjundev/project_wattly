@@ -58,15 +58,15 @@ struct BatteryRuntimeProjection {
 
     private func candidate(for sample: BatterySample) -> Candidate? {
         if sample.charging {
-            if let minutes = validatedTimeRemainingMinutes(sample.timeRemainingMinutes) {
-                return Candidate(minutes: minutes, source: .registry)
-            }
             if let average = sample.average1mW,
                let minutes = estimatedTimeToFullMinutes(remainingWh: sample.remainingWh, maxWh: sample.maxWh, netW: average) {
                 return Candidate(minutes: minutes, source: .estimated)
             }
             if let minutes = estimatedTimeToFullMinutes(remainingWh: sample.remainingWh, maxWh: sample.maxWh, netW: sample.netW) {
                 return Candidate(minutes: minutes, source: .estimated)
+            }
+            if let minutes = validatedTimeRemainingMinutes(sample.timeRemainingMinutes) {
+                return Candidate(minutes: minutes, source: .registry)
             }
             return nil
         } else {
