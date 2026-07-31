@@ -404,6 +404,7 @@ final class SystemMonitor {
             charging: isCharging(netW: netW),
             externalConnected: raw.externalConnected,
             remainingWh: raw.remainingWh,
+            maxWh: raw.maxWh,
             timeRemainingMinutes: raw.timeRemainingMinutes,
             projectedTimeRemainingMinutes: raw.projectedTimeRemainingMinutes,
             efficiencyPercent: raw.efficiencyPercent,

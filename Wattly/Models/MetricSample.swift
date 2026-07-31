@@ -121,6 +121,7 @@ struct BatterySample: Sendable, Equatable {
     /// Remaining energy estimated from AppleSmartBattery raw remaining mAh and the
     /// live pack voltage. nil when the registry does not expose valid capacity.
     var remainingWh: Double? = nil
+    var maxWh: Double? = nil
     /// AppleSmartBattery estimated time remaining in minutes. nil when unavailable,
     /// sentinel, or implausible; it is not inferred from instantaneous wattage.
     var timeRemainingMinutes: Int? = nil

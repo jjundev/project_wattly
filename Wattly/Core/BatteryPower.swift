@@ -77,6 +77,18 @@ func estimatedTimeRemainingMinutes(remainingWattHours: Double?, netW: Double) ->
     return Int(minutes.rounded())
 }
 
+/// Estimated time until full charge from current energy, maximum energy capacity, and live charging power.
+func estimatedTimeToFullMinutes(remainingWh: Double?, maxWh: Double?, netW: Double) -> Int? {
+    guard let remainingWh, remainingWh.isFinite, remainingWh >= 0,
+          let maxWh, maxWh.isFinite, maxWh > remainingWh,
+          netW.isFinite, netW < -0.2 else { return nil }
+    let neededWh = maxWh - remainingWh
+    let chargingW = abs(netW)
+    let minutes = neededWh / chargingW * 60
+    guard minutes.isFinite, (1...1_440).contains(minutes) else { return nil }
+    return Int(minutes.rounded())
+}
+
 /// Battery health/efficiency from the current maximum charge capacity relative to
 /// original design capacity. Values slightly above 100 are legitimate manufacturing
 /// tolerance; values outside 0...200 indicate corrupt registry input.
