@@ -76,7 +76,23 @@ struct BatteryRuntimeProjectionTests {
         #expect(projection.ingest(sample, at: now) == 210)
         // A 31-second sleep/wake-sized gap is re-anchored, not decremented by elapsed time.
         #expect(projection.ingest(sample, at: now.advanced(by: .seconds(31))) == 210)
-        #expect(projection.ingest(charging, at: now.advanced(by: .seconds(32))) == nil)
+        #expect(projection.ingest(charging, at: now.advanced(by: .seconds(32))) == 210)
         #expect(projection.ingest(sample, at: now.advanced(by: .seconds(33))) == 210)
+    }
+
+    @Test func ingestProjectsChargingTimeToFull() {
+        var projection = BatteryRuntimeProjection()
+        let now = ContinuousClock.now
+        let chargingSample = BatterySample(
+            netW: -20.0,
+            milliamps: 1500,
+            volts: 12.5,
+            charging: true,
+            externalConnected: true,
+            remainingWh: 30.0,
+            maxWh: 60.0
+        )
+        let minutes = projection.ingest(chargingSample, at: now)
+        #expect(minutes == 90)
     }
 }
