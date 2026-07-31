@@ -239,13 +239,26 @@ enum CardPresentation {
         return "\(f1(wh)) Wh"
     }
 
+    static func formatDuration(minutes: Int) -> String {
+        let h = minutes / 60
+        let m = minutes % 60
+        if h == 0 {
+            return "\(m)분"
+        } else if m == 0 {
+            return "\(h)시간"
+        } else {
+            return "\(h)시간 \(m)분"
+        }
+    }
+
     static func batteryRemainingTimeSummary(_ s: BatterySample) -> String? {
         guard let totalMinutes = validatedTimeRemainingMinutes(s.projectedTimeRemainingMinutes)
         else { return nil }
+        let duration = formatDuration(minutes: totalMinutes)
         if s.charging {
-            return "완충까지 \(totalMinutes / 60)시간 \(totalMinutes % 60)분 남음"
+            return "완충까지 \(duration) 남음"
         } else {
-            return "약 \(totalMinutes / 60)시간 \(totalMinutes % 60)분 남음"
+            return "약 \(duration) 남음"
         }
     }
 
@@ -253,7 +266,7 @@ enum CardPresentation {
         guard s.charging,
               let totalMinutes = validatedTimeRemainingMinutes(s.projectedTimeRemainingMinutes)
         else { return nil }
-        return "약 \(totalMinutes / 60)시간 \(totalMinutes % 60)분 남음"
+        return "약 \(formatDuration(minutes: totalMinutes)) 남음"
     }
 
     static func batteryEfficiencyText(_ s: BatterySample) -> String? {

@@ -42,7 +42,7 @@ struct CardPresentationTests {
             externalConnected: false,
             timeRemainingMinutes: 1,
             projectedTimeRemainingMinutes: 1)))
-        #expect(CardPresentation.subText(timeOnly) == "약 0시간 1분 남음")
+        #expect(CardPresentation.subText(timeOnly) == "약 1분 남음")
 
         let averageOnly = MetricState.value(.battery(BatterySample(
             netW: -5.0,
@@ -115,6 +115,12 @@ struct CardPresentationTests {
         // Label and text for expanded view
         #expect(CardPresentation.batteryTimeToFullLabel == "완충까지 남은 시간")
         #expect(CardPresentation.batteryTimeToFullText(charging) == "약 1시간 30분 남음")
+    }
+
+    @Test func formatDurationOmitsZeroHours() {
+        #expect(CardPresentation.formatDuration(minutes: 10) == "10분")
+        #expect(CardPresentation.formatDuration(minutes: 60) == "1시간")
+        #expect(CardPresentation.formatDuration(minutes: 90) == "1시간 30분")
     }
 
     @Test func batteryCurrentAndVoltageTextForExpand() {
