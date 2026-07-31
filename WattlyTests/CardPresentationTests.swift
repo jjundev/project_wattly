@@ -95,7 +95,7 @@ struct CardPresentationTests {
             projectedTimeRemainingMinutes: 210,
             average1mW: -3.0)
         #expect(CardPresentation.batteryAverage1mText(charging) == "+3.0 W")
-        #expect(CardPresentation.batteryRemainingTimeSummary(charging) == "완충까지 3시간 30분 남음")
+        #expect(CardPresentation.batteryRemainingTimeSummary(charging) == "완충까지 약 3시간 30분 남음")
     }
 
     @Test func batteryChargingDisplayRules() {
@@ -111,7 +111,7 @@ struct CardPresentationTests {
         )
         let state = MetricState.value(.battery(charging))
         // Collapsed subText shows preview when charging
-        #expect(CardPresentation.subText(state) == "완충까지 1시간 30분 남음")
+        #expect(CardPresentation.subText(state) == "완충까지 약 1시간 30분 남음")
         // Label and text for expanded view
         #expect(CardPresentation.batteryTimeToFullLabel == "완충까지 남은 시간")
         #expect(CardPresentation.batteryTimeToFullText(charging) == "약 1시간 30분 남음")

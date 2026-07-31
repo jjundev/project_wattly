@@ -256,7 +256,7 @@ enum CardPresentation {
         else { return nil }
         let duration = formatDuration(minutes: totalMinutes)
         if s.charging {
-            return "완충까지 \(duration) 남음"
+            return "완충까지 약 \(duration) 남음"
         } else {
             return "약 \(duration) 남음"
         }
