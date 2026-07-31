@@ -65,6 +65,9 @@ actor BatteryProvider: MetricProvider {
             remainingWh: remainingWattHours(
                 rawCapacityMilliampHours: registry?.rawCurrentCapacityMilliampHours ?? 0,
                 volts: volts),
+            maxWh: remainingWattHours(
+                rawCapacityMilliampHours: registry?.rawMaxCapacityMilliampHours ?? 0,
+                volts: volts),
             timeRemainingMinutes: validatedTimeRemainingMinutes(registry?.timeRemainingMinutes),
             efficiencyPercent: batteryEfficiencyPercent(
                 maxCapacityMilliampHours: registry?.rawMaxCapacityMilliampHours ?? 0,
@@ -93,7 +96,7 @@ actor BatteryProvider: MetricProvider {
             externalConnected: externalConnected,
             batteryMilliwatts: batteryMilliwatts,
             rawCurrentCapacityMilliampHours: number(service, "AppleRawCurrentCapacity")?.intValue,
-            timeRemainingMinutes: number(service, "TimeRemaining")?.intValue,
+            timeRemainingMinutes: number(service, "TimeRemaining")?.intValue ?? number(service, "AvgTimeToFull")?.intValue ?? number(service, "TimeToFull")?.intValue,
             rawMaxCapacityMilliampHours: number(service, "AppleRawMaxCapacity")?.intValue,
             designCapacityMilliampHours: number(service, "DesignCapacity")?.intValue,
             cycleCount: number(service, "CycleCount")?.intValue)
@@ -114,6 +117,9 @@ actor BatteryProvider: MetricProvider {
             volts: volts, charging: isCharging(netW: netW), externalConnected: registry.externalConnected,
             remainingWh: remainingWattHours(
                 rawCapacityMilliampHours: registry.rawCurrentCapacityMilliampHours ?? 0,
+                volts: volts),
+            maxWh: remainingWattHours(
+                rawCapacityMilliampHours: registry.rawMaxCapacityMilliampHours ?? 0,
                 volts: volts),
             timeRemainingMinutes: validatedTimeRemainingMinutes(registry.timeRemainingMinutes),
             efficiencyPercent: batteryEfficiencyPercent(

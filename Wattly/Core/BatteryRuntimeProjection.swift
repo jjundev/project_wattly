@@ -57,18 +57,31 @@ struct BatteryRuntimeProjection {
     }
 
     private func candidate(for sample: BatterySample) -> Candidate? {
-        guard !sample.charging else { return nil }
-        if let minutes = validatedTimeRemainingMinutes(sample.timeRemainingMinutes) {
-            return Candidate(minutes: minutes, source: .registry)
+        if sample.charging {
+            if let average = sample.average1mW,
+               let minutes = estimatedTimeToFullMinutes(remainingWh: sample.remainingWh, maxWh: sample.maxWh, netW: average) {
+                return Candidate(minutes: minutes, source: .estimated)
+            }
+            if let minutes = estimatedTimeToFullMinutes(remainingWh: sample.remainingWh, maxWh: sample.maxWh, netW: sample.netW) {
+                return Candidate(minutes: minutes, source: .estimated)
+            }
+            if let minutes = validatedTimeRemainingMinutes(sample.timeRemainingMinutes) {
+                return Candidate(minutes: minutes, source: .registry)
+            }
+            return nil
+        } else {
+            if let minutes = validatedTimeRemainingMinutes(sample.timeRemainingMinutes) {
+                return Candidate(minutes: minutes, source: .registry)
+            }
+            if let average = sample.average1mW,
+               let minutes = estimatedTimeRemainingMinutes(remainingWattHours: sample.remainingWh, netW: average) {
+                return Candidate(minutes: minutes, source: .estimated)
+            }
+            if let minutes = estimatedTimeRemainingMinutes(remainingWattHours: sample.remainingWh, netW: sample.netW) {
+                return Candidate(minutes: minutes, source: .estimated)
+            }
+            return nil
         }
-        if let average = sample.average1mW,
-           let minutes = estimatedTimeRemainingMinutes(remainingWattHours: sample.remainingWh, netW: average) {
-            return Candidate(minutes: minutes, source: .estimated)
-        }
-        if let minutes = estimatedTimeRemainingMinutes(remainingWattHours: sample.remainingWh, netW: sample.netW) {
-            return Candidate(minutes: minutes, source: .estimated)
-        }
-        return nil
     }
 
     private func seconds(from start: ContinuousClock.Instant, to end: ContinuousClock.Instant) -> Double {

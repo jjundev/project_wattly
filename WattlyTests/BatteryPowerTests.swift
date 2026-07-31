@@ -135,6 +135,16 @@ struct BatteryPowerTests {
         #expect(estimatedTimeRemainingMinutes(remainingWattHours: 49.5, netW: 1.0) == nil)
     }
 
+    @Test func estimatedTimeToFullCalculatesMinutesWhenCharging() {
+        // 30 Wh remaining out of 60 Wh max, charging at netW = -20.0 W -> needed 30 Wh / 20 W = 1.5 h = 90 min
+        #expect(estimatedTimeToFullMinutes(remainingWh: 30.0, maxWh: 60.0, netW: -20.0) == 90)
+        // Discharging (netW > 0) -> nil
+        #expect(estimatedTimeToFullMinutes(remainingWh: 30.0, maxWh: 60.0, netW: 15.0) == nil)
+        // Fully charged or invalid inputs -> nil
+        #expect(estimatedTimeToFullMinutes(remainingWh: 60.0, maxWh: 60.0, netW: -10.0) == nil)
+        #expect(estimatedTimeToFullMinutes(remainingWh: nil, maxWh: 60.0, netW: -10.0) == nil)
+    }
+
     @Test func batteryEfficiencyUsesMaximumOverDesignCapacity() {
         let percent = batteryEfficiencyPercent(
             maxCapacityMilliampHours: 6_222,
