@@ -98,6 +98,25 @@ struct CardPresentationTests {
         #expect(CardPresentation.batteryRemainingTimeSummary(charging) == nil)
     }
 
+    @Test func batteryChargingDisplayRules() {
+        let charging = BatterySample(
+            netW: -20.0,
+            milliamps: 1500,
+            volts: 12.5,
+            charging: true,
+            externalConnected: true,
+            remainingWh: 30.0,
+            maxWh: 60.0,
+            projectedTimeRemainingMinutes: 90
+        )
+        let state = MetricState.value(.battery(charging))
+        // Collapsed subText must be nil when charging
+        #expect(CardPresentation.subText(state) == nil)
+        // Label and text for expanded view
+        #expect(CardPresentation.batteryTimeToFullLabel == "완충까지 남은 시간")
+        #expect(CardPresentation.batteryTimeToFullText(charging) == "약 1시간 30분 남음")
+    }
+
     @Test func batteryCurrentAndVoltageTextForExpand() {
         let discharging = BatterySample(netW: 12.0, milliamps: 944, volts: 12.7,
                                          charging: false, externalConnected: false)
