@@ -63,11 +63,9 @@ actor BatteryProvider: MetricProvider {
             charging: isCharging(netW: netW),
             externalConnected: adapterW > 0.5,
             remainingWh: remainingWattHours(
-                rawCapacityMilliampHours: registry?.rawCurrentCapacityMilliampHours ?? 0,
-                volts: volts),
+                rawCapacityMilliampHours: registry?.rawCurrentCapacityMilliampHours ?? 0),
             maxWh: remainingWattHours(
-                rawCapacityMilliampHours: registry?.rawMaxCapacityMilliampHours ?? 0,
-                volts: volts),
+                rawCapacityMilliampHours: registry?.rawMaxCapacityMilliampHours ?? 0),
             timeRemainingMinutes: validatedTimeRemainingMinutes(registry?.timeRemainingMinutes),
             efficiencyPercent: batteryEfficiencyPercent(
                 maxCapacityMilliampHours: registry?.rawMaxCapacityMilliampHours ?? 0,
@@ -116,11 +114,9 @@ actor BatteryProvider: MetricProvider {
             netW: netW, milliamps: abs(batteryMilliamps(batteryMilliwatts: milliwatts, volts: volts)),
             volts: volts, charging: isCharging(netW: netW), externalConnected: registry.externalConnected,
             remainingWh: remainingWattHours(
-                rawCapacityMilliampHours: registry.rawCurrentCapacityMilliampHours ?? 0,
-                volts: volts),
+                rawCapacityMilliampHours: registry.rawCurrentCapacityMilliampHours ?? 0),
             maxWh: remainingWattHours(
-                rawCapacityMilliampHours: registry.rawMaxCapacityMilliampHours ?? 0,
-                volts: volts),
+                rawCapacityMilliampHours: registry.rawMaxCapacityMilliampHours ?? 0),
             timeRemainingMinutes: validatedTimeRemainingMinutes(registry.timeRemainingMinutes),
             efficiencyPercent: batteryEfficiencyPercent(
                 maxCapacityMilliampHours: registry.rawMaxCapacityMilliampHours ?? 0,

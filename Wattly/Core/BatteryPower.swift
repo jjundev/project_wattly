@@ -48,11 +48,15 @@ func batteryMilliamps(batteryMilliwatts mw: Int, volts: Double) -> Int {
     volts > 0 ? Int((Double(mw) / volts).rounded()) : 0
 }
 
-/// Convert AppleSmartBattery raw remaining capacity (mAh) at current pack voltage into Wh.
+/// Standard nominal voltage constant for Apple Silicon MacBook battery packs (3S lithium-polymer ~11.55V).
+public let defaultNominalVolts: Double = 11.55
+
+/// Convert AppleSmartBattery raw capacity (mAh) at nominal pack voltage into Wh.
+/// Uses standard nominal voltage (default 11.55V) so displayed Wh matches official hardware specifications.
 /// Invalid registry inputs remain absent rather than becoming a misleading 0 Wh.
-func remainingWattHours(rawCapacityMilliampHours: Int, volts: Double) -> Double? {
-    guard rawCapacityMilliampHours > 0, volts.isFinite, volts > 0 else { return nil }
-    return Double(rawCapacityMilliampHours) * volts / 1_000.0
+func remainingWattHours(rawCapacityMilliampHours: Int, nominalVolts: Double = defaultNominalVolts) -> Double? {
+    guard rawCapacityMilliampHours > 0, nominalVolts.isFinite, nominalVolts > 0 else { return nil }
+    return Double(rawCapacityMilliampHours) * nominalVolts / 1_000.0
 }
 
 /// TimeRemaining is an estimated minute count. Suppress zero, sentinels such as 65535,

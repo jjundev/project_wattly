@@ -96,16 +96,23 @@ struct BatteryPowerTests {
 
     // MARK: Remaining battery energy/time — AppleSmartBattery raw capacity + estimate
 
-    @Test func remainingWattHoursUsesRawMilliampHoursAndPackVoltage() {
-        let wh = remainingWattHours(rawCapacityMilliampHours: 4_128, volts: 11.981)
-        #expect(abs((wh ?? 0) - 49.457568) < 0.000_001)
+    @Test func remainingWattHoursUsesNominalVoltageDefault() {
+        // 6,249 mAh (M5 MBP 14" design capacity) @ default nominal 11.55V = 72.17595 Wh (~72.2 Wh)
+        let wh = remainingWattHours(rawCapacityMilliampHours: 6_249)
+        #expect(abs(wh! - 72.17595) < 0.0001)
+    }
+
+    @Test func remainingWattHoursUsesExplicitNominalVoltage() {
+        // 6,249 mAh @ 11.55V nominal voltage
+        let wh = remainingWattHours(rawCapacityMilliampHours: 6_249, nominalVolts: 11.55)
+        #expect(abs(wh! - 72.17595) < 0.0001)
     }
 
     @Test func remainingWattHoursRejectsInvalidCapacityOrVoltage() {
-        #expect(remainingWattHours(rawCapacityMilliampHours: 0, volts: 12.0) == nil)
-        #expect(remainingWattHours(rawCapacityMilliampHours: -1, volts: 12.0) == nil)
-        #expect(remainingWattHours(rawCapacityMilliampHours: 4_128, volts: 0) == nil)
-        #expect(remainingWattHours(rawCapacityMilliampHours: 4_128, volts: .infinity) == nil)
+        #expect(remainingWattHours(rawCapacityMilliampHours: 0, nominalVolts: 11.55) == nil)
+        #expect(remainingWattHours(rawCapacityMilliampHours: -1, nominalVolts: 11.55) == nil)
+        #expect(remainingWattHours(rawCapacityMilliampHours: 4_128, nominalVolts: 0) == nil)
+        #expect(remainingWattHours(rawCapacityMilliampHours: 4_128, nominalVolts: .infinity) == nil)
     }
 
     @Test func timeRemainingAcceptsOnlyPlausiblePositiveMinutes() {
