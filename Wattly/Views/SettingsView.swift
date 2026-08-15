@@ -390,6 +390,28 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     fanStatusIndicator
                     HStack {
+                        if let holdRange = FanCurveGeometry.zeroRPMHoldRange(for: fanCurvePreview ?? fanCurve) {
+                            HStack(spacing: 6) {
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(Tokens.statusOrange.opacity(0.12))
+                                    .overlay(RoundedRectangle(cornerRadius: 2).stroke(Tokens.statusOrange.opacity(0.8), lineWidth: 1))
+                                    .frame(width: 14, height: 10)
+                                Text("팬 상태 유지 구간")
+                                    .font(WattlyFont.at(10.5, weight: .regular))
+                                    .foregroundStyle(t.faint)
+                                Button { isZeroFanHelpPresented = true } label: {
+                                    Image(systemName: "questionmark.circle")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundStyle(t.faint)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("팬 상태 유지 구간 작동 방식 보기")
+                                .popover(isPresented: $isZeroFanHelpPresented, arrowEdge: .bottom) {
+                                    zeroFanHelpPopover(for: holdRange)
+                                }
+                            }
+                            .accessibilityElement(children: .combine)
+                        }
                         Spacer()
                         Button { fanCurve = Defaults.fanCurve } label: {
                             Text("기본값")
@@ -402,28 +424,6 @@ struct SettingsView: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("팬 커브 기본값으로 되돌리기")
-                    }
-                    if let holdRange = FanCurveGeometry.zeroRPMHoldRange(for: fanCurvePreview ?? fanCurve) {
-                        HStack(spacing: 6) {
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Tokens.statusOrange.opacity(0.12))
-                                .overlay(RoundedRectangle(cornerRadius: 2).stroke(Tokens.statusOrange.opacity(0.8), lineWidth: 1))
-                                .frame(width: 14, height: 10)
-                            Text("팬 상태 유지 구간")
-                                .font(WattlyFont.at(10.5, weight: .regular))
-                                .foregroundStyle(t.faint)
-                            Button { isZeroFanHelpPresented = true } label: {
-                                Image(systemName: "questionmark.circle")
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundStyle(t.faint)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("팬 상태 유지 구간 작동 방식 보기")
-                            .popover(isPresented: $isZeroFanHelpPresented, arrowEdge: .bottom) {
-                                zeroFanHelpPopover(for: holdRange)
-                            }
-                        }
-                        .accessibilityElement(children: .combine)
                     }
                     FanCurveEditor(curve: $fanCurve, previewCurve: $fanCurvePreview, currentCPU: currentHottestCPU)
                 }
