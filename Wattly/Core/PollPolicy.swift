@@ -37,12 +37,8 @@ func providerIntervals(mode: PowerMode,
                        panelVisible: Bool,
                        menubarTextEnabled: Bool,
                        active: Set<ProviderKind>,
-                       menubarNeeds: Set<CardKind>) -> [ProviderKind: Duration] {
-    if mode == .performance {
-        let interval = resolvePollInterval(setting: setting, panelVisible: panelVisible,
-                                           menubarTextEnabled: menubarTextEnabled)
-        return Dictionary(uniqueKeysWithValues: active.map { ($0, interval) })
-    }
+                       menubarNeeds: Set<CardKind>,
+                       isACConnected: Bool = false) -> [ProviderKind: Duration] {
     if setting != .auto {
         let interval: Duration = switch setting {
         case .s1: .seconds(1)
@@ -52,6 +48,39 @@ func providerIntervals(mode: PowerMode,
         }
         return Dictionary(uniqueKeysWithValues: active.map { ($0, interval) })
     }
+
+    if mode == .performance {
+        if panelVisible {
+            let open: [ProviderKind: Duration] = [
+                .cpu: .seconds(1), .power: .seconds(1), .temperature: .seconds(1),
+                .memory: .seconds(3), .battery: .seconds(3), .fan: .seconds(3),
+            ]
+            return open.filter { active.contains($0.key) }
+        }
+
+        let fastInterval: Duration = if menubarTextEnabled {
+            isACConnected ? .seconds(2) : .seconds(3)
+        } else {
+            isACConnected ? .seconds(3) : .seconds(5)
+        }
+        let slowInterval: Duration = if menubarTextEnabled {
+            isACConnected ? .seconds(5) : .seconds(10)
+        } else {
+            .seconds(10)
+        }
+
+        var result: [ProviderKind: Duration] = [:]
+        for kind in active {
+            switch kind {
+            case .cpu, .power, .temperature:
+                result[kind] = fastInterval
+            case .memory, .battery, .fan:
+                result[kind] = slowInterval
+            }
+        }
+        return result
+    }
+
     if panelVisible {
         let open: [ProviderKind: Duration] = [
             .cpu: .seconds(1), .power: .seconds(1), .temperature: .seconds(2),
@@ -59,10 +88,19 @@ func providerIntervals(mode: PowerMode,
         ]
         return open.filter { active.contains($0.key) }
     }
+
     guard menubarTextEnabled else { return [:] }
-    let menuProviders = Set(menubarNeeds.map(\.provider))
-    return Dictionary(uniqueKeysWithValues:
-        menuProviders.intersection(active).map { ($0, .seconds(2)) })
+    let menuProviders = Set(menubarNeeds.map(\.provider)).intersection(active)
+    var result: [ProviderKind: Duration] = [:]
+    for kind in menuProviders {
+        switch kind {
+        case .cpu, .power, .temperature:
+            result[kind] = .seconds(2)
+        case .memory, .battery, .fan:
+            result[kind] = .seconds(5)
+        }
+    }
+    return result
 }
 
 func dueProviders(intervals: [ProviderKind: Duration],

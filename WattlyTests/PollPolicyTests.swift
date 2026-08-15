@@ -70,6 +70,9 @@ struct PollPolicyTests {
                                   menubarTextEnabled: true, active: all,
                                   menubarNeeds: [.cpu]) == [.cpu: .seconds(2)])
         #expect(providerIntervals(mode: .eco, setting: .auto, panelVisible: false,
+                                  menubarTextEnabled: true, active: all,
+                                  menubarNeeds: [.mem]) == [.memory: .seconds(5)])
+        #expect(providerIntervals(mode: .eco, setting: .auto, panelVisible: false,
                                   menubarTextEnabled: false, active: all,
                                   menubarNeeds: [.cpu]).isEmpty)
     }
@@ -82,26 +85,37 @@ struct PollPolicyTests {
         ])
     }
 
-    @Test func performanceAutoPollsEveryActiveProviderWhenPanelIsClosed() {
-        let active = Set(ProviderKind.allCases)
-        let cases: [(menubarTextEnabled: Bool, interval: Duration)] = [
-            (true, .seconds(2)),
-            (false, .seconds(5)),
-        ]
+    @Test func performanceTieredCadenceAdaptsByMetricSpeedAndAC() {
+        let all = Set(ProviderKind.allCases)
+        // Panel open
+        let open = providerIntervals(mode: .performance, setting: .auto, panelVisible: true,
+                                     menubarTextEnabled: true, active: all, menubarNeeds: [.cpu])
+        #expect(open[.cpu] == .seconds(1))
+        #expect(open[.power] == .seconds(1))
+        #expect(open[.temperature] == .seconds(1))
+        #expect(open[.memory] == .seconds(3))
+        #expect(open[.battery] == .seconds(3))
+        #expect(open[.fan] == .seconds(3))
 
-        for test in cases {
-            #expect(providerIntervals(mode: .performance, setting: .auto,
-                                      panelVisible: false,
-                                      menubarTextEnabled: test.menubarTextEnabled,
-                                      active: active, menubarNeeds: [.cpu]) ==
-                Dictionary(uniqueKeysWithValues: active.map { ($0, test.interval) }))
-        }
+        // Panel closed on battery (text on)
+        let closedBattery = providerIntervals(mode: .performance, setting: .auto, panelVisible: false,
+                                              menubarTextEnabled: true, active: all, menubarNeeds: [.cpu],
+                                              isACConnected: false)
+        #expect(closedBattery[.cpu] == .seconds(3))
+        #expect(closedBattery[.power] == .seconds(3))
+        #expect(closedBattery[.memory] == .seconds(10))
+        #expect(closedBattery[.battery] == .seconds(10))
+        #expect(closedBattery[.fan] == .seconds(10))
 
-        let hidden = active.subtracting([.battery])
-        #expect(providerIntervals(mode: .performance, setting: .auto,
-                                  panelVisible: false, menubarTextEnabled: true,
-                                  active: hidden, menubarNeeds: [.cpu]) ==
-            Dictionary(uniqueKeysWithValues: hidden.map { ($0, .seconds(2)) }))
+        // Panel closed on AC (text on)
+        let closedAC = providerIntervals(mode: .performance, setting: .auto, panelVisible: false,
+                                         menubarTextEnabled: true, active: all, menubarNeeds: [.cpu],
+                                         isACConnected: true)
+        #expect(closedAC[.cpu] == .seconds(2))
+        #expect(closedAC[.power] == .seconds(2))
+        #expect(closedAC[.memory] == .seconds(5))
+        #expect(closedAC[.battery] == .seconds(5))
+        #expect(closedAC[.fan] == .seconds(5))
     }
 
     @Test func performanceAndEcoAgreeForFixedInterval() {
