@@ -8,6 +8,8 @@ enum FanCurvePreset: String, CaseIterable, Sendable, Identifiable {
     case performance = "성능"
     case fullSpeed = "최대"
 
+    static let defaultMaxRPM: Double = 6500
+
     var id: String { rawValue }
 
     var title: String {
@@ -20,20 +22,31 @@ enum FanCurvePreset: String, CaseIterable, Sendable, Identifiable {
     }
 
     var curve: FanCurve {
+        curve(forMaxRPM: Self.defaultMaxRPM)
+    }
+
+    func curve(forMaxRPM maxRPM: Double) -> FanCurve {
+        let maxTarget = max(maxRPM, 1000)
+        let round100: (Double) -> Double = { ($0 / 100.0).rounded() * 100.0 }
+
         switch self {
         case .balanced:
-            return FanCurve(rpms: [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])
+            let ratios: [Double] = [0.12, 0.14, 0.16, 0.19, 0.23, 0.29, 0.37, 0.46, 0.55, 0.65, 0.74, 0.84, 0.92, 0.97, 1.00]
+            return FanCurve(rpms: ratios.map { round100($0 * maxTarget) })
         case .silent:
-            // 30°C..55°C at 0 RPM (6 anchors), then ramp up to allow full 48..55°C zero-RPM hold range
-            return FanCurve(rpms: [0, 0, 0, 0, 0, 0, 1200, 1800, 2500, 3400, 4400, 5600, 6600, 7200, 7400])
+            // 30°C..55°C (6 anchors) = 0 RPM, then ramp up to maxTarget
+            let tailRatios: [Double] = [0.18, 0.27, 0.38, 0.52, 0.67, 0.85, 0.94, 0.98, 1.00]
+            let rpms = Array(repeating: 0.0, count: 6) + tailRatios.map { round100($0 * maxTarget) }
+            return FanCurve(rpms: rpms)
         case .performance:
-            return FanCurve(rpms: [1500, 1800, 2200, 2800, 3500, 4200, 4800, 5400, 6000, 6500, 7000, 7400, 7400, 7400, 7400])
+            let ratios: [Double] = [0.23, 0.28, 0.34, 0.43, 0.54, 0.65, 0.74, 0.83, 0.92, 0.97, 1.00, 1.00, 1.00, 1.00, 1.00]
+            return FanCurve(rpms: ratios.map { round100($0 * maxTarget) })
         case .fullSpeed:
-            return FanCurve(rpms: Array(repeating: 7400.0, count: FanCurve.anchorsCelsius.count))
+            return FanCurve(rpms: Array(repeating: round100(maxTarget), count: FanCurve.anchorsCelsius.count))
         }
     }
 
-    static func matchingPreset(for curve: FanCurve) -> FanCurvePreset? {
-        allCases.first { $0.curve == curve }
+    static func matchingPreset(for curve: FanCurve, maxRPM: Double = defaultMaxRPM) -> FanCurvePreset? {
+        allCases.first { $0.curve(forMaxRPM: maxRPM) == curve }
     }
 }

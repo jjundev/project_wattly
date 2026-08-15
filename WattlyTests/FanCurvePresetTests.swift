@@ -31,8 +31,36 @@ struct FanCurvePresetTests {
 
     @Test func fullSpeedPresetIsMaxRPMAtAllAnchors() {
         let maxCurve = FanCurvePreset.fullSpeed.curve
-        #expect(maxCurve.rpms.allSatisfy { $0 == 7400 })
+        #expect(maxCurve.rpms.allSatisfy { $0 == FanCurvePreset.defaultMaxRPM })
         #expect(FanCurvePreset.matchingPreset(for: maxCurve) == .fullSpeed)
+    }
+
+    @Test func presetsScaleToCustomHardwareMaxRPM() {
+        let maxRPM = 5800.0
+        let fullSpeed = FanCurvePreset.fullSpeed.curve(forMaxRPM: maxRPM)
+        #expect(fullSpeed.rpms.allSatisfy { $0 == 5800 })
+        #expect(FanCurvePreset.matchingPreset(for: fullSpeed, maxRPM: maxRPM) == .fullSpeed)
+
+        let balanced = FanCurvePreset.balanced.curve(forMaxRPM: maxRPM)
+        #expect(balanced.rpms.last == 5800)
+        #expect(balanced.rpms.allSatisfy { $0.truncatingRemainder(dividingBy: 100) == 0 })
+        #expect(FanCurvePreset.matchingPreset(for: balanced, maxRPM: maxRPM) == .balanced)
+
+        let silent = FanCurvePreset.silent.curve(forMaxRPM: maxRPM)
+        #expect(silent.rpms[0...5].allSatisfy { $0 == 0 }) // 30..55°C = 0
+        #expect(silent.rpms.last == 5800)
+        #expect(FanCurvePreset.matchingPreset(for: silent, maxRPM: maxRPM) == .silent)
+    }
+
+    @Test func fanSampleComputesMaxFanRPM() {
+        let sample = FanSample(fans: [
+            FanReading(index: 0, actualRPM: 2000, minRPM: 1500, maxRPM: 5800, targetRPM: 2000),
+            FanReading(index: 1, actualRPM: 2200, minRPM: 1500, maxRPM: 6200, targetRPM: 2200)
+        ])
+        #expect(sample.maxFanRPM == 6200)
+
+        let emptySample = FanSample(fans: [])
+        #expect(emptySample.maxFanRPM == nil)
     }
 
     @Test func customCurveReturnsNilMatchingPreset() {
