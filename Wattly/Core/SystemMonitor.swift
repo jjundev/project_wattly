@@ -91,6 +91,7 @@ final class SystemMonitor {
     private var activeProviderKinds = Set(ProviderKind.allCases)
     /// Last value pushed to `tempGater.setEnabled`, to detect an off→on transition.
     private var tempEnabled = true
+    private var isACConnected = false
 
     init(providers: [any MetricProvider],
          clock: MonotonicClock = LiveClock(),
@@ -131,7 +132,8 @@ final class SystemMonitor {
         let needs: Set<CardKind> = menubarTextEnabled ? menubarMetrics : []
         return providerIntervals(mode: powerMode, setting: pollSetting, panelVisible: panelVisible,
                                  menubarTextEnabled: menubarTextEnabled,
-                                 active: activeProviderKinds, menubarNeeds: needs)
+                                 active: activeProviderKinds, menubarNeeds: needs,
+                                 isACConnected: isACConnected)
     }
 
     private func nextScheduledDelay(at instant: ContinuousClock.Instant) -> Duration {
@@ -187,9 +189,18 @@ final class SystemMonitor {
         let before = currentProviderIntervals
         panelVisible = visible
         let after = currentProviderIntervals
-        guard after != before else { return }
-        let forced = visible ? Set(after.keys) : Set(after.keys).subtracting(before.keys)
-        reschedule(forceProviders: forced)
+        if after != before {
+            let forced = visible ? Set(after.keys) : Set(after.keys).subtracting(before.keys)
+            reschedule(forceProviders: forced)
+        }
+
+        if visible, activeProviderKinds.contains(.power) {
+            Task { [weak self] in
+                try? await Task.sleep(for: .milliseconds(250))
+                guard let self, self.panelVisible else { return }
+                await self.poll(kinds: [.power], at: self.clock.now())
+            }
+        }
     }
 
     /// The user picked a cadence in settings.
@@ -318,6 +329,10 @@ final class SystemMonitor {
             let sample = MetricSample.battery(battery)
             states[kind] = .value(sample)
             recordHistory(for: kind, sample: sample, at: instant)
+            if isACConnected != battery.externalConnected {
+                isACConnected = battery.externalConnected
+                reschedule()
+            }
         case .value(let sample):
             states[kind] = .value(sample)
             recordHistory(for: kind, sample: sample, at: instant)

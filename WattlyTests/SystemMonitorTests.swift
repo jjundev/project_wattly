@@ -534,4 +534,38 @@ struct SystemMonitorTests {
         for _ in 0..<50 where (await pow.enumerating) { await Task.yield() }
         #expect(await pow.enumerating == false)             // …and turns back off on collapse
     }
+
+    @Test func panelOpenTriggersRapidPowerDoubleSample() async {
+        let power = CountingProvider(kind: .power)
+        let clock = ManualClock()
+        let monitor = SystemMonitor(providers: [power], clock: clock)
+        monitor.setPollInterval(.auto)
+        monitor.start()
+
+        #expect(await power.reads == 0) // Closed panel in eco mode without menubar text skips power
+        monitor.setPanelVisible(true)
+        // t = 0 immediate poll triggered by reschedule
+        for _ in 0..<50 where (await power.reads < 1) { await Task.yield() }
+        #expect(await power.reads >= 1)
+        // Let async 250ms double-sample execute
+        try? await Task.sleep(for: .milliseconds(350))
+        #expect(await power.reads >= 2)
+        monitor.stop()
+    }
+
+    @Test func batteryStateChangeReschedulesOnACConnection() async {
+        let batterySample = BatterySample(netW: -10, milliamps: 1000, volts: 12, charging: true, externalConnected: true)
+        let batteryProvider = ScriptedProvider(kind: .battery, [.value(.battery(batterySample))])
+        let mem = CountingProvider(kind: .memory)
+        let clock = ManualClock()
+        let monitor = SystemMonitor(providers: [batteryProvider, mem], clock: clock)
+        monitor.setPowerMode(.performance)
+        monitor.start()
+
+        // Ingest battery sample with AC connected
+        await monitor.pollOnce()
+        #expect(await mem.reads >= 1)
+        monitor.stop()
+    }
 }
+
