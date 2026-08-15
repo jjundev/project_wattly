@@ -93,7 +93,7 @@ struct PopoverContentView: View {
     // Per-process enumeration is only meaningful in mode A's stack rows OR mode C's hero card
     // (the only two layouts with an expand region — mode B never shows one). Gating on the
     // mode too means switching away mid-session — while the mem/power card is expanded — turns
-    // the sweep off, instead of leaking it into a layout that never shows the Top-3 (review row
+    // the sweep off, instead of leaking it into a layout that never shows the expanded process list (review row
     // 6). Composite so the `.task` re-fires on switch.
     private var memEnumActive: Bool { memExpanded && (panelMode == .a || hero == .mem) }
     private var powerEnumActive: Bool { powerExpanded && (panelMode == .a || hero == .power) }
@@ -141,7 +141,7 @@ struct PopoverContentView: View {
         .onChange(of: panelMode) { _, mode in
             if mode != .a { editMode = false; draggingCard = nil; dragOffset = 0; homeShift = 0 }
         }
-        // Gate per-process enumeration (memory Top-3 / power Top-3) to when this panel is
+        // Gate per-process enumeration (memory / processor-power process lists) to when this panel is
         // open, mode A's stack row OR mode C's hero, AND that card is expanded (issue 05
         // §M11/M18, issue 16 follow-up, issue 19 review row 6, plan: hero card expand);
         // .onDisappear reliably turns each off on close.

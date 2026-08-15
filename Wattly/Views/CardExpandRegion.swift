@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit   // NSWorkspace for per-process app icons (issue 05)
 
 /// The "tap to reveal detail" region for `isExpandable` cards (processor-power per-app
-/// Top-3, battery voltage/current, CPU per-core, memory Top-3, CPU-temp clusters, fan
+/// top processor-power apps, battery voltage/current, CPU per-core, memory process list, CPU-temp clusters, fan
 /// actual/target) — shared by mode A's stack rows (`MetricCardView`) and mode C's hero
 /// card (`PopoverHeroView`, plan: hero card expand). Reads `@Environment(\.tokens)` for
 /// its palette so each host supplies its own: mode A lets it track the live app theme,
@@ -116,9 +116,9 @@ struct CardExpandRegion: View {
 
     // MARK: Power expand — top per-app power (issue 16 follow-up)
 
-    /// Top power-consuming apps, symmetric with the memory Top-3. Three-state on
+    /// Top power-consuming apps, symmetric with the memory process list. Three-state on
     /// `s.processes`: nil → "측정 중…" (baselining — the energy counter is cumulative, so the
-    /// first sweep after expand has no rate yet); [] → "프로세스를 읽을 수 없음"; rows → Top-3.
+    /// first sweep after expand has no rate yet); [] → "프로세스를 읽을 수 없음"; rows → configured top-N.
     /// Watts cover CPU+GPU compute only and your readable apps, so they don't sum to the
     /// card's Combined headline (label-honest, not a breakdown).
     @ViewBuilder
@@ -316,7 +316,7 @@ struct CardExpandRegion: View {
     }
 
     // Same rule as MetricCardView's headline sparkline: threshold color when the card has
-    // one, else neutral/accent by card family — kept in step so the Top-3 bars in mem/power
+    // one, else neutral/accent by card family — kept in step so the process bars in mem/power
     // expand match their card's own sparkline color.
     private var sparkStroke: Color {
         if let level = CardPresentation.thresholdLevel(card, state, thresholds) { return level.stroke }

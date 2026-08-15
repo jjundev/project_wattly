@@ -58,6 +58,15 @@ struct ProcessPowerTests {
         #expect(topAppPower(perPidWatts: perPid, appKey: appKey, limit: 2).map(\.key) == ["a", "b"])
     }
 
+    @Test func powerProcessLimitClampsToSupportedRange() {
+        #expect(powerProcessLimit(nil) == 3)
+        #expect(powerProcessLimit(1) == 3)
+        #expect(powerProcessLimit(3) == 3)
+        #expect(powerProcessLimit(5) == 5)
+        #expect(powerProcessLimit(7) == 7)
+        #expect(powerProcessLimit(99) == 7)
+    }
+
     // MARK: name + bar helpers
 
     @Test func appDisplayNameStripsDotApp() {

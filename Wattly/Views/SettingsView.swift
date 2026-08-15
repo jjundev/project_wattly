@@ -92,6 +92,7 @@ struct SettingsView: View {
     @AppStorage(StorageKey.powerSmoothed) private var powerSmoothed = Defaults.powerSmoothed
     @AppStorage(StorageKey.showBatteryEfficiency) private var showBatteryEfficiency = Defaults.showBatteryEfficiency
     @AppStorage(StorageKey.memoryProcessLimit) private var memoryProcessLimit = Defaults.memoryProcessLimit
+    @AppStorage(StorageKey.powerProcessLimit) private var powerProcessLimit = Defaults.powerProcessLimit
     @AppStorage(StorageKey.menubarTextEnabled) private var menubarText = Defaults.menubarTextEnabled
     @AppStorage(StorageKey.thresholds) private var thresholds = Defaults.thresholds
     @AppStorage(StorageKey.fanCurve) private var fanCurve = Defaults.fanCurve
@@ -172,7 +173,7 @@ struct SettingsView: View {
 
     // MARK: 표시 (그룹)
 
-    /// 표시 그룹: 테마 · 레이아웃 · 표시 지표 · 메모리 프로세스 · 메뉴바 — 화면에 무엇이 보이는지를 다루는
+    /// 표시 그룹: 테마 · 레이아웃 · 표시 지표 · 메모리/프로세서 전력 프로세스 · 메뉴바 — 화면에 무엇이 보이는지를 다루는
     /// 섹션들. `시스템` 그룹(아래 `generalSection`, `body`)은 섹션이 하나뿐이라 그룹 헤더를
     /// 붙이지 않고 자신의 `SettingsSection` 캡션만 쓰지만, 이 그룹은 5개라 헤더가 붙는다.
     private var displayGroup: some View {
@@ -182,6 +183,7 @@ struct SettingsView: View {
             layoutSection
             showSection
             memoryProcessLimitSection
+            powerProcessLimitSection
             menubarSection
         }
     }
@@ -331,19 +333,24 @@ struct SettingsView: View {
             SettingsCard {
                 metricToggle(.power, isOn: $showPower, divider: true, title: "프로세서 전력")
                 metricToggle(.battery, isOn: $showBattery, divider: true, title: "배터리")
-                SettingsToggleRow(isOn: $showBatteryEfficiency, divider: true,
-                                  isEnabled: batteryEfficiencyDisabledReason == nil,
-                                  disabledReason: batteryEfficiencyDisabledReason) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        rowTitle("배터리 효율 보기")
-                        if let batteryEfficiencyDisabledReason {
-                            Text(batteryEfficiencyDisabledReason)
+                if showBattery {
+                    SettingsToggleRow(isOn: $showBatteryEfficiency, divider: true,
+                                      isEnabled: monitor.isPresent(.battery),
+                                      disabledReason: monitor.isPresent(.battery) ? nil : "이 Mac에서는 사용할 수 없습니다") {
+                        VStack(alignment: .leading, spacing: 2) {
+                            rowTitle("배터리 효율 보기")
+                            Text("배터리 효율 수치가 신경 쓰인다면, 필요할 때만 표시하세요.")
                                 .font(WattlyFont.at(11.5, weight: .regular))
                                 .foregroundStyle(t.faint)
+                            if !monitor.isPresent(.battery) {
+                                Text("이 Mac에서는 사용할 수 없음")
+                                    .font(WattlyFont.at(11.5, weight: .regular))
+                                    .foregroundStyle(t.faint)
+                            }
                         }
                     }
+                    .padding(.leading, 14)
                 }
-                .padding(.leading, 14)
                 metricToggle(.cpu, isOn: $showCPU, divider: true, title: "CPU 사용률")
                 metricToggle(.mem, isOn: $showMem, divider: true, title: "메모리")
                 metricToggle(.cpuTemp, isOn: $showCpuTemp, divider: true, title: "CPU 온도", suffix: "· 최고값")
@@ -370,12 +377,6 @@ struct SettingsView: View {
         }
     }
 
-    private var batteryEfficiencyDisabledReason: String? {
-        if !showBattery { return "배터리 표시를 켜면 사용할 수 있습니다." }
-        if !monitor.isPresent(.battery) { return "이 Mac에서는 사용할 수 없습니다" }
-        return nil
-    }
-
     // MARK: 메모리 프로세스
 
     private var memoryProcessLimitSection: some View {
@@ -394,6 +395,31 @@ struct SettingsView: View {
                         .fixedSize(horizontal: false, vertical: true)
                     if panelMode == .b {
                         Text("카드 그리드에서는 메모리 카드 펼침 목록을 볼 수 없습니다.")
+                            .font(WattlyFont.at(11.5, weight: .regular))
+                            .foregroundStyle(t.faint)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+    }
+
+    private var powerProcessLimitSection: some View {
+        SettingsSection(title: "프로세서 전력 카드 펼침 목록") {
+            SettingsCard(padding: Tokens.cardPadding) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("표시할 앱 수")
+                        .font(WattlyFont.at(11.5, weight: .regular))
+                        .foregroundStyle(t.faint)
+                    WattlySegment(selection: $powerProcessLimit, options: [
+                        (3, "3개"), (4, "4개"), (5, "5개"), (6, "6개"), (7, "7개"),
+                    ], fontSize: 11.5, pillVPadding: 6)
+                    Text("프로세서 전력 카드를 펼쳤을 때 전력 사용량이 큰 앱부터 표시합니다.")
+                        .font(WattlyFont.at(11.5, weight: .regular))
+                        .foregroundStyle(t.faint)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if panelMode == .b {
+                        Text("카드 그리드에서는 프로세서 전력 카드 펼침 목록을 볼 수 없습니다.")
                             .font(WattlyFont.at(11.5, weight: .regular))
                             .foregroundStyle(t.faint)
                             .fixedSize(horizontal: false, vertical: true)
