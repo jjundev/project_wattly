@@ -108,15 +108,15 @@ struct FanControlEngineTests {
         #expect(hw.writes.last == .mode("F0md", 0))
     }
 
-    @Test func malformedCurveAboveTheCurveRangeWritesMaximum() throws {
+    @Test func malformedCurveAboveTheCurveRangeReleasesInsteadOfWritingMaximum() throws {
         let hw = FakeFanControlHardware(modeKey: "F0md", hasFtst: false, hottestCPU: 100.001,
                                         limits: FanLimits(minimum: 2317, maximum: 6550))
         let engine = FanControlEngine(hardware: hw)
 
         try engine.configure(.init(enabled: true, curve: .init(rpms: [])), now: 0)
-        try engine.tick(now: 0)
-        #expect(hw.writes.last == .target(0, 6550))
-        #expect(engine.status.mode == .controlling)
+        #expect(throws: FanControlFailure.self) { try engine.tick(now: 0) }
+        #expect(hw.writes.contains(.target(0, 6550)) == false)
+        #expect(hw.writes.last == .mode("F0md", 0))
     }
 
     @Test func reconfigureWhileControllingAdoptsTheNewCurve() throws {

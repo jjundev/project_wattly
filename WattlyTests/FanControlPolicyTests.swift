@@ -58,10 +58,29 @@ struct FanControlPolicyTests {
                                            limits: limits, wasZeroRPM: false) == nil)
     }
 
-    @Test func temperatureAboveTheCurveRangeOverridesAMalformedCurve() {
+    @Test func malformedCurveRemainsRejectedAboveTheCurveRange() {
         let malformedCurve = FanCurve(rpms: [])
         #expect(FanControlPolicy.targetRPM(curve: malformedCurve, hottestCPU: 100.001,
-                                           limits: limits, wasZeroRPM: false) == 6550)
+                                           limits: limits, wasZeroRPM: false) == nil)
+    }
+
+    @Test func malformedNegativeToPositiveCurveCannotInterpolateToZeroRPM() {
+        var rpms = Array(repeating: 1000.0, count: FanCurve.anchorsCelsius.count)
+        rpms[0] = -100
+        rpms[1] = 100
+        let malformedCurve = FanCurve(rpms: rpms)
+
+        #expect(FanControlPolicy.targetRPM(curve: malformedCurve, hottestCPU: 32.5,
+                                           limits: limits, wasZeroRPM: false) == nil)
+    }
+
+    @Test func nonFiniteRPMOutsideSampledSegmentRejectsCurve() {
+        var rpms = Array(repeating: 1000.0, count: FanCurve.anchorsCelsius.count)
+        rpms[FanCurve.anchorsCelsius.count - 1] = .nan
+        let malformedCurve = FanCurve(rpms: rpms)
+
+        #expect(FanControlPolicy.targetRPM(curve: malformedCurve, hottestCPU: 32.5,
+                                           limits: limits, wasZeroRPM: false) == nil)
     }
 
     @Test func temperatureAboveTheCurveRangeOverridesAZeroCurve() {

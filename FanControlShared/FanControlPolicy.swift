@@ -26,9 +26,13 @@ enum FanControlPolicy {
               limits.maximum.isFinite,
               limits.minimum > 0,
               limits.maximum >= limits.minimum else { return nil }
-        if hottestCPU > maximumOverrideCelsius { return limits.maximum }
 
-        guard curve.rpms.count == FanCurve.anchorsCelsius.count else { return nil }
+        guard curve.rpms.count == FanCurve.anchorsCelsius.count,
+              curve.rpms.allSatisfy({ $0.isFinite && (0.0...20_000.0).contains($0) }) else {
+            return nil
+        }
+
+        if hottestCPU > maximumOverrideCelsius { return limits.maximum }
 
         let curveTarget = curve.evaluate(inputCelsius: hottestCPU)
         guard curveTarget.isFinite else { return nil }
