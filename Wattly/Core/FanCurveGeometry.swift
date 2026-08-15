@@ -10,11 +10,10 @@ enum FanCurveGeometry {
     static var celsiusMin: Double { anchorsCelsius.first ?? 40 }
     static var celsiusMax: Double { anchorsCelsius.last ?? 100 }
 
-    /// The editable RPM axis. `rpmMax` is the plot ceiling (the old slider's `0…8000`); the
-    /// model's own rawValue validation still permits up to 20000, so a stored curve above 8000
-    /// just pins to the top of the plot.
+    /// The editable RPM axis. `defaultRpmMax` is the default plot ceiling; the
+    /// model's own rawValue validation still permits up to 20000.
     static let rpmMin: Double = 0
-    static let rpmMax: Double = 8000
+    static let defaultRpmMax: Double = 6500
     static let rpmStep: Double = 100
     static let zeroFanEnterCelsius = FanControlPolicy.zeroRPMEnterCelsius
     static let zeroFanExitCelsius = FanControlPolicy.zeroRPMExitCelsius
@@ -76,7 +75,7 @@ enum FanCurveGeometry {
         return r.minX + CGFloat((c - celsiusMin) / span) * r.width
     }
 
-    static func y(forRPM rpm: Double, in size: CGSize) -> CGFloat {
+    static func y(forRPM rpm: Double, rpmMax: Double = defaultRpmMax, in size: CGSize) -> CGFloat {
         let r = plotRect(in: size)
         let span = rpmMax - rpmMin
         guard span > 0 else { return r.maxY }
@@ -84,7 +83,7 @@ enum FanCurveGeometry {
     }
 
     /// Inverse of `y(forRPM:)`, clamped to `rpmMin…rpmMax` and rounded to `rpmStep`.
-    static func rpm(forY yPix: CGFloat, in size: CGSize) -> Double {
+    static func rpm(forY yPix: CGFloat, rpmMax: Double = defaultRpmMax, in size: CGSize) -> Double {
         let r = plotRect(in: size)
         guard r.height > 0 else { return rpmMin }
         let frac = Double((r.maxY - yPix) / r.height)
@@ -93,9 +92,9 @@ enum FanCurveGeometry {
         return min(max(stepped, rpmMin), rpmMax)
     }
 
-    static func handlePoints(_ rpms: [Double], in size: CGSize) -> [CGPoint] {
+    static func handlePoints(_ rpms: [Double], rpmMax: Double = defaultRpmMax, in size: CGSize) -> [CGPoint] {
         zip(anchorsCelsius, rpms).map { c, rpm in
-            CGPoint(x: x(forCelsius: c, in: size), y: y(forRPM: rpm, in: size))
+            CGPoint(x: x(forCelsius: c, in: size), y: y(forRPM: rpm, rpmMax: rpmMax, in: size))
         }
     }
 

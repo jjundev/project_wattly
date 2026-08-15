@@ -33,6 +33,14 @@ final class SystemMonitor {
     /// value, so it is never blanked by a transient anomaly — only the cold start is nil.
     private(set) var selfPower: Double?
 
+    /// The maximum hardware RPM reported by SMC across all detected fans, or nil if unavailable/fanless.
+    var hardwareMaxFanRPM: Double? {
+        guard let state = states[.fan],
+              case .value(let sample) = state,
+              case .fan(let fanSample) = sample else { return nil }
+        return fanSample.maxFanRPM
+    }
+
     private let providers: [any MetricProvider]
     /// The providers (if any) that support on-demand process enumeration — the memory
     /// provider's Top-3 (issue 05 §M18) and the power provider's per-app Top-3 (issue 16

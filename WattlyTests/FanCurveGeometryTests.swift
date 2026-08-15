@@ -54,7 +54,8 @@ struct FanCurveGeometryTests {
     }
 
     @Test func yMapsRPMAxisToPlotHeightInverted() {
-        #expect(FanCurveGeometry.y(forRPM: 8000, in: size) == 12)   // max rpm → plot top
+        #expect(FanCurveGeometry.y(forRPM: FanCurveGeometry.defaultRpmMax, in: size) == 12)   // max rpm → plot top
+        #expect(FanCurveGeometry.y(forRPM: 8000, rpmMax: 8000, in: size) == 12)
         #expect(FanCurveGeometry.y(forRPM: 0, in: size) == 166)     // min rpm → plot bottom
     }
 
@@ -64,8 +65,19 @@ struct FanCurveGeometryTests {
     }
 
     @Test func rpmForYClampsOutsidePlot() {
-        #expect(FanCurveGeometry.rpm(forY: -50, in: size) == 8000)   // above the top → max
+        #expect(FanCurveGeometry.rpm(forY: -50, in: size) == FanCurveGeometry.defaultRpmMax)   // above the top → default max
+        #expect(FanCurveGeometry.rpm(forY: -50, rpmMax: 8000, in: size) == 8000)
         #expect(FanCurveGeometry.rpm(forY: 999, in: size) == 0)      // below the bottom → min
+    }
+
+    @Test func yAndRpmScaleDynamicallyWithCustomRpmMax() {
+        let customMax = 6000.0
+        let yAtTop = FanCurveGeometry.y(forRPM: 6000, rpmMax: customMax, in: size)
+        let plot = FanCurveGeometry.plotRect(in: size)
+        #expect(yAtTop == plot.minY)
+
+        let rpmAtMid = FanCurveGeometry.rpm(forY: (plot.minY + plot.maxY) / 2, rpmMax: customMax, in: size)
+        #expect(rpmAtMid == 3000)
     }
 
     @Test func rpmForYRoundsToStep() {

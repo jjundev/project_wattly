@@ -485,8 +485,9 @@ struct SettingsView: View {
                     }
                 }
                 VStack(alignment: .leading, spacing: 12) {
-                    fanStatusIndicator
                     HStack {
+                        fanStatusIndicator
+                        Spacer()
                         if let holdRange = FanCurveGeometry.zeroRPMHoldRange(for: fanCurvePreview ?? fanCurve) {
                             HStack(spacing: 6) {
                                 RoundedRectangle(cornerRadius: 2)
@@ -509,20 +510,18 @@ struct SettingsView: View {
                             }
                             .accessibilityElement(children: .combine)
                         }
-                        Spacer()
-                        Button { fanCurve = Defaults.fanCurve } label: {
-                            Text("기본값")
-                                .font(WattlyFont.at(11, weight: .semibold))
-                                .foregroundStyle(t.sub)
-                                .padding(.horizontal, 9)
-                                .padding(.vertical, 3)
-                                .background(RoundedRectangle(cornerRadius: 6).fill(t.cardBg))
-                                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(t.rowBorder, lineWidth: 1))
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("팬 커브 기본값으로 되돌리기")
                     }
-                    FanCurveEditor(curve: $fanCurve, previewCurve: $fanCurvePreview, currentCPU: currentHottestCPU)
+                    WattlySegment(
+                        selection: selectedPresetBinding,
+                        options: FanCurvePreset.allCases.map { (Optional($0), $0.rawValue) },
+                        pillVPadding: 6
+                    )
+                    FanCurveEditor(
+                        curve: $fanCurve,
+                        previewCurve: $fanCurvePreview,
+                        currentCPU: currentHottestCPU,
+                        rpmMax: activeMaxFanRPM
+                    )
                 }
                 .padding(EdgeInsets(top: 12, leading: 14, bottom: 14, trailing: 14))
             }
@@ -557,6 +556,21 @@ struct SettingsView: View {
                 if !Task.isCancelled { editApplyDeadline = nil }
             }
         }
+    }
+
+    private var activeMaxFanRPM: Double {
+        monitor.hardwareMaxFanRPM ?? FanCurvePreset.defaultMaxRPM
+    }
+
+    private var selectedPresetBinding: Binding<FanCurvePreset?> {
+        Binding(
+            get: { FanCurvePreset.matchingPreset(for: fanCurvePreview ?? fanCurve, maxRPM: activeMaxFanRPM) },
+            set: { newPreset in
+                guard let preset = newPreset else { return }
+                fanCurvePreview = nil
+                fanCurve = preset.curve(forMaxRPM: activeMaxFanRPM)
+            }
+        )
     }
 
     private func zeroFanHelpPopover(for holdRange: ClosedRange<Double>) -> some View {

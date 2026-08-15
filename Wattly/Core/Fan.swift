@@ -21,6 +21,11 @@ struct FanReading: Sendable, Equatable, Identifiable {
 /// `.notPresent` (fanless) or `.channelUnreadable` (stale) rather than an empty sample.
 struct FanSample: Sendable, Equatable {
     var fans: [FanReading]
+
+    /// Maximum RPM across all physical fans (e.g. 6550), or nil if no fans exist.
+    var maxFanRPM: Double? {
+        fans.map(\.maxRPM).filter { $0 > 0 }.max()
+    }
 }
 
 /// The card headline — the mean actual RPM across all fans (per-fan detail lives in the
