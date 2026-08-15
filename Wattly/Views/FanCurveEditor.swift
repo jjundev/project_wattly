@@ -15,6 +15,7 @@ struct FanCurveEditor: View {
     @Binding var curve: FanCurve
     @Binding var previewCurve: FanCurve?
     var currentCPU: Double?
+    var rpmMax: Double = FanCurveGeometry.defaultRpmMax
     @Environment(\.tokens) private var t
 
     @State private var dragIndex: Int?
@@ -58,12 +59,13 @@ struct FanCurveEditor: View {
                 }
             }
 
-            // horizontal grid + y labels (0…8k every 2k)
-            for rpm in stride(from: 0.0, through: FanCurveGeometry.rpmMax, by: 2000) {
-                let y = FanCurveGeometry.y(forRPM: rpm, in: size)
+            // horizontal grid + y labels
+            for rpm in stride(from: 0.0, through: rpmMax, by: 2000) {
+                let y = FanCurveGeometry.y(forRPM: rpm, rpmMax: rpmMax, in: size)
                 var g = Path(); g.move(to: CGPoint(x: rect.minX, y: y)); g.addLine(to: CGPoint(x: rect.maxX, y: y))
                 ctx.stroke(g, with: .color(t.line), lineWidth: 1)
-                ctx.draw(Text("\(Int(rpm / 1000))k").font(WattlyFont.at(9.5, weight: .medium)).foregroundColor(t.faint),
+                let label = (rpm.truncatingRemainder(dividingBy: 1000) == 0) ? "\(Int(rpm / 1000))k" : String(format: "%.1fk", rpm / 1000)
+                ctx.draw(Text(label).font(WattlyFont.at(9.5, weight: .medium)).foregroundColor(t.faint),
                          at: CGPoint(x: rect.minX - 6, y: y), anchor: .trailing)
             }
 
@@ -79,7 +81,7 @@ struct FanCurveEditor: View {
                 }
             }
 
-            let pts = FanCurveGeometry.handlePoints(rpms, in: size)
+            let pts = FanCurveGeometry.handlePoints(rpms, rpmMax: rpmMax, in: size)
             guard pts.count == FanCurveGeometry.anchorsCelsius.count else { return }
 
             // area fill under the curve
@@ -108,7 +110,7 @@ struct FanCurveEditor: View {
             if let cpu = currentCPU {
                 let markerC = min(max(cpu, FanCurveGeometry.celsiusMin), FanCurveGeometry.celsiusMax)
                 let x = FanCurveGeometry.x(forCelsius: markerC, in: size)
-                let yv = FanCurveGeometry.y(forRPM: displayCurve.evaluate(inputCelsius: cpu), in: size)
+                let yv = FanCurveGeometry.y(forRPM: displayCurve.evaluate(inputCelsius: cpu), rpmMax: rpmMax, in: size)
                 var m = Path(); m.move(to: CGPoint(x: x, y: rect.minY)); m.addLine(to: CGPoint(x: x, y: rect.maxY))
                 ctx.stroke(m, with: .color(Tokens.statusOrange), style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
                 ctx.fill(Path(ellipseIn: CGRect(x: x - 3, y: yv - 3, width: 6, height: 6)), with: .color(Tokens.statusOrange))
@@ -126,7 +128,7 @@ struct FanCurveEditor: View {
                 let i = dragIndex ?? FanCurveGeometry.nearestAnchorIndex(toX: value.startLocation.x, in: size)
                 dragIndex = i
                 var next = (previewCurve ?? curve).rpms
-                if next.indices.contains(i) { next[i] = FanCurveGeometry.rpm(forY: value.location.y, in: size) }
+                if next.indices.contains(i) { next[i] = FanCurveGeometry.rpm(forY: value.location.y, rpmMax: rpmMax, in: size) }
                 previewCurve = FanCurve(rpms: next)
             }
             .onEnded { _ in
@@ -138,7 +140,7 @@ struct FanCurveEditor: View {
 
     private func nudge(_ delta: Double, at index: Int) {
         guard curve.rpms.indices.contains(index) else { return }
-        let clamped = min(max(curve.rpms[index] + delta, FanCurveGeometry.rpmMin), FanCurveGeometry.rpmMax)
+        let clamped = min(max(curve.rpms[index] + delta, FanCurveGeometry.rpmMin), rpmMax)
         var next = curve
         next.rpms[index] = clamped
         curve = next
@@ -155,7 +157,7 @@ struct FanCurveEditor: View {
     /// otherwise lingered on the last-clicked handle); the handle dot filling in `canvas` is our
     /// focus indicator instead.
     private func anchorControls(_ size: CGSize) -> some View {
-        let pts = FanCurveGeometry.handlePoints(displayRPMs, in: size)
+        let pts = FanCurveGeometry.handlePoints(displayRPMs, rpmMax: rpmMax, in: size)
         return ForEach(Array(FanCurveGeometry.anchorsCelsius.enumerated()), id: \.offset) { i, c in
             Color.clear
                 .frame(width: 28, height: 28)
