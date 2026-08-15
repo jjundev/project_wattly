@@ -67,4 +67,13 @@ struct PanelPresentationTests {
         #expect(pollingDescription(for: .s2, mode: .performance) == "패널 상태와 관계없이 활성 지표를 2초마다 갱신합니다.")
         #expect(pollingDescription(for: .s5, mode: .eco) == "패널 상태와 관계없이 활성 지표를 5초마다 갱신합니다.")
     }
+
+    @Test func backgroundRefreshPresetResolvesCorrectly() {
+        #expect(BackgroundRefreshPreset.resolve(interval: .auto, mode: .eco) == .eco)
+        #expect(BackgroundRefreshPreset.resolve(interval: .auto, mode: .performance) == .performance)
+        #expect(BackgroundRefreshPreset.resolve(interval: .s1, mode: .eco) == .custom)
+        #expect(BackgroundRefreshPreset.resolve(interval: .s2, mode: .performance) == .custom)
+        #expect(BackgroundRefreshPreset.resolve(interval: .s5, mode: .eco) == .custom)
+    }
 }
+

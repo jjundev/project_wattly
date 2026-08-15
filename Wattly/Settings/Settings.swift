@@ -34,6 +34,28 @@ enum PowerMode: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+enum BackgroundRefreshPreset: String, CaseIterable, Identifiable, Sendable {
+    case eco
+    case performance
+    case custom
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .eco: "절전"
+        case .performance: "항상 최신"
+        case .custom: "사용자 지정"
+        }
+    }
+
+    static func resolve(interval: PollInterval, mode: PowerMode) -> BackgroundRefreshPreset {
+        if interval != .auto { return .custom }
+        return mode == .eco ? .eco : .performance
+    }
+}
+
+
 func pollingDescription(for setting: PollInterval, mode: PowerMode) -> String {
     switch setting {
     case .s1: "패널 상태와 관계없이 활성 지표를 1초마다 갱신합니다."
