@@ -516,7 +516,12 @@ struct SettingsView: View {
                         options: FanCurvePreset.allCases.map { (Optional($0), $0.rawValue) },
                         pillVPadding: 6
                     )
-                    FanCurveEditor(curve: $fanCurve, previewCurve: $fanCurvePreview, currentCPU: currentHottestCPU)
+                    FanCurveEditor(
+                        curve: $fanCurve,
+                        previewCurve: $fanCurvePreview,
+                        currentCPU: currentHottestCPU,
+                        rpmMax: activeMaxFanRPM
+                    )
                 }
                 .padding(EdgeInsets(top: 12, leading: 14, bottom: 14, trailing: 14))
             }
@@ -553,13 +558,17 @@ struct SettingsView: View {
         }
     }
 
+    private var activeMaxFanRPM: Double {
+        monitor.hardwareMaxFanRPM ?? FanCurvePreset.defaultMaxRPM
+    }
+
     private var selectedPresetBinding: Binding<FanCurvePreset?> {
         Binding(
-            get: { FanCurvePreset.matchingPreset(for: fanCurvePreview ?? fanCurve) },
+            get: { FanCurvePreset.matchingPreset(for: fanCurvePreview ?? fanCurve, maxRPM: activeMaxFanRPM) },
             set: { newPreset in
                 guard let preset = newPreset else { return }
                 fanCurvePreview = nil
-                fanCurve = preset.curve
+                fanCurve = preset.curve(forMaxRPM: activeMaxFanRPM)
             }
         )
     }
