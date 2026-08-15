@@ -16,6 +16,16 @@ enum FanCurveGeometry {
     static let rpmMin: Double = 0
     static let rpmMax: Double = 8000
     static let rpmStep: Double = 100
+    static let zeroFanEnterCelsius = FanControlPolicy.zeroRPMEnterCelsius
+    static let zeroFanExitCelsius = FanControlPolicy.zeroRPMExitCelsius
+
+    static func zeroFanHoldBand(in size: CGSize) -> CGRect {
+        let plot = plotRect(in: size)
+        let start = min(max(x(forCelsius: zeroFanEnterCelsius, in: size), plot.minX), plot.maxX)
+        let end = min(max(x(forCelsius: zeroFanExitCelsius, in: size), plot.minX), plot.maxX)
+        return CGRect(x: min(start, end), y: plot.minY,
+                      width: abs(end - start), height: plot.height)
+    }
 
     /// Plot insets inside the Canvas — room for the y labels (left) and x labels (bottom).
     static let padLeft: CGFloat = 34

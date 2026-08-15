@@ -14,6 +14,15 @@ struct FanCurveGeometryTests {
         #expect(r.minY == 12);  #expect(r.maxY == 166)
     }
 
+    @Test func zeroFanHoldBandUsesThePolicyEntryAndExitBoundaries() {
+        let band = FanCurveGeometry.zeroFanHoldBand(in: size)
+        let plot = FanCurveGeometry.plotRect(in: size)
+        #expect(band.minX == FanCurveGeometry.x(forCelsius: 48, in: size))
+        #expect(band.maxX == FanCurveGeometry.x(forCelsius: 55, in: size))
+        #expect(band.minY == plot.minY)
+        #expect(band.maxY == plot.maxY)
+    }
+
     @Test func handlePointsSpanPlotWidthMonotonically() {
         let pts = FanCurveGeometry.handlePoints(ramp, in: size)
         #expect(pts.count == 15)

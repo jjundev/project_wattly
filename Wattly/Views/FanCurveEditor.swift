@@ -45,6 +45,18 @@ struct FanCurveEditor: View {
             let rect = FanCurveGeometry.plotRect(in: size)
             let rpms = displayRPMs
 
+            let holdBand = FanCurveGeometry.zeroFanHoldBand(in: size)
+            ctx.fill(Path(holdBand), with: .color(Tokens.statusOrange.opacity(0.12)))
+
+            for boundary in [FanCurveGeometry.zeroFanEnterCelsius, FanCurveGeometry.zeroFanExitCelsius] {
+                let x = FanCurveGeometry.x(forCelsius: boundary, in: size)
+                var marker = Path()
+                marker.move(to: CGPoint(x: x, y: rect.minY))
+                marker.addLine(to: CGPoint(x: x, y: rect.maxY))
+                ctx.stroke(marker, with: .color(Tokens.statusOrange.opacity(0.8)),
+                           style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+            }
+
             // horizontal grid + y labels (0…8k every 2k)
             for rpm in stride(from: 0.0, through: FanCurveGeometry.rpmMax, by: 2000) {
                 let y = FanCurveGeometry.y(forRPM: rpm, in: size)
