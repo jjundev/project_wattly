@@ -28,18 +28,24 @@ enum PowerMode: String, CaseIterable, Identifiable, Sendable {
 
     var label: String {
         switch self {
-        case .eco: "에코"
-        case .performance: "성능"
+        case .eco: "절전"
+        case .performance: "항상 최신"
         }
     }
 }
 
-func pollingDescription(for mode: PowerMode) -> String {
-    switch mode {
-    case .eco:
-        "자동: 패널 열림은 CPU·전력 1초/온도 2초/메모리·배터리 5초, 닫힘은 메뉴바에 표시한 지표만 2초마다 갱신합니다. 메뉴바 텍스트를 끄면 지표 폴링을 멈춥니다."
-    case .performance:
-        "자동: 패널 열림은 활성 지표를 1초마다, 닫힘은 메뉴바 텍스트 표시 시 2초마다, 끄면 5초마다 갱신합니다."
+func pollingDescription(for setting: PollInterval, mode: PowerMode) -> String {
+    switch setting {
+    case .s1: "패널 상태와 관계없이 활성 지표를 1초마다 갱신합니다."
+    case .s2: "패널 상태와 관계없이 활성 지표를 2초마다 갱신합니다."
+    case .s5: "패널 상태와 관계없이 활성 지표를 5초마다 갱신합니다."
+    case .auto:
+        switch mode {
+        case .eco:
+            "자동 · 절전: 패널을 열면 CPU·전력은 1초, 온도는 2초, 메모리·배터리는 5초마다 갱신합니다. 패널을 닫으면 메뉴바에 표시한 지표만 2초마다 갱신하며, 메뉴바 텍스트를 끄면 지표 갱신을 멈춥니다."
+        case .performance:
+            "자동 · 항상 최신: 패널을 열면 활성 지표를 1초마다 갱신합니다. 패널을 닫으면 메뉴바 텍스트 표시 시 2초마다, 끄면 5초마다 갱신합니다."
+        }
     }
 }
 
@@ -77,44 +83,33 @@ struct ThresholdPair: Equatable, Sendable {
 /// no native support for a nested value like this.
 struct Thresholds: Equatable, Sendable, RawRepresentable {
     var cpu: ThresholdPair
-    var mem: ThresholdPair
     var temp: ThresholdPair
-    /// Color the memory card by the kernel's memory pressure (the macOS "활성 상태 보기"
-    /// model) instead of by the `mem` warn/crit occupancy band. Rides along the existing
-    /// `Thresholds` value so every `thresholdLevel`/`stateWord` call site — and `SettingsReset`
-    /// — picks it up with no signature change. Defaults true (absent in older persisted JSON
-    /// → `init?(rawValue:)` falls back to true).
-    var memColorByPressure: Bool
 
-    init(cpu: ThresholdPair, mem: ThresholdPair, temp: ThresholdPair,
-         memColorByPressure: Bool = true) {
-        self.cpu = cpu; self.mem = mem; self.temp = temp
-        self.memColorByPressure = memColorByPressure
+    init(cpu: ThresholdPair, temp: ThresholdPair) {
+        self.cpu = cpu
+        self.temp = temp
     }
 
     init?(rawValue: String) {
         guard let data = rawValue.data(using: .utf8),
-              let o = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let cpuObject = object["cpu"] as? [String: Double],
+              let tempObject = object["temp"] as? [String: Double],
+              let cpuWarn = cpuObject["warn"], let cpuCrit = cpuObject["crit"],
+              let tempWarn = tempObject["warn"], let tempCrit = tempObject["crit"]
         else { return nil }
-        func pair(_ k: String) -> ThresholdPair? {
-            guard let p = o[k] as? [String: Double], let w = p["warn"], let c = p["crit"] else { return nil }
-            return ThresholdPair(warn: w, crit: c)
-        }
-        guard let c = pair("cpu"), let m = pair("mem"), let t = pair("temp") else { return nil }
-        let byPressure = o["memColorByPressure"] as? Bool ?? true
-        self.init(cpu: c, mem: m, temp: t, memColorByPressure: byPressure)
+        self.init(cpu: ThresholdPair(warn: cpuWarn, crit: cpuCrit),
+                  temp: ThresholdPair(warn: tempWarn, crit: tempCrit))
     }
 
     var rawValue: String {
-        let o: [String: Any] = [
+        let object: [String: [String: Double]] = [
             "cpu": ["warn": cpu.warn, "crit": cpu.crit],
-            "mem": ["warn": mem.warn, "crit": mem.crit],
             "temp": ["warn": temp.warn, "crit": temp.crit],
-            "memColorByPressure": memColorByPressure,
         ]
-        guard let data = try? JSONSerialization.data(withJSONObject: o),
-              let s = String(data: data, encoding: .utf8) else { return "{}" }
-        return s
+        guard let data = try? JSONSerialization.data(withJSONObject: object),
+              let value = String(data: data, encoding: .utf8) else { return "" }
+        return value
     }
 
     /// Explicit memberwise equality. Without this, `==` resolves to a `rawValue`-string
@@ -122,8 +117,7 @@ struct Thresholds: Equatable, Sendable, RawRepresentable {
     /// non-deterministic key order — so two value-equal `Thresholds` compare unequal almost
     /// every time. Compare the fields directly instead.
     static func == (lhs: Thresholds, rhs: Thresholds) -> Bool {
-        lhs.cpu == rhs.cpu && lhs.mem == rhs.mem && lhs.temp == rhs.temp
-            && lhs.memColorByPressure == rhs.memColorByPressure
+        lhs.cpu == rhs.cpu && lhs.temp == rhs.temp
     }
 }
 
@@ -262,7 +256,6 @@ enum Defaults {
     static let cardOrder = CardOrder([.power, .battery, .cpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
     static let thresholds = Thresholds(
         cpu: ThresholdPair(warn: 70, crit: 90),
-        mem: ThresholdPair(warn: 70, crit: 85),
         temp: ThresholdPair(warn: 70, crit: 90))
     /// Fan curve: target RPMs at the fixed 30…100 °C anchors (5° steps). A gentle ramp — quiet
     /// at idle, spinning up toward the fan's top end under sustained heat.

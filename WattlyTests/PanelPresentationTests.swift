@@ -52,13 +52,19 @@ struct PanelPresentationTests {
         #expect(CardPresentation.compactRowText(.power, s) == "읽기 불가")
     }
 
-    @Test func ecoPollingCopyMatchesProviderBudget() {
-        #expect(pollingDescription(for: .eco) ==
-            "자동: 패널 열림은 CPU·전력 1초/온도 2초/메모리·배터리 5초, 닫힘은 메뉴바에 표시한 지표만 2초마다 갱신합니다. 메뉴바 텍스트를 끄면 지표 폴링을 멈춥니다.")
+    @Test func automaticEcoPollingCopyMatchesProviderBudget() {
+        #expect(pollingDescription(for: .auto, mode: .eco) ==
+            "자동 · 절전: 패널을 열면 CPU·전력은 1초, 온도는 2초, 메모리·배터리는 5초마다 갱신합니다. 패널을 닫으면 메뉴바에 표시한 지표만 2초마다 갱신하며, 메뉴바 텍스트를 끄면 지표 갱신을 멈춥니다.")
     }
 
-    @Test func performancePollingCopyMatchesActiveProviderCadence() {
-        #expect(pollingDescription(for: .performance) ==
-            "자동: 패널 열림은 활성 지표를 1초마다, 닫힘은 메뉴바 텍스트 표시 시 2초마다, 끄면 5초마다 갱신합니다.")
+    @Test func automaticAlwaysLatestPollingCopyMatchesProviderBudget() {
+        #expect(pollingDescription(for: .auto, mode: .performance) ==
+            "자동 · 항상 최신: 패널을 열면 활성 지표를 1초마다 갱신합니다. 패널을 닫으면 메뉴바 텍스트 표시 시 2초마다, 끄면 5초마다 갱신합니다.")
+    }
+
+    @Test func fixedPollingCopyNamesTheSelectedInterval() {
+        #expect(pollingDescription(for: .s1, mode: .eco) == "패널 상태와 관계없이 활성 지표를 1초마다 갱신합니다.")
+        #expect(pollingDescription(for: .s2, mode: .performance) == "패널 상태와 관계없이 활성 지표를 2초마다 갱신합니다.")
+        #expect(pollingDescription(for: .s5, mode: .eco) == "패널 상태와 관계없이 활성 지표를 5초마다 갱신합니다.")
     }
 }

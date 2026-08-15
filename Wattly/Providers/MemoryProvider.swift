@@ -42,8 +42,8 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
             processLimit = memoryProcessLimit(nil)
             procs = []
         }
-        // Kernel memory-pressure verdict — cheap scalar read every poll (no gating). nil on
-        // failure → the card falls back to the used% band (CardPresentation).
+        // Kernel memory-pressure verdict. A failed sysctl yields nil; presentation keeps the
+        // memory card neutral rather than substituting an occupancy-based warning level.
         let pressure = Self.sysctlInt32("kern.memorystatus_vm_pressure_level").map(MemoryPressure.init(fromSysctl:))
         // Exact RAM-pressure percentage (Activity Monitor "메모리 압력") — the sub-line readout.
         let pressurePercent = Self.pressurePercent()
