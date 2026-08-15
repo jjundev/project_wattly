@@ -18,7 +18,7 @@ struct FanCurvePresetTests {
     @Test func silentPresetProvidesZeroRPMHoldRange() {
         let silentCurve = FanCurvePreset.silent.curve
         #expect(silentCurve.rpms.first == 0)
-        #expect(FanCurveGeometry.zeroRPMHoldRange(for: silentCurve) == 48...50)
+        #expect(FanCurveGeometry.zeroRPMHoldRange(for: silentCurve) == 48...55)
         #expect(FanCurvePreset.matchingPreset(for: silentCurve) == .silent)
     }
 

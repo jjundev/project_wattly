@@ -24,8 +24,8 @@ enum FanCurvePreset: String, CaseIterable, Sendable, Identifiable {
         case .balanced:
             return FanCurve(rpms: [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])
         case .silent:
-            // 30°C..50°C at 0 RPM (5 anchors), then ramp up to allow 48..50°C zero-RPM hold range
-            return FanCurve(rpms: [0, 0, 0, 0, 0, 1000, 1500, 2000, 2600, 3400, 4400, 5600, 6600, 7200, 7400])
+            // 30°C..55°C at 0 RPM (6 anchors), then ramp up to allow full 48..55°C zero-RPM hold range
+            return FanCurve(rpms: [0, 0, 0, 0, 0, 0, 1200, 1800, 2500, 3400, 4400, 5600, 6600, 7200, 7400])
         case .performance:
             return FanCurve(rpms: [1500, 1800, 2200, 2800, 3500, 4200, 4800, 5400, 6000, 6500, 7000, 7400, 7400, 7400, 7400])
         case .fullSpeed:
