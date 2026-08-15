@@ -175,8 +175,9 @@ final class FanControlEngine {
             for fan in controlled {
                 let target = FanControlPolicy.targetRPM(curve: configuration.curve,
                                                         hottestCPU: hottestCPU,
-                                                        limits: try hardware.limits(for: fan.index))
-                guard target.isFinite, target > 0 else {
+                                                        limits: try hardware.limits(for: fan.index),
+                                                        wasZeroRPM: false)
+                guard let target, target.isFinite, target > 0 else {
                     throw FanControlFailure.invalidTarget(fan.index)
                 }
                 try hardware.setTarget(index: fan.index, rpm: target)
