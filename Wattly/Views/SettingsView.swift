@@ -836,21 +836,48 @@ struct SettingsView: View {
 
     // MARK: 백그라운드 갱신
 
+    private var refreshPresetBinding: Binding<BackgroundRefreshPreset> {
+        Binding(
+            get: {
+                BackgroundRefreshPreset.resolve(interval: pollInterval, mode: powerMode)
+            },
+            set: { newPreset in
+                switch newPreset {
+                case .eco:
+                    powerMode = .eco
+                    pollInterval = .auto
+                case .performance:
+                    powerMode = .performance
+                    pollInterval = .auto
+                case .custom:
+                    if pollInterval == .auto {
+                        pollInterval = .s2
+                    }
+                }
+            }
+        )
+    }
+
     private var backgroundUpdateSection: some View {
         SettingsSection(title: "백그라운드 갱신") {
             SettingsCard(padding: Tokens.cardPadding) {
                 VStack(alignment: .leading, spacing: 10) {
-                    WattlySegment(selection: $powerMode, options: [
-                        (.eco, PowerMode.eco.label),
-                        (.performance, PowerMode.performance.label),
+                    WattlySegment(selection: refreshPresetBinding, options: [
+                        (.eco, BackgroundRefreshPreset.eco.label),
+                        (.performance, BackgroundRefreshPreset.performance.label),
+                        (.custom, BackgroundRefreshPreset.custom.label),
                     ])
-                    Rectangle().fill(t.line).frame(height: 1)
-                    Text("갱신 주기")
-                        .font(WattlyFont.at(11.5, weight: .regular))
-                        .foregroundStyle(t.faint)
-                    WattlySegment(selection: $pollInterval,
-                                  options: PollInterval.allCases.map { ($0, $0.label) },
-                                  pillVPadding: 6)
+
+                    if pollInterval != .auto {
+                        Rectangle().fill(t.line).frame(height: 1)
+                        Text("갱신 주기")
+                            .font(WattlyFont.at(11.5, weight: .regular))
+                            .foregroundStyle(t.faint)
+                        WattlySegment(selection: $pollInterval,
+                                      options: PollInterval.allCases.filter { $0 != .auto }.map { ($0, $0.label) },
+                                      pillVPadding: 6)
+                    }
+
                     Text(pollingDescription(for: pollInterval, mode: powerMode))
                         .font(WattlyFont.at(11.5, weight: .regular))
                         .foregroundStyle(t.faint)
