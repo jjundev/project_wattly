@@ -39,6 +39,7 @@ final class FanControlEngine {
     private var latestClientCommandGeneration: UInt64?
     private var lastHeartbeat: TimeInterval?
     private var controlled: [ControlledFan] = []
+    private var zeroRPMFans = Set<Int>()
     private var pendingManual: [PendingManual] = []
     private var engagementGeneration: UInt64?
     private var nextAutomaticRetryAt: TimeInterval?
@@ -124,6 +125,7 @@ final class FanControlEngine {
     func resetAllFansToAutomatic(now: TimeInterval) {
         startupRecoveryPending = true
         configuration = nil
+        zeroRPMFans.removeAll()
         lastHeartbeat = nil
         pendingManual.removeAll()
         engagementGeneration = nil
@@ -176,9 +178,14 @@ final class FanControlEngine {
                 let target = FanControlPolicy.targetRPM(curve: configuration.curve,
                                                         hottestCPU: hottestCPU,
                                                         limits: try hardware.limits(for: fan.index),
-                                                        wasZeroRPM: false)
-                guard let target, target.isFinite, target > 0 else {
+                                                        wasZeroRPM: zeroRPMFans.contains(fan.index))
+                guard let target, target.isFinite, target >= 0 else {
                     throw FanControlFailure.invalidTarget(fan.index)
+                }
+                if target == 0 {
+                    zeroRPMFans.insert(fan.index)
+                } else {
+                    zeroRPMFans.remove(fan.index)
                 }
                 try hardware.setTarget(index: fan.index, rpm: target)
             }
@@ -208,6 +215,7 @@ final class FanControlEngine {
 
     private func releaseAccepted(now: TimeInterval, reason: String) {
         configuration = nil
+        zeroRPMFans.removeAll()
         lastHeartbeat = nil
         pendingManual.removeAll()
         engagementGeneration = nil
