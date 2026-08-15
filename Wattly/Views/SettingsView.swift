@@ -516,11 +516,8 @@ struct SettingsView: View {
             // Bool `enabled` toggle does — hence toggling re-applied but editing didn't). Push the
             // edited curve to the client from here, the instance that actually mutates it. Guarded
             // on the opt-in; a double-apply if the bridge ever fires too is harmless (the client's
-            // commands are generation-stamped, last-write-wins).
             .onChange(of: fanCurve) { _, newCurve in
-                guard fanControlEnabled else { return }
-                editApplyDeadline = Date().addingTimeInterval(5)
-                Task { await fanControl.apply(enabled: true, curve: newCurve) }
+                applyCurve(newCurve)
             }
             // Turning the opt-in ON while the helper isn't installed auto-runs the in-app installer
             // (one macOS admin-auth prompt). On success the curve is applied to engage control; if
@@ -544,6 +541,19 @@ struct SettingsView: View {
         }
     }
 
+    private func applyCurve(_ newCurve: FanCurve) {
+        guard fanControlEnabled else { return }
+        editApplyDeadline = Date().addingTimeInterval(5)
+        Task {
+            await fanControl.apply(enabled: true, curve: newCurve)
+            await monitor.pollScheduled(forceProviders: [.fan])
+            for _ in 0..<10 {
+                try? await Task.sleep(for: .milliseconds(500))
+                await monitor.pollScheduled(forceProviders: [.fan])
+            }
+        }
+    }
+
     private var activeMaxFanRPM: Double {
         monitor.hardwareMaxFanRPM ?? FanCurvePreset.defaultMaxRPM
     }
@@ -554,7 +564,9 @@ struct SettingsView: View {
             set: { newPreset in
                 guard let preset = newPreset else { return }
                 fanCurvePreview = nil
-                fanCurve = preset.curve(forMaxRPM: activeMaxFanRPM)
+                let newCurve = preset.curve(forMaxRPM: activeMaxFanRPM)
+                fanCurve = newCurve
+                applyCurve(newCurve)
             }
         )
     }

@@ -67,7 +67,7 @@ final class FanControlEngine {
     /// Convenience entry point for in-process callers and tests. XPC callers must use their
     /// client-issued generation overload below.
     func configure(_ configuration: FanControlConfiguration, now: TimeInterval) throws {
-        configureAccepted(configuration, now: now)
+        try configureAccepted(configuration, now: now)
     }
 
     /// Applies a state-changing client command only if it is newer than every accepted command.
@@ -76,10 +76,10 @@ final class FanControlEngine {
                    clientGeneration: UInt64,
                    now: TimeInterval) throws {
         guard acceptClientCommand(generation: clientGeneration) else { return }
-        configureAccepted(configuration, now: now)
+        try configureAccepted(configuration, now: now)
     }
 
-    private func configureAccepted(_ configuration: FanControlConfiguration, now: TimeInterval) {
+    private func configureAccepted(_ configuration: FanControlConfiguration, now: TimeInterval) throws {
         configurationGeneration &+= 1
         pendingManual.removeAll()
         engagementGeneration = nil
@@ -91,15 +91,12 @@ final class FanControlEngine {
         }
 
         // Live update while already controlling (e.g. an edited fan curve): swap the configuration
-        // in place and keep control engaged. Requiring a release/re-engage here would DROP the new
-        // curve — the daemon would keep evaluating the old one and the fan would never follow graph
-        // edits. `configurationGeneration` was already bumped above, so the next `tick` re-evaluates
-        // with the new curve; `engageIfNeeded` sees the fans already in `controlled` and re-engages
-        // nothing.
+        // in place, keep control engaged, and immediately evaluate/write the new target RPM without
+        // waiting for the next timer tick.
         if self.configuration != nil, !controlled.isEmpty {
             self.configuration = configuration
             lastHeartbeat = now
-            status = .init(mode: .controlling, detail: "curve updated", updatedAt: now)
+            try tick(now: now)
             return
         }
 
