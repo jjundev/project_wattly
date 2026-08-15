@@ -214,7 +214,7 @@ struct SettingsView: View {
                 SettingsToggleRow(isOn: loginBinding, divider: false) {
                     VStack(alignment: .leading, spacing: 2) {
                         rowTitle("로그인 시 자동 실행")
-                        Text("Mac에 로그인하면 Wattly가 메뉴 막대에서 자동으로 시작됩니다.")
+                        Text("Mac에 로그인하면 Wattly가 메뉴바에서 자동으로 시작됩니다.")
                             .font(WattlyFont.at(11.5, weight: .regular))
                             .foregroundStyle(t.faint)
                     }
@@ -276,11 +276,11 @@ struct SettingsView: View {
     private var layoutDescription: String {
         switch panelMode {
         case .a:
-            "각 지표를 세로로 표시합니다. 카드 펼침과 순서 변경을 사용할 수 있습니다."
+            "모든 지표를 카드 형태로 세로 배치합니다. 세부 정보 펼침과 순서 변경을 지원합니다."
         case .b:
-            "여러 지표를 한눈에 비교하기 좋습니다. 카드 순서는 스택 행 레이아웃에서 팝오버의 편집 버튼으로 변경할 수 있습니다."
+            "2열 그리드로 지표를 콤팩트하게 배치하여 한눈에 확인하기 좋습니다."
         case .c:
-            "선택한 지표를 크게 보고 나머지는 목록으로 표시합니다. 카드 순서는 스택 행 레이아웃에서 팝오버의 편집 버튼으로 변경할 수 있습니다."
+            "주요 지표 하나를 상단에 강조하고 나머지는 목록으로 표시합니다."
         }
     }
 
@@ -343,7 +343,7 @@ struct SettingsView: View {
                                 .font(WattlyFont.at(11.5, weight: .regular))
                                 .foregroundStyle(t.faint)
                             if !monitor.isPresent(.battery) {
-                                Text("이 Mac에서는 사용할 수 없음")
+                                Text("이 Mac에서는 사용할 수 없습니다")
                                     .font(WattlyFont.at(11.5, weight: .regular))
                                     .foregroundStyle(t.faint)
                             }
@@ -353,8 +353,8 @@ struct SettingsView: View {
                 }
                 metricToggle(.cpu, isOn: $showCPU, divider: true, title: "CPU 사용률")
                 metricToggle(.mem, isOn: $showMem, divider: true, title: "메모리")
-                metricToggle(.cpuTemp, isOn: $showCpuTemp, divider: true, title: "CPU 온도", suffix: "· 최고값")
-                metricToggle(.gpuTemp, isOn: $showGpuTemp, divider: true, title: "GPU 온도", suffix: "· 최고값")
+                metricToggle(.cpuTemp, isOn: $showCpuTemp, divider: true, title: "CPU 온도")
+                metricToggle(.gpuTemp, isOn: $showGpuTemp, divider: true, title: "GPU 온도")
                 metricToggle(.batTemp, isOn: $showBatTemp, divider: true, title: "배터리 온도")
                 metricToggle(.fan, isOn: $showFan, divider: false, title: "팬 속도")
             }
@@ -369,7 +369,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 2) {
                 if let suffix { rowTitleWithSuffix(title, suffix) } else { rowTitle(title) }
                 if !isAvailable {
-                    Text("이 Mac에서는 사용할 수 없음")
+                    Text("이 Mac에서는 사용할 수 없습니다")
                         .font(WattlyFont.at(11.5, weight: .regular))
                         .foregroundStyle(t.faint)
                 }
@@ -393,12 +393,6 @@ struct SettingsView: View {
                         .font(WattlyFont.at(11.5, weight: .regular))
                         .foregroundStyle(t.faint)
                         .fixedSize(horizontal: false, vertical: true)
-                    if panelMode == .b {
-                        Text("카드 그리드에서는 메모리 카드 펼침 목록을 볼 수 없습니다.")
-                            .font(WattlyFont.at(11.5, weight: .regular))
-                            .foregroundStyle(t.faint)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
                 }
             }
         }
@@ -418,12 +412,6 @@ struct SettingsView: View {
                         .font(WattlyFont.at(11.5, weight: .regular))
                         .foregroundStyle(t.faint)
                         .fixedSize(horizontal: false, vertical: true)
-                    if panelMode == .b {
-                        Text("카드 그리드에서는 프로세서 전력 카드 펼침 목록을 볼 수 없습니다.")
-                            .font(WattlyFont.at(11.5, weight: .regular))
-                            .foregroundStyle(t.faint)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
                 }
             }
         }
@@ -782,7 +770,7 @@ struct SettingsView: View {
                 SettingsToggleRow(isOn: $menubarText, divider: true) {
                     VStack(alignment: .leading, spacing: 2) {
                         rowTitle("텍스트 표시")
-                        Text("아이콘 옆에 선택한 지표를 함께 표시")
+                        Text("메뉴바 아이콘 옆에 선택한 지표를 함께 표시합니다.")
                             .font(WattlyFont.at(11.5, weight: .regular))
                             .foregroundStyle(t.faint)
                     }
