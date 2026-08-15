@@ -474,7 +474,11 @@ struct SettingsView: View {
                 .foregroundStyle(t.text)
             VStack(alignment: .leading, spacing: 5) {
                 Text("• 곡선이 0 RPM을 지시할 때만 작동")
-                Text("• \(entry)°C 미만: 팬 정지")
+                if holdRange.lowerBound == FanControlPolicy.zeroRPMEnterCelsius {
+                    Text("• 48°C 미만: 팬 정지")
+                } else {
+                    Text("• \(entry)°C 미만: 곡선 설정에 따라 제어")
+                }
                 Text("• \(entry)–\(exit)°C: 현재 정지·회전 상태 유지")
                 Text("• \(recoveryBoundary): 기본 최소 RPM 이상으로 복귀")
             }
