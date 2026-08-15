@@ -37,6 +37,7 @@ struct SettingsResetTests {
         d.set(false, forKey: StorageKey.menubarTextEnabled)
         d.set(false, forKey: StorageKey.powerSmoothed)
         d.set(7, forKey: StorageKey.memoryProcessLimit)
+        d.set(7, forKey: StorageKey.powerProcessLimit)
         d.set("xyz", forKey: StorageKey.expandedCards)
 
         SettingsReset.applyDefaults(into: d, login: nil)
@@ -50,6 +51,8 @@ struct SettingsResetTests {
         #expect(d.bool(forKey: StorageKey.powerSmoothed) == Defaults.powerSmoothed)
         #expect(d.object(forKey: StorageKey.memoryProcessLimit) != nil)
         #expect(d.integer(forKey: StorageKey.memoryProcessLimit) == Defaults.memoryProcessLimit)
+        #expect(d.object(forKey: StorageKey.powerProcessLimit) != nil)
+        #expect(d.integer(forKey: StorageKey.powerProcessLimit) == Defaults.powerProcessLimit)
         #expect(d.string(forKey: StorageKey.expandedCards) == "")          // 가정 C
         // Decode back rather than compare raw strings: CardOrder's CSV is deterministic, but
         // Thresholds serializes a dictionary whose JSON key order is not — compare by value.

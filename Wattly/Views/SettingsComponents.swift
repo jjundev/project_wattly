@@ -50,6 +50,7 @@ private extension ColorScheme {
 
 struct WattlyToggle: View {
     @Binding var isOn: Bool
+    let isEnabled: Bool
     @Environment(\.colorScheme) private var scheme
     @FocusState private var focused: Bool
 
@@ -66,11 +67,12 @@ struct WattlyToggle: View {
         }
         .frame(width: 38, height: 22)
         .contentShape(Rectangle())
-        .onTapGesture { toggle() }
-        .focusable()
+        .onTapGesture { guard isEnabled else { return }; toggle() }
+        .focusable(isEnabled)
         .focused($focused)
-        .onKeyPress(.space) { toggle(); return .handled }
-        .onKeyPress(.return) { toggle(); return .handled }
+        .onKeyPress(.space) { guard isEnabled else { return .ignored }; toggle(); return .handled }
+        .onKeyPress(.return) { guard isEnabled else { return .ignored }; toggle(); return .handled }
+        .opacity(isEnabled ? 1 : 0.5)
         .wattlyFocusRing(focused, cornerRadius: 11)
         // The combined `SettingsToggleRow` owns the VoiceOver element (label + 켜짐/꺼짐 +
         // actuation, issue 15 §11) — the bare switch is hidden so it isn't a duplicate stop.
@@ -129,10 +131,21 @@ struct WattlySegment<T: Hashable>: View {
 struct WattlyChip: View {
     let label: String
     let isOn: Bool
+    var isEnabled: Bool = true
+    var disabledReason: String? = nil
     let action: () -> Void
     @Environment(\.colorScheme) private var scheme
     @Environment(\.tokens) private var t
     @FocusState private var focused: Bool
+
+    init(label: String, isOn: Bool, isEnabled: Bool = true, disabledReason: String? = nil,
+         action: @escaping () -> Void) {
+        self.label = label
+        self.isOn = isOn
+        self.isEnabled = isEnabled
+        self.disabledReason = disabledReason
+        self.action = action
+    }
 
     var body: some View {
         Text(label)
@@ -146,13 +159,16 @@ struct WattlyChip: View {
                     .shadow(color: isOn ? scheme.segActiveShadow : .clear, radius: 1, x: 0, y: 1)
             )
             .contentShape(Rectangle())
-            .onTapGesture(perform: action)
-            .focusable()
+            .onTapGesture { guard isEnabled else { return }; action() }
+            .focusable(isEnabled)
             .focused($focused)
-            .onKeyPress(.space) { action(); return .handled }
-            .onKeyPress(.return) { action(); return .handled }
+            .onKeyPress(.space) { guard isEnabled else { return .ignored }; action(); return .handled }
+            .onKeyPress(.return) { guard isEnabled else { return .ignored }; action(); return .handled }
+            .opacity(isEnabled ? 1 : 0.45)
             .wattlyFocusRing(focused, cornerRadius: 6)
             .accessibilityAddTraits(isOn ? [.isButton, .isSelected] : .isButton)
+            .accessibilityHint(isEnabled ? "" : (disabledReason ?? "사용할 수 없습니다"))
+            .accessibilityAction { guard isEnabled else { return }; action() }
     }
 }
 
@@ -213,15 +229,26 @@ struct SettingsCard<Content: View>: View {
 struct SettingsToggleRow<Label: View>: View {
     @Binding var isOn: Bool
     let divider: Bool
+    var isEnabled: Bool = true
+    var disabledReason: String? = nil
     @ViewBuilder var label: () -> Label
     @Environment(\.tokens) private var t
+
+    init(isOn: Binding<Bool>, divider: Bool, isEnabled: Bool = true, disabledReason: String? = nil,
+         @ViewBuilder label: @escaping () -> Label) {
+        _isOn = isOn
+        self.divider = divider
+        self.isEnabled = isEnabled
+        self.disabledReason = disabledReason
+        self.label = label
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(alignment: .center, spacing: 8) {
                 label()
                 Spacer(minLength: 8)
-                WattlyToggle(isOn: $isOn)
+                WattlyToggle(isOn: $isOn, isEnabled: isEnabled)
             }
             .padding(EdgeInsets(top: 10, leading: 14, bottom: 10, trailing: 14))
             if divider {
@@ -232,9 +259,11 @@ struct SettingsToggleRow<Label: View>: View {
         // state as a spoken value + a toggle action (issue 15 §11). The state copy lives
         // HERE, not on `WattlyToggle` — the `.isSelected` trait alone is announced as
         // "선택됨", not "켜짐/꺼짐".
+        .opacity(isEnabled ? 1 : 0.55)
         .accessibilityElement(children: .combine)
         .accessibilityValue(isOn ? "켜짐" : "꺼짐")
-        .accessibilityAddTraits(.isButton)
-        .accessibilityAction { isOn.toggle() }
+        .accessibilityAddTraits(isEnabled ? .isButton : .isStaticText)
+        .accessibilityHint(isEnabled ? "" : (disabledReason ?? "사용할 수 없습니다"))
+        .accessibilityAction { guard isEnabled else { return }; isOn.toggle() }
     }
 }

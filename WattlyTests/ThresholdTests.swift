@@ -29,13 +29,6 @@ struct ThresholdTests {
         #expect(CardPresentation.thresholdLevel(.cpu, cpu(95), th) == .crit)
     }
 
-    @Test func memoryComparesPercentNotGB() {
-        let th = Defaults.thresholds       // mem 70/85
-        #expect(CardPresentation.thresholdLevel(.mem, mem(used: 8,  total: 16), th) == .normal) // 50%
-        #expect(CardPresentation.thresholdLevel(.mem, mem(used: 12, total: 16), th) == .warn)   // 75%
-        #expect(CardPresentation.thresholdLevel(.mem, mem(used: 14, total: 16), th) == .crit)   // 87.5%
-    }
-
     @Test func thresholdsEqualityIsMemberwiseNotRawValue() {
         // Regression (issue 13): `Thresholds` is RawRepresentable, so without an explicit `==`
         // it compares its JSON `rawValue` — whose dictionary key order is non-deterministic —
@@ -47,45 +40,26 @@ struct ThresholdTests {
         }
         // A genuine value difference must still register as unequal.
         var changed = Defaults.thresholds
-        changed.cpu.warn += 1
+        changed.temp.warn += 1
         #expect(changed != Defaults.thresholds)
     }
 
-    @Test func memoryColorsByPressureWhenEnabled() {
-        // Toggle ON (Defaults.thresholds.memColorByPressure == true): pressure wins over
-        // occupancy — 50% used but kernel says CRITICAL → crit; 90% used but NORMAL → normal.
+    @Test func memoryColorAlwaysUsesKernelPressure() {
         let th = Defaults.thresholds
-        #expect(th.memColorByPressure)
         #expect(CardPresentation.thresholdLevel(.mem, mem(used: 8, total: 16, pressure: .critical), th) == .crit)
         #expect(CardPresentation.thresholdLevel(.mem, mem(used: 14, total: 16, pressure: .normal), th) == .normal)
         #expect(CardPresentation.thresholdLevel(.mem, mem(used: 8, total: 16, pressure: .warn), th) == .warn)
     }
 
-    @Test func memoryPressureFallsBackToPercentWhenNilOrDisabled() {
-        // Toggle ON but pressure unavailable (sysctl failed) → occupancy band. 87.5% → crit.
-        let on = Defaults.thresholds
-        #expect(CardPresentation.thresholdLevel(.mem, mem(used: 14, total: 16, pressure: nil), on) == .crit)
-        // Toggle OFF → occupancy band even when pressure is present. 50% used → normal,
-        // ignoring the CRITICAL pressure reading.
-        var off = Defaults.thresholds
-        off.memColorByPressure = false
-        #expect(CardPresentation.thresholdLevel(.mem, mem(used: 8, total: 16, pressure: .critical), off) == .normal)
+    @Test func memoryColorIsNilWithoutKernelPressure() {
+        #expect(CardPresentation.thresholdLevel(.mem, mem(used: 14, total: 16, pressure: nil), Defaults.thresholds) == nil)
     }
 
-    @Test func thresholdsRawValueRoundTripsMemColorByPressure() {
-        // The toggle rides the Thresholds JSON. Round-trip preserves it…
-        var off = Defaults.thresholds
-        off.memColorByPressure = false
-        #expect(Thresholds(rawValue: off.rawValue)?.memColorByPressure == false)
-        #expect(Thresholds(rawValue: off.rawValue) == off)
-        // …and older persisted JSON (no key) decodes to true (backward-compat default).
-        let legacy = #"{"cpu":{"warn":70,"crit":90},"mem":{"warn":70,"crit":85},"temp":{"warn":70,"crit":90}}"#
-        #expect(Thresholds(rawValue: legacy)?.memColorByPressure == true)
-    }
-
-    @Test func memoryZeroTotalIsNormalNotNil() {
-        // A value with totalGB=0 is still a value → 0%, not nil (nil is reserved for no-value).
-        #expect(CardPresentation.thresholdLevel(.mem, mem(used: 5, total: 0), Defaults.thresholds) == .normal)
+    @Test func thresholdsIgnoreRemovedMemoryFieldsWhenDecodingLegacyData() {
+        let legacy = #"{"cpu":{"warn":70,"crit":90},"mem":{"warn":70,"crit":85},"temp":{"warn":70,"crit":90},"memColorByPressure":false}"#
+        #expect(Thresholds(rawValue: legacy) == Thresholds(
+            cpu: ThresholdPair(warn: 70, crit: 90),
+            temp: ThresholdPair(warn: 70, crit: 90)))
     }
 
     @Test func temperatureCardsShareOnePair() {

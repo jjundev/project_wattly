@@ -22,7 +22,7 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
     private let now: @Sendable () -> ContinuousClock.Instant
 
     /// Per-app power (issue 16 follow-up). Swept ONLY while the power card's expand is
-    /// on-screen (gated like `MemoryProvider`'s Top-3), so the routine poll stays cheap.
+    /// on-screen (gated like `MemoryProvider`'s expanded process list), so the routine poll stays cheap.
     /// Prev per-pid energy snapshot (nanojoules) + its instant; nil ⇒ baseline only.
     private var enumerating = false
     private var prevProcEnergy: [Int32: UInt64]?
@@ -94,7 +94,7 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
 
     // MARK: Per-app power (issue 16 follow-up) — gated per-pid energy sweep
 
-    /// Top-3 power-consuming APPS, or nil when not yet measurable (the first sweep after
+    /// Top-N power-consuming apps, or nil when not yet measurable (the first sweep after
     /// enable has no delta, or a dt anomaly → re-baseline + "측정 중…"). `[]` = measured but
     /// nothing readable consuming. Per-pid watts are coalesced into the owning `.app` so an
     /// Electron app's helpers (Claude, Chrome, …) sum into one row instead of each being
@@ -113,7 +113,9 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
         for (pid, _) in perPid {
             appKey[pid] = appBundlePath(forExecutable: pidPath(pid)) ?? "PID \(pid)"
         }
-        return topAppPower(perPidWatts: perPid, appKey: appKey, limit: 3).map { group in
+        let limit = powerProcessLimit(
+            UserDefaults.standard.object(forKey: StorageKey.powerProcessLimit) as? Int)
+        return topAppPower(perPidWatts: perPid, appKey: appKey, limit: limit).map { group in
             ProcessPower(id: group.key,
                          name: appDisplayName(forKey: group.key),
                          watts: group.watts,

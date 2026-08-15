@@ -42,6 +42,13 @@ func topAppPower(perPidWatts: [(pid: Int32, watts: Double)],
         .map { (key: $0.key, watts: $0.value) }
 }
 
+/// Clamp the persisted processor-power expanded-list size to the supported 3...7 range.
+/// The provider applies this at the pure ranking seam so malformed defaults cannot bypass the
+/// Settings control's options.
+func powerProcessLimit(_ persisted: Int?) -> Int {
+    min(7, max(3, persisted ?? Defaults.powerProcessLimit))
+}
+
 /// Display name for an app group key: the `.app` basename minus ".app" (e.g.
 /// "/Applications/Claude.app" → "Claude"), else the path basename (a CLI), else the key.
 func appDisplayName(forKey key: String) -> String {

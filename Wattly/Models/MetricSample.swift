@@ -45,9 +45,8 @@ struct MemorySample: Sendable, Equatable {
     /// chain synthesises `Equatable` through this field.
     var processes: [ProcessUsage] = []
     /// The kernel's memory-pressure verdict (`kern.memorystatus_vm_pressure_level`).
-    /// Drives the card color when `Thresholds.memColorByPressure` is on (the macOS
-    /// "활성 상태 보기" model: color by pressure, not occupancy). `nil` = sysctl
-    /// unavailable → the card falls back to the used% threshold band.
+    /// Drives the card color using the macOS "활성 상태 보기" model. `nil` = sysctl
+    /// unavailable → the memory card has no warning or critical color.
     var pressure: MemoryPressure? = nil
     /// The kernel's RAM-pressure percentage (0–100), from `memorystatus_get_level` — the
     /// same number Activity Monitor's "메모리 압력" graph shows (`100 − free%`). Distinct from
