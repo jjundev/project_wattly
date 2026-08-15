@@ -373,7 +373,7 @@ struct SettingsView: View {
                 SettingsToggleRow(isOn: $fanControlEnabled, divider: true) {
                     VStack(alignment: .leading, spacing: 2) {
                         rowTitle("팬 커브 실제 적용")
-                        Text("Wattly가 macOS 기본 최소 RPM 이상으로만 팬을 제어합니다. Macs Fan Control은 종료해야 합니다.")
+                        Text("0 RPM 구역은 곡선 값이 0일 때만 적용됩니다. 48°C 미만에서는 팬을 정지시키고, 주황색 48–55°C 구간에서는 현재 상태를 유지하며, 55°C부터 기본 최소 RPM 이상으로 복귀합니다. 95°C에서는 최대 속도로 보호합니다. Macs Fan Control은 종료해야 합니다.")
                             .font(WattlyFont.at(11.5, weight: .regular))
                             .foregroundStyle(t.faint)
                             .fixedSize(horizontal: false, vertical: true)
@@ -398,6 +398,17 @@ struct SettingsView: View {
                         .buttonStyle(.plain)
                         .accessibilityLabel("팬 커브 기본값으로 되돌리기")
                     }
+                    HStack(spacing: 6) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Tokens.statusOrange.opacity(0.12))
+                            .overlay(RoundedRectangle(cornerRadius: 2).stroke(Tokens.statusOrange.opacity(0.8), lineWidth: 1))
+                            .frame(width: 14, height: 10)
+                        Text("Zero Fan 상태 유지 48–55°C · 정지 중이면 0 RPM, 회전 중이면 기본 최소 RPM 이상")
+                            .font(WattlyFont.at(10.5, weight: .regular))
+                            .foregroundStyle(t.faint)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .accessibilityElement(children: .combine)
                     FanCurveEditor(curve: $fanCurve, currentCPU: currentHottestCPU)
                 }
                 .padding(EdgeInsets(top: 12, leading: 14, bottom: 14, trailing: 14))
