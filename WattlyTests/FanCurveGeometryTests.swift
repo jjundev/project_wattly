@@ -14,6 +14,37 @@ struct FanCurveGeometryTests {
         #expect(r.minY == 12);  #expect(r.maxY == 166)
     }
 
+    @Test func zeroRPMHoldBandUsesThePolicyEntryAndExitBoundariesWhenTheCurveStaysAtZero() {
+        let curve = FanCurve(rpms: [0, 0, 0, 0, 0, 0, 0, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400])
+        let band = FanCurveGeometry.zeroRPMHoldBand(for: curve, in: size)
+        let plot = FanCurveGeometry.plotRect(in: size)
+        #expect(band?.minX == FanCurveGeometry.x(forCelsius: 48, in: size))
+        #expect(band?.maxX == FanCurveGeometry.x(forCelsius: 55, in: size))
+        #expect(band?.minY == plot.minY)
+        #expect(band?.maxY == plot.maxY)
+    }
+
+    @Test func zeroRPMHoldBandIsHiddenForANonzeroCurve() {
+        #expect(FanCurveGeometry.zeroRPMHoldRange(for: FanCurve(rpms: ramp)) == nil)
+    }
+
+    @Test func zeroRPMHoldBandShowsALaterPlateauInsideTheHoldWindow() {
+        let curve = FanCurve(rpms: [800, 900, 1000, 1200, 0, 0, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400, 8000])
+        #expect(FanCurveGeometry.zeroRPMHoldRange(for: curve) == 50...55)
+    }
+
+    @Test func zeroRPMHoldBandEndsWhenTheZeroPlateauEnds() {
+        let curve = FanCurve(rpms: [0, 0, 0, 0, 0, 100, 3000, 3600, 4200, 4800, 5500, 6200, 6800, 7400, 8000])
+        #expect(FanCurveGeometry.zeroRPMHoldRange(for: curve) == 48...50)
+    }
+
+    @Test func zeroRPMHoldBandRejectsMalformedCurves() {
+        #expect(FanCurveGeometry.zeroRPMHoldRange(for: FanCurve(rpms: [])) == nil)
+        var nonFinite = Array(repeating: 0.0, count: FanCurve.anchorsCelsius.count)
+        nonFinite[4] = .nan
+        #expect(FanCurveGeometry.zeroRPMHoldRange(for: FanCurve(rpms: nonFinite)) == nil)
+    }
+
     @Test func handlePointsSpanPlotWidthMonotonically() {
         let pts = FanCurveGeometry.handlePoints(ramp, in: size)
         #expect(pts.count == 15)

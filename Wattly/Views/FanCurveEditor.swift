@@ -6,22 +6,22 @@ import SwiftUI
 /// `FanCurveGeometry`; this view only renders it and wires the gesture. VoiceOver + keyboard
 /// adjustment of each anchor is layered on in the accessibility overlay (added separately).
 ///
-/// While a drag is in progress the edited RPMs live in `draftRPMs` (local `@State`), and the bound
-/// `curve` is written ONCE on release. Writing `@AppStorage` on every drag tick fired `onChange`
+/// While a drag is in progress the edited RPMs live in `previewCurve` (a parent-owned transient
+/// binding), and the persisted `curve` is written ONCE on release. Writing `@AppStorage` on every drag tick fired `onChange`
 /// (re-apply + re-render) on every tick, and the RawRepresentable `@AppStorage` round-trip could
 /// then serve a stale value back — leaving the graph stuck on the pre-edit curve. One commit per
 /// gesture avoids both.
 struct FanCurveEditor: View {
     @Binding var curve: FanCurve
+    @Binding var previewCurve: FanCurve?
     var currentCPU: Double?
     @Environment(\.tokens) private var t
 
     @State private var dragIndex: Int?
-    @State private var draftRPMs: [Double]?
     @FocusState private var focusedAnchor: Int?
 
     /// The RPMs to render: the live drag draft while dragging, else the bound curve.
-    private var displayRPMs: [Double] { draftRPMs ?? curve.rpms }
+    private var displayRPMs: [Double] { (previewCurve ?? curve).rpms }
 
     private static let viewHeight: CGFloat = 150
 
@@ -44,6 +44,19 @@ struct FanCurveEditor: View {
         Canvas { ctx, _ in
             let rect = FanCurveGeometry.plotRect(in: size)
             let rpms = displayRPMs
+
+            let displayCurve = FanCurve(rpms: rpms)
+            if let holdBand = FanCurveGeometry.zeroRPMHoldBand(for: displayCurve, in: size) {
+                ctx.fill(Path(holdBand), with: .color(Tokens.statusOrange.opacity(0.12)))
+
+                for boundary in [holdBand.minX, holdBand.maxX] {
+                    var marker = Path()
+                    marker.move(to: CGPoint(x: boundary, y: rect.minY))
+                    marker.addLine(to: CGPoint(x: boundary, y: rect.maxY))
+                    ctx.stroke(marker, with: .color(Tokens.statusOrange.opacity(0.8)),
+                               style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                }
+            }
 
             // horizontal grid + y labels (0…8k every 2k)
             for rpm in stride(from: 0.0, through: FanCurveGeometry.rpmMax, by: 2000) {
@@ -95,7 +108,7 @@ struct FanCurveEditor: View {
             if let cpu = currentCPU {
                 let markerC = min(max(cpu, FanCurveGeometry.celsiusMin), FanCurveGeometry.celsiusMax)
                 let x = FanCurveGeometry.x(forCelsius: markerC, in: size)
-                let yv = FanCurveGeometry.y(forRPM: FanCurve(rpms: rpms).evaluate(inputCelsius: cpu), in: size)
+                let yv = FanCurveGeometry.y(forRPM: displayCurve.evaluate(inputCelsius: cpu), in: size)
                 var m = Path(); m.move(to: CGPoint(x: x, y: rect.minY)); m.addLine(to: CGPoint(x: x, y: rect.maxY))
                 ctx.stroke(m, with: .color(Tokens.statusOrange), style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
                 ctx.fill(Path(ellipseIn: CGRect(x: x - 3, y: yv - 3, width: 6, height: 6)), with: .color(Tokens.statusOrange))
@@ -112,13 +125,13 @@ struct FanCurveEditor: View {
             .onChanged { value in
                 let i = dragIndex ?? FanCurveGeometry.nearestAnchorIndex(toX: value.startLocation.x, in: size)
                 dragIndex = i
-                var next = draftRPMs ?? curve.rpms
+                var next = (previewCurve ?? curve).rpms
                 if next.indices.contains(i) { next[i] = FanCurveGeometry.rpm(forY: value.location.y, in: size) }
-                draftRPMs = next
+                previewCurve = FanCurve(rpms: next)
             }
             .onEnded { _ in
-                if let final = draftRPMs { curve = FanCurve(rpms: final) }  // single commit → one apply
-                draftRPMs = nil
+                if let final = previewCurve { curve = final }  // single commit → one apply
+                previewCurve = nil
                 dragIndex = nil
             }
     }
@@ -166,8 +179,9 @@ struct FanCurveEditor: View {
 #Preview {
     struct Harness: View {
         @State var curve = FanCurve(rpms: [800,900,1000,1200,1500,1900,2400,3000,3600,4200,4800,5500,6200,6800,7400])
+        @State var previewCurve: FanCurve?
         var body: some View {
-            FanCurveEditor(curve: $curve, currentCPU: 62)
+            FanCurveEditor(curve: $curve, previewCurve: $previewCurve, currentCPU: 62)
                 .padding()
                 .environment(\.tokens, .dark)
                 .frame(width: 320)

@@ -6,18 +6,41 @@ struct FanLimits: Equatable, Sendable {
 }
 
 enum FanControlPolicy {
-    static let criticalCelsius = 95.0
+    /// The editable curve includes its 100°C endpoint. Preserve that endpoint's target, then
+    /// force maximum cooling only once the CPU exceeds the graph's supported temperature range.
+    static let maximumOverrideCelsius = 100.0
+    static let zeroRPMEnterCelsius = 48.0
+    static let zeroRPMExitCelsius = 55.0
     static let heartbeatTimeout = 15.0
     static let heartbeatCheckInterval = 5.0
     static let controlInterval = 1.0
     static let modeRetryDeadline = 10.0
     static let modeRetryDelay = 0.5
 
-    static func targetRPM(curve: FanCurve, hottestCPU: Double, limits: FanLimits) -> Double {
-        guard hottestCPU.isFinite, limits.minimum.isFinite, limits.maximum.isFinite,
-              limits.minimum > 0, limits.maximum >= limits.minimum else { return 0 }
-        if hottestCPU >= criticalCelsius { return limits.maximum }
-        return min(max(curve.evaluate(inputCelsius: hottestCPU), limits.minimum), limits.maximum)
+    static func targetRPM(curve: FanCurve,
+                          hottestCPU: Double,
+                          limits: FanLimits,
+                          wasZeroRPM: Bool) -> Double? {
+        guard hottestCPU.isFinite,
+              limits.minimum.isFinite,
+              limits.maximum.isFinite,
+              limits.minimum > 0,
+              limits.maximum >= limits.minimum else { return nil }
+
+        guard curve.rpms.count == FanCurve.anchorsCelsius.count,
+              curve.rpms.allSatisfy({ $0.isFinite && (0.0...20_000.0).contains($0) }) else {
+            return nil
+        }
+
+        if hottestCPU > maximumOverrideCelsius { return limits.maximum }
+
+        let curveTarget = curve.evaluate(inputCelsius: hottestCPU)
+        guard curveTarget.isFinite else { return nil }
+        if curveTarget == 0 {
+            let boundary = wasZeroRPM ? zeroRPMExitCelsius : zeroRPMEnterCelsius
+            if hottestCPU < boundary { return 0 }
+        }
+        return min(max(curveTarget, limits.minimum), limits.maximum)
     }
 
     static func heartbeatExpired(last: TimeInterval, now: TimeInterval) -> Bool {

@@ -56,6 +56,69 @@ struct FanControlEngineTests {
         #expect(engine.status.detail == "heartbeat expired")
     }
 
+    @Test func zeroCurveCommandsZeroThenLeavesZeroAtTheExitBoundary() throws {
+        let hw = FakeFanControlHardware(modeKey: "F0md", hasFtst: false, hottestCPU: 47,
+                                        limits: FanLimits(minimum: 2317, maximum: 6550))
+        let engine = FanControlEngine(hardware: hw)
+        let zeroCurve = FanCurve(rpms: Array(repeating: 0, count: FanCurve.anchorsCelsius.count))
+
+        try engine.configure(.init(enabled: true, curve: zeroCurve), now: 0)
+        try engine.tick(now: 0)
+        #expect(hw.writes == [.mode("F0md", 1), .target(0, 0)])
+
+        hw.hottestCPU = 54.9
+        try engine.tick(now: 1)
+        #expect(hw.writes.last == .target(0, 0))
+
+        let raisedCurve = FanCurve(rpms: Array(repeating: 3000, count: FanCurve.anchorsCelsius.count))
+        try engine.configure(.init(enabled: true, curve: raisedCurve), now: 2)
+        try engine.tick(now: 2)
+        #expect(hw.writes.last == .target(0, 3000))
+
+        try engine.configure(.init(enabled: true, curve: zeroCurve), now: 3)
+        try engine.tick(now: 3)
+        #expect(hw.writes.last == .target(0, 2317))
+
+        hw.hottestCPU = 55
+        try engine.tick(now: 4)
+        #expect(hw.writes.last == .target(0, 2317))
+    }
+
+    @Test func invalidLimitsReleaseInsteadOfWritingZero() throws {
+        let hw = FakeFanControlHardware(modeKey: "F0md", hasFtst: false, hottestCPU: 40,
+                                        limits: FanLimits(minimum: 0, maximum: 6550))
+        let engine = FanControlEngine(hardware: hw)
+        let zeroCurve = FanCurve(rpms: Array(repeating: 0, count: FanCurve.anchorsCelsius.count))
+
+        try engine.configure(.init(enabled: true, curve: zeroCurve), now: 0)
+        #expect(throws: FanControlFailure.self) { try engine.tick(now: 0) }
+        #expect(hw.writes.contains(.target(0, 0)) == false)
+        #expect(hw.writes.last == .mode("F0md", 0))
+    }
+
+    @Test func malformedCurveReleasesInsteadOfWritingZero() throws {
+        let hw = FakeFanControlHardware(modeKey: "F0md", hasFtst: false, hottestCPU: 40,
+                                        limits: FanLimits(minimum: 2317, maximum: 6550))
+        let engine = FanControlEngine(hardware: hw)
+        let malformedCurve = FanCurve(rpms: [])
+
+        try engine.configure(.init(enabled: true, curve: malformedCurve), now: 0)
+        #expect(throws: FanControlFailure.self) { try engine.tick(now: 0) }
+        #expect(hw.writes.contains(.target(0, 0)) == false)
+        #expect(hw.writes.last == .mode("F0md", 0))
+    }
+
+    @Test func malformedCurveAboveTheCurveRangeReleasesInsteadOfWritingMaximum() throws {
+        let hw = FakeFanControlHardware(modeKey: "F0md", hasFtst: false, hottestCPU: 100.001,
+                                        limits: FanLimits(minimum: 2317, maximum: 6550))
+        let engine = FanControlEngine(hardware: hw)
+
+        try engine.configure(.init(enabled: true, curve: .init(rpms: [])), now: 0)
+        #expect(throws: FanControlFailure.self) { try engine.tick(now: 0) }
+        #expect(hw.writes.contains(.target(0, 6550)) == false)
+        #expect(hw.writes.last == .mode("F0md", 0))
+    }
+
     @Test func reconfigureWhileControllingAdoptsTheNewCurve() throws {
         // Regression: editing the fan curve while control is already engaged must take effect.
         // Previously a re-configure was rejected whenever fans were already controlled, so the
