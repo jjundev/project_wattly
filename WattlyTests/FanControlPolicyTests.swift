@@ -28,8 +28,14 @@ struct FanControlPolicyTests {
                                            limits: limits, wasZeroRPM: false) == 2317)
     }
 
-    @Test func criticalTemperatureForcesMaximum() {
-        #expect(FanControlPolicy.targetRPM(curve: curve, hottestCPU: 95,
+    @Test func curveStillControlsAtIts100CelsiusEndpoint() {
+        let conservativeCurve = FanCurve(rpms: Array(repeating: 3000, count: FanCurve.anchorsCelsius.count))
+        #expect(FanControlPolicy.targetRPM(curve: conservativeCurve, hottestCPU: 100,
+                                           limits: limits, wasZeroRPM: false) == 3000)
+    }
+
+    @Test func temperatureAboveTheCurveRangeForcesMaximum() {
+        #expect(FanControlPolicy.targetRPM(curve: curve, hottestCPU: 100.001,
                                            limits: limits, wasZeroRPM: false) == 6550)
     }
 
@@ -52,15 +58,15 @@ struct FanControlPolicyTests {
                                            limits: limits, wasZeroRPM: false) == nil)
     }
 
-    @Test func criticalTemperatureOverridesAMalformedCurve() {
+    @Test func temperatureAboveTheCurveRangeOverridesAMalformedCurve() {
         let malformedCurve = FanCurve(rpms: [])
-        #expect(FanControlPolicy.targetRPM(curve: malformedCurve, hottestCPU: 95,
+        #expect(FanControlPolicy.targetRPM(curve: malformedCurve, hottestCPU: 100.001,
                                            limits: limits, wasZeroRPM: false) == 6550)
     }
 
-    @Test func criticalTemperatureOverridesAZeroCurve() {
+    @Test func temperatureAboveTheCurveRangeOverridesAZeroCurve() {
         let zeroCurve = FanCurve(rpms: Array(repeating: 0, count: FanCurve.anchorsCelsius.count))
-        #expect(FanControlPolicy.targetRPM(curve: zeroCurve, hottestCPU: 95,
+        #expect(FanControlPolicy.targetRPM(curve: zeroCurve, hottestCPU: 100.001,
                                            limits: limits, wasZeroRPM: true) == 6550)
     }
 

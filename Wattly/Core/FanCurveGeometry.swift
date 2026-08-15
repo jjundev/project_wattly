@@ -19,10 +19,40 @@ enum FanCurveGeometry {
     static let zeroFanEnterCelsius = FanControlPolicy.zeroRPMEnterCelsius
     static let zeroFanExitCelsius = FanControlPolicy.zeroRPMExitCelsius
 
-    static func zeroFanHoldBand(in size: CGSize) -> CGRect {
+    /// The literal-zero plateau that intersects the policy's 48…55°C hysteresis window.
+    /// A stopped fan can survive a curve edit, so a plateau beginning at 50°C can still hold that
+    /// stopped state; do not require the plateau itself to begin at the 48°C entry boundary.
+    static func zeroRPMHoldRange(for curve: FanCurve) -> ClosedRange<Double>? {
+        guard curve.rpms.count == anchorsCelsius.count,
+              curve.rpms.allSatisfy({ $0.isFinite && $0 >= 0 }) else { return nil }
+
+        var runStart: Int?
+        for index in curve.rpms.indices {
+            if curve.rpms[index] == 0 {
+                runStart = runStart ?? index
+                continue
+            }
+            guard let start = runStart else { continue }
+            if let range = zeroRPMHoldRange(startAnchor: start, endAnchor: index - 1) { return range }
+            runStart = nil
+        }
+        guard let start = runStart else { return nil }
+        return zeroRPMHoldRange(startAnchor: start, endAnchor: curve.rpms.count - 1)
+    }
+
+    private static func zeroRPMHoldRange(startAnchor: Int, endAnchor: Int) -> ClosedRange<Double>? {
+        // A single zero-valued anchor has no temperature interval; only a plateau can hold state.
+        guard endAnchor > startAnchor else { return nil }
+        let lower = max(anchorsCelsius[startAnchor], zeroFanEnterCelsius)
+        let upper = min(anchorsCelsius[endAnchor], zeroFanExitCelsius)
+        return lower < upper ? lower...upper : nil
+    }
+
+    static func zeroRPMHoldBand(for curve: FanCurve, in size: CGSize) -> CGRect? {
+        guard let range = zeroRPMHoldRange(for: curve) else { return nil }
         let plot = plotRect(in: size)
-        let start = min(max(x(forCelsius: zeroFanEnterCelsius, in: size), plot.minX), plot.maxX)
-        let end = min(max(x(forCelsius: zeroFanExitCelsius, in: size), plot.minX), plot.maxX)
+        let start = min(max(x(forCelsius: range.lowerBound, in: size), plot.minX), plot.maxX)
+        let end = min(max(x(forCelsius: range.upperBound, in: size), plot.minX), plot.maxX)
         return CGRect(x: min(start, end), y: plot.minY,
                       width: abs(end - start), height: plot.height)
     }

@@ -136,6 +136,14 @@ struct SettingsView: View {
     // True while the privileged helper install (admin auth prompt) is running.
     @State private var installingHelper = false
 
+    // Keeps the zero-fan safety rules available without making the curve card's default state
+    // read like a warning document.
+    @State private var isZeroFanHelpPresented = false
+
+    // The graph edits a local draft until the gesture ends. Mirror that draft for the legend and
+    // help popover so all three surfaces describe exactly the same curve during a drag.
+    @State private var fanCurvePreview: FanCurve?
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
@@ -371,13 +379,7 @@ struct SettingsView: View {
             // padded card double-insets the toggle row and misaligns it against the graph.
             SettingsCard {
                 SettingsToggleRow(isOn: $fanControlEnabled, divider: true) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        rowTitle("팬 커브 실제 적용")
-                        Text("0 RPM 구역은 곡선 값이 0일 때만 적용됩니다. 48°C 미만에서는 팬을 정지시키고, 주황색 48–55°C 구간에서는 현재 상태를 유지하며, 55°C부터 기본 최소 RPM 이상으로 복귀합니다. 95°C에서는 최대 속도로 보호합니다. Macs Fan Control은 종료해야 합니다.")
-                            .font(WattlyFont.at(11.5, weight: .regular))
-                            .foregroundStyle(t.faint)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+                    rowTitle("팬 커브 실제 적용")
                 }
                 VStack(alignment: .leading, spacing: 12) {
                     fanStatusIndicator
@@ -398,18 +400,29 @@ struct SettingsView: View {
                         .buttonStyle(.plain)
                         .accessibilityLabel("팬 커브 기본값으로 되돌리기")
                     }
-                    HStack(spacing: 6) {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(Tokens.statusOrange.opacity(0.12))
-                            .overlay(RoundedRectangle(cornerRadius: 2).stroke(Tokens.statusOrange.opacity(0.8), lineWidth: 1))
-                            .frame(width: 14, height: 10)
-                        Text("Zero Fan 상태 유지 48–55°C · 정지 중이면 0 RPM, 회전 중이면 기본 최소 RPM 이상")
-                            .font(WattlyFont.at(10.5, weight: .regular))
-                            .foregroundStyle(t.faint)
-                            .fixedSize(horizontal: false, vertical: true)
+                    if let holdRange = FanCurveGeometry.zeroRPMHoldRange(for: fanCurvePreview ?? fanCurve) {
+                        HStack(spacing: 6) {
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(Tokens.statusOrange.opacity(0.12))
+                                .overlay(RoundedRectangle(cornerRadius: 2).stroke(Tokens.statusOrange.opacity(0.8), lineWidth: 1))
+                                .frame(width: 14, height: 10)
+                            Text("팬 상태 유지 구간 \(Int(holdRange.lowerBound))–\(Int(holdRange.upperBound))°C")
+                                .font(WattlyFont.at(10.5, weight: .regular))
+                                .foregroundStyle(t.faint)
+                            Button { isZeroFanHelpPresented = true } label: {
+                                Image(systemName: "questionmark.circle")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(t.faint)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("팬 상태 유지 구간 작동 방식 보기")
+                            .popover(isPresented: $isZeroFanHelpPresented, arrowEdge: .bottom) {
+                                zeroFanHelpPopover(for: holdRange)
+                            }
+                        }
+                        .accessibilityElement(children: .combine)
                     }
-                    .accessibilityElement(children: .combine)
-                    FanCurveEditor(curve: $fanCurve, currentCPU: currentHottestCPU)
+                    FanCurveEditor(curve: $fanCurve, previewCurve: $fanCurvePreview, currentCPU: currentHottestCPU)
                 }
                 .padding(EdgeInsets(top: 12, leading: 14, bottom: 14, trailing: 14))
             }
@@ -444,6 +457,31 @@ struct SettingsView: View {
                 if !Task.isCancelled { editApplyDeadline = nil }
             }
         }
+    }
+
+    private func zeroFanHelpPopover(for holdRange: ClosedRange<Double>) -> some View {
+        let entry = Int(holdRange.lowerBound)
+        let exit = Int(holdRange.upperBound)
+        let recoveryBoundary = holdRange.upperBound == FanControlPolicy.zeroRPMExitCelsius
+            ? "\(exit)°C 이상"
+            : "\(exit)°C 초과"
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("팬 상태 유지 구간 안내 · \(entry)–\(exit)°C")
+                .font(WattlyFont.at(13, weight: .semibold))
+                .foregroundStyle(t.text)
+            VStack(alignment: .leading, spacing: 5) {
+                Text("• 곡선이 0 RPM을 지시할 때만 작동")
+                Text("• \(entry)°C 미만: 팬 정지")
+                Text("• \(entry)–\(exit)°C: 현재 정지·회전 상태 유지")
+                Text("• \(recoveryBoundary): 기본 최소 RPM 이상으로 복귀")
+            }
+            .font(WattlyFont.at(11, weight: .regular))
+            .foregroundStyle(t.sub)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .frame(width: 260, alignment: .leading)
+        .background(t.cardBg)
     }
 
     /// True while the post-edit grace window is still open.

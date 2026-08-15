@@ -6,7 +6,9 @@ struct FanLimits: Equatable, Sendable {
 }
 
 enum FanControlPolicy {
-    static let criticalCelsius = 95.0
+    /// The editable curve includes its 100°C endpoint. Preserve that endpoint's target, then
+    /// force maximum cooling only once the CPU exceeds the graph's supported temperature range.
+    static let maximumOverrideCelsius = 100.0
     static let zeroRPMEnterCelsius = 48.0
     static let zeroRPMExitCelsius = 55.0
     static let heartbeatTimeout = 15.0
@@ -24,7 +26,7 @@ enum FanControlPolicy {
               limits.maximum.isFinite,
               limits.minimum > 0,
               limits.maximum >= limits.minimum else { return nil }
-        if hottestCPU >= criticalCelsius { return limits.maximum }
+        if hottestCPU > maximumOverrideCelsius { return limits.maximum }
 
         guard curve.rpms.count == FanCurve.anchorsCelsius.count else { return nil }
 

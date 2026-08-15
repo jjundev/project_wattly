@@ -108,8 +108,8 @@ struct FanControlEngineTests {
         #expect(hw.writes.last == .mode("F0md", 0))
     }
 
-    @Test func malformedCurveAtCriticalTemperatureWritesMaximum() throws {
-        let hw = FakeFanControlHardware(modeKey: "F0md", hasFtst: false, hottestCPU: 95,
+    @Test func malformedCurveAboveTheCurveRangeWritesMaximum() throws {
+        let hw = FakeFanControlHardware(modeKey: "F0md", hasFtst: false, hottestCPU: 100.001,
                                         limits: FanLimits(minimum: 2317, maximum: 6550))
         let engine = FanControlEngine(hardware: hw)
 

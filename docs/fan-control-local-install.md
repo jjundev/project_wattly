@@ -20,7 +20,7 @@ The in-app fan-control toggle remains **off** after installation. Do not enable 
 
 Before enabling the toggle, record the initial fan mode and target RPM for every fan in your test notes. Record the same values after the test and confirm that macOS has resumed control. The helper returns every controlled fan to **automatic** mode when control is released; macOS then owns the effective target RPM again.
 
-When enabled, a nonzero curve target is clamped to each fan's reported minimum and maximum. A literal 0 RPM curve target enters the Zero Fan zone only below 48°C; from 48°C inclusive until 55°C the helper preserves the fan's current stopped-versus-spinning state, then it resumes at least the reported minimum RPM. At 95°C or above it commands the reported maximum RPM. The daemon checks a heartbeat every five seconds and automatically releases fans to macOS **automatic** control if no heartbeat arrives for 15 seconds. It also releases control on app disable, SMC/sensor failure, sleep, and daemon termination.
+When enabled, a nonzero curve target is clamped to each fan's reported minimum and maximum. A literal 0 RPM curve target enters the Zero Fan zone only below 48°C; from 48°C inclusive until 55°C the helper preserves the fan's current stopped-versus-spinning state, then it resumes at least the reported minimum RPM. The curve controls through its 100°C endpoint; above 100°C the helper commands the reported maximum RPM. The daemon checks a heartbeat every five seconds and automatically releases fans to macOS **automatic** control if no heartbeat arrives for 15 seconds. It also releases control on app disable, SMC/sensor failure, sleep, and daemon termination.
 
 For the first smoke test, enable the toggle briefly, verify the status and observed fan behavior, then disable it and confirm automatic mode. Perform a cold boot with Macs Fan Control still absent and leave the toggle off initially; this confirms the normal reboot state before any manual control is requested.
 
@@ -32,7 +32,7 @@ This is automated/build verification only. It did **not** invoke `sudo`, install
 
 ## Manual M5 acceptance checklist (Mac17,2)
 
-Complete these items in person only after confirming that Macs Fan Control is neither running nor installed. Keep Wattly's toggle off before beginning. Do not deliberately drive the machine past 95°C; if that temperature is naturally observed, record whether `F0Tg == F0Mx`.
+Complete these items in person only after confirming that Macs Fan Control is neither running nor installed. Keep Wattly's toggle off before beginning. Do not deliberately drive the machine above 100°C; if that temperature is naturally observed, record whether `F0Tg == F0Mx`.
 
 - [ ] With the UI toggle off, verify `F0md = 0` and macOS automatic fan control.
 - [ ] With a 0 RPM curve at a CPU temperature below 48°C, verify `F0md = 1`, `F0Tg = 0`, and `F0Ac = 0` for at least two seconds.
