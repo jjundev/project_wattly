@@ -379,14 +379,17 @@ struct SettingsView: View {
             // padded card double-insets the toggle row and misaligns it against the graph.
             SettingsCard {
                 SettingsToggleRow(isOn: $fanControlEnabled, divider: true) {
-                    rowTitle("팬 커브 실제 적용")
+                    VStack(alignment: .leading, spacing: 2) {
+                        rowTitle("팬 커브 실제 적용")
+                        Text("팬 커브를 켜면 온도에 따라 설정한 곡선을 따라 팬 속도가 조절됩니다. 그래프의 점을 드래그하여 각 온도에서 원하는 팬 속도를 지정하세요.")
+                            .font(WattlyFont.at(10.5, weight: .regular))
+                            .foregroundStyle(t.faint)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 VStack(alignment: .leading, spacing: 12) {
                     fanStatusIndicator
                     HStack {
-                        Text("온도 → 팬 속도")
-                            .font(WattlyFont.at(12, weight: .semibold))
-                            .foregroundStyle(t.sub)
                         Spacer()
                         Button { fanCurve = Defaults.fanCurve } label: {
                             Text("기본값")
@@ -406,7 +409,7 @@ struct SettingsView: View {
                                 .fill(Tokens.statusOrange.opacity(0.12))
                                 .overlay(RoundedRectangle(cornerRadius: 2).stroke(Tokens.statusOrange.opacity(0.8), lineWidth: 1))
                                 .frame(width: 14, height: 10)
-                            Text("팬 상태 유지 구간 \(Int(holdRange.lowerBound))–\(Int(holdRange.upperBound))°C")
+                            Text("팬 상태 유지 구간")
                                 .font(WattlyFont.at(10.5, weight: .regular))
                                 .foregroundStyle(t.faint)
                             Button { isZeroFanHelpPresented = true } label: {
