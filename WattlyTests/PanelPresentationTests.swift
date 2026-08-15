@@ -54,12 +54,12 @@ struct PanelPresentationTests {
 
     @Test func automaticEcoPollingCopyMatchesProviderBudget() {
         #expect(pollingDescription(for: .auto, mode: .eco) ==
-            "패널을 열면 CPU·전력은 1초, 온도는 2초, 메모리·배터리는 5초마다 갱신합니다. 패널을 닫으면 메뉴바에 표시한 지표만 2초마다 갱신하며, 메뉴바 텍스트를 끄면 지표 갱신을 멈춥니다.")
+            "패널을 열면 CPU·전력은 1초(오픈 즉시 표시), 온도는 2초, 메모리·배터리는 5초마다 갱신합니다. 패널을 닫으면 메뉴바에 표시한 지표만 2~5초마다 갱신하며, 메뉴바 텍스트를 끄면 지표 갱신을 멈춥니다.")
     }
 
     @Test func automaticAlwaysLatestPollingCopyMatchesProviderBudget() {
         #expect(pollingDescription(for: .auto, mode: .performance) ==
-            "패널을 열면 활성 지표를 1초마다 갱신합니다. 패널을 닫으면 메뉴바 텍스트 표시 시 2초마다, 끄면 5초마다 갱신합니다.")
+            "패널을 열면 CPU·전력·온도는 1초, 메모리·팬은 3초마다 갱신합니다. 패널을 닫으면 지표 특성과 전원 상태(배터리/충전)에 맞춰 최적화하여 갱신합니다.")
     }
 
     @Test func fixedPollingCopyNamesTheSelectedInterval() {
