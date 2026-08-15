@@ -140,6 +140,29 @@ struct FanControlEngineTests {
         #expect(engine.status.mode == .controlling)
     }
 
+    @Test func reconfigureFromZeroRPMHoldToFullSpeedImmediatelyWritesMaxRPM() throws {
+        let hw = FakeFanControlHardware(modeKey: "F0md", hasFtst: false, hottestCPU: 47,
+                                        limits: FanLimits(minimum: 2000, maximum: 6500))
+        let engine = FanControlEngine(hardware: hw)
+        let silent = FanCurvePreset.silent.curve(forMaxRPM: 6500)
+        let fullSpeed = FanCurvePreset.fullSpeed.curve(forMaxRPM: 6500)
+
+        // 1. Initial configure + tick at 47°C enters zero-RPM mode (0 RPM)
+        try engine.configure(.init(enabled: true, curve: silent), now: 0)
+        try engine.tick(now: 0)
+        #expect(hw.writes.last == .target(0, 0))
+
+        // 2. Temperature rises to 50°C (in the 48...55°C hold range) — stays 0 RPM
+        hw.hottestCPU = 50
+        try engine.tick(now: 1)
+        #expect(hw.writes.last == .target(0, 0))
+
+        // 3. Reconfigure to full speed must immediately evaluate and write 6500 without waiting for a subsequent tick
+        try engine.configure(.init(enabled: true, curve: fullSpeed), now: 2)
+        #expect(hw.writes.last == .target(0, 6500))
+        #expect(engine.status.mode == .controlling)
+    }
+
     @Test func disableInvalidatesPendingEngagementGeneration() throws {
         let hw = FakeFanControlHardware(modeKey: "F0Md", hasFtst: true, hottestCPU: 70,
                                         limits: FanLimits(minimum: 2000, maximum: 6000))
