@@ -144,6 +144,11 @@ struct SettingsView: View {
     @State private var fanCurvePreview: FanCurve?
 
     @State private var isResetConfirmationPresented = false
+    @State private var isAdvancedMenuMetricsExpanded = false
+
+    private var hasActiveAdvancedMetrics: Bool {
+        menuSClock || menuPClock || menuEClock || menuMemPressure || menuBatTemp
+    }
 
     var body: some View {
         ScrollView {
@@ -161,7 +166,10 @@ struct SettingsView: View {
         .background(t.settingsBg)
         .background(WindowAppearanceSync(mode: theme))
         // Reconcile the display mirror with the real registration on open (F1).
-        .task { loginMirror = loginItem.isEnabled }
+        .task {
+            loginMirror = loginItem.isEnabled
+            if hasActiveAdvancedMetrics { isAdvancedMenuMetricsExpanded = true }
+        }
         .alert("모든 Wattly 설정을 기본값으로 되돌릴까요?",
                isPresented: $isResetConfirmationPresented) {
             Button("기본값으로 되돌리기", role: .destructive) { applyDefaults() }
@@ -784,22 +792,50 @@ struct SettingsView: View {
 
     private var menuChipGrid: some View {
         let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 3)
-        return LazyVGrid(columns: columns, spacing: 4) {
-            menuMetricChip(.cpu, label: "CPU (%)", isOn: menuCPU) { menuCPU.toggle() }
-            menuClockChip(label: "S 코어 클럭 (GHz)", isOn: menuSClock) { menuSClock.toggle() }
-            menuClockChip(label: "P 코어 클럭 (GHz)", isOn: menuPClock) { menuPClock.toggle() }
-            menuClockChip(label: "E 코어 클럭 (GHz)", isOn: menuEClock) { menuEClock.toggle() }
-            menuMetricChip(.power, label: "전력 (W)", isOn: menuPower) { menuPower.toggle() }
-            menuMetricChip(.battery, label: "배터리 (W)", isOn: menuBattery) { menuBattery.toggle() }
-            menuMetricChip(.mem, label: "메모리 (GB)", isOn: menuMem) { menuMem.toggle() }
-            menuMetricChip(.mem, label: "메모리 압력 (%)", isOn: menuMemPressure) { menuMemPressure.toggle() }
-            menuMetricChip(.cpuTemp, label: "CPU 온도 (°C)", isOn: menuCpuTemp) { menuCpuTemp.toggle() }
-            menuMetricChip(.gpuTemp, label: "GPU 온도 (°C)", isOn: menuGpuTemp) { menuGpuTemp.toggle() }
-            menuMetricChip(.batTemp, label: "배터리 온도 (°C)", isOn: menuBatTemp) { menuBatTemp.toggle() }
-            menuMetricChip(.fan, label: "팬 (RPM)", isOn: menuFan) { menuFan.toggle() }
+        return VStack(alignment: .leading, spacing: 8) {
+            // 주요 지표 (Primary)
+            LazyVGrid(columns: columns, spacing: 4) {
+                menuMetricChip(.cpu, label: "CPU (%)", isOn: menuCPU) { menuCPU.toggle() }
+                menuMetricChip(.power, label: "전력 (W)", isOn: menuPower) { menuPower.toggle() }
+                menuMetricChip(.battery, label: "배터리 (W)", isOn: menuBattery) { menuBattery.toggle() }
+                menuMetricChip(.mem, label: "메모리 (GB)", isOn: menuMem) { menuMem.toggle() }
+                menuMetricChip(.cpuTemp, label: "CPU 온도 (°C)", isOn: menuCpuTemp) { menuCpuTemp.toggle() }
+                menuMetricChip(.gpuTemp, label: "GPU 온도 (°C)", isOn: menuGpuTemp) { menuGpuTemp.toggle() }
+                menuMetricChip(.fan, label: "팬 (RPM)", isOn: menuFan) { menuFan.toggle() }
+            }
+            .padding(3)
+            .background(RoundedRectangle(cornerRadius: 8).fill(t.segTrack))
+
+            // 세부 지표 접기/펼치기 버튼
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isAdvancedMenuMetricsExpanded.toggle()
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: isAdvancedMenuMetricsExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 9, weight: .semibold))
+                    Text(isAdvancedMenuMetricsExpanded ? "세부 지표 접기" : "세부 지표 (코어 클럭·메모리 압력·배터리 온도) 보기")
+                        .font(WattlyFont.at(11, weight: .medium))
+                }
+                .foregroundStyle(t.faint)
+                .padding(.vertical, 2)
+            }
+            .buttonStyle(.plain)
+
+            // 세부 지표 (Advanced)
+            if isAdvancedMenuMetricsExpanded {
+                LazyVGrid(columns: columns, spacing: 4) {
+                    menuClockChip(label: "S 코어 클럭 (GHz)", isOn: menuSClock) { menuSClock.toggle() }
+                    menuClockChip(label: "P 코어 클럭 (GHz)", isOn: menuPClock) { menuPClock.toggle() }
+                    menuClockChip(label: "E 코어 클럭 (GHz)", isOn: menuEClock) { menuEClock.toggle() }
+                    menuMetricChip(.mem, label: "메모리 압력 (%)", isOn: menuMemPressure) { menuMemPressure.toggle() }
+                    menuMetricChip(.batTemp, label: "배터리 온도 (°C)", isOn: menuBatTemp) { menuBatTemp.toggle() }
+                }
+                .padding(3)
+                .background(RoundedRectangle(cornerRadius: 8).fill(t.segTrack))
+            }
         }
-        .padding(3)
-        .background(RoundedRectangle(cornerRadius: 8).fill(t.segTrack))
     }
 
     private func menuChipDisabledReason(for card: CardKind) -> String? {
