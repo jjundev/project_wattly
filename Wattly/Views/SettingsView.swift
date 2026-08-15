@@ -64,16 +64,14 @@ private struct WindowAppearanceSync: NSViewRepresentable {
 /// prefs window already draws exactly close-enabled + disabled minimize/zoom; grill #1). All
 /// state is `@AppStorage`, so a change reflects in the popover live and survives restart.
 ///
-/// Sections (그룹 순서, settings-card-unification): 시스템(일반) · 표시(테마·레이아웃·표시 지표·
-/// 메모리 프로세스·메뉴바) · 동작(전력 표시·그래프 임곗값·팬 커브·동작 모드·업데이트 주기) · 되돌리기 · 푸터.
+/// Sections (그룹 순서, settings-card-unification): 일반 · 표시(테마·레이아웃·표시 지표·
+/// 메모리 카드 펼침 목록·메뉴바) · 동작(백그라운드 갱신·전력 표시 안정화) · 고급(상태 경고 기준·팬 커브) · 되돌리기.
 /// 팬 커브는 팬이 없는 Mac(desktop)에서 여전히 조건부로 숨는다(`monitor.isPresent(.fan)`).
 struct SettingsView: View {
     @Environment(\.tokens) private var t
 
-    /// The shared monitor — read only for the footer's live self-power (issue 16). The
-    /// rest of the window is `@AppStorage`. Observing it across the separate `Settings`
-    /// scene is reliable (same `@Observable` instance, read in `body`); the poll keeps
-    /// running via the always-alive `PollPolicyBridge`, independent of which window is open.
+    /// The shared monitor supplies hardware availability and fan telemetry. The rest of the
+    /// window is `@AppStorage`; the poll keeps running via the always-alive `PollPolicyBridge`.
     let monitor: SystemMonitor
     let fanControl: FanControlClient
 
@@ -144,14 +142,16 @@ struct SettingsView: View {
     // help popover so all three surfaces describe exactly the same curve during a drag.
     @State private var fanCurvePreview: FanCurve?
 
+    @State private var isResetConfirmationPresented = false
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 generalSection
                 displayGroup
                 behaviorGroup
+                advancedGroup
                 resetButton
-                footer
             }
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -161,6 +161,13 @@ struct SettingsView: View {
         .background(WindowAppearanceSync(mode: theme))
         // Reconcile the display mirror with the real registration on open (F1).
         .task { loginMirror = loginItem.isEnabled }
+        .alert("모든 Wattly 설정을 기본값으로 되돌릴까요?",
+               isPresented: $isResetConfirmationPresented) {
+            Button("기본값으로 되돌리기", role: .destructive) { applyDefaults() }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("카드 표시, 메뉴바, 경고 기준, 팬 커브 및 자동 실행 설정이 초기화됩니다.")
+        }
     }
 
     // MARK: 표시 (그룹)
@@ -181,17 +188,19 @@ struct SettingsView: View {
 
     // MARK: 동작 (그룹)
 
-    /// 동작 그룹: 전력 표시(EMA) · 그래프 임곗값 · 팬 커브(조건부) · 동작 모드 · 업데이트 주기.
-    /// 팬 커브는 재배치 이전과 동일하게 `monitor.isPresent(.fan)`일 때만 렌더 — 이 가드를
-    /// 빠뜨리면 팬 없는 desktop Mac에서 팬 커브 카드가 항상 노출되는 회귀가 생긴다.
     private var behaviorGroup: some View {
         VStack(alignment: .leading, spacing: 18) {
             SettingsGroupHeader(title: "동작")
+            backgroundUpdateSection
             smoothingSection
+        }
+    }
+
+    private var advancedGroup: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            SettingsGroupHeader(title: "고급")
             thresholdSection
             if monitor.isPresent(.fan) { fanCurveSection }
-            powerModeSection
-            pollSection
         }
     }
 
@@ -201,7 +210,12 @@ struct SettingsView: View {
         SettingsSection(title: "일반") {
             SettingsCard {
                 SettingsToggleRow(isOn: loginBinding, divider: false) {
-                    rowTitle("로그인 시 자동 실행")
+                    VStack(alignment: .leading, spacing: 2) {
+                        rowTitle("로그인 시 자동 실행")
+                        Text("Mac에 로그인하면 Wattly가 메뉴 막대에서 자동으로 시작됩니다.")
+                            .font(WattlyFont.at(11.5, weight: .regular))
+                            .foregroundStyle(t.faint)
+                    }
                 }
             }
         }
@@ -247,9 +261,24 @@ struct SettingsView: View {
                     WattlySegment(selection: $panelMode, options: [
                         (.a, PanelMode.a.label), (.b, PanelMode.b.label), (.c, PanelMode.c.label),
                     ])
+                    Text(layoutDescription)
+                        .font(WattlyFont.at(11.5, weight: .regular))
+                        .foregroundStyle(t.faint)
+                        .fixedSize(horizontal: false, vertical: true)
                     if panelMode == .c { heroPicker }
                 }
             }
+        }
+    }
+
+    private var layoutDescription: String {
+        switch panelMode {
+        case .a:
+            "각 지표를 세로로 표시합니다. 카드 펼침과 순서 변경을 사용할 수 있습니다."
+        case .b:
+            "여러 지표를 한눈에 비교하기 좋습니다. 카드 순서는 스택 행 레이아웃에서 팝오버의 편집 버튼으로 변경할 수 있습니다."
+        case .c:
+            "선택한 지표를 크게 보고 나머지는 목록으로 표시합니다. 카드 순서는 스택 행 레이아웃에서 팝오버의 편집 버튼으로 변경할 수 있습니다."
         }
     }
 
@@ -300,45 +329,71 @@ struct SettingsView: View {
     private var showSection: some View {
         SettingsSection(title: "표시 지표") {
             SettingsCard {
-                SettingsToggleRow(isOn: $showPower, divider: true) { rowTitle("SoC 전력 (IOReport)") }
-                SettingsToggleRow(isOn: $showBattery, divider: true) { rowTitle("배터리") }
-                SettingsToggleRow(isOn: $showBatteryEfficiency, divider: true) { rowTitle("배터리 효율 보기") }
-                SettingsToggleRow(isOn: $showCPU, divider: true) { rowTitle("CPU 사용률") }
-                SettingsToggleRow(isOn: $showMem, divider: true) { rowTitle("메모리") }
-                SettingsToggleRow(isOn: $showCpuTemp, divider: true) { rowTitleWithSuffix("CPU 온도", "· 최고값") }
-                SettingsToggleRow(isOn: $showGpuTemp, divider: true) { rowTitleWithSuffix("GPU 온도", "· 최고값") }
-                SettingsToggleRow(isOn: $showBatTemp, divider: true) { rowTitle("배터리 온도") }
-                SettingsToggleRow(isOn: $showFan, divider: false) { rowTitle("팬 속도") }
+                metricToggle(.power, isOn: $showPower, divider: true, title: "프로세서 전력")
+                metricToggle(.battery, isOn: $showBattery, divider: true, title: "배터리")
+                SettingsToggleRow(isOn: $showBatteryEfficiency, divider: true,
+                                  isEnabled: batteryEfficiencyDisabledReason == nil,
+                                  disabledReason: batteryEfficiencyDisabledReason) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        rowTitle("배터리 효율 보기")
+                        if let batteryEfficiencyDisabledReason {
+                            Text(batteryEfficiencyDisabledReason)
+                                .font(WattlyFont.at(11.5, weight: .regular))
+                                .foregroundStyle(t.faint)
+                        }
+                    }
+                }
+                .padding(.leading, 14)
+                metricToggle(.cpu, isOn: $showCPU, divider: true, title: "CPU 사용률")
+                metricToggle(.mem, isOn: $showMem, divider: true, title: "메모리")
+                metricToggle(.cpuTemp, isOn: $showCpuTemp, divider: true, title: "CPU 온도", suffix: "· 최고값")
+                metricToggle(.gpuTemp, isOn: $showGpuTemp, divider: true, title: "GPU 온도", suffix: "· 최고값")
+                metricToggle(.batTemp, isOn: $showBatTemp, divider: true, title: "배터리 온도")
+                metricToggle(.fan, isOn: $showFan, divider: false, title: "팬 속도")
             }
         }
     }
 
-    // MARK: 메모리 프로세스
-
-    private var memoryProcessLimitSection: some View {
-        SettingsSection(title: "메모리 프로세스") {
-            SettingsCard(padding: Tokens.cardPadding) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("펼침 목록 최대 표시")
+    private func metricToggle(_ card: CardKind, isOn: Binding<Bool>, divider: Bool,
+                              title: String, suffix: String? = nil) -> some View {
+        let isAvailable = monitor.isPresent(card)
+        return SettingsToggleRow(isOn: isOn, divider: divider, isEnabled: isAvailable,
+                                 disabledReason: isAvailable ? nil : "이 Mac에서는 사용할 수 없습니다") {
+            VStack(alignment: .leading, spacing: 2) {
+                if let suffix { rowTitleWithSuffix(title, suffix) } else { rowTitle(title) }
+                if !isAvailable {
+                    Text("이 Mac에서는 사용할 수 없음")
                         .font(WattlyFont.at(11.5, weight: .regular))
                         .foregroundStyle(t.faint)
-                    WattlySegment(selection: $memoryProcessLimit, options: [
-                        (3, "3개"), (4, "4개"), (5, "5개"), (6, "6개"), (7, "7개"),
-                    ], fontSize: 11.5, pillVPadding: 6)
                 }
             }
         }
     }
 
-    // MARK: 전력 표시 (EMA)
+    private var batteryEfficiencyDisabledReason: String? {
+        if !showBattery { return "배터리 표시를 켜면 사용할 수 있습니다." }
+        if !monitor.isPresent(.battery) { return "이 Mac에서는 사용할 수 없습니다" }
+        return nil
+    }
 
-    private var smoothingSection: some View {
-        SettingsSection(title: "전력 표시") {
-            SettingsCard {
-                SettingsToggleRow(isOn: $powerSmoothed, divider: false) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        rowTitle("전력 평활 (EMA)")
-                        Text("값을 부드럽게 평균내 표시(실제 지속 소모에 맞게). 측정 정확도는 그대로")
+    // MARK: 메모리 프로세스
+
+    private var memoryProcessLimitSection: some View {
+        SettingsSection(title: "메모리 카드 펼침 목록") {
+            SettingsCard(padding: Tokens.cardPadding) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("표시할 앱 수")
+                        .font(WattlyFont.at(11.5, weight: .regular))
+                        .foregroundStyle(t.faint)
+                    WattlySegment(selection: $memoryProcessLimit, options: [
+                        (3, "3개"), (4, "4개"), (5, "5개"), (6, "6개"), (7, "7개"),
+                    ], fontSize: 11.5, pillVPadding: 6)
+                    Text("메모리 카드를 펼쳤을 때 사용량이 큰 앱부터 표시합니다.")
+                        .font(WattlyFont.at(11.5, weight: .regular))
+                        .foregroundStyle(t.faint)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if panelMode == .b {
+                        Text("카드 그리드에서는 메모리 카드 펼침 목록을 볼 수 없습니다.")
                             .font(WattlyFont.at(11.5, weight: .regular))
                             .foregroundStyle(t.faint)
                             .fixedSize(horizontal: false, vertical: true)
@@ -348,10 +403,28 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: 그래프 임곗값
+    // MARK: 전력 표시 안정화
+
+    private var smoothingSection: some View {
+        SettingsSection(title: "전력 표시 안정화") {
+            SettingsCard {
+                SettingsToggleRow(isOn: $powerSmoothed, divider: false) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        rowTitle("전력 표시 안정화")
+                        Text("순간적인 변동을 줄여 지속적인 전력 사용량을 보기 쉽게 표시합니다. 측정 방식은 바뀌지 않습니다.")
+                            .font(WattlyFont.at(11.5, weight: .regular))
+                            .foregroundStyle(t.faint)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: 상태 경고 기준
 
     private var thresholdSection: some View {
-        SettingsSection(title: "그래프 임곗값") {
+        SettingsSection(title: "상태 경고 기준") {
             SettingsCard(padding: Tokens.cardPadding) {
                 VStack(alignment: .leading, spacing: 16) {
                     thresholdBlock(title: "CPU 사용률 (%)", keyPath: \.cpu,
@@ -378,8 +451,8 @@ struct SettingsView: View {
             SettingsCard {
                 SettingsToggleRow(isOn: $fanControlEnabled, divider: true) {
                     VStack(alignment: .leading, spacing: 2) {
-                        rowTitle("팬 커브 실제 적용")
-                        Text("팬 커브를 켜면 온도에 따라 설정한 곡선을 따라 팬 속도가 조절됩니다. 그래프의 점을 드래그하여 각 온도에서 원하는 팬 속도를 지정하세요.")
+                        rowTitle("사용자 지정 팬 제어")
+                        Text("Wattly가 macOS 기본 제어 대신 아래 곡선을 적용합니다. 처음 켤 때 관리자 인증이 필요합니다.")
                             .font(WattlyFont.at(10.5, weight: .regular))
                             .foregroundStyle(t.faint)
                             .fixedSize(horizontal: false, vertical: true)
@@ -678,6 +751,12 @@ struct SettingsView: View {
                     Text("표시할 지표 (복수 선택)")
                         .font(WattlyFont.at(11.5, weight: .regular))
                         .foregroundStyle(t.faint)
+                    if !menubarText {
+                        Text("텍스트 표시를 켜면 선택한 지표가 아이콘 옆에 표시됩니다.")
+                            .font(WattlyFont.at(11.5, weight: .regular))
+                            .foregroundStyle(t.faint)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     menuChipGrid
                 }
                 .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
@@ -688,56 +767,59 @@ struct SettingsView: View {
     private var menuChipGrid: some View {
         let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 3)
         return LazyVGrid(columns: columns, spacing: 4) {
-            WattlyChip(label: "CPU (%)", isOn: menuCPU) { menuCPU.toggle() }
-            WattlyChip(label: "S 코어 클럭 (GHz)", isOn: menuSClock) { menuSClock.toggle() }
-            WattlyChip(label: "P 코어 클럭 (GHz)", isOn: menuPClock) { menuPClock.toggle() }
-            WattlyChip(label: "E 코어 클럭 (GHz)", isOn: menuEClock) { menuEClock.toggle() }
-            WattlyChip(label: "전력 (W)", isOn: menuPower) { menuPower.toggle() }
-            WattlyChip(label: "배터리 (W)", isOn: menuBattery) { menuBattery.toggle() }
-            WattlyChip(label: "메모리 (GB)", isOn: menuMem) { menuMem.toggle() }
-            WattlyChip(label: "메모리 압력 (%)", isOn: menuMemPressure) { menuMemPressure.toggle() }
-            WattlyChip(label: "CPU 온도 (°C)", isOn: menuCpuTemp) { menuCpuTemp.toggle() }
-            WattlyChip(label: "GPU 온도 (°C)", isOn: menuGpuTemp) { menuGpuTemp.toggle() }
-            WattlyChip(label: "배터리 온도 (°C)", isOn: menuBatTemp) { menuBatTemp.toggle() }
-            WattlyChip(label: "팬 (RPM)", isOn: menuFan) { menuFan.toggle() }
+            menuMetricChip(.cpu, label: "CPU (%)", isOn: menuCPU) { menuCPU.toggle() }
+            menuClockChip(label: "S 코어 클럭 (GHz)", isOn: menuSClock) { menuSClock.toggle() }
+            menuClockChip(label: "P 코어 클럭 (GHz)", isOn: menuPClock) { menuPClock.toggle() }
+            menuClockChip(label: "E 코어 클럭 (GHz)", isOn: menuEClock) { menuEClock.toggle() }
+            menuMetricChip(.power, label: "전력 (W)", isOn: menuPower) { menuPower.toggle() }
+            menuMetricChip(.battery, label: "배터리 (W)", isOn: menuBattery) { menuBattery.toggle() }
+            menuMetricChip(.mem, label: "메모리 (GB)", isOn: menuMem) { menuMem.toggle() }
+            menuMetricChip(.mem, label: "메모리 압력 (%)", isOn: menuMemPressure) { menuMemPressure.toggle() }
+            menuMetricChip(.cpuTemp, label: "CPU 온도 (°C)", isOn: menuCpuTemp) { menuCpuTemp.toggle() }
+            menuMetricChip(.gpuTemp, label: "GPU 온도 (°C)", isOn: menuGpuTemp) { menuGpuTemp.toggle() }
+            menuMetricChip(.batTemp, label: "배터리 온도 (°C)", isOn: menuBatTemp) { menuBatTemp.toggle() }
+            menuMetricChip(.fan, label: "팬 (RPM)", isOn: menuFan) { menuFan.toggle() }
         }
         .padding(3)
         .background(RoundedRectangle(cornerRadius: 8).fill(t.segTrack))
     }
 
-    // MARK: 동작 모드
+    private func menuChipDisabledReason(for card: CardKind) -> String? {
+        if !menubarText { return "텍스트 표시를 켜면 선택한 지표가 아이콘 옆에 표시됩니다." }
+        if !monitor.isPresent(card) { return "이 Mac에서는 사용할 수 없습니다" }
+        return nil
+    }
 
-    private var powerModeSection: some View {
-        SettingsSection(title: "동작 모드") {
+    private func menuMetricChip(_ card: CardKind, label: String, isOn: Bool,
+                                action: @escaping () -> Void) -> some View {
+        let disabledReason = menuChipDisabledReason(for: card)
+        return WattlyChip(label: label, isOn: isOn, isEnabled: disabledReason == nil,
+                          disabledReason: disabledReason, action: action)
+    }
+
+    private func menuClockChip(label: String, isOn: Bool,
+                               action: @escaping () -> Void) -> some View {
+        let disabledReason = menubarText
+            ? nil
+            : "텍스트 표시를 켜면 선택한 지표가 아이콘 옆에 표시됩니다."
+        return WattlyChip(label: label, isOn: isOn, isEnabled: disabledReason == nil,
+                          disabledReason: disabledReason, action: action)
+    }
+
+    // MARK: 백그라운드 갱신
+
+    private var backgroundUpdateSection: some View {
+        SettingsSection(title: "백그라운드 갱신") {
             SettingsCard(padding: Tokens.cardPadding) {
                 VStack(alignment: .leading, spacing: 10) {
                     WattlySegment(selection: $powerMode, options: [
-                        (.eco, PowerMode.eco.label), (.performance, PowerMode.performance.label),
+                        (.eco, PowerMode.eco.label),
+                        (.performance, PowerMode.performance.label),
                     ])
-                    Text(powerModeDescription)
+                    Rectangle().fill(t.line).frame(height: 1)
+                    Text("갱신 주기")
                         .font(WattlyFont.at(11.5, weight: .regular))
                         .foregroundStyle(t.faint)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-    }
-
-    private var powerModeDescription: String {
-        switch powerMode {
-        case .eco:
-            "패널을 닫으면 백그라운드 지표 읽기를 줄입니다. 다시 열 때는 최신 값과 그래프 샘플을 새로 얻을 수 있습니다."
-        case .performance:
-            "활성 지표를 백그라운드에서도 계속 갱신합니다. 더 많은 전력을 사용하지만, 패널 값과 그래프를 더 빨리 준비할 수 있습니다."
-        }
-    }
-
-    // MARK: 업데이트 주기
-
-    private var pollSection: some View {
-        SettingsSection(title: "업데이트 주기") {
-            SettingsCard(padding: Tokens.cardPadding) {
-                VStack(alignment: .leading, spacing: 10) {
                     WattlySegment(selection: $pollInterval,
                                   options: PollInterval.allCases.map { ($0, $0.label) },
                                   pillVPadding: 6)
@@ -754,8 +836,7 @@ struct SettingsView: View {
 
     private var resetButton: some View {
         Button {
-            SettingsReset.applyDefaults(login: loginItem)
-            loginMirror = loginItem.isEnabled
+            isResetConfirmationPresented = true
         } label: {
             SettingsCard(padding: 11) {
                 HStack(spacing: 7) {
@@ -771,26 +852,9 @@ struct SettingsView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: 푸터
-
-    /// "X.XX W" (2 decimals, prototype-faithful) when a self-power reading exists, else "—".
-    private var selfPowerText: String {
-        monitor.selfPower.map { String(format: "%.2f W", $0) } ?? "—"
-    }
-
-    private var footer: some View {
-        VStack(spacing: 6) {
-            // Live self-power (issue 16): "X.XX W" when warm, "—" until the first valid
-            // interval. Reading monitor.selfPower in body tracks the @Observable update.
-            (Text("Wattly 1.0 · 자체 소비 ") + Text(selfPowerText).foregroundColor(t.sub))
-                .font(WattlyFont.at(11.5, weight: .regular))
-                .foregroundStyle(t.faint)
-            Text("Created by jjundev")
-                .font(WattlyFont.at(11, weight: .regular))
-                .foregroundStyle(t.faint)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 2)
+    private func applyDefaults() {
+        SettingsReset.applyDefaults(login: loginItem)
+        loginMirror = loginItem.isEnabled
     }
 
     // MARK: Row label helpers
