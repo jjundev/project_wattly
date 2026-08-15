@@ -486,7 +486,7 @@ struct SettingsView: View {
                 }
                 VStack(alignment: .leading, spacing: 12) {
                     fanStatusIndicator
-                    HStack {
+                    HStack(spacing: 8) {
                         if let holdRange = FanCurveGeometry.zeroRPMHoldRange(for: fanCurvePreview ?? fanCurve) {
                             HStack(spacing: 6) {
                                 RoundedRectangle(cornerRadius: 2)
@@ -510,17 +510,7 @@ struct SettingsView: View {
                             .accessibilityElement(children: .combine)
                         }
                         Spacer()
-                        Button { fanCurve = Defaults.fanCurve } label: {
-                            Text("기본값")
-                                .font(WattlyFont.at(11, weight: .semibold))
-                                .foregroundStyle(t.sub)
-                                .padding(.horizontal, 9)
-                                .padding(.vertical, 3)
-                                .background(RoundedRectangle(cornerRadius: 6).fill(t.cardBg))
-                                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(t.rowBorder, lineWidth: 1))
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("팬 커브 기본값으로 되돌리기")
+                        presetMenu
                     }
                     FanCurveEditor(curve: $fanCurve, previewCurve: $fanCurvePreview, currentCPU: currentHottestCPU)
                 }
@@ -557,6 +547,42 @@ struct SettingsView: View {
                 if !Task.isCancelled { editApplyDeadline = nil }
             }
         }
+    }
+
+    private var presetMenu: some View {
+        let currentPreset = FanCurvePreset.matchingPreset(for: fanCurvePreview ?? fanCurve)
+        let labelText = currentPreset?.rawValue ?? "사용자 지정"
+
+        return Menu {
+            ForEach(FanCurvePreset.allCases) { preset in
+                Button {
+                    fanCurvePreview = nil
+                    fanCurve = preset.curve
+                } label: {
+                    if currentPreset == preset {
+                        Label(preset.title, systemImage: "checkmark")
+                    } else {
+                        Text(preset.title)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(labelText)
+                    .font(WattlyFont.at(11, weight: .semibold))
+                    .foregroundStyle(currentPreset != nil ? t.sub : Tokens.accent)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(t.faint)
+            }
+            .padding(.horizontal, 9)
+            .padding(.vertical, 3)
+            .background(RoundedRectangle(cornerRadius: 6).fill(t.cardBg))
+            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(t.rowBorder, lineWidth: 1))
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .accessibilityLabel("팬 커브 프리셋 선택, 현재 \(labelText)")
     }
 
     private func zeroFanHelpPopover(for holdRange: ClosedRange<Double>) -> some View {
