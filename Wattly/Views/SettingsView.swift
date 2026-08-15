@@ -65,7 +65,7 @@ private struct WindowAppearanceSync: NSViewRepresentable {
 /// state is `@AppStorage`, so a change reflects in the popover live and survives restart.
 ///
 /// Sections (그룹 순서, settings-card-unification): 일반 · 표시(테마·레이아웃·표시 지표·
-/// 메모리 카드 펼침 목록·메뉴바) · 동작(백그라운드 갱신·전력 표시 안정화) · 고급(상태 경고 기준·팬 커브) · 되돌리기.
+/// 카드 펼침 목록·메뉴바) · 동작(백그라운드 갱신·전력 표시 안정화) · 고급(상태 경고 기준·팬 커브) · 되돌리기.
 /// 팬 커브는 팬이 없는 Mac(desktop)에서 여전히 조건부로 숨는다(`monitor.isPresent(.fan)`).
 struct SettingsView: View {
     @Environment(\.tokens) private var t
@@ -173,7 +173,7 @@ struct SettingsView: View {
 
     // MARK: 표시 (그룹)
 
-    /// 표시 그룹: 테마 · 레이아웃 · 표시 지표 · 메모리/프로세서 전력 프로세스 · 메뉴바 — 화면에 무엇이 보이는지를 다루는
+    /// 표시 그룹: 테마 · 레이아웃 · 표시 지표 · 카드 펼침 목록 · 메뉴바 — 화면에 무엇이 보이는지를 다루는
     /// 섹션들. `시스템` 그룹(아래 `generalSection`, `body`)은 섹션이 하나뿐이라 그룹 헤더를
     /// 붙이지 않고 자신의 `SettingsSection` 캡션만 쓰지만, 이 그룹은 5개라 헤더가 붙는다.
     private var displayGroup: some View {
@@ -182,8 +182,7 @@ struct SettingsView: View {
             themeSection
             layoutSection
             showSection
-            memoryProcessLimitSection
-            powerProcessLimitSection
+            cardProcessLimitSection
             menubarSection
         }
     }
@@ -377,38 +376,29 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: 메모리 프로세스
+    // MARK: 카드 펼침 목록
 
-    private var memoryProcessLimitSection: some View {
-        SettingsSection(title: "메모리 카드 펼침 목록") {
-            SettingsCard(padding: Tokens.cardPadding) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("표시할 앱 수")
-                        .font(WattlyFont.at(11.5, weight: .regular))
-                        .foregroundStyle(t.faint)
-                    WattlySegment(selection: $memoryProcessLimit, options: [
-                        (3, "3개"), (4, "4개"), (5, "5개"), (6, "6개"), (7, "7개"),
-                    ], fontSize: 11.5, pillVPadding: 6)
-                    Text("메모리 카드를 펼쳤을 때 사용량이 큰 앱부터 표시합니다.")
-                        .font(WattlyFont.at(11.5, weight: .regular))
-                        .foregroundStyle(t.faint)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+    private var unifiedProcessLimitBinding: Binding<Int> {
+        Binding(
+            get: { memoryProcessLimit },
+            set: { val in
+                memoryProcessLimit = val
+                powerProcessLimit = val
             }
-        }
+        )
     }
 
-    private var powerProcessLimitSection: some View {
-        SettingsSection(title: "프로세서 전력 카드 펼침 목록") {
+    private var cardProcessLimitSection: some View {
+        SettingsSection(title: "카드 펼침 목록") {
             SettingsCard(padding: Tokens.cardPadding) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("표시할 앱 수")
                         .font(WattlyFont.at(11.5, weight: .regular))
                         .foregroundStyle(t.faint)
-                    WattlySegment(selection: $powerProcessLimit, options: [
-                        (3, "3개"), (4, "4개"), (5, "5개"), (6, "6개"), (7, "7개"),
+                    WattlySegment(selection: unifiedProcessLimitBinding, options: [
+                        (3, "3개"), (5, "5개"), (7, "7개"),
                     ], fontSize: 11.5, pillVPadding: 6)
-                    Text("프로세서 전력 카드를 펼쳤을 때 전력 사용량이 큰 앱부터 표시합니다.")
+                    Text("메모리 및 프로세서 전력 카드를 펼쳤을 때 사용량이 큰 앱부터 표시합니다.")
                         .font(WattlyFont.at(11.5, weight: .regular))
                         .foregroundStyle(t.faint)
                         .fixedSize(horizontal: false, vertical: true)
