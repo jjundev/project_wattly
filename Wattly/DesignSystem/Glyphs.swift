@@ -266,56 +266,7 @@ struct Cube3DMark: View {
     }
 }
 
-// 5. Thermal Convection Rising Bubble Mark
-struct ThermalBubbleMark: View {
-    let frame: Int
-    var markerColor: Color = Tokens.accent
-
-    var body: some View {
-        GeometryReader { proxy in
-            let s = min(proxy.size.width, proxy.size.height)
-            let strokeW = max(1.6, s * 0.09)
-            let phase = Double(frame) / 24.0
-
-            let bubbles: [(x: CGFloat, speed: Double, offset: Double, r: CGFloat)] = [
-                (0.32, 1.0, 0.0, 0.12),
-                (0.68, 1.3, 0.35, 0.10),
-                (0.48, 0.8, 0.65, 0.14),
-                (0.22, 1.1, 0.85, 0.08)
-            ]
-
-            ZStack {
-                Path { p in
-                    p.move(to: CGPoint(x: s * 0.15, y: s * 0.85))
-                    p.addLine(to: CGPoint(x: s * 0.15, y: s * 0.22))
-                    p.addCurve(to: CGPoint(x: s * 0.85, y: s * 0.22),
-                               control1: CGPoint(x: s * 0.15, y: s * 0.12),
-                               control2: CGPoint(x: s * 0.85, y: s * 0.12))
-                    p.addLine(to: CGPoint(x: s * 0.85, y: s * 0.85))
-                    p.closeSubpath()
-                }
-                .stroke(style: StrokeStyle(lineWidth: max(1.5, strokeW * 0.95), lineCap: .round, lineJoin: .round))
-                .opacity(0.70)
-
-                ForEach(0..<bubbles.count, id: \.self) { idx in
-                    let b = bubbles[idx]
-                    let progress = (phase * b.speed + b.offset).truncatingRemainder(dividingBy: 1.0)
-                    let by = s * 0.82 - progress * (s * 0.62)
-                    let bx = s * b.x + sin(progress * .pi * 2.0) * (s * 0.04)
-                    let opacity = sin(progress * .pi)
-
-                    Circle()
-                        .fill(markerColor)
-                        .frame(width: s * b.r * 2.0, height: s * b.r * 2.0)
-                        .opacity(opacity * 0.95)
-                        .position(x: bx, y: by)
-                }
-            }
-        }
-    }
-}
-
-// 6. Logic Equalizer Mark
+// 5. Logic Equalizer Mark
 struct EqualizerMark: View {
     let frame: Int
     var markerColor: Color = Tokens.accent
@@ -365,7 +316,7 @@ struct EqualizerMark: View {
     }
 }
 
-// 7. Dynamic Hill Runner Mark (Discrete 8-Keyframe Locomotion Pose Tables)
+// 6. Dynamic Hill Runner Mark (Discrete 8-Keyframe Locomotion Pose Tables)
 struct HillRunnerMark: View {
     let frame: Int
     var markerColor: Color = Tokens.accent
@@ -603,7 +554,6 @@ struct DynamicMenuBarIconMark: View {
         case .pulseWave: PulseWaveMark(frame: frame, markerColor: markerColor)
         case .vuMeter: VUMeterMark(frame: frame, markerColor: markerColor)
         case .cube3D: Cube3DMark(frame: frame, markerColor: markerColor)
-        case .thermalBubble: ThermalBubbleMark(frame: frame, markerColor: markerColor)
         case .equalizer: EqualizerMark(frame: frame, markerColor: markerColor)
         case .hillRunner: HillRunnerMark(frame: frame, markerColor: markerColor)
         }
