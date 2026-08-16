@@ -153,17 +153,18 @@ struct BatterySample: Sendable, Equatable {
     /// Display-only one-minute EMA of signed net power. Providers leave this nil;
     /// `SystemMonitor` attaches it so the battery sub-line can show sustained draw.
     var average1mW: Double? = nil
+    /// Battery pack temperature, °C (from AppleSmartBattery centi-°C). nil on desktop or unreadable.
+    var temperatureCelsius: Double? = nil
 }
 
 // MARK: - Temperature (the partial-failure boundary, PRD line 74)
 
-/// One snapshot carries all three temperature categories. CPU/GPU/battery each
+/// One snapshot carries both CPU and GPU temperature categories. CPU and GPU each
 /// resolve independently, so a single failing category never knocks out the
-/// others (this is what makes the temperature fan-out safe).
+/// other (this is what makes the temperature fan-out safe).
 struct TemperatureSnapshot: Sendable, Equatable {
     var cpu: CategoryReading
     var gpu: CategoryReading
-    var battery: CategoryReading
 }
 
 enum CategoryReading: Sendable, Equatable {

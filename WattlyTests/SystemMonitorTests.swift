@@ -65,8 +65,7 @@ struct SystemMonitorTests {
     @Test func temperatureFanOutIsolatesCategories() async {
         let snap = TemperatureSnapshot(
             cpu: .reading(TemperatureReading(celsius: 60)),
-            gpu: .unavailable(.noVerifiedProfile),
-            battery: .reading(TemperatureReading(celsius: 31)))
+            gpu: .unavailable(.noVerifiedProfile))
         let temp = ScriptedProvider(kind: .temperature, [.value(.temperature(snap))])
         let monitor = SystemMonitor(providers: [temp], clock: ManualClock())
 
@@ -77,9 +76,6 @@ struct SystemMonitorTests {
         }
         guard case .unavailable(.temperature(.noVerifiedProfile)) = monitor.cardState(.gpuTemp) else {
             Issue.record("gpuTemp should be unavailable without affecting cpuTemp"); return
-        }
-        guard case .value = monitor.cardState(.batTemp) else {
-            Issue.record("batTemp should have a value"); return
         }
     }
 
@@ -362,12 +358,11 @@ struct SystemMonitorTests {
     }
 
     @Test func hiddenTemperatureCardsDoNoCPUGPUSensorIO() async {
-        // 수용 #2: both temperature toggles OFF → zero CPU/GPU SMC I/O, but the provider
-        // still runs for battery temp (independent source). Driven at the SystemMonitor
-        // level via the real provider + a fake transport that counts I/O. `model:"Mac17,2"`
-        // is pinned so the SMC path is genuinely live (else it's terminal → vacuous green).
+        // Both temperature toggles OFF → zero CPU/GPU SMC I/O.
+        // Driven at the SystemMonitor level via the real provider + a fake transport that counts I/O.
+        // `model:"Mac17,2"` is pinned so the SMC path is genuinely live (else it's terminal → vacuous green).
         let tx = FakeTempTransport()
-        tx.cpuCelsius = 80; tx.gpuCelsius = 70; tx.battery = .centiCelsius(3000)
+        tx.cpuCelsius = 80; tx.gpuCelsius = 70
         let temp = TemperatureProvider(transport: tx, model: "Mac17,2")
         let monitor = SystemMonitor(providers: [temp], clock: ManualClock())
 
@@ -377,14 +372,13 @@ struct SystemMonitorTests {
         #expect(tx.openCalls >= 1)
         #expect(tx.readCalls >= 1)
 
-        // Hide both CPU/GPU temp cards (batTemp stays) → setEnabled(false) → no new SMC I/O.
-        let openBefore = tx.openCalls, readBefore = tx.readCalls, batBefore = tx.batteryCalls
+        // Hide both CPU/GPU temp cards → setEnabled(false) → no new SMC I/O.
+        let openBefore = tx.openCalls, readBefore = tx.readCalls
         await monitor.setShownCards(Set(CardKind.allCases).subtracting([.cpuTemp, .gpuTemp]))
         for _ in 0..<3 { await monitor.pollOnce() }
 
         #expect(tx.openCalls == openBefore)         // zero further SMC opens
         #expect(tx.readCalls == readBefore)         // zero further SMC key reads
-        #expect(tx.batteryCalls == batBefore + 3)   // battery temp still read each poll
     }
 
     @Test func menubarMetricKeepsHiddenProviderPolled() async {
@@ -392,7 +386,7 @@ struct SystemMonitorTests {
         // CPU/GPU SMC path enabled — even when every card is hidden. The inverse of
         // `hiddenTemperatureCardsDoNoCPUGPUSensorIO`. `model:"Mac17,2"` pins a live SMC path.
         let tx = FakeTempTransport()
-        tx.cpuCelsius = 80; tx.gpuCelsius = 70; tx.battery = .centiCelsius(3000)
+        tx.cpuCelsius = 80; tx.gpuCelsius = 70
         let temp = TemperatureProvider(transport: tx, model: "Mac17,2")
         let monitor = SystemMonitor(providers: [temp], clock: ManualClock())
 

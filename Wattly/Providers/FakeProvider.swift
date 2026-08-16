@@ -75,15 +75,21 @@ actor FakeProvider: MetricProvider {
             // SoC engine split mirrors the prototype (line 588).
             return .power(PowerSample(totalW: p, cpuW: p * 0.37, gpuW: p * 0.24, npuW: p * 0.03 + 0.05))
         case .battery:
-            let net = v("batteryW")
+            let net = effectiveScenario == .desktop ? 0.0 : v("batteryW")
             let mag = abs(net)
             let charging = net < -0.2
             return .battery(BatterySample(
                 netW: net,
-                milliamps: Int((mag / 12.0 * 1000).rounded()),
+                milliamps: effectiveScenario == .desktop ? 0 : Int((mag / 12.0 * 1000).rounded()),
                 volts: 12.0,
                 charging: charging,
-                externalConnected: charging))   // synthetic dev harness — AC iff charging
+                externalConnected: effectiveScenario == .desktop || charging,
+                remainingWh: effectiveScenario == .desktop ? nil : 48.2,
+                maxWh: effectiveScenario == .desktop ? nil : 52.0,
+                timeRemainingMinutes: effectiveScenario == .desktop ? nil : 210,
+                efficiencyPercent: effectiveScenario == .desktop ? nil : 94.5,
+                cycleCount: effectiveScenario == .desktop ? nil : 142,
+                temperatureCelsius: effectiveScenario == .desktop ? nil : v("batTemp")))
         case .cpu:
             let c = v("cpu")
             // Real M-series names (issue 04): drives the same prefix logic ("P"/"E")
@@ -137,10 +143,7 @@ actor FakeProvider: MetricProvider {
                 TemperatureGroup(name: "GPU 클러스터 1", average: g - 0.4, hottest: g + 0.3),
                 TemperatureGroup(name: "GPU 클러스터 2", average: g + 0.2, hottest: g + 0.7),
             ]))
-            let bat: CategoryReading = effectiveScenario == .desktop
-                ? .notPresent("배터리 없음 — 데스크톱 Mac")
-                : .reading(TemperatureReading(celsius: v("batTemp")))
-            return .temperature(TemperatureSnapshot(cpu: cpu, gpu: gpu, battery: bat))
+            return .temperature(TemperatureSnapshot(cpu: cpu, gpu: gpu))
         case .fan:
             let base = 2200.0
             return .fan(FanSample(fans: [
@@ -178,16 +181,16 @@ actor FakeProvider: MetricProvider {
             return ["mem": desktop ? Base(b: 22.4, step: 0.8, min: 14, max: 60)
                                    : Base(b: 9.2, step: 0.5, min: 6, max: 15.6)]
         case .battery:
-            return desktop ? [:] : ["batteryW": Base(b: 6, step: 1.2, min: -10, max: 20)]
+            var b: [String: Base] = desktop ? [:] : ["batteryW": Base(b: 6, step: 1.2, min: -10, max: 20)]
+            if !desktop { b["batTemp"] = Base(b: 31, step: 0.7, min: 22, max: 46) }
+            return b
         case .temperature:
-            var t: [String: Base] = [
+            return [
                 "cpuTemp": desktop ? Base(b: 51, step: 2.4, min: 40, max: 92)
                                    : Base(b: 54.3, step: 2.5, min: 42, max: 94),
                 "gpuTemp": desktop ? Base(b: 57, step: 2.2, min: 40, max: 88)
                                    : Base(b: 48.1, step: 2, min: 38, max: 86),
             ]
-            if !desktop { t["batTemp"] = Base(b: 31, step: 0.7, min: 22, max: 46) }
-            return t
         case .fan:
             return ["fan": Base(b: 2400, step: 180, min: 1200, max: 6000)]
         }

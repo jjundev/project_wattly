@@ -432,10 +432,11 @@ final class SystemMonitor {
             projectedTimeRemainingMinutes: raw.projectedTimeRemainingMinutes,
             efficiencyPercent: raw.efficiencyPercent,
             cycleCount: raw.cycleCount,
-            average1mW: raw.average1mW)
+            average1mW: raw.average1mW,
+            temperatureCelsius: raw.temperatureCelsius)
     }
 
-    // MARK: Derivation — the 7-card fan-out
+    // MARK: Derivation — the 8-card fan-out
 
     /// State for a single card, derived from its provider's state. Temperature
     /// cards split the snapshot per category, so one failing sensor only darkens
@@ -443,7 +444,7 @@ final class SystemMonitor {
     func cardState(_ card: CardKind) -> MetricState {
         guard let providerState = states[card.provider] else { return .loading }
         switch card {
-        case .cpuTemp, .gpuTemp, .batTemp:
+        case .cpuTemp, .gpuTemp:
             return temperatureCardState(card, from: providerState)
         case .battery:
             guard case .value(.battery(var sample)) = providerState else { return providerState }
@@ -495,11 +496,7 @@ final class SystemMonitor {
         case .unavailable(let r): return .unavailable(r)
         case .value(let sample):
             guard case .temperature(let snap) = sample else { return .loading }
-            let category: CategoryReading = switch card {
-                case .cpuTemp: snap.cpu
-                case .gpuTemp: snap.gpu
-                default: snap.battery
-            }
+            let category: CategoryReading = (card == .cpuTemp) ? snap.cpu : snap.gpu
             switch category {
             case .reading: return .value(sample)
             case .unavailable(let e): return .unavailable(.temperature(e))
@@ -508,9 +505,9 @@ final class SystemMonitor {
         }
     }
 
-    /// Whether the card should appear at all. Battery and battery-temperature
-    /// vanish on a desktop Mac — modelled uniformly as their provider/category
-    /// being `.notPresent`, which also covers a real laptop with no battery.
+    /// Whether the card should appear at all. Battery vanishes on a desktop Mac
+    /// — modelled uniformly as its provider/category being `.notPresent`, which
+    /// also covers a real laptop with no battery.
     func isPresent(_ card: CardKind) -> Bool {
         if case .unavailable(let r) = cardState(card), case .notPresent = r { return false }
         return true
@@ -539,7 +536,6 @@ final class SystemMonitor {
         case (.mem, .memory(let s)): return s.usedGB
         case (.cpuTemp, .temperature(let s)): return s.cpu.celsius
         case (.gpuTemp, .temperature(let s)): return s.gpu.celsius
-        case (.batTemp, .temperature(let s)): return s.battery.celsius
         case (.fan, .fan(let s)): return averageRPM(s.fans)
         default: return nil
         }

@@ -147,22 +147,19 @@ struct FanTests {
                 TemperatureGroup(name: "P-코어", average: 72, hottest: 88),
                 TemperatureGroup(name: "E-코어", average: 60, hottest: 66),
             ])),
-            gpu: .reading(TemperatureReading(celsius: 55)),
-            battery: .reading(TemperatureReading(celsius: 30)))
+            gpu: .reading(TemperatureReading(celsius: 55)))
         #expect(hottestCPUCelsius(snap) == 88)   // max of the per-group hottest values
     }
 
     @Test func hottestCPUNilWhenNotReadingOrNoGroups() {
         let unavailable = TemperatureSnapshot(
             cpu: .unavailable(.connectionFailed),
-            gpu: .reading(TemperatureReading(celsius: 55)),
-            battery: .reading(TemperatureReading(celsius: 30)))
+            gpu: .reading(TemperatureReading(celsius: 55)))
         #expect(hottestCPUCelsius(unavailable) == nil)
 
         let noGroups = TemperatureSnapshot(
             cpu: .reading(TemperatureReading(celsius: 70)),   // groups defaults to []
-            gpu: .reading(TemperatureReading(celsius: 55)),
-            battery: .reading(TemperatureReading(celsius: 30)))
+            gpu: .reading(TemperatureReading(celsius: 55)))
         #expect(hottestCPUCelsius(noGroups) == nil)           // empty groups → max of [] → nil
     }
 }

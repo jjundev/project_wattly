@@ -36,6 +36,7 @@ enum SettingsReset {
             defaults.set(Defaults.show[card] ?? true, forKey: StorageKey.show(card))
             defaults.set(Defaults.menuMetrics[card] ?? false, forKey: StorageKey.menu(card))
         }
+        defaults.set(Defaults.menuBatteryTempEnabled, forKey: StorageKey.menuBatteryTemp)
         defaults.set(Defaults.menuMemPressureEnabled, forKey: StorageKey.menuMemPressure)
         for prefix in Defaults.menuCoreClockEnabled.keys {
             defaults.set(Defaults.menuCoreClockEnabled[prefix] ?? false, forKey: StorageKey.menuCoreClock(prefix))

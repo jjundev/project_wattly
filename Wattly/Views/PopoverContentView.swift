@@ -74,7 +74,6 @@ struct PopoverContentView: View {
     @AppStorage(StorageKey.show(.mem))     private var showMem     = Defaults.show[.mem]     ?? true
     @AppStorage(StorageKey.show(.cpuTemp)) private var showCpuTemp = Defaults.show[.cpuTemp] ?? true
     @AppStorage(StorageKey.show(.gpuTemp)) private var showGpuTemp = Defaults.show[.gpuTemp] ?? true
-    @AppStorage(StorageKey.show(.batTemp)) private var showBatTemp = Defaults.show[.batTemp] ?? true
     @AppStorage(StorageKey.show(.fan))     private var showFan     = Defaults.show[.fan]     ?? true
 
     private var expanded: Set<CardKind> { CardPresentation.expandedCards(from: expandedRaw) }
@@ -429,7 +428,6 @@ struct PopoverContentView: View {
         case .mem: showMem
         case .cpuTemp: showCpuTemp
         case .gpuTemp: showGpuTemp
-        case .batTemp: showBatTemp
         case .fan: showFan
         }
     }

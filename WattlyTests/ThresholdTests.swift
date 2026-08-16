@@ -91,22 +91,18 @@ struct ThresholdTests {
         let th = Defaults.thresholds       // temp 70/90
         let st = MetricState.value(.temperature(TemperatureSnapshot(
             cpu: .reading(TemperatureReading(celsius: 95)),     // crit
-            gpu: .reading(TemperatureReading(celsius: 75)),     // warn
-            battery: .reading(TemperatureReading(celsius: 30))))) // normal
+            gpu: .reading(TemperatureReading(celsius: 75)))))   // warn
         #expect(CardPresentation.thresholdLevel(.cpuTemp, st, th) == .crit)
         #expect(CardPresentation.thresholdLevel(.gpuTemp, st, th) == .warn)
-        #expect(CardPresentation.thresholdLevel(.batTemp, st, th) == .normal)
     }
 
     @Test func temperatureNonReadingIsNil() {
         let th = Defaults.thresholds
         let st = MetricState.value(.temperature(TemperatureSnapshot(
             cpu: .unavailable(.noVerifiedProfile),
-            gpu: .notPresent("x"),
-            battery: .reading(TemperatureReading(celsius: 30)))))
+            gpu: .notPresent("x"))))
         #expect(CardPresentation.thresholdLevel(.cpuTemp, st, th) == nil)
         #expect(CardPresentation.thresholdLevel(.gpuTemp, st, th) == nil)
-        #expect(CardPresentation.thresholdLevel(.batTemp, st, th) == .normal)
     }
 
     @Test func powerAndBatteryAreThresholdFree() {

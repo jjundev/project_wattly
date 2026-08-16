@@ -361,20 +361,54 @@ struct CardPresentationTests {
     @Test func temperatureValuePerCategory() {
         let snap = TemperatureSnapshot(
             cpu: .reading(TemperatureReading(celsius: 58.7)),
-            gpu: .reading(TemperatureReading(celsius: 44.2)),
-            battery: .reading(TemperatureReading(celsius: 31.0)))
+            gpu: .reading(TemperatureReading(celsius: 44.2)))
         let st = MetricState.value(.temperature(snap))
         #expect(CardPresentation.valueText(.cpuTemp, st) == "58.7")
         #expect(CardPresentation.valueText(.gpuTemp, st) == "44.2")
-        #expect(CardPresentation.valueText(.batTemp, st) == "31.0")
         #expect(CardPresentation.unitText(.cpuTemp, st) == "°C")
         #expect(CardPresentation.subText(st) == nil)
 
         let degraded = MetricState.value(.temperature(TemperatureSnapshot(
             cpu: .unavailable(.noVerifiedProfile),
-            gpu: .reading(TemperatureReading(celsius: 44.2)),
-            battery: .notPresent("x"))))
+            gpu: .reading(TemperatureReading(celsius: 44.2)))))
         #expect(CardPresentation.valueText(.cpuTemp, degraded) == "—")        // defends a non-reading category
+    }
+
+    @Test func batteryTemperaturePresentation() {
+        let sample = BatterySample(netW: -5.0, milliamps: 450, volts: 11.2, charging: false, externalConnected: false, temperatureCelsius: 32.6)
+        #expect(CardPresentation.batteryTemperatureText(sample) == "32.6°C")
+        #expect(CardPresentation.batteryTemperatureLabel == "배터리 온도")
+
+        let noTemp = BatterySample(netW: -5.0, milliamps: 450, volts: 11.2, charging: false, externalConnected: false, temperatureCelsius: nil)
+        #expect(CardPresentation.batteryTemperatureText(noTemp) == nil)
+    }
+
+    @Test func cardKindExcludesBatTemp() {
+        let allCards = CardKind.allCases
+        #expect(allCards == [.power, .battery, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .fan])
+        #expect(allCards.count == 8)
+        #expect(allCards.filter(\.isExpandable).count == 8)
+    }
+
+    @Test func batterySampleIncludesTemperature() {
+        let sample = BatterySample(
+            netW: -12.5,
+            milliamps: 1100,
+            volts: 11.4,
+            charging: false,
+            externalConnected: false,
+            temperatureCelsius: 32.4
+        )
+        #expect(sample.temperatureCelsius == 32.4)
+    }
+
+    @Test func temperatureSnapshotHasTwoCategories() {
+        let snap = TemperatureSnapshot(
+            cpu: .reading(TemperatureReading(celsius: 45.0)),
+            gpu: .reading(TemperatureReading(celsius: 42.0))
+        )
+        #expect(snap.cpu.celsius == 45.0)
+        #expect(snap.gpu.celsius == 42.0)
     }
 
     // MARK: display() is total over MetricState (so MenuBarLabel etc. are safe)
@@ -401,7 +435,7 @@ struct CardPresentationTests {
         #expect(CardPresentation.label(.mem) == "메모리")
         #expect(CardPresentation.label(.cpuTemp) == "CPU 온도")
         #expect(CardPresentation.label(.gpuTemp) == "GPU 온도")
-        #expect(CardPresentation.label(.batTemp) == "배터리 온도")
+        #expect(CardPresentation.label(.fan) == "팬 속도")
     }
 
     // MARK: Relocated pure helpers (expand regions)
@@ -459,7 +493,7 @@ struct CardPresentationTests {
 
     @Test func cardKindStructuralFlags() {
         #expect(CardKind.allCases.filter(\.isExpandable) == [.power, .battery, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .fan])
-        #expect(CardKind.allCases.filter(\.hasSparkArea) == [.power, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
+        #expect(CardKind.allCases.filter(\.hasSparkArea) == [.power, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .fan])
         #expect(CardKind.allCases.filter(\.isAccented) == [.power])
     }
 
@@ -507,11 +541,10 @@ struct CardPresentationTests {
         case .gpu:
             return .value(.gpu(GPUSample(overall: 38.0, coreCount: 10, activeGHz: 1.28)))
         case .mem:     return .value(.memory(MemorySample(usedGB: 8, totalGB: 16, wiredGB: 2, compressedGB: 1)))
-        case .cpuTemp, .gpuTemp, .batTemp:
+        case .cpuTemp, .gpuTemp:
             return .value(.temperature(TemperatureSnapshot(
                 cpu: .reading(TemperatureReading(celsius: 50)),
-                gpu: .reading(TemperatureReading(celsius: 45)),
-                battery: .reading(TemperatureReading(celsius: 30)))))
+                gpu: .reading(TemperatureReading(celsius: 45)))))
         case .fan:     return .value(.fan(FanSample(fans: [
                             FanReading(index: 0, actualRPM: 2000, minRPM: 0, maxRPM: 4000, targetRPM: 2200)])))
         }

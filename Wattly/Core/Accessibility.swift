@@ -66,7 +66,7 @@ enum Accessibility {
         case .battery: return batteryPhrase(state) ?? "\(v) W"
         case .cpu, .gpu: return "\(v)%"
         case .mem: return "\(v) GB"
-        case .cpuTemp, .gpuTemp, .batTemp: return "\(v)°C"
+        case .cpuTemp, .gpuTemp: return "\(v)°C"
         case .fan: return "\(v) RPM"
         }
     }

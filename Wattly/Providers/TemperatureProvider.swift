@@ -2,7 +2,7 @@ import Foundation
 import IOKit
 
 /// What the temperature provider reads through — the **single read-only seam** under
-/// which the real SMC / AppleSmartBattery I/O lives (plan 08 §1). The provider knows
+/// which the real SMC I/O lives (plan 08 §1). The provider knows
 /// only this protocol, so the whole connection / backoff / partial-failure machine is
 /// tested by injecting a fake transport (no hardware), and the `io_connect_t` / CF
 /// objects never leave the live implementation.
@@ -12,28 +12,15 @@ protocol TemperatureTransport: Sendable {
     /// Read + `flt `-decode one SMC key to °C; nil if absent / unreadable / not `flt `
     /// (unknown data types are rejected, never int-fallback-misdecoded — plan 08 §3).
     func readCelsius(_ key: String) -> Double?
-    /// AppleSmartBattery temperature (independent of the SMC — never blocked by an SMC
-    /// failure, and never blocks it; plan 08 §6/§9).
-    func batteryTemperature() -> BatterySource
     /// Release the SMC connection (on terminal / disable / stale-after-wake).
     func close()
-}
-
-/// Battery-temperature outcome from the transport. `.notPresent` is the desktop / no-battery
-/// path (→ card hidden); `.unreadable` is a present-but-failed read (retryable).
-enum BatterySource: Sendable, Equatable {
-    case centiCelsius(Int)
-    case notPresent
-    case unreadable
 }
 
 /// Real temperature provider (issue 08) — no entitlements.
 ///
 /// CPU/GPU come from the **SMC** (`Tp*`/`Te*` = CPU die, `Tg*` = GPU die, all `flt `),
 /// but ONLY on a chip with an on-device-verified `TemperatureProfile` (plan 08 Phase 0);
-/// any other chip is `noVerifiedProfile` (terminal, zero I/O). Battery temperature comes
-/// from AppleSmartBattery's `Temperature` key (centi-°C), independent of the SMC, and is
-/// `notPresent` on a desktop. All arithmetic / profile / backoff logic is in pure
+/// any other chip is `noVerifiedProfile` (terminal, zero I/O). All arithmetic / profile / backoff logic is in pure
 /// `Temperature`; this actor only orchestrates I/O and the connection lifecycle.
 ///
 /// `actor` is required: `read` is awaited from the `@MainActor` `SystemMonitor`, so the
@@ -42,10 +29,6 @@ enum BatterySource: Sendable, Equatable {
 actor TemperatureProvider: MetricProvider, TemperatureGating {
     let kind: ProviderKind = .temperature
 
-    /// Matches `FakeProvider`/`BatteryProvider`'s desktop copy.
-    static let batteryNotPresentMessage = "배터리 없음 — 데스크톱 Mac"
-    /// Battery plausibility band (°C) — its own, separate from the SMC profile's range.
-    private static let batteryRange = 0.0...80.0
     /// Elapsed beyond this ⇒ a gap (missed poll / sleep-wake; `ContinuousClock` advances
     /// through sleep) → reset backoff and force a fresh SMC connection (mirrors
     /// `PowerProvider.maxPlausibleDt`).
@@ -74,7 +57,6 @@ actor TemperatureProvider: MetricProvider, TemperatureGating {
     /// Enable/disable the SMC CPU/GPU read path. Issue 09 calls `false` when both the
     /// CPU- and GPU-temperature cards are hidden (no sensor I/O for hidden cards), and
     /// `true` to re-enable — which resets the backoff/connection so it reconnects at once.
-    /// Battery temperature is unaffected (cheap, separate source).
     func setEnabled(_ on: Bool) {
         if on && !enabled { resetConnection() }   // re-enable → fresh start
         enabled = on
@@ -95,10 +77,8 @@ actor TemperatureProvider: MetricProvider, TemperatureGating {
             profileResolved = true
         }
 
-        // Battery temp is independent — read it regardless of SMC/enabled state.
-        let battery = batteryReading()
         let (cpu, gpu) = cpuGpuReadings(at: instant)
-        return .value(.temperature(TemperatureSnapshot(cpu: cpu, gpu: gpu, battery: battery)))
+        return .value(.temperature(TemperatureSnapshot(cpu: cpu, gpu: gpu)))
     }
 
     // MARK: CPU/GPU (SMC, with connection lifecycle)
@@ -174,22 +154,6 @@ actor TemperatureProvider: MetricProvider, TemperatureGating {
         if smcOpen { transport.close(); smcOpen = false }
     }
 
-    // MARK: Battery temp (independent source)
-
-    private func batteryReading() -> CategoryReading {
-        switch transport.batteryTemperature() {
-        case .notPresent:
-            return .notPresent(Self.batteryNotPresentMessage)
-        case .unreadable:
-            return .unavailable(.readFailed)
-        case .centiCelsius(let raw):
-            if let c = batteryCelsius(rawCentiCelsius: raw, in: Self.batteryRange) {
-                return .reading(TemperatureReading(celsius: c))
-            }
-            return .unavailable(.readFailed)
-        }
-    }
-
     private static func seconds(from a: ContinuousClock.Instant, to b: ContinuousClock.Instant) -> Double {
         let d = a.duration(to: b)
         return Double(d.components.seconds) + Double(d.components.attoseconds) * 1e-18
@@ -205,9 +169,9 @@ protocol TemperatureGating: MetricProvider {
 
 // MARK: - Live transport
 
-/// Live `TemperatureTransport`: SMC (`SMCConnection`) for CPU/GPU `flt ` keys +
-/// AppleSmartBattery for battery temp. Only ever touched inside `TemperatureProvider`'s
-/// actor isolation, so `@unchecked Sendable` (same basis as `SMCConnection`).
+/// Live `TemperatureTransport`: SMC (`SMCConnection`) for CPU/GPU `flt ` keys.
+/// Only ever touched inside `TemperatureProvider`'s actor isolation, so `@unchecked Sendable`
+/// (same basis as `SMCConnection`).
 final class SMCTemperatureTransport: TemperatureTransport, @unchecked Sendable {
     private var smc: SMCConnection?
 
@@ -221,15 +185,6 @@ final class SMCTemperatureTransport: TemperatureTransport, @unchecked Sendable {
         guard let smc, let r = smc.read(key), r.type.hasPrefix("flt") else { return nil }
         let c = smcDouble(r.bytes, type: r.type)
         return c.isFinite ? c : nil
-    }
-
-    func batteryTemperature() -> BatterySource {
-        let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"))
-        guard service != 0 else { return .notPresent }
-        defer { IOObjectRelease(service) }
-        guard let n = IORegistryEntryCreateCFProperty(service, "Temperature" as CFString, kCFAllocatorDefault, 0)?
-            .takeRetainedValue() as? NSNumber else { return .unreadable }
-        return .centiCelsius(n.intValue)
     }
 
     func close() { smc = nil }   // SMCConnection.deinit closes the io_connect_t
@@ -273,7 +228,7 @@ enum ThermalProbe {
             case .notPresent(let m): return "notPresent(\(m))"
             }
         }
-        return "CPU \(d(s.cpu)) · GPU \(d(s.gpu)) · battery \(d(s.battery))"
+        return "CPU \(d(s.cpu)) · GPU \(d(s.gpu))"
     }
 }
 #endif
