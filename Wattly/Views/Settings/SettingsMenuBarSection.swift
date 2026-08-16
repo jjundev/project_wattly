@@ -133,16 +133,21 @@ struct SettingsMenuBarSection: View {
                                     isForeground: true,
                                     frameCount: iconStyle.frameCount
                                 )
-                                let activeTag = String(localized: "활성")
-                                let stateTag = String(localized: LocalizedStringResource(stringLiteral: powerStateTag))
-                                let fpsText: String = if kineticNotchSpeed == .smart {
-                                    "\(Int(previewLoad.rounded()))% · \(String(format: "%.2f", rps)) rps (\(activeTag) [\(stateTag)]: \(Int(fps.rounded())) fps)"
-                                } else {
-                                    "\(Int(previewLoad.rounded()))% · \(String(format: "%.2f", rps)) rps (\(activeTag): \(Int(fps.rounded())) fps)"
+                                Group {
+                                    if kineticNotchSpeed == .smart {
+                                        (Text("\(Int(previewLoad.rounded()))% · \(String(format: "%.2f", rps)) rps (")
+                                         + Text("활성")
+                                         + Text(" [")
+                                         + Text(LocalizedStringKey(powerStateTag))
+                                         + Text("]: \(Int(fps.rounded())) fps)"))
+                                    } else {
+                                        (Text("\(Int(previewLoad.rounded()))% · \(String(format: "%.2f", rps)) rps (")
+                                         + Text("활성")
+                                         + Text(": \(Int(fps.rounded())) fps)"))
+                                    }
                                 }
-                                Text(fpsText)
-                                    .font(WattlyFont.at(11.5, weight: .medium))
-                                    .foregroundStyle(t.faint)
+                                .font(WattlyFont.at(11.5, weight: .medium))
+                                .foregroundStyle(t.faint)
                             } else {
                                 Text("선택한 부하를 읽는 동안 아이콘은 정지합니다.")
                                     .font(WattlyFont.at(11.5, weight: .regular))
