@@ -28,8 +28,8 @@ enum PowerMode: String, CaseIterable, Identifiable, Sendable {
 
     var label: String {
         switch self {
-        case .eco: "절전"
-        case .performance: "항상 최신"
+        case .eco: "스마트(권장)"
+        case .performance: "고성능"
         }
     }
 }
@@ -43,8 +43,8 @@ enum BackgroundRefreshPreset: String, CaseIterable, Identifiable, Sendable {
 
     var label: String {
         switch self {
-        case .eco: "절전"
-        case .performance: "항상 최신"
+        case .eco: "스마트(권장)"
+        case .performance: "고성능"
         case .custom: "사용자 지정"
         }
     }
