@@ -15,6 +15,14 @@ struct KineticNotchMotionTests {
         #expect(KineticNotchSource.compute.label == "CPU + GPU")
     }
 
+    @Test func speedOrderingAndLabels() {
+        #expect(KineticNotchSpeed.allCases == [.eco, .smart, .standard, .responsive])
+        #expect(KineticNotchSpeed.eco.label == "절전")
+        #expect(KineticNotchSpeed.smart.label == "스마트 (권장)")
+        #expect(KineticNotchSpeed.standard.label == "표준")
+        #expect(KineticNotchSpeed.responsive.label == "민감")
+    }
+
     @Test func targetWattsByFormFactor() {
         // MacBook Air (fanCount == 0) -> 20W
         #expect(KineticNotchSource.targetWatts(gpuCores: 8, fanCount: 0) == 20.0)

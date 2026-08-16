@@ -96,8 +96,8 @@ enum KineticNotchSource: String, CaseIterable, Identifiable, Sendable {
 }
 
 enum KineticNotchSpeed: String, CaseIterable, Identifiable, Sendable {
-    case smart
     case eco
+    case smart
     case standard
     case responsive
 
@@ -105,8 +105,8 @@ enum KineticNotchSpeed: String, CaseIterable, Identifiable, Sendable {
 
     var label: String {
         switch self {
-        case .smart: "스마트 (권장)"
         case .eco: "절전"
+        case .smart: "스마트 (권장)"
         case .standard: "표준"
         case .responsive: "민감"
         }
@@ -114,8 +114,8 @@ enum KineticNotchSpeed: String, CaseIterable, Identifiable, Sendable {
 
     var description: String {
         switch self {
-        case .smart: "메뉴바 상주 시에는 ProMotion 절전을 위해 24 fps로 고정되며, 팝오버를 열거나 설정창을 볼 때는 전원 상태(AC 60 fps / 배터리 24 fps)에 따라 부드럽게 동작합니다."
         case .eco: "24 fps 시네마틱 주사율로 배터리를 절약하며 부드럽게 회전합니다."
+        case .smart: "메뉴바 상주 시에는 ProMotion 절전을 위해 24 fps로 고정되며, 팝오버를 열거나 설정창을 볼 때는 전원 상태(AC 60 fps / 배터리 24 fps)에 따라 부드럽게 동작합니다."
         case .standard: "메뉴바 상주 시 24 fps, 앱 활성화 시 48 fps 고주사율로 ProMotion 화면에서 자연스럽고 균형 잡힌 모션을 제공합니다."
         case .responsive: "메뉴바 상주 시 24 fps, 앱 활성화 시 60 fps 최고 주사율로 극도로 부드러운 고주사율 화면을 제공합니다."
         }
@@ -131,10 +131,10 @@ enum KineticNotchSpeed: String, CaseIterable, Identifiable, Sendable {
             return 24.0
         }
         switch speed {
-        case .smart:
-            return isACConnected ? 60.0 : 24.0
         case .eco:
             return 24.0
+        case .smart:
+            return isACConnected ? 60.0 : 24.0
         case .standard:
             return 48.0
         case .responsive:
