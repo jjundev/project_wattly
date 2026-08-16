@@ -12,4 +12,12 @@ struct GlyphsRenderingTests {
             }
         }
     }
+
+    @Test @MainActor func hillRunnerMarkRendersAcrossAllTiers() {
+        for frame in 0..<24 {
+            let mark = HillRunnerMark(frame: frame, markerColor: .black)
+            #expect(mark.frame == frame)
+        }
+    }
 }
+

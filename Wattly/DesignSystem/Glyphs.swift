@@ -365,6 +365,217 @@ struct EqualizerMark: View {
     }
 }
 
+// 7. Dynamic Hill Runner Mark (2-Link IK Legs & Cheek-to-Pocket Arms)
+struct HillRunnerMark: View {
+    let frame: Int
+    var markerColor: Color = Tokens.accent
+
+    var body: some View {
+        GeometryReader { proxy in
+            let s = min(proxy.size.width, proxy.size.height)
+            let strokeW = max(1.4, s * 0.08)
+            let headR = s * 0.095
+
+            let clampedFrame = min(max(frame, 0), 23)
+            let tier = clampedFrame / 8 // 0: Uphill, 1: Flat, 2: Downhill
+            let subPhase = Double(clampedFrame % 8) / 8.0
+
+            // Tier parameters
+            let t: Double = switch tier {
+            case 0: 0.10 // Uphill
+            case 1: 0.50 // Flat
+            default: 0.90 // Downhill
+            }
+
+            // 1. Ground Slope
+            let gX1 = s * 0.08, gX2 = s * 0.92
+            let gY1 = s * (0.88 - t * 0.30)
+            let gY2 = s * (0.62 + t * 0.28)
+            let groundSlope = (gY2 - gY1) / (gX2 - gX1)
+            let groundAtHip = gY1 + (s * 0.46 - gX1) * groundSlope
+
+            // 2. Hip Position
+            let hipX = s * 0.46
+            let p = subPhase * .pi * 2.0
+            let u1 = subPhase
+            let u2 = (subPhase + 0.5).truncatingRemainder(dividingBy: 1.0)
+            let bob = abs(sin(p * 2.0)) * s * (0.02 + t * 0.04)
+            let hipY = groundAtHip - s * (0.24 - t * 0.02) - bob
+
+            // 3. Torso & Head
+            let leanAngle = (0.24 - (1.0 - abs(t - 0.5) * 2.0) * 0.12 + (t > 0.5 ? (t - 0.5) * 0.38 : 0.0)) * .pi
+            let torsoLen = s * 0.22
+            let neckX = hipX + sin(leanAngle) * torsoLen
+            let neckY = hipY - cos(leanAngle) * torsoLen
+
+            let headAngle = leanAngle * 0.65
+            let headX = neckX + sin(headAngle) * (s * 0.09)
+            let headY = neckY - cos(headAngle) * (s * 0.09)
+
+            // 4. Leg Kinematics (2-Link Constant Bone Length IK)
+            let strideScale = s * (0.13 + t * 0.09)
+            let liftScale = s * (0.05 + t * 0.09)
+            let frenzy = max(0.0, (t - 0.60) / 0.40)
+
+            let foot1 = calcFoot(u: u1, hipX: hipX, hipY: hipY, p: p, phaseOffset: 0.6, strideScale: strideScale, liftScale: liftScale, frenzy: frenzy, s: s, gX1: gX1, gY1: gY1, groundSlope: groundSlope)
+            let foot2 = calcFoot(u: u2, hipX: hipX, hipY: hipY, p: p, phaseOffset: .pi + 0.6, strideScale: strideScale, liftScale: liftScale, frenzy: frenzy, s: s, gX1: gX1, gY1: gY1, groundSlope: groundSlope)
+
+            let L1 = s * 0.13, L2 = s * 0.13
+            let leg1 = solveLegIK(hx: hipX, hy: hipY, fx: foot1.x, fy: foot1.y, L1: L1, L2: L2)
+            let leg2 = solveLegIK(hx: hipX, hy: hipY, fx: foot2.x, fy: foot2.y, L1: L1, L2: L2)
+
+            // 5. Arm Kinematics (Cheek-to-Pocket Anti-Phase)
+            let A1 = s * 0.14, A2 = s * 0.13
+            let arm1 = calcArm(isFront: true, u: u2, neckX: neckX, neckY: neckY, t: t, p: p, frenzy: frenzy, A1: A1, A2: A2, s: s)
+            let arm2 = calcArm(isFront: false, u: u1, neckX: neckX, neckY: neckY, t: t, p: p, frenzy: frenzy, A1: A1, A2: A2, s: s)
+
+            ZStack {
+                // Ground slope line
+                Path { path in
+                    path.move(to: CGPoint(x: gX1, y: gY1))
+                    path.addLine(to: CGPoint(x: gX2, y: gY2))
+                }
+                .stroke(style: StrokeStyle(lineWidth: max(1.0, strokeW * 0.7), lineCap: .round))
+                .opacity(0.45)
+
+                // High speed dash lines (Tier 2 only)
+                if tier == 2 {
+                    Path { path in
+                        path.move(to: CGPoint(x: hipX - s * 0.28, y: hipY - s * 0.16))
+                        path.addLine(to: CGPoint(x: hipX - s * 0.08, y: hipY - s * 0.12))
+                        path.move(to: CGPoint(x: hipX - s * 0.24, y: hipY + s * 0.02))
+                        path.addLine(to: CGPoint(x: hipX - s * 0.06, y: hipY + s * 0.05))
+                    }
+                    .stroke(style: StrokeStyle(lineWidth: strokeW * 0.7, lineCap: .round))
+                    .opacity(0.80)
+                }
+
+                // Back Arm
+                Path { path in
+                    path.move(to: CGPoint(x: arm2.shX, y: arm2.shY))
+                    path.addLine(to: CGPoint(x: arm2.ex, y: arm2.ey))
+                    path.addLine(to: CGPoint(x: arm2.hx, y: arm2.hy))
+                }
+                .stroke(style: StrokeStyle(lineWidth: strokeW * 0.85, lineCap: .round, lineJoin: .round))
+                .opacity(0.50)
+
+                // Back Leg
+                Path { path in
+                    path.move(to: CGPoint(x: hipX, y: hipY))
+                    path.addLine(to: CGPoint(x: leg2.kx, y: leg2.ky))
+                    path.addLine(to: CGPoint(x: leg2.fx, y: leg2.fy))
+                }
+                .stroke(style: StrokeStyle(lineWidth: strokeW * 0.85, lineCap: .round, lineJoin: .round))
+                .opacity(0.50)
+
+                // Torso Spine
+                Path { path in
+                    path.move(to: CGPoint(x: hipX, y: hipY))
+                    path.addLine(to: CGPoint(x: neckX, y: neckY))
+                }
+                .stroke(style: StrokeStyle(lineWidth: strokeW, lineCap: .round))
+
+                // Head
+                Circle()
+                    .frame(width: headR * 2, height: headR * 2)
+                    .position(x: headX, y: headY)
+
+                // Front Leg
+                Path { path in
+                    path.move(to: CGPoint(x: hipX, y: hipY))
+                    path.addLine(to: CGPoint(x: leg1.kx, y: leg1.ky))
+                    path.addLine(to: CGPoint(x: leg1.fx, y: leg1.fy))
+                }
+                .stroke(markerColor, style: StrokeStyle(lineWidth: strokeW, lineCap: .round, lineJoin: .round))
+
+                // Front Arm
+                Path { path in
+                    path.move(to: CGPoint(x: arm1.shX, y: arm1.shY))
+                    path.addLine(to: CGPoint(x: arm1.ex, y: arm1.ey))
+                    path.addLine(to: CGPoint(x: arm1.hx, y: arm1.hy))
+                }
+                .stroke(markerColor, style: StrokeStyle(lineWidth: strokeW, lineCap: .round, lineJoin: .round))
+            }
+        }
+    }
+
+    private func calcFoot(u: Double, hipX: CGFloat, hipY: CGFloat, p: Double, phaseOffset: Double, strideScale: CGFloat, liftScale: CGFloat, frenzy: Double, s: CGFloat, gX1: CGFloat, gY1: CGFloat, groundSlope: CGFloat) -> CGPoint {
+        var fx: CGFloat
+        var fy: CGFloat
+        if u < 0.45 {
+            let xi = u / 0.45
+            fx = hipX + strideScale * (1.0 - 2.0 * xi)
+            fy = gY1 + (fx - gX1) * groundSlope
+        } else {
+            let eta = (u - 0.45) / 0.55
+            fx = hipX - strideScale * cos(.pi * eta)
+            fy = (gY1 + (fx - gX1) * groundSlope) - liftScale * sin(.pi * eta)
+        }
+
+        if frenzy > 0 {
+            let circX = hipX + cos(p + phaseOffset) * (s * 0.20)
+            let circY = hipY + sin(p + phaseOffset) * (s * 0.20) + s * 0.06
+            fx = fx * (1.0 - frenzy) + circX * frenzy
+            fy = fy * (1.0 - frenzy) + circY * frenzy
+        }
+        return CGPoint(x: fx, y: fy)
+    }
+
+    private func solveLegIK(hx: CGFloat, hy: CGFloat, fx: CGFloat, fy: CGFloat, L1: CGFloat, L2: CGFloat) -> (kx: CGFloat, ky: CGFloat, fx: CGFloat, fy: CGFloat) {
+        let dx = fx - hx
+        let dy = fy - hy
+        let dist = min(max(sqrt(dx * dx + dy * dy), 0.01), (L1 + L2) * 0.999)
+        let baseAngle = atan2(dy, dx)
+        let cosAlpha = (L1 * L1 + dist * dist - L2 * L2) / (2 * L1 * dist)
+        let alpha = acos(min(max(cosAlpha, -1.0), 1.0))
+        let kneeAngle = baseAngle - alpha
+        let kx = hx + cos(kneeAngle) * L1
+        let ky = hy + sin(kneeAngle) * L1
+        return (kx, ky, fx, fy)
+    }
+
+    private func calcArm(isFront: Bool, u: Double, neckX: CGFloat, neckY: CGFloat, t: Double, p: Double, frenzy: Double, A1: CGFloat, A2: CGFloat, s: CGFloat) -> (shX: CGFloat, shY: CGFloat, ex: CGFloat, ey: CGFloat, hx: CGFloat, hy: CGFloat) {
+        let shX = neckX + (isFront ? s * 0.02 : -s * 0.02)
+        let shY = neckY + (isFront ? s * 0.02 : 0.0)
+        let swing = sin(u * .pi * 2.0)
+
+        var upperAngle: Double
+        var forearmAngle: Double
+        if swing >= 0 {
+            let prog = swing
+            upperAngle = 1.30 - prog * 0.85
+            forearmAngle = upperAngle - (1.15 + prog * 0.35)
+        } else {
+            let prog = -swing
+            upperAngle = 1.30 + prog * 1.35
+            forearmAngle = upperAngle - (1.70 - prog * 0.15)
+        }
+
+        var ex = shX + cos(upperAngle) * A1
+        var ey = shY + sin(upperAngle) * A1
+        var hx = ex + cos(forearmAngle) * A2
+        var hy = ey + sin(forearmAngle) * A2
+
+        if frenzy > 0 {
+            let flailPhase = p + (isFront ? 0.0 : .pi)
+            let flailUpperAngle = 0.4 - cos(flailPhase) * 1.6
+            let flailForearmAngle = flailUpperAngle - 1.1 + sin(flailPhase) * 0.4
+
+            let fex = shX + cos(flailUpperAngle) * A1
+            let fey = shY + sin(flailUpperAngle) * A1
+            let fhx = fex + cos(flailForearmAngle) * A2
+            let fhy = fey - sin(flailForearmAngle) * A2
+
+            ex = ex * (1.0 - frenzy) + fex * frenzy
+            ey = ey * (1.0 - frenzy) + fey * frenzy
+            hx = hx * (1.0 - frenzy) + fhx * frenzy
+            hy = hy * (1.0 - frenzy) + fhy * frenzy
+        }
+
+        return (shX, shY, ex, ey, hx, hy)
+    }
+}
+
 // Unified Dynamic MenuBar Icon Dispatcher
 struct DynamicMenuBarIconMark: View {
     let style: MenuBarIconStyle
@@ -385,6 +596,7 @@ struct DynamicMenuBarIconMark: View {
         case .cube3D: Cube3DMark(frame: frame, markerColor: markerColor)
         case .thermalBubble: ThermalBubbleMark(frame: frame, markerColor: markerColor)
         case .equalizer: EqualizerMark(frame: frame, markerColor: markerColor)
+        case .hillRunner: HillRunnerMark(frame: frame, markerColor: markerColor)
         }
     }
 }
