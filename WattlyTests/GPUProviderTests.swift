@@ -15,7 +15,6 @@ struct GPUProviderTests {
         case .value(.gpu(let sample)):
             #expect(sample.overall >= 0.0 && sample.overall <= 100.0)
             #expect(sample.coreCount > 0)
-            #expect(sample.cores.count == sample.coreCount)
         case .unavailable:
             // Graceful degrade if IOAccelerator is not present or unreadable in environment
             break

@@ -23,8 +23,14 @@ struct GPUSample: Sendable, Equatable {
     var coreCount: Int
     /// Real-time active clock in GHz from DVFS residency, or nil when unavailable.
     var activeGHz: Double? = nil
-    /// Per-core usage array (G0...Gn), 0–100.
-    var cores: [Double] = []
+    /// Renderer engine utilization (3D shading, pixel pipeline), 0–100.
+    var rendererUsage: Double = 0
+    /// Tiler engine utilization (geometry, scene splitting, rasterizing), 0–100.
+    var tilerUsage: Double = 0
+    /// In-use GPU video memory in bytes (`In use system memory`).
+    var inUseMemoryBytes: UInt64 = 0
+    /// Total allocated GPU video memory in bytes (`Alloc system memory`).
+    var allocMemoryBytes: UInt64 = 0
 }
 
 struct CPUSample: Sendable, Equatable {

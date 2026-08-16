@@ -25,7 +25,7 @@ struct MenuBarTextTests {
     }
 
     @Test func gpuMenuBarText() {
-        let sample = GPUSample(overall: 38.4, coreCount: 10, activeGHz: 1.28, cores: [])
+        let sample = GPUSample(overall: 38.4, coreCount: 10, activeGHz: 1.28)
         let text = MenuBarText.part(.gpu, .value(.gpu(sample)))
         #expect(text == "GPU 38%")
     }

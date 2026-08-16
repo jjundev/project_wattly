@@ -88,9 +88,6 @@ struct CardExpandRegion: View {
                         .monospacedDigit()
                         .foregroundStyle(Tokens.accent)
                 }
-                ForEach(Array(s.cores.enumerated()), id: \.offset) { ci, usage in
-                    coreRow(label: "G\(ci)", usage: usage, accent: true)
-                }
             }
         }
         .padding(.top, 8)

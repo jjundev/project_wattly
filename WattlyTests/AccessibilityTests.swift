@@ -53,7 +53,7 @@ struct AccessibilityTests {
     }
 
     @Test func gpuUsesPercentSymbolAndClock() {
-        let sample = GPUSample(overall: 38.4, coreCount: 10, activeGHz: 1.28, cores: [])
+        let sample = GPUSample(overall: 38.4, coreCount: 10, activeGHz: 1.28)
         let state = MetricState.value(.gpu(sample))
         #expect(Accessibility.cardLabel(.gpu, state) == "GPU, 38%, 1.28 GHz")
     }
@@ -108,9 +108,9 @@ struct AccessibilityTests {
 
     @Test func gpuStateWordCritWarnNormal() {
         let th = Defaults.thresholds
-        let high = MetricState.value(.gpu(GPUSample(overall: 95, coreCount: 10, activeGHz: 1.5, cores: [])))
-        let mid = MetricState.value(.gpu(GPUSample(overall: 75, coreCount: 10, activeGHz: 1.5, cores: [])))
-        let low = MetricState.value(.gpu(GPUSample(overall: 40, coreCount: 10, activeGHz: 1.5, cores: [])))
+        let high = MetricState.value(.gpu(GPUSample(overall: 95, coreCount: 10, activeGHz: 1.5)))
+        let mid = MetricState.value(.gpu(GPUSample(overall: 75, coreCount: 10, activeGHz: 1.5)))
+        let low = MetricState.value(.gpu(GPUSample(overall: 40, coreCount: 10, activeGHz: 1.5)))
         #expect(Accessibility.stateWord(.gpu, high, th) == "위험")
         #expect(Accessibility.stateWord(.gpu, mid, th) == "주의")
         #expect(Accessibility.stateWord(.gpu, low, th) == nil)

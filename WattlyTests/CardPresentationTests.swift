@@ -24,9 +24,9 @@ struct CardPresentationTests {
     }
 
     @Test func gpuSampleEquality() {
-        let s1 = GPUSample(overall: 45.2, coreCount: 10, activeGHz: 1.28, cores: [45.2, 45.2])
-        let s2 = GPUSample(overall: 45.2, coreCount: 10, activeGHz: 1.28, cores: [45.2, 45.2])
-        let s3 = GPUSample(overall: 50.0, coreCount: 10, activeGHz: 1.35, cores: [50.0, 50.0])
+        let s1 = GPUSample(overall: 45.2, coreCount: 10, activeGHz: 1.28, rendererUsage: 45.0, tilerUsage: 20.0, inUseMemoryBytes: 100, allocMemoryBytes: 200)
+        let s2 = GPUSample(overall: 45.2, coreCount: 10, activeGHz: 1.28, rendererUsage: 45.0, tilerUsage: 20.0, inUseMemoryBytes: 100, allocMemoryBytes: 200)
+        let s3 = GPUSample(overall: 50.0, coreCount: 10, activeGHz: 1.35, rendererUsage: 50.0, tilerUsage: 25.0, inUseMemoryBytes: 100, allocMemoryBytes: 200)
         #expect(s1 == s2)
         #expect(s1 != s3)
         let sample = MetricSample.gpu(s1)
@@ -34,13 +34,17 @@ struct CardPresentationTests {
             #expect(s.overall == 45.2)
             #expect(s.coreCount == 10)
             #expect(s.activeGHz == 1.28)
+            #expect(s.rendererUsage == 45.0)
+            #expect(s.tilerUsage == 20.0)
+            #expect(s.inUseMemoryBytes == 100)
+            #expect(s.allocMemoryBytes == 200)
         } else {
             Issue.record("Expected .gpu sample")
         }
     }
 
     @Test func gpuCardPresentation() {
-        let sample = GPUSample(overall: 38.4, coreCount: 10, activeGHz: 1.28, cores: Array(repeating: 38.4, count: 10))
+        let sample = GPUSample(overall: 38.4, coreCount: 10, activeGHz: 1.28)
         let state = MetricState.value(.gpu(sample))
         #expect(CardPresentation.label(.gpu) == "GPU")
         #expect(CardPresentation.unitText(.gpu, state) == "%")
@@ -446,7 +450,7 @@ struct CardPresentationTests {
                                                             charging: false, externalConnected: false)))
         case .cpu:     return .value(.cpu(CPUSample(overall: 42, perfLevels: [])))
         case .gpu:
-            return .value(.gpu(GPUSample(overall: 38.0, coreCount: 10, activeGHz: 1.28, cores: Array(repeating: 38.0, count: 10))))
+            return .value(.gpu(GPUSample(overall: 38.0, coreCount: 10, activeGHz: 1.28)))
         case .mem:     return .value(.memory(MemorySample(usedGB: 8, totalGB: 16, wiredGB: 2, compressedGB: 1)))
         case .cpuTemp, .gpuTemp, .batTemp:
             return .value(.temperature(TemperatureSnapshot(
