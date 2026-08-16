@@ -190,47 +190,48 @@ struct SnapshotGeneratorTests {
 
                     Spacer(minLength: 16)
 
-                    // Right: Wattly Live Menu Bar Items + System Status Items
-                    HStack(spacing: 12) {
-                        // Wattly Active Live Status Items (Pure Monochrome Template Style)
+                    // Right: Wattly Single Live Menu Bar Item (Hill Runner) + macOS System Status Items
+                    HStack(spacing: 14) {
+                        // Single Wattly Active Live Status Item (Hill Runner Template Style)
                         HStack(spacing: 5) {
                             HillRunnerMark(frame: frame, markerColor: .white)
                                 .frame(width: 14, height: 14)
                             Text("CPU 24%")
-                                .font(.system(size: 11.5, weight: .medium, design: .monospaced))
+                                .font(.system(size: 12, weight: .medium, design: .monospaced))
                                 .foregroundStyle(.white)
-                        }
-
-                        HStack(spacing: 5) {
-                            PulseWaveMark(frame: frame, markerColor: .white)
-                                .frame(width: 14, height: 14)
-                            Text("8.5W")
-                                .font(.system(size: 11.5, weight: .medium, design: .monospaced))
-                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                                .fixedSize()
                         }
 
                         // Standard macOS System Status Items
-                        HStack(spacing: 11) {
+                        HStack(spacing: 12) {
                             Image(systemName: "wifi")
-                                .font(.system(size: 11.5, weight: .medium))
+                                .font(.system(size: 12, weight: .medium))
+
                             HStack(spacing: 4) {
                                 Text("68%")
-                                    .font(.system(size: 11.5, weight: .regular))
+                                    .font(.system(size: 12, weight: .regular))
+                                    .lineLimit(1)
+                                    .fixedSize()
                                 Image(systemName: "battery.100")
-                                    .font(.system(size: 11.5, weight: .medium))
+                                    .font(.system(size: 12, weight: .medium))
                             }
+
                             Image(systemName: "magnifyingglass")
-                                .font(.system(size: 11.5, weight: .medium))
+                                .font(.system(size: 12, weight: .medium))
+
                             Image(systemName: "switch.2")
-                                .font(.system(size: 11.5, weight: .medium))
+                                .font(.system(size: 12, weight: .medium))
+
                             Text("Mon 9:41 AM")
-                                .font(.system(size: 11.5, weight: .regular))
+                                .font(.system(size: 12, weight: .regular))
+                                .lineLimit(1)
+                                .fixedSize()
                         }
                         .foregroundStyle(.white.opacity(0.85))
-                        .padding(.leading, 4)
                     }
                 }
-                .padding(.horizontal, 14)
+                .padding(.horizontal, 16)
                 .frame(height: 32)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
@@ -263,6 +264,8 @@ struct SnapshotGeneratorTests {
                     Text(value)
                         .font(.system(size: 11, weight: .medium, design: .monospaced))
                         .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .fixedSize()
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
@@ -272,6 +275,8 @@ struct SnapshotGeneratorTests {
                 Text(label)
                     .font(WattlyFont.at(9.5, weight: .medium))
                     .foregroundStyle(t.faint)
+                    .lineLimit(1)
+                    .fixedSize()
             }
             .frame(maxWidth: .infinity)
         }
