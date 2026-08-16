@@ -17,7 +17,7 @@
 **Wattly**는 Apple Silicon Mac을 위해 처음부터 완전히 새롭게 설계된 네이티브 메뉴바 시스템 모니터 및 지능형 팬 컨트롤러입니다. 엄격한 동시성(Strict Concurrency)을 갖춘 **Swift 6**와 **SwiftUI**로 작성되어, CPU 점유율과 배터리 소모를 0에 가깝게 유지하면서도 밀리와트(mW) 단위의 SoC 전력 측정, 클러스터별 CPU/GPU 성능 분석, 커널 메모리 압박 감시, 실시간 배터리 정밀 분석, 맞춤형 스마트 팬 커브 제어를 지원합니다.
 
 <p align="center">
-  <img src="docs/assets/menubar-icon-motion.gif" alt="메뉴바 키네틱 모션" width="480" />
+  <img src="docs/assets/menubar-icon-motion.gif" alt="메뉴바 키네틱 모션" width="720" />
 </p>
 
 ### 핵심 특징
