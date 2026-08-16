@@ -48,15 +48,34 @@ enum KineticNotchSpeed: String, CaseIterable, Identifiable, Sendable {
 enum KineticNotchMotion {
     static let frameCount = 7
     static let idleThreshold = 5.0
-    private static let phaseOffsets = [-2, -1, 0, 1, 2, 1, 0]
+    static let staticFrame = 0
+    static let rightEdgePhase = 2
+    static let leftEdgePhase = 5
+    private static let phaseDelayMultipliers = [0.92, 0.78, 1.32, 0.96, 0.78, 1.32, 0.92]
+
+    static func displayedFrame(phase: Int, reduceMotion: Bool) -> Int {
+        guard !reduceMotion else { return staticFrame }
+        return ((phase % frameCount) + frameCount) % frameCount
+    }
+
+    // Transitional overloads keep the unchanged menu-bar and Settings call sites
+    // buildable until their Flux Loop migrations in Tasks 2 and 3.
     static func restFrame(load: Double) -> Int {
-        Int(((min(max(load, 0), 100) / 100) * Double(frameCount - 1)).rounded())
+        staticFrame
     }
+
     static func displayedFrame(load: Double, phase: Int, reduceMotion: Bool) -> Int {
-        let rest = restFrame(load: load)
-        guard !reduceMotion else { return rest }
-        return min(max(rest + phaseOffsets[phase % phaseOffsets.count], 0), frameCount - 1)
+        displayedFrame(phase: phase, reduceMotion: reduceMotion)
     }
+
+    static func phaseDelayMultiplier(phase: Int) -> Double {
+        phaseDelayMultipliers[((phase % frameCount) + frameCount) % frameCount]
+    }
+
+    static func frameDelay(phase: Int, frameRate: Double) -> TimeInterval {
+        phaseDelayMultiplier(phase: phase) / frameRate
+    }
+
     static func frameRate(load: Double, speed: KineticNotchSpeed) -> Double? {
         let load = min(max(load, 0), 100)
         guard load > idleThreshold else { return nil }

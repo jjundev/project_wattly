@@ -39,10 +39,30 @@ struct KineticNotchMotionTests {
         #expect(abs((KineticNotchMotion.frameRate(load: interiorLoad, speed: .responsive) ?? 0) - 4.5) < 1e-12)
     }
 
-    @Test func frameSelectionClampsAndReduceMotionIsStatic() {
-        #expect(KineticNotchMotion.restFrame(load: -1) == 0)
-        #expect(KineticNotchMotion.restFrame(load: 100) == 6)
-        #expect(KineticNotchMotion.displayedFrame(load: 50, phase: 3, reduceMotion: true) == KineticNotchMotion.restFrame(load: 50))
-        #expect((0...6).contains(KineticNotchMotion.displayedFrame(load: 100, phase: 0, reduceMotion: false)))
+    @Test func fluxLoopUsesAStableRestFrameAndWrapsEveryPhase() {
+        #expect(KineticNotchMotion.staticFrame == 0)
+        #expect(KineticNotchMotion.displayedFrame(phase: 0, reduceMotion: false) == 0)
+        #expect(KineticNotchMotion.displayedFrame(phase: 6, reduceMotion: false) == 6)
+        #expect(KineticNotchMotion.displayedFrame(phase: 7, reduceMotion: false) == 0)
+        #expect(KineticNotchMotion.displayedFrame(phase: -1, reduceMotion: false) == 6)
+        #expect(KineticNotchMotion.displayedFrame(phase: 3, reduceMotion: true) == 0)
+    }
+
+    @Test func fluxLoopDwellsAtEdgesWithoutChangingAverageCadence() {
+        let multipliers = (0..<KineticNotchMotion.frameCount)
+            .map(KineticNotchMotion.phaseDelayMultiplier)
+        #expect(KineticNotchMotion.rightEdgePhase == 2)
+        #expect(KineticNotchMotion.leftEdgePhase == 5)
+        #expect(multipliers == [0.92, 0.78, 1.32, 0.96, 0.78, 1.32, 0.92])
+        #expect(abs(multipliers.reduce(0, +) - Double(KineticNotchMotion.frameCount)) < 1e-12)
+        #expect(KineticNotchMotion.frameDelay(phase: KineticNotchMotion.rightEdgePhase, frameRate: 5) >
+                KineticNotchMotion.frameDelay(phase: 1, frameRate: 5))
+        #expect(KineticNotchMotion.frameDelay(phase: KineticNotchMotion.leftEdgePhase, frameRate: 5) >
+                KineticNotchMotion.frameDelay(phase: 4, frameRate: 5))
+        #expect(abs(KineticNotchMotion.frameDelay(phase: KineticNotchMotion.rightEdgePhase, frameRate: 5) - 0.264) < 1e-12)
+        let lapDuration = multipliers.indices
+            .map { KineticNotchMotion.frameDelay(phase: $0, frameRate: 5) }
+            .reduce(0, +)
+        #expect(abs(lapDuration - 1.4) < 1e-12)
     }
 }
