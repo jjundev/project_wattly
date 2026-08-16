@@ -538,4 +538,18 @@ struct CardPresentationTests {
             #expect(!part.hasSuffix("—"), "\(card) menubar part fell through to placeholder")
         }
     }
+
+    @Test func defaultCardOrderPlacesGpuBetweenCpuAndMemory() {
+        let order = Defaults.cardOrder.cards
+        guard let cpuIdx = order.firstIndex(of: .cpu),
+              let gpuIdx = order.firstIndex(of: .gpu),
+              let memIdx = order.firstIndex(of: .mem)
+        else {
+            Issue.record("Missing required cards in Defaults.cardOrder")
+            return
+        }
+        #expect(gpuIdx == cpuIdx + 1)
+        #expect(memIdx == gpuIdx + 1)
+    }
 }
+
