@@ -17,7 +17,7 @@
 **Wattly** is a native, ultra-lightweight menu bar system monitor and intelligent fan controller engineered from the ground up for Apple Silicon Macs. Written entirely in **Swift 6** with strict concurrency and rendered using **SwiftUI**, Wattly delivers milliwatt-precision SoC telemetry, per-cluster CPU/GPU performance breakdown, kernel memory pressure tracking, real-time battery analytics, and custom fan curves—all while consuming near-zero CPU cycles and battery power.
 
 <p align="center">
-  <img src="docs/assets/menubar-motion.gif" alt="Menu Bar Kinetic Motion" width="720" />
+  <img src="docs/assets/menubar-live.gif" alt="Menu Bar Kinetic Motion" width="720" />
 </p>
 
 ### Key Highlights
