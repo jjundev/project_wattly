@@ -55,15 +55,15 @@ struct TurbineMark: View {
         GeometryReader { proxy in
             let s = min(proxy.size.width, proxy.size.height)
             let center = CGPoint(x: proxy.size.width / 2, y: proxy.size.height / 2)
-            let strokeW = max(1.5, s * 0.08)
+            let strokeW = max(1.6, s * 0.09)
             let angle = (Double(frame) / 24.0) * 360.0
 
             ZStack {
                 // Outer ring
                 Circle()
-                    .stroke(style: StrokeStyle(lineWidth: strokeW * 0.75))
-                    .opacity(0.40)
-                    .frame(width: s * 0.88, height: s * 0.88)
+                    .stroke(style: StrokeStyle(lineWidth: max(1.5, strokeW * 0.85)))
+                    .opacity(0.65)
+                    .frame(width: s * 0.90, height: s * 0.90)
                     .position(center)
 
                 // Rotating blades and hub
