@@ -194,11 +194,8 @@ struct WattlyChip: View {
 
 // MARK: - Layout wrappers
 
-/// A top-level group label (표시/동작 in `SettingsView`) — larger and bolder than
+/// A top-level group label (일반/표시/메뉴바/동작/고급 in `SettingsView`) — larger and bolder than
 /// `SettingsSection`'s per-section caption, with no divider line (settings-card-unification).
-/// Used ONLY above groups with 2+ sections; a lone-section group (시스템) reuses its single
-/// section's own `SettingsSection` caption instead, so two redundant captions never stack
-/// directly on top of each other.
 struct SettingsGroupHeader: View {
     let title: LocalizedStringKey
     @Environment(\.tokens) private var t

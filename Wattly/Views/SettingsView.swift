@@ -3,7 +3,7 @@ import SwiftUI
 /// The settings window (issue 13). SwiftUI `Settings` scene, native window chrome.
 /// All state is `@AppStorage`, so a change reflects in the popover live and survives restart.
 ///
-/// Sections: 일반(자동 실행·언어·되돌리기) · 표시(테마·레이아웃·표시 지표·카드 펼침 목록·메뉴바) · 동작(백그라운드 갱신·전력 표시 안정화) · 고급(상태 경고 기준·팬 커브).
+/// Groups: 일반(자동 실행·언어·되돌리기) · 표시(테마·레이아웃·표시 지표·카드 펼침 목록) · 메뉴바(아이콘·텍스트) · 동작(백그라운드 갱신·전력 표시 안정화) · 고급(상태 경고 기준·팬 커브).
 struct SettingsView: View {
     @Environment(\.tokens) private var t
 
@@ -25,8 +25,9 @@ struct SettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                generalSection
+                generalGroup
                 displayGroup
+                menuBarGroup
                 behaviorGroup
                 advancedGroup
             }
@@ -48,10 +49,11 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - 일반 (로그인 · 언어 · 되돌리기)
+    // MARK: - 일반 그룹 (로그인 · 언어 · 되돌리기)
 
-    private var generalSection: some View {
-        SettingsSection(title: "일반") {
+    private var generalGroup: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            SettingsGroupHeader(title: "일반")
             SettingsCard {
                 SettingsToggleRow(isOn: loginBinding, divider: true) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -151,8 +153,13 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 18) {
             SettingsGroupHeader(title: "표시")
             SettingsDisplaySection(monitor: monitor)
-            SettingsMenuBarSection(monitor: monitor)
         }
+    }
+
+    // MARK: - 메뉴바 그룹
+
+    private var menuBarGroup: some View {
+        SettingsMenuBarSection(monitor: monitor)
     }
 
     // MARK: - 동작 그룹
