@@ -924,40 +924,40 @@
   </div>
 
   <script>
-    // 24 Discrete Locomotion Keyframe Pose Tables (Anatomically & Slope-Calibrated - Animator's Survival Kit Standard)
+    // 24 Discrete Locomotion Keyframe Pose Tables (Upright Posture & Deep Rear Arm Extension - Animator's Survival Kit Standard)
     const Poses = [
-      // Tier 0: Uphill Heavy Walk (0..7)
+      // Tier 0: Uphill Heavy Walk (0..7) - Upright posture & deep rear arm swing
       [
-        { bob: -0.015, ft:  0.38, fk: 0.32, bt: -0.34, bk: 0.35, fa: -0.45, fab: -1.25, ba:  0.40, bab: -1.40, name: "1. 접촉 (Contact)", sub: "앞발 뒤꿈치 착지" },
-        { bob:  0.015, ft:  0.16, fk: 0.75, bt: -0.46, bk: 0.85, fa: -0.55, fab: -1.20, ba:  0.50, bab: -1.45, name: "2. 다운 (Recoil)", sub: "체중 지지 무릎 굽힘" },
-        { bob: -0.010, ft: -0.08, fk: 0.20, bt:  0.28, bk: 1.10, fa: -0.15, fab: -1.15, ba:  0.15, bab: -1.25, name: "3. 패싱 (Passing)", sub: "골반 위 수직 통과" },
-        { bob: -0.035, ft: -0.30, fk: 0.12, bt:  0.38, bk: 0.32, fa:  0.30, fab: -1.35, ba: -0.38, bab: -1.20, name: "4. 업 (High Point)", sub: "지면 밀기 및 도약" },
-        { bob: -0.015, ft: -0.34, fk: 0.35, bt:  0.38, bk: 0.32, fa:  0.40, fab: -1.40, ba: -0.45, bab: -1.25, name: "5. 접촉 (Contact 반대)", sub: "뒷발 뒤꿈치 착지" },
-        { bob:  0.015, ft: -0.46, fk: 0.85, bt:  0.16, bk: 0.75, fa:  0.50, fab: -1.45, ba: -0.55, bab: -1.20, name: "6. 다운 (Recoil 반대)", sub: "체중 지지 무릎 굽힘" },
-        { bob: -0.010, ft:  0.28, fk: 1.10, bt: -0.08, bk: 0.20, fa:  0.15, fab: -1.25, ba: -0.15, bab: -1.15, name: "7. 패싱 (Passing 반대)", sub: "골반 위 수직 통과" },
-        { bob: -0.035, ft:  0.38, fk: 0.32, bt: -0.30, bk: 0.12, fa: -0.38, fab: -1.20, ba:  0.30, bab: -1.35, name: "8. 업 (High Point 반대)", sub: "지면 밀기 및 도약" }
+        { bob: -0.015, ft:  0.36, fk: 0.30, bt: -0.34, bk: 0.35, fa: -0.65, fab: -1.15, ba:  0.50, bab: -1.35, name: "1. 접촉 (Contact)", sub: "앞발 뒤꿈치 착지 & 뒷팔 후방 뻗음" },
+        { bob:  0.015, ft:  0.15, fk: 0.75, bt: -0.45, bk: 0.85, fa: -0.75, fab: -1.10, ba:  0.60, bab: -1.40, name: "2. 다운 (Recoil)", sub: "체중 지지 & 최대 후방 백스윙" },
+        { bob: -0.010, ft: -0.08, fk: 0.20, bt:  0.28, bk: 1.10, fa: -0.20, fab: -1.15, ba:  0.15, bab: -1.25, name: "3. 패싱 (Passing)", sub: "골반 위 수직 통과" },
+        { bob: -0.035, ft: -0.30, fk: 0.12, bt:  0.36, bk: 0.32, fa:  0.45, fab: -1.35, ba: -0.55, bab: -1.15, name: "4. 업 (High Point)", sub: "지면 밀기 & 전방 드라이브" },
+        { bob: -0.015, ft: -0.34, fk: 0.35, bt:  0.36, bk: 0.30, fa:  0.50, fab: -1.35, ba: -0.65, bab: -1.15, name: "5. 접촉 (Contact 반대)", sub: "뒷발 뒤꿈치 착지 & 앞팔 후방 뻗음" },
+        { bob:  0.015, ft: -0.45, fk: 0.85, bt:  0.15, bk: 0.75, fa:  0.60, fab: -1.40, ba: -0.75, bab: -1.10, name: "6. 다운 (Recoil 반대)", sub: "체중 지지 & 최대 후방 백스윙" },
+        { bob: -0.010, ft:  0.28, fk: 1.10, bt: -0.08, bk: 0.20, fa:  0.15, fab: -1.25, ba: -0.20, bab: -1.15, name: "7. 패싱 (Passing 반대)", sub: "골반 위 수직 통과" },
+        { bob: -0.035, ft:  0.36, fk: 0.32, bt: -0.30, bk: 0.12, fa: -0.55, fab: -1.15, ba:  0.45, bab: -1.35, name: "8. 업 (High Point 반대)", sub: "지면 밀기 & 전방 드라이브" }
       ],
-      // Tier 1: Flat Athletic Jog (8..15)
+      // Tier 1: Flat Athletic Jog (8..15) - Athletic upright posture & rear elbow drive
       [
-        { bob:  0.000, ft:  0.60, fk: 0.40, bt: -0.56, bk: 0.65, fa: -0.75, fab: -1.45, ba:  0.65, bab: -1.55, name: "1. 착지 (Contact)", sub: "앞발 뻗어 착지" },
-        { bob:  0.030, ft:  0.20, fk: 1.05, bt: -0.72, bk: 1.35, fa: -0.90, fab: -1.40, ba:  0.80, bab: -1.65, name: "2. 압축 (Compression)", sub: "최대 무릎 충격흡수" },
-        { bob: -0.020, ft: -0.25, fk: 0.25, bt:  0.52, bk: 1.45, fa: -0.20, fab: -1.35, ba:  0.20, bab: -1.45, name: "3. 드라이브 (Passing)", sub: "공중 무릎 상승" },
-        { bob: -0.065, ft: -0.60, fk: 0.45, bt:  0.76, bk: 0.60, fa:  0.65, fab: -1.55, ba: -0.75, bab: -1.45, name: "4. 체공 (Air Apex)", sub: "양발 공중 체공" },
-        { bob:  0.000, ft: -0.56, fk: 0.65, bt:  0.60, bk: 0.40, fa:  0.65, fab: -1.55, ba: -0.75, bab: -1.45, name: "5. 착지 (Contact 반대)", sub: "뒷발 뻗어 착지" },
-        { bob:  0.030, ft: -0.72, fk: 1.35, bt:  0.20, bk: 1.05, fa:  0.80, fab: -1.65, ba: -0.90, bab: -1.40, name: "6. 압축 (Compression 반대)", sub: "최대 무릎 충격흡수" },
-        { bob: -0.020, ft:  0.52, fk: 1.45, bt: -0.25, bk: 0.25, fa:  0.20, fab: -1.45, ba: -0.20, bab: -1.35, name: "7. 드라이브 (Passing 반대)", sub: "공중 무릎 상승" },
-        { bob: -0.065, ft:  0.76, fk: 0.60, bt: -0.60, bk: 0.45, fa: -0.75, fab: -1.45, ba:  0.65, bab: -1.55, name: "8. 체공 (Air Apex 반대)", sub: "양발 공중 체공" }
+        { bob:  0.000, ft:  0.58, fk: 0.38, bt: -0.54, bk: 0.65, fa: -1.05, fab: -1.35, ba:  0.75, bab: -1.50, name: "1. 착지 (Contact)", sub: "앞발 뻗어 착지 & 등 뒤 깊은 팔치기" },
+        { bob:  0.030, ft:  0.18, fk: 1.05, bt: -0.70, bk: 1.35, fa: -1.20, fab: -1.30, ba:  0.90, bab: -1.60, name: "2. 압축 (Compression)", sub: "최대 무릎 쿠션 & 팔 뒤로 최대 찌르기" },
+        { bob: -0.020, ft: -0.25, fk: 0.25, bt:  0.52, bk: 1.45, fa: -0.30, fab: -1.35, ba:  0.25, bab: -1.45, name: "3. 드라이브 (Drive)", sub: "폭발적 추진 & 양팔 교차" },
+        { bob: -0.065, ft: -0.58, fk: 0.45, bt:  0.75, bk: 0.60, fa:  0.80, fab: -1.55, ba: -0.95, bab: -1.35, name: "4. 체공 (Air Apex)", sub: "공중 체공 & 가슴/등 분할" },
+        { bob:  0.000, ft: -0.54, fk: 0.65, bt:  0.58, bk: 0.38, fa:  0.75, fab: -1.50, ba: -1.05, bab: -1.35, name: "5. 착지 (Contact 반대)", sub: "뒷발 뻗어 착지 & 등 뒤 깊은 팔치기" },
+        { bob:  0.030, ft: -0.70, fk: 1.35, bt:  0.18, bk: 1.05, fa:  0.90, fab: -1.60, ba: -1.20, bab: -1.30, name: "6. 압축 (Compression 반대)", sub: "최대 무릎 쿠션 & 팔 뒤로 최대 찌르기" },
+        { bob: -0.020, ft:  0.52, fk: 1.45, bt: -0.25, bk: 0.25, fa:  0.25, fab: -1.45, ba: -0.30, bab: -1.35, name: "7. 드라이브 (Drive 반대)", sub: "폭발적 추진 & 양팔 교차" },
+        { bob: -0.065, ft:  0.75, fk: 0.60, bt: -0.58, bk: 0.45, fa: -0.95, fab: -1.35, ba:  0.80, bab: -1.55, name: "8. 체공 (Air Apex 반대)", sub: "공중 체공 & 가슴/등 분할" }
       ],
-      // Tier 2: Downhill Frantic Sprint (16..23)
+      // Tier 2: Downhill Frantic Sprint (16..23) - Dynamic sprint & horizontal back reach
       [
-        { bob:  0.000, ft:  0.84, fk: 0.55, bt: -0.80, bk: 0.85, fa: -1.15, fab: -1.50, ba:  0.95, bab: -1.70, name: "1. 와이드 착지 (Touchdown)", sub: "원거리 전방 착지" },
-        { bob:  0.040, ft:  0.32, fk: 1.35, bt: -1.05, bk: 1.65, fa: -1.35, fab: -1.45, ba:  1.20, bab: -1.75, name: "2. 스톰프 (Hard Stomp)", sub: "최대 파워 킥다운" },
-        { bob: -0.040, ft: -0.45, fk: 0.35, bt:  0.85, bk: 1.75, fa: -0.30, fab: -1.40, ba:  0.30, bab: -1.55, name: "3. 에어 런치 (Air Launch)", sub: "하이 리프트 런칭" },
-        { bob: -0.095, ft: -0.92, fk: 0.65, bt:  1.10, bk: 0.75, fa:  0.95, fab: -1.70, ba: -1.15, bab: -1.50, name: "4. 맥스 스프레드 (Max Spread)", sub: "광폭 공중 분할" },
-        { bob:  0.000, ft: -0.80, fk: 0.85, bt:  0.84, bk: 0.55, fa:  0.95, fab: -1.70, ba: -1.15, bab: -1.50, name: "5. 와이드 착지 (Touchdown 반대)", sub: "원거리 전방 착지" },
-        { bob:  0.040, ft: -1.05, fk: 1.65, bt:  0.32, bk: 1.35, fa:  1.20, fab: -1.75, ba: -1.35, bab: -1.45, name: "6. 스톰프 (Hard Stomp 반대)", sub: "최대 파워 킥다운" },
-        { bob: -0.040, ft:  0.85, fk: 1.75, bt: -0.45, bk: 0.35, fa:  0.30, fab: -1.55, ba: -0.30, bab: -1.40, name: "7. 에어 런치 (Air Launch 반대)", sub: "하이 리프트 런칭" },
-        { bob: -0.095, ft:  1.10, fk: 0.75, bt: -0.92, bk: 0.65, fa: -1.15, fab: -1.50, ba:  0.95, bab: -1.70, name: "8. 맥스 스프레드 (Max Spread 반대)", sub: "광폭 공중 분할" }
+        { bob:  0.000, ft:  0.82, fk: 0.52, bt: -0.78, bk: 0.85, fa: -1.45, fab: -1.40, ba:  1.05, bab: -1.65, name: "1. 와이드 착지 (Touchdown)", sub: "광폭 착지 & 팔 등 뒤 수평 뻗음" },
+        { bob:  0.040, ft:  0.30, fk: 1.35, bt: -1.02, bk: 1.65, fa: -1.60, fab: -1.35, ba:  1.30, bab: -1.70, name: "2. 스톰프 (Hard Stomp)", sub: "최대 파워 킥 & 등 뒤 극대화 스윙" },
+        { bob: -0.040, ft: -0.45, fk: 0.35, bt:  0.85, bk: 1.75, fa: -0.40, fab: -1.40, ba:  0.40, bab: -1.55, name: "3. 에어 런치 (Air Launch)", sub: "공중 도약 & 강한 팔치기" },
+        { bob: -0.095, ft: -0.90, fk: 0.65, bt:  1.08, bk: 0.75, fa:  1.10, fab: -1.65, ba: -1.40, bab: -1.40, name: "4. 맥스 스프레드 (Max Spread)", sub: "최대 공중 분할 비행" },
+        { bob:  0.000, ft: -0.78, fk: 0.85, bt:  0.82, bk: 0.52, fa:  1.05, fab: -1.65, ba: -1.45, bab: -1.40, name: "5. 와이드 착지 (Touchdown 반대)", sub: "광폭 착지 & 팔 등 뒤 수평 뻗음" },
+        { bob:  0.040, ft: -1.02, fk: 1.65, bt:  0.30, bk: 1.35, fa:  1.30, fab: -1.70, ba: -1.60, bab: -1.35, name: "6. 스톰프 (Hard Stomp 반대)", sub: "최대 파워 킥 & 등 뒤 극대화 스윙" },
+        { bob: -0.040, ft:  0.85, fk: 1.75, bt: -0.45, bk: 0.35, fa:  0.40, fab: -1.55, ba: -0.40, bab: -1.40, name: "7. 에어 런치 (Air Launch 반대)", sub: "공중 도약 & 강한 팔치기" },
+        { bob: -0.095, ft:  1.08, fk: 0.75, bt: -0.90, bk: 0.65, fa: -1.40, fab: -1.40, ba:  1.10, bab: -1.65, name: "8. 맥스 스프레드 (Max Spread 반대)", sub: "최대 공중 분할 비행" }
       ]
     ];
 
@@ -981,14 +981,15 @@
       const gMidY = s * (0.75 - Math.sin(smoothT * Math.PI) * 0.08 + (smoothT > 0.5 ? (smoothT - 0.5) * 0.10 : 0));
       const gY2 = s * (0.70 + smoothT * 0.16);
 
-      const hipX = s * 0.46;
+      const hipX = s * 0.48;
       const u = (hipX - gX1) / (gX2 - gX1);
       const groundAtHip = (1 - u) * (1 - u) * gY1 + 2 * (1 - u) * u * gMidY + u * u * gY2;
       
       const pose = Poses[tier][frameIdx];
       const hipY = groundAtHip - s * (0.24 - t * 0.02) + s * pose.bob;
       
-      const leanAngle = (0.22 - (1 - Math.abs(t - 0.5) * 2) * 0.10 + (t > 0.5 ? (t - 0.5) * 0.32 : 0)) * Math.PI;
+      // Natural upright posture lean angle
+      const leanAngle = (0.045 + t * 0.055) * Math.PI;
       const torsoLen = s * 0.22;
       const neckX = hipX + Math.sin(leanAngle) * torsoLen;
       const neckY = hipY - Math.cos(leanAngle) * torsoLen;
