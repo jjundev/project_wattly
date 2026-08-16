@@ -37,6 +37,7 @@
 		2EB4D74291423268439F3CAD /* SMC.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9717A4622D508E51C16FA8 /* SMC.swift */; };
 		2F21C6921E2896512BD4FF55 /* AccessibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C59C21E293258105C63FB142 /* AccessibilityTests.swift */; };
 		31926AD6C690491825627C11 /* OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = DECFD3734A1569FA8CFE4AF5 /* OFL.txt */; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F1E2D3C4B5A69788796A5B4C /* Localizable.xcstrings */; };
 		32A2E4A4DC43E9ED03E0ADA7 /* Temperature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0721DEAA1855EE4C25F48F35 /* Temperature.swift */; };
 		339352DA4758AE187D4E7000 /* MenuBarLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F55E227946867EDB8D1BC9 /* MenuBarLabel.swift */; };
 		34B7DAF861D1D07C5F31775B /* MetricProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CC07BAFD29885CF7E76FF5D /* MetricProvider.swift */; };
@@ -193,6 +194,7 @@
 		1D36F339C0C638F34767B0B8 /* SettingsThresholdSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsThresholdSection.swift; sourceTree = "<group>"; };
 		1D4830FA8F8BCCF06F3E5A6C /* FanControlHardware.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanControlHardware.swift; sourceTree = "<group>"; };
 		1DA72C9411B1C36567589906 /* LocalizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationTests.swift; sourceTree = "<group>"; };
+		F1E2D3C4B5A69788796A5B4C /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = "Resources/Localizable.xcstrings"; sourceTree = "<group>"; };
 		1FB43BADD9D2756BBE8F6A7B /* Accessibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Accessibility.swift; sourceTree = "<group>"; };
 		21242F142598B4648C88DB0C /* ProcessPower.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessPower.swift; sourceTree = "<group>"; };
 		21C8BF6274BBB6992A1F1633 /* PopoverGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverGridView.swift; sourceTree = "<group>"; };
@@ -517,6 +519,7 @@
 				EBC2DA7DFEFEB654EF82FC96 /* Settings */,
 				491F74191B36107B4E82A8AC /* Views */,
 				67FE518CDA8ED1E9E6BAB874 /* Assets.xcassets */,
+				F1E2D3C4B5A69788796A5B4C /* Localizable.xcstrings */,
 			);
 			path = Wattly;
 			sourceTree = "<group>";
@@ -678,6 +681,7 @@
 				31926AD6C690491825627C11 /* OFL.txt in Resources */,
 				53A6845B9DDC236E2AA8BC7B /* PretendardVariable.ttf in Resources */,
 				BA684AC2BA23B20C13094637 /* README.md in Resources */,
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
