@@ -53,6 +53,18 @@ struct CardPresentationTests {
         #expect(CardPresentation.subText(state) == "1.28 GHz")
     }
 
+    @Test func gpuMemoryFormatting() {
+        #expect(CardPresentation.mbText(0) == "0 MB")
+        #expect(CardPresentation.mbText(858 * 1024 * 1024) == "858 MB")
+        #expect(CardPresentation.mbText(2048 * 1024 * 1024) == "2.0 GB")
+        
+        let inUse: UInt64 = 858 * 1024 * 1024
+        let alloc: UInt64 = 2048 * 1024 * 1024
+        let frac = CardPresentation.gpuMemoryFraction(inUse: inUse, alloc: alloc)
+        #expect(abs(frac - (858.0 / 2048.0)) < 1e-4)
+        #expect(CardPresentation.gpuMemoryFraction(inUse: 100, alloc: 0) == 0.0)
+    }
+
     @Test func batterySignDropsAtZeroMagnitude() {
         #expect(CardPresentation.batterySign(netW: 12.0, charging: false) == minus)   // discharging
         #expect(CardPresentation.batterySign(netW: -30.0, charging: true) == "+")     // charging

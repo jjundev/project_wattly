@@ -313,6 +313,21 @@ enum CardPresentation {
         String(format: "%.1f GB", Double(bytes) / (1024.0 * 1024.0 * 1024.0))
     }
 
+    /// Format bytes to "X MB" (or "X.X GB" if >= 1 GB).
+    static func mbText(_ bytes: UInt64) -> String {
+        let mb = Double(bytes) / 1_048_576.0
+        if mb >= 1024 {
+            return String(format: "%.1f GB", mb / 1024.0)
+        }
+        return "\(Int(mb.rounded())) MB"
+    }
+
+    /// Calculate fraction of in-use memory against allocated memory, clamped 0...1.
+    static func gpuMemoryFraction(inUse: UInt64, alloc: UInt64) -> Double {
+        guard alloc > 0 else { return 0 }
+        return min(1.0, max(0.0, Double(inUse) / Double(alloc)))
+    }
+
     /// Watts → "X.XX W" for the power card's per-app rows (issue 16 follow-up). 2 decimals:
     /// per-app watts are small (sub-watt to a few W), so the headline's 1-decimal `f1`
     /// would lose resolution.
