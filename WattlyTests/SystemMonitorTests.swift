@@ -281,8 +281,8 @@ struct SystemMonitorTests {
 
         await monitor.pollScheduled(force: false)
 
-        #expect(await cpu.reads == 1)
-        #expect(await power.reads == 0)
+        #expect(await cpu.reads == 0)
+        #expect(await power.reads == 1)
     }
 
     @Test func switchingToPerformancePollsClosedActiveProviders() async {
@@ -322,18 +322,18 @@ struct SystemMonitorTests {
     }
 
     @Test func scheduledPollWaitsForTheProviderInterval() async {
-        let cpu = CountingProvider(kind: .cpu)
+        let power = CountingProvider(kind: .power)
         let clock = ManualClock()
-        let monitor = SystemMonitor(providers: [cpu], clock: clock)
+        let monitor = SystemMonitor(providers: [power], clock: clock)
 
         await monitor.pollScheduled(force: false)
         clock.advance(by: .seconds(1))
         await monitor.pollScheduled(force: false)
-        #expect(await cpu.reads == 1)
+        #expect(await power.reads == 1)
 
         clock.advance(by: .seconds(1))
         await monitor.pollScheduled(force: false)
-        #expect(await cpu.reads == 2)
+        #expect(await power.reads == 2)
     }
 
     @Test func textAndMotionOffPerformNoMetricReads() async {
@@ -355,7 +355,7 @@ struct SystemMonitorTests {
 
         await monitor.pollScheduled(forceProviders: [.power])
 
-        #expect(await cpu.reads == 1)
+        #expect(await cpu.reads == 0)
         #expect(await power.reads == 1)
     }
 

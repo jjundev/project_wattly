@@ -188,15 +188,15 @@ struct SettingsResetTests {
 
     @Test func menuBarSelectionDefaultsAndMutations() {
         var selection = MenuBarSelection()
-        #expect(selection.isSelected(.cpu))
+        #expect(!selection.isSelected(.cpu))
         #expect(!selection.isSelected(.gpu))
-        #expect(!selection.isSelected(.power))
+        #expect(selection.isSelected(.power))
         #expect(!selection.isBatteryTempSelected)
         #expect(!selection.isMemPressureSelected)
         #expect(!selection.isCoreClockSelected("S"))
 
-        #expect(selection.items == [.card(.cpu)])
-        #expect(selection.requiredCards == [.cpu])
+        #expect(selection.items == [.card(.power)])
+        #expect(selection.requiredCards == [.power])
 
         selection.setSelected(.gpu, true)
         selection.setCoreClockSelected("S", true)
@@ -209,28 +209,28 @@ struct SettingsResetTests {
         #expect(selection.isBatteryTempSelected)
 
         #expect(selection.items == [
-            .card(.cpu),
             .coreClock(prefix: "S"),
             .card(.gpu),
+            .card(.power),
             .batteryTemp,
             .memPressure
         ])
-        #expect(selection.requiredCards == [.cpu, .gpu, .mem, .battery])
+        #expect(selection.requiredCards == [.cpu, .gpu, .power, .mem, .battery])
     }
 
     @Test func menuBarSelectionUserDefaultsRoundTrip() {
         let d = makeDefaults(#function)
         var selection = MenuBarSelection()
-        selection.setSelected(.cpu, false)
-        selection.setSelected(.power, true)
+        selection.setSelected(.power, false)
+        selection.setSelected(.cpu, true)
         selection.setCoreClockSelected("P", true)
         selection.setMemPressureSelected(true)
         selection.write(to: d)
 
         let loaded = MenuBarSelection(userDefaults: d)
         #expect(loaded == selection)
-        #expect(!loaded.isSelected(.cpu))
-        #expect(loaded.isSelected(.power))
+        #expect(loaded.isSelected(.cpu))
+        #expect(!loaded.isSelected(.power))
         #expect(loaded.isCoreClockSelected("P"))
         #expect(loaded.isMemPressureSelected)
         #expect(!loaded.isBatteryTempSelected)
