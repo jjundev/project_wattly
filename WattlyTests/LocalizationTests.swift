@@ -76,4 +76,23 @@ struct LocalizationTests {
         #expect(String(localized: "저전력", locale: Locale(identifier: "ja")) == "低電力")
         #expect(String(localized: "AC", locale: Locale(identifier: "ja")) == "AC")
     }
+
+    @Test func popoverCardAndExpandTranslations() {
+        #expect(String(localized: "렌더러", locale: Locale(identifier: "ja")) == "レンダラー")
+        #expect(String(localized: "타일러", locale: Locale(identifier: "ja")) == "タイラー")
+        #expect(String(localized: "전류", locale: Locale(identifier: "ja")) == "電流")
+        #expect(String(localized: "전압", locale: Locale(identifier: "ja")) == "電圧")
+        #expect(String(localized: "1분 평균", locale: Locale(identifier: "ja")) == "1分平均")
+        #expect(String(localized: "남은 용량", locale: Locale(identifier: "ja")) == "残り容量")
+        #expect(String(localized: "배터리 효율", locale: Locale(identifier: "ja")) == "バッテリー状態")
+        #expect(String(localized: "사이클", locale: Locale(identifier: "ja")) == "充放電回数")
+        #expect(String(localized: "배터리 온도", locale: Locale(identifier: "ja")) == "バッテリー温度")
+        #expect(String(localized: "완충까지 남은 시간", locale: Locale(identifier: "ja")) == "フル充電までの時間")
+        #expect(String(localized: "프로세스를 읽을 수 없음", locale: Locale(identifier: "ja")) == "プロセスを読み込めません")
+        #expect(String(localized: "센서를 읽을 수 없음", locale: Locale(identifier: "ja")) == "センサーを読み込めません")
+        #expect(String(localized: "팬을 읽을 수 없음", locale: Locale(identifier: "ja")) == "ファンを読み込めません")
+        #expect(String(localized: "편집", locale: Locale(identifier: "ja")) == "編集")
+        #expect(String(localized: "종료", locale: Locale(identifier: "ja")) == "終了")
+        #expect(String(localized: "정상", locale: Locale(identifier: "ja")) == "正常")
+    }
 }

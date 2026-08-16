@@ -60,7 +60,7 @@ private struct GridTile: View {
     private var valueTile: some View {
         let d = CardPresentation.display(card, state)
         return VStack(alignment: .leading, spacing: 6) {
-            Text(d.label)
+            Text(LocalizedStringKey(d.label))
                 .font(WattlyFont.at(10.5, weight: .semibold))
                 .foregroundStyle(t.sub)
                 .lineLimit(1)
@@ -88,12 +88,12 @@ private struct GridTile: View {
     // Unavailable tile (prototype lines 182–183): dashed border + label + short reason.
     private var unavailableTile: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(CardPresentation.label(card))
+            Text(LocalizedStringKey(CardPresentation.label(card)))
                 .font(WattlyFont.at(10.5, weight: .semibold))
                 .foregroundStyle(t.sub)
                 .lineLimit(1)
             if case .unavailable(let reason) = state {
-                Text(reason.shortMessage)
+                Text(LocalizedStringKey(reason.shortMessage))
                     .font(WattlyFont.at(10.5, weight: .regular))
                     .foregroundStyle(t.faint)
                     .fixedSize(horizontal: false, vertical: true)

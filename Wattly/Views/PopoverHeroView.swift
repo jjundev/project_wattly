@@ -76,7 +76,7 @@ struct PopoverHeroView: View {
         let unavailable: Bool = { if case .unavailable = state { return true }; return false }()
         return VStack(spacing: 0) {
             HStack(spacing: 8) {
-                Text(CardPresentation.label(card))
+                Text(LocalizedStringKey(CardPresentation.label(card)))
                     .font(WattlyFont.at(13, weight: .semibold))
                     .foregroundStyle(t.cText)
                     .lineLimit(1)
@@ -153,7 +153,7 @@ private struct HeroCard: View {
     private var summary: some View {
         let content = VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 5) {
-                Text(CardPresentation.label(card))
+                Text(LocalizedStringKey(CardPresentation.label(card)))
                     .font(WattlyFont.at(11.5, weight: .semibold))
                     .foregroundStyle(Self.labelColor)
                     .lineLimit(1)
@@ -166,7 +166,7 @@ private struct HeroCard: View {
             switch state {
             case .unavailable(let reason):
                 // Hero unavailable (prototype line 211): same dark card + the full reason.
-                Text(reason.message)
+                Text(LocalizedStringKey(reason.message))
                     .font(WattlyFont.at(12, weight: .regular))
                     .foregroundStyle(Self.subColor)
                     .fixedSize(horizontal: false, vertical: true)
@@ -206,12 +206,46 @@ private struct HeroCard: View {
             SparklineView(values: historyValues, stroke: sparkStroke, fill: sparkFill, height: 32)
                 .accessibilityHidden(true)
         }
-        if let sub = d.subText {
+        subTextView(d.subText)
+            .font(WattlyFont.at(11, weight: .regular))
+            .monospacedDigit()
+            .foregroundStyle(Self.subColor)
+            .lineLimit(1)
+    }
+
+    @ViewBuilder
+    private func subTextView(_ fallbackSubText: String?) -> some View {
+        if case .value(.battery(let s)) = state,
+           let totalMinutes = validatedTimeRemainingMinutes(s.projectedTimeRemainingMinutes) {
+            let h = totalMinutes / 60
+            let m = totalMinutes % 60
+            if h == 0 {
+                if s.charging {
+                    Text("완충까지 약 \(m)분 남음")
+                } else {
+                    Text("약 \(m)분 남음")
+                }
+            } else if m == 0 {
+                if s.charging {
+                    Text("완충까지 약 \(h)시간 남음")
+                } else {
+                    Text("약 \(h)시간 남음")
+                }
+            } else {
+                if s.charging {
+                    Text("완충까지 약 \(h)시간 \(m)분 남음")
+                } else {
+                    Text("약 \(h)시간 \(m)분 남음")
+                }
+            }
+        } else if case .value(.memory(let s)) = state {
+            if let p = s.pressurePercent {
+                Text("압력 \(p)% · 고정 \(CardPresentation.f1(s.wiredGB)) GB · 압축 \(CardPresentation.f1(s.compressedGB)) GB · 스왑 \(CardPresentation.f1(s.swapUsedGB)) GB")
+            } else {
+                Text("고정 \(CardPresentation.f1(s.wiredGB)) GB · 압축 \(CardPresentation.f1(s.compressedGB)) GB · 스왑 \(CardPresentation.f1(s.swapUsedGB)) GB")
+            }
+        } else if let sub = fallbackSubText, !sub.isEmpty {
             Text(sub)
-                .font(WattlyFont.at(11, weight: .regular))
-                .monospacedDigit()
-                .foregroundStyle(Self.subColor)
-                .lineLimit(1)
         }
     }
 

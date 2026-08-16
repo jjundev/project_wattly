@@ -191,7 +191,7 @@ struct PopoverContentView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(system == "pencil" ? "편집" : system == "gearshape" ? "설정" : "종료")
+        .accessibilityLabel(Text(LocalizedStringKey(system == "pencil" ? "편집" : system == "gearshape" ? "설정" : "종료")))
         // The pencil is a toggle (edit mode); speak its on/off state (issue 15 §5).
         .accessibilityValue(system == "pencil" ? (active ? "켜짐" : "꺼짐") : "")
     }
