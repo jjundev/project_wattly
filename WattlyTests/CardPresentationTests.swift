@@ -44,13 +44,22 @@ struct CardPresentationTests {
     }
 
     @Test func gpuCardPresentation() {
-        let sample = GPUSample(overall: 38.4, coreCount: 10, activeGHz: 1.28)
-        let state = MetricState.value(.gpu(sample))
+        let sampleWithBoth = GPUSample(overall: 38.4, coreCount: 10, activeGHz: 1.28, inUseMemoryBytes: 858 * 1024 * 1024)
+        let stateWithBoth = MetricState.value(.gpu(sampleWithBoth))
         #expect(CardPresentation.label(.gpu) == "GPU")
-        #expect(CardPresentation.unitText(.gpu, state) == "%")
-        #expect(CardPresentation.valueText(.gpu, state) == "38")
-        #expect(CardPresentation.compactRowText(.gpu, state) == "38%")
-        #expect(CardPresentation.subText(state) == "1.28 GHz")
+        #expect(CardPresentation.unitText(.gpu, stateWithBoth) == "%")
+        #expect(CardPresentation.valueText(.gpu, stateWithBoth) == "38")
+        #expect(CardPresentation.compactRowText(.gpu, stateWithBoth) == "38%")
+        #expect(CardPresentation.subText(stateWithBoth) == "1.28 GHz · VRAM 858 MB")
+
+        let sampleClockOnly = GPUSample(overall: 38.4, coreCount: 10, activeGHz: 1.28, inUseMemoryBytes: 0)
+        #expect(CardPresentation.subText(.value(.gpu(sampleClockOnly))) == "1.28 GHz")
+
+        let sampleMemOnly = GPUSample(overall: 38.4, coreCount: 10, activeGHz: nil, inUseMemoryBytes: 858 * 1024 * 1024)
+        #expect(CardPresentation.subText(.value(.gpu(sampleMemOnly))) == "VRAM 858 MB")
+
+        let sampleNone = GPUSample(overall: 38.4, coreCount: 10, activeGHz: nil, inUseMemoryBytes: 0)
+        #expect(CardPresentation.subText(.value(.gpu(sampleNone))) == nil)
     }
 
     @Test func gpuMemoryFormatting() {

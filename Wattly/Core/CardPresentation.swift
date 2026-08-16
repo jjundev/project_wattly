@@ -186,8 +186,14 @@ enum CardPresentation {
             let a = s.perfLevels[0], b = s.perfLevels[1]
             return "\(clusterSubText(a)) · \(clusterSubText(b))"
         case .gpu(let s):
-            guard let ghz = s.activeGHz else { return nil }
-            return ghzText(ghz)
+            var parts: [String] = []
+            if let ghz = s.activeGHz {
+                parts.append(ghzText(ghz))
+            }
+            if s.inUseMemoryBytes > 0 {
+                parts.append("VRAM \(mbText(s.inUseMemoryBytes))")
+            }
+            return parts.isEmpty ? nil : parts.joined(separator: " · ")
         case .memory(let s):
             let detail = "고정 \(f1(s.wiredGB)) GB · 압축 \(f1(s.compressedGB)) GB · 스왑 \(f1(s.swapUsedGB)) GB"
             // Lead with the exact RAM-pressure % (Activity Monitor "메모리 압력") when the kernel
