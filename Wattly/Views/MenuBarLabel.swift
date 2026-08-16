@@ -106,8 +106,7 @@ public enum MenuBarGlyph {
 
         let renderer = ImageRenderer(content:
             DynamicMenuBarIconMark(style: style, frame: index, markerColor: .black)
-                .frame(width: 16, height: 16)
-                .padding(1.0)
+                .frame(width: 18, height: 18)
                 .foregroundStyle(.black)
         )
         renderer.scale = NSScreen.main?.backingScaleFactor ?? 2

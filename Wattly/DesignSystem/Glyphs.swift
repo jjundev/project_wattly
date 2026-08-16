@@ -61,9 +61,9 @@ struct TurbineMark: View {
             ZStack {
                 // Outer ring
                 Circle()
-                    .stroke(style: StrokeStyle(lineWidth: max(1.5, strokeW * 0.85)))
-                    .opacity(0.65)
-                    .frame(width: s * 0.90, height: s * 0.90)
+                    .stroke(style: StrokeStyle(lineWidth: max(1.6, strokeW * 0.9)))
+                    .opacity(0.70)
+                    .frame(width: s * 0.92, height: s * 0.92)
                     .position(center)
 
                 // Rotating blades and hub
@@ -72,24 +72,24 @@ struct TurbineMark: View {
                         Path { p in
                             p.move(to: CGPoint(x: center.x, y: center.y - s * 0.12))
                             p.addCurve(
-                                to: CGPoint(x: center.x + s * 0.26, y: center.y - s * 0.05),
-                                control1: CGPoint(x: center.x + s * 0.22, y: center.y - s * 0.32),
-                                control2: CGPoint(x: center.x + s * 0.38, y: center.y - s * 0.20)
+                                to: CGPoint(x: center.x + s * 0.28, y: center.y - s * 0.05),
+                                control1: CGPoint(x: center.x + s * 0.23, y: center.y - s * 0.33),
+                                control2: CGPoint(x: center.x + s * 0.40, y: center.y - s * 0.20)
                             )
                             p.closeSubpath()
                         }
                         .fill(markerColor)
-                        .opacity(0.90)
+                        .opacity(0.95)
                         .rotationEffect(.degrees(a), anchor: .center)
                     }
 
-                    // Center donut hub (outer r=0.12s, inner r=0.05s)
+                    // Center donut hub (outer r=0.125s, inner r=0.05s)
                     Path { p in
                         p.addEllipse(in: CGRect(
-                            x: center.x - s * 0.12,
-                            y: center.y - s * 0.12,
-                            width: s * 0.24,
-                            height: s * 0.24
+                            x: center.x - s * 0.125,
+                            y: center.y - s * 0.125,
+                            width: s * 0.25,
+                            height: s * 0.25
                         ))
                         p.addEllipse(in: CGRect(
                             x: center.x - s * 0.05,
