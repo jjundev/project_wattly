@@ -74,4 +74,9 @@ struct FanCurvePresetTests {
         #expect(FanCurvePreset.performance.title == "성능")
         #expect(FanCurvePreset.fullSpeed.title == "최대")
     }
+
+    @Test func presetAllCasesOrderingMatchesUI() {
+        #expect(FanCurvePreset.allCases == [.balanced, .silent, .performance, .fullSpeed])
+        #expect(FanCurvePreset.allCases.map(\.rawValue) == ["균형", "저소음", "성능", "최대"])
+    }
 }

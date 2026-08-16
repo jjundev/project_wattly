@@ -35,9 +35,7 @@ struct SettingsDisplaySection: View {
     private var themeSection: some View {
         SettingsSection(title: "테마") {
             SettingsCard(padding: Tokens.cardPadding) {
-                WattlySegment(selection: $theme, options: [
-                    (.light, "라이트"), (.dark, "다크"), (.system, "시스템 설정"),
-                ])
+                WattlySegment(selection: $theme, options: ThemeMode.allCases.map { ($0, $0.label) })
             }
         }
     }
@@ -49,9 +47,9 @@ struct SettingsDisplaySection: View {
             SettingsCard(padding: Tokens.cardPadding) {
                 VStack(alignment: .leading, spacing: 10) {
                     WattlySegment(selection: $panelMode, options: [
-                        (.a, PanelMode.a.label), (.b, PanelMode.b.label), (.c, PanelMode.c.label),
+                        (.a, PanelMode.a.label), (.c, PanelMode.c.label), (.b, PanelMode.b.label),
                     ])
-                    Text(layoutDescription)
+                    Text(LocalizedStringKey(layoutDescription))
                         .font(WattlyFont.at(11.5, weight: .regular))
                         .foregroundStyle(t.faint)
                         .fixedSize(horizontal: false, vertical: true)

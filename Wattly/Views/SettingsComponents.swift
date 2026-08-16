@@ -110,10 +110,14 @@ struct WattlySegment<T: Hashable>: View {
 
     private func pill(_ value: T, _ label: String) -> some View {
         let active = selection == value
-        return Text(label)
+        return Text(LocalizedStringKey(label))
             .font(WattlyFont.at(fontSize, weight: .semibold))
             .foregroundStyle(active ? t.text : scheme.segInactiveText)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .allowsTightening(true)
             .frame(maxWidth: .infinity)
+            .padding(.horizontal, 2)
             .padding(.vertical, pillVPadding)
             .background(
                 RoundedRectangle(cornerRadius: 6)
@@ -156,10 +160,14 @@ struct WattlyChip: View {
     }
 
     var body: some View {
-        Text(label)
+        Text(LocalizedStringKey(label))
             .font(WattlyFont.at(12, weight: .semibold))
             .foregroundStyle(isOn ? t.text : scheme.segInactiveText)
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .allowsTightening(true)
             .frame(maxWidth: .infinity)
+            .padding(.horizontal, 2)
             .padding(.vertical, 6)
             .background(
                 RoundedRectangle(cornerRadius: 6)
@@ -192,8 +200,24 @@ struct WattlyChip: View {
 /// section's own `SettingsSection` caption instead, so two redundant captions never stack
 /// directly on top of each other.
 struct SettingsGroupHeader: View {
-    let title: String
+    let title: LocalizedStringKey
     @Environment(\.tokens) private var t
+
+    init(_ title: LocalizedStringKey) {
+        self.title = title
+    }
+
+    init(title: LocalizedStringKey) {
+        self.title = title
+    }
+
+    init(_ title: String) {
+        self.title = LocalizedStringKey(title)
+    }
+
+    init(title: String) {
+        self.title = LocalizedStringKey(title)
+    }
 
     var body: some View {
         Text(title)
@@ -205,9 +229,29 @@ struct SettingsGroupHeader: View {
 
 /// A titled section: the 11px/700/tracking caption + its content (prototype gap 9).
 struct SettingsSection<Content: View>: View {
-    let title: String
+    let title: LocalizedStringKey
     @ViewBuilder var content: () -> Content
     @Environment(\.tokens) private var t
+
+    init(_ title: LocalizedStringKey, @ViewBuilder content: @escaping () -> Content) {
+        self.title = title
+        self.content = content
+    }
+
+    init(title: LocalizedStringKey, @ViewBuilder content: @escaping () -> Content) {
+        self.title = title
+        self.content = content
+    }
+
+    init(_ title: String, @ViewBuilder content: @escaping () -> Content) {
+        self.title = LocalizedStringKey(title)
+        self.content = content
+    }
+
+    init(title: String, @ViewBuilder content: @escaping () -> Content) {
+        self.title = LocalizedStringKey(title)
+        self.content = content
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
@@ -282,19 +326,25 @@ struct SettingsToggleRow<Label: View>: View {
 
 /// Standard title for a settings row (13.5px semibold) with optional regular faint suffix.
 struct SettingsRowTitle: View {
-    let title: String
-    var suffix: String? = nil
+    let title: LocalizedStringKey
+    var suffix: LocalizedStringKey? = nil
     @Environment(\.tokens) private var t
 
-    init(_ title: String, suffix: String? = nil) {
+    init(_ title: LocalizedStringKey, suffix: LocalizedStringKey? = nil) {
         self.title = title
         self.suffix = suffix
+    }
+
+    init(_ title: String, suffix: String? = nil) {
+        self.title = LocalizedStringKey(title)
+        self.suffix = suffix.map { LocalizedStringKey($0) }
     }
 
     var body: some View {
         if let suffix {
             (Text(title).font(WattlyFont.at(13.5, weight: .semibold)).foregroundColor(t.text)
-                + Text(" \(suffix)").font(WattlyFont.at(11.5, weight: .regular)).foregroundColor(t.faint))
+                + Text(verbatim: " ")
+                + Text(suffix).font(WattlyFont.at(11.5, weight: .regular)).foregroundColor(t.faint))
         } else {
             Text(title).font(WattlyFont.at(13.5, weight: .semibold)).foregroundStyle(t.text)
         }

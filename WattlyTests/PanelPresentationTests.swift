@@ -52,7 +52,7 @@ struct PanelPresentationTests {
 
     @Test func automaticEcoPollingCopyMatchesProviderBudget() {
         #expect(pollingDescription(for: .auto, mode: .eco) ==
-            "패널을 열면 CPU·전력은 1초(오픈 즉시 표시), 온도는 2초, 메모리·배터리는 5초마다 갱신합니다. 패널을 닫으면 메뉴바 텍스트 또는 Kinetic Notch 모션에 필요한 지표만 2~5초마다 갱신합니다.")
+            "패널을 열면 CPU·전력은 1초(오픈 즉시 표시), 온도는 2초, 메모리·배터리는 5초마다 갱신합니다. 패널을 닫으면 메뉴바 텍스트 또는 아이콘 모션에 필요한 지표만 2~5초마다 갱신합니다.")
     }
 
     @Test func automaticAlwaysLatestPollingCopyMatchesProviderBudget() {

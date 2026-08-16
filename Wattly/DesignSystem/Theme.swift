@@ -104,6 +104,7 @@ enum SystemAppearance {
 /// re-resolve an already-visible `NSWindow`'s chrome on a live change.)
 struct ThemedRoot<Content: View>: View {
     @AppStorage(StorageKey.theme) private var theme: ThemeMode = Defaults.theme
+    @AppStorage(StorageKey.appLanguage) private var appLanguage: String = Defaults.appLanguage
     @State private var systemAppearance = SystemAppearanceMonitor()
     @ViewBuilder var content: () -> Content
 
@@ -111,9 +112,14 @@ struct ThemedRoot<Content: View>: View {
         ThemeResolver.scheme(theme, systemDark: systemAppearance.isDark)
     }
 
+    private var activeLocale: Locale {
+        AppLanguage.locale(for: appLanguage)
+    }
+
     var body: some View {
         content()
             .environment(\.tokens, scheme == .dark ? .dark : .light)
+            .environment(\.locale, activeLocale)
             .preferredColorScheme(scheme)
     }
 }

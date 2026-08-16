@@ -4,13 +4,27 @@ import Foundation
 
 struct KineticNotchMotionTests {
     @Test func sourceRequirementsAndLabels() {
-        #expect(KineticNotchSource.power.requiredCards == [.power])
+        #expect(KineticNotchSource.allCases == [.cpuClock, .power, .compute])
+
         #expect(KineticNotchSource.cpuClock.requiredCards == [.cpu])
+        #expect(KineticNotchSource.power.requiredCards == [.power])
         #expect(KineticNotchSource.compute.requiredCards == [.cpu, .gpu])
 
-        #expect(KineticNotchSource.power.label == "전력 소비")
         #expect(KineticNotchSource.cpuClock.label == "CPU 클럭")
+        #expect(KineticNotchSource.power.label == "전력 소비")
         #expect(KineticNotchSource.compute.label == "CPU + GPU")
+
+        #expect(!KineticNotchSource.cpuClock.description.isEmpty)
+        #expect(!KineticNotchSource.power.description.isEmpty)
+        #expect(!KineticNotchSource.compute.description.isEmpty)
+    }
+
+    @Test func speedOrderingAndLabels() {
+        #expect(KineticNotchSpeed.allCases == [.eco, .smart, .standard, .responsive])
+        #expect(KineticNotchSpeed.eco.label == "절전")
+        #expect(KineticNotchSpeed.smart.label == "스마트")
+        #expect(KineticNotchSpeed.standard.label == "표준")
+        #expect(KineticNotchSpeed.responsive.label == "민감")
     }
 
     @Test func targetWattsByFormFactor() {

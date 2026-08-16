@@ -97,7 +97,7 @@ struct CardExpandRegion: View {
 
     private func gpuEngineRow(label: String, usage: Double) -> some View {
         HStack(spacing: 9) {
-            Text(label)
+            Text(LocalizedStringKey(label))
                 .font(WattlyFont.at(10.5, weight: .semibold))
                 .foregroundStyle(t.faint)
                 .frame(width: 44, alignment: .leading)
@@ -183,7 +183,7 @@ struct CardExpandRegion: View {
         let maxBytes = s.processes.first?.footprintBytes ?? 0
         VStack(alignment: .leading, spacing: 8) {
             if s.processes.isEmpty {
-                Text("프로세스를 읽을 수 없음")
+                Text(LocalizedStringKey("프로세스를 읽을 수 없음"))
                     .font(WattlyFont.at(10.5, weight: .semibold))
                     .foregroundStyle(t.faint)
             } else {
@@ -210,11 +210,11 @@ struct CardExpandRegion: View {
         VStack(alignment: .leading, spacing: 8) {
             switch s.processes {
             case .none:
-                Text("측정 중…")
+                Text(LocalizedStringKey("측정 중…"))
                     .font(WattlyFont.at(10.5, weight: .semibold))
                     .foregroundStyle(t.faint)
             case .some(let procs) where procs.isEmpty:
-                Text("프로세스를 읽을 수 없음")
+                Text(LocalizedStringKey("프로세스를 읽을 수 없음"))
                     .font(WattlyFont.at(10.5, weight: .semibold))
                     .foregroundStyle(t.faint)
             case .some(let procs):
@@ -257,7 +257,7 @@ struct CardExpandRegion: View {
 
     private func batteryDetailRow(label: String, value: String) -> some View {
         HStack {
-            Text(label)
+            Text(LocalizedStringKey(label))
                 .font(WattlyFont.at(10.5, weight: .semibold))
                 .foregroundStyle(t.faint)
             Spacer(minLength: 8)
@@ -324,7 +324,7 @@ struct CardExpandRegion: View {
     private func tempExpand(_ groups: [TemperatureGroup]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             if groups.isEmpty {
-                Text("센서를 읽을 수 없음")
+                Text(LocalizedStringKey("센서를 읽을 수 없음"))
                     .font(WattlyFont.at(10.5, weight: .semibold))
                     .foregroundStyle(t.faint)
             } else {
@@ -336,7 +336,7 @@ struct CardExpandRegion: View {
 
     private func tempGroupRow(_ g: TemperatureGroup) -> some View {
         HStack(spacing: 9) {
-            Text(g.name)
+            Text(LocalizedStringKey(g.name))
                 .font(WattlyFont.at(10.5, weight: .semibold))
                 .foregroundStyle(t.faint)
                 .frame(width: 78, alignment: .leading)
@@ -349,7 +349,7 @@ struct CardExpandRegion: View {
                 }
             }
             .frame(height: 6)
-            Text(CardPresentation.clusterSummary(average: g.average, hottest: g.hottest))
+            (Text("\(CardPresentation.f1(g.average))° · ") + Text("최고") + Text(" \(CardPresentation.f1(g.hottest))°"))
                 .font(WattlyFont.at(10.5, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(t.sub)
@@ -367,7 +367,7 @@ struct CardExpandRegion: View {
     private func fanExpand(_ s: FanSample) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             if s.fans.isEmpty {
-                Text("팬을 읽을 수 없음")
+                Text(LocalizedStringKey("팬을 읽을 수 없음"))
                     .font(WattlyFont.at(10.5, weight: .semibold))
                     .foregroundStyle(t.faint)
             } else {
@@ -379,7 +379,7 @@ struct CardExpandRegion: View {
 
     private func fanRow(_ f: FanReading) -> some View {
         HStack(spacing: 9) {
-            Text("팬 \(f.index + 1)")
+            (Text("팬") + Text(" \(f.index + 1)"))
                 .font(WattlyFont.at(10.5, weight: .semibold))
                 .foregroundStyle(t.faint)
                 .frame(width: 44, alignment: .leading)
@@ -392,7 +392,7 @@ struct CardExpandRegion: View {
                 }
             }
             .frame(height: 6)
-            Text("\(Int(f.actualRPM.rounded())) RPM · 목표 \(Int(f.targetRPM.rounded()))")
+            (Text("\(Int(f.actualRPM.rounded())) RPM · ") + Text("목표") + Text(" \(Int(f.targetRPM.rounded()))"))
                 .font(WattlyFont.at(10.5, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(t.sub)

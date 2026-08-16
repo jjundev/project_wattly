@@ -14,7 +14,7 @@ struct SettingsThresholdSection: View {
                     thresholdDivider
                     gpuThresholdBlock
                     thresholdDivider
-                    thresholdBlock(title: "온도 · CPU·GPU (°C)", keyPath: \.temp,
+                    thresholdBlock(title: "CPU · GPU 온도 (°C)", keyPath: \.temp,
                                    warnRange: 40...100, critRange: 50...110, suffix: "°")
                 }
             }
@@ -94,7 +94,7 @@ struct SettingsThresholdSection: View {
                                 warnRange: ClosedRange<Double>, critRange: ClosedRange<Double>,
                                 suffix: String) -> some View {
         VStack(alignment: .leading, spacing: 9) {
-            Text(title)
+            Text(LocalizedStringKey(title))
                 .font(WattlyFont.at(12.5, weight: .semibold))
                 .foregroundStyle(t.text)
             thresholdRow(dot: Tokens.statusOrange, label: "주의",
@@ -108,7 +108,7 @@ struct SettingsThresholdSection: View {
                               range: ClosedRange<Double>, suffix: String) -> some View {
         HStack(spacing: 9) {
             Circle().fill(dot).frame(width: 7, height: 7)
-            Text(label)
+            Text(LocalizedStringKey(label))
                 .font(WattlyFont.at(12, weight: .regular))
                 .foregroundStyle(t.sub)
                 .frame(width: 30, alignment: .leading)

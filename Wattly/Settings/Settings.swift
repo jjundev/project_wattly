@@ -28,7 +28,7 @@ enum PowerMode: String, CaseIterable, Identifiable, Sendable {
 
     var label: String {
         switch self {
-        case .eco: "스마트(권장)"
+        case .eco: "스마트"
         case .performance: "고성능"
         }
     }
@@ -43,7 +43,7 @@ enum BackgroundRefreshPreset: String, CaseIterable, Identifiable, Sendable {
 
     var label: String {
         switch self {
-        case .eco: "스마트(권장)"
+        case .eco: "스마트"
         case .performance: "고성능"
         case .custom: "사용자 지정"
         }
@@ -64,7 +64,7 @@ func pollingDescription(for setting: PollInterval, mode: PowerMode) -> String {
     case .auto:
         switch mode {
         case .eco:
-            "패널을 열면 CPU·전력은 1초(오픈 즉시 표시), 온도는 2초, 메모리·배터리는 5초마다 갱신합니다. 패널을 닫으면 메뉴바 텍스트 또는 Kinetic Notch 모션에 필요한 지표만 2~5초마다 갱신합니다."
+            "패널을 열면 CPU·전력은 1초(오픈 즉시 표시), 온도는 2초, 메모리·배터리는 5초마다 갱신합니다. 패널을 닫으면 메뉴바 텍스트 또는 아이콘 모션에 필요한 지표만 2~5초마다 갱신합니다."
         case .performance:
             "패널을 열면 CPU·전력·온도는 1초, 메모리·팬은 3초마다 갱신합니다. 패널을 닫으면 지표 특성과 전원 상태(배터리/충전)에 맞춰 최적화하여 갱신합니다."
         }
@@ -80,16 +80,16 @@ func pollingDescription(for setting: PollInterval, mode: PowerMode) -> String {
 /// String-raw enum, exactly like `ThemeMode`/`PollInterval`.
 enum PanelMode: String, CaseIterable, Identifiable, Sendable {
     case a = "A"   // 스택 행 — full-width cards (mode A, the default)
-    case b = "B"   // 카드 그리드 — 2-column compact tiles
     case c = "C"   // 히어로 + 리스트 (plan 20)
+    case b = "B"   // 카드 그리드 — 2-column compact tiles
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
         case .a: "스택 행"
-        case .b: "카드 그리드"
         case .c: "히어로 + 리스트"
+        case .b: "카드 그리드"
         }
     }
 }
@@ -275,6 +275,82 @@ struct CardOrder: Equatable, Sendable, RawRepresentable {
     }
 }
 
+// MARK: - Language (i18n)
+
+public struct AppLanguageOption: Identifiable, Hashable, Sendable {
+    public let id: String
+    public let displayName: String
+
+    public init(id: String, displayName: String) {
+        self.id = id
+        self.displayName = displayName
+    }
+}
+
+public enum AppLanguage: Sendable {
+    public static let supportedLanguages: [AppLanguageOption] = [
+        AppLanguageOption(id: "system", displayName: "시스템"),
+        AppLanguageOption(id: "ko", displayName: "한국어"),
+        AppLanguageOption(id: "en", displayName: "English"),
+        AppLanguageOption(id: "ja", displayName: "日本語"),
+        AppLanguageOption(id: "zh-Hans", displayName: "简体中文"),
+        AppLanguageOption(id: "zh-Hant", displayName: "繁體中文"),
+        AppLanguageOption(id: "de", displayName: "Deutsch"),
+        AppLanguageOption(id: "fr", displayName: "Français"),
+        AppLanguageOption(id: "es", displayName: "Español"),
+        AppLanguageOption(id: "it", displayName: "Italiano"),
+        AppLanguageOption(id: "pt-BR", displayName: "Português (Brasil)"),
+        AppLanguageOption(id: "pt-PT", displayName: "Português (Portugal)"),
+        AppLanguageOption(id: "ru", displayName: "Русский"),
+        AppLanguageOption(id: "pl", displayName: "Polski"),
+        AppLanguageOption(id: "nl", displayName: "Nederlands"),
+        AppLanguageOption(id: "sv", displayName: "Svenska"),
+        AppLanguageOption(id: "tr", displayName: "Türkçe"),
+        AppLanguageOption(id: "ar", displayName: "العربية"),
+        AppLanguageOption(id: "th", displayName: "ไทย"),
+        AppLanguageOption(id: "vi", displayName: "Tiếng Việt"),
+        AppLanguageOption(id: "id", displayName: "Bahasa Indonesia"),
+        AppLanguageOption(id: "hi", displayName: "हिन्दी"),
+        AppLanguageOption(id: "uk", displayName: "Українська"),
+        AppLanguageOption(id: "cs", displayName: "Čeština"),
+        AppLanguageOption(id: "da", displayName: "Dansk"),
+        AppLanguageOption(id: "fi", displayName: "Suomi"),
+        AppLanguageOption(id: "nb", displayName: "Norsk Bokmål"),
+        AppLanguageOption(id: "el", displayName: "Ελληνικά"),
+        AppLanguageOption(id: "he", displayName: "עברית"),
+        AppLanguageOption(id: "ro", displayName: "Română"),
+        AppLanguageOption(id: "hu", displayName: "Magyar"),
+    ]
+
+    public static func locale(for identifier: String) -> Locale {
+        if identifier == "system" {
+            return Locale.autoupdatingCurrent
+        }
+        return Locale(identifier: identifier)
+    }
+
+    public static func displayName(for identifier: String) -> String {
+        supportedLanguages.first(where: { $0.id == identifier })?.displayName ?? "한국어"
+    }
+}
+
+// MARK: - String Localization Helper
+
+extension String {
+    /// Resolves localized string for a specific locale from the application bundle.
+    public init(localized key: String, locale: Locale, bundle: Bundle = .main) {
+        let langId = locale.identifier
+        let baseLang = locale.language.languageCode?.identifier ?? langId
+        if let lprojPath = bundle.path(forResource: langId, ofType: "lproj") ??
+                          bundle.path(forResource: baseLang, ofType: "lproj"),
+           let langBundle = Bundle(path: lprojPath) {
+            self = langBundle.localizedString(forKey: key, value: nil, table: nil)
+        } else {
+            self = bundle.localizedString(forKey: key, value: nil, table: nil)
+        }
+    }
+}
+
 // MARK: - Single source of defaults
 
 /// One place that both `@AppStorage` initial values and "reset to defaults" read,
@@ -282,6 +358,7 @@ struct CardOrder: Equatable, Sendable, RawRepresentable {
 /// README §common tokens.
 enum Defaults {
     static let theme = ThemeMode.system
+    static let appLanguage = "system"
     static let pollInterval = PollInterval.auto
     static let powerMode = PowerMode.eco
     static let panelMode = PanelMode.c       // ship default: hero + list (mode C)
@@ -340,6 +417,7 @@ enum StorageKey {
     static func menu(_ c: CardKind) -> String { "menu.\(c.rawValue)" }
     static func menuCoreClock(_ prefix: String) -> String { "menu.coreClock.\(prefix)" }
     static let theme = "theme"
+    static let appLanguage = "appLanguage"
     static let pollInterval = "pollInterval"
     static let powerMode = "powerMode"
     static let panelMode = "panelMode"

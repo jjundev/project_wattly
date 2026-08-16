@@ -55,12 +55,10 @@ struct MetricCardView: View {
             if hasValue {
                 SparklineView(values: historyValues, stroke: sparkStroke, fill: hasSparkArea ? sparkFill : nil)
                     .accessibilityHidden(true)
-                if let sub = d.subText, !sub.isEmpty {
-                    Text(sub)
-                        .font(WattlyFont.at(11, weight: .regular))
-                        .monospacedDigit()
-                        .foregroundStyle(t.sub)
-                }
+                subTextView(d.subText)
+                    .font(WattlyFont.at(11, weight: .regular))
+                    .monospacedDigit()
+                    .foregroundStyle(t.sub)
             }
         }
         .accessibilityElement(children: .ignore)
@@ -76,10 +74,46 @@ struct MetricCardView: View {
         }
     }
 
+    @ViewBuilder
+    private func subTextView(_ fallbackSubText: String?) -> some View {
+        if case .value(.battery(let s)) = state,
+           let totalMinutes = validatedTimeRemainingMinutes(s.projectedTimeRemainingMinutes) {
+            let h = totalMinutes / 60
+            let m = totalMinutes % 60
+            if h == 0 {
+                if s.charging {
+                    Text("완충까지 약 \(m)분 남음")
+                } else {
+                    Text("약 \(m)분 남음")
+                }
+            } else if m == 0 {
+                if s.charging {
+                    Text("완충까지 약 \(h)시간 남음")
+                } else {
+                    Text("약 \(h)시간 남음")
+                }
+            } else {
+                if s.charging {
+                    Text("완충까지 약 \(h)시간 \(m)분 남음")
+                } else {
+                    Text("약 \(h)시간 \(m)분 남음")
+                }
+            }
+        } else if case .value(.memory(let s)) = state {
+            if let p = s.pressurePercent {
+                Text("압력 \(p)% · 고정 \(CardPresentation.f1(s.wiredGB)) GB · 압축 \(CardPresentation.f1(s.compressedGB)) GB · 스왑 \(CardPresentation.f1(s.swapUsedGB)) GB")
+            } else {
+                Text("고정 \(CardPresentation.f1(s.wiredGB)) GB · 압축 \(CardPresentation.f1(s.compressedGB)) GB · 스왑 \(CardPresentation.f1(s.swapUsedGB)) GB")
+            }
+        } else if let sub = fallbackSubText, !sub.isEmpty {
+            Text(sub)
+        }
+    }
+
     private func headerRow(_ d: CardDisplay) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             HStack(spacing: 5) {
-                Text(d.label)
+                Text(LocalizedStringKey(d.label))
                     .font(WattlyFont.at(11.5, weight: .semibold))
                     .foregroundStyle(t.sub)
                     .fixedSize()
@@ -129,8 +163,8 @@ struct MetricCardView: View {
                 .foregroundStyle(Color(hex: "#d47800"))
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 2) {
-                Text(CardPresentation.label(card)).font(WattlyFont.at(11.5, weight: .semibold)).foregroundStyle(t.text)
-                Text(reason.message)
+                Text(LocalizedStringKey(CardPresentation.label(card))).font(WattlyFont.at(11.5, weight: .semibold)).foregroundStyle(t.text)
+                Text(LocalizedStringKey(reason.message))
                     .font(WattlyFont.at(11, weight: .regular)).lineSpacing(1.5)
                     .foregroundStyle(t.sub)
                     .fixedSize(horizontal: false, vertical: true)
@@ -150,8 +184,8 @@ struct MetricCardView: View {
                 .foregroundStyle(t.faint)
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 1) {
-                Text(CardPresentation.label(card)).font(WattlyFont.at(11.5, weight: .semibold)).foregroundStyle(t.sub)
-                Text(reason.message).font(WattlyFont.at(11, weight: .regular)).foregroundStyle(t.faint)
+                Text(LocalizedStringKey(CardPresentation.label(card))).font(WattlyFont.at(11.5, weight: .semibold)).foregroundStyle(t.sub)
+                Text(LocalizedStringKey(reason.message)).font(WattlyFont.at(11, weight: .regular)).foregroundStyle(t.faint)
             }
         }
         .padding(EdgeInsets(top: 11, leading: 12, bottom: 11, trailing: 12))
@@ -164,13 +198,13 @@ struct MetricCardView: View {
     private func genericUnavailable(_ reason: MetricUnavailableReason) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
-                Text(CardPresentation.label(card)).font(WattlyFont.at(11.5, weight: .semibold)).foregroundStyle(t.sub)
+                Text(LocalizedStringKey(CardPresentation.label(card))).font(WattlyFont.at(11.5, weight: .semibold)).foregroundStyle(t.sub)
                 Spacer(minLength: 8)
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(t.faint)
             }
-            Text(reason.message)
+            Text(LocalizedStringKey(reason.message))
                 .font(WattlyFont.at(11, weight: .regular))
                 .foregroundStyle(t.faint)
                 .fixedSize(horizontal: false, vertical: true)

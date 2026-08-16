@@ -26,10 +26,18 @@ struct SettingsResetTests {
         return d
     }
 
+    @Test func generalSectionContractAndResetOperation() {
+        let d = makeDefaults(#function)
+        d.set(ThemeMode.light.rawValue, forKey: StorageKey.theme)
+        SettingsReset.applyDefaults(into: d, login: nil)
+        #expect(d.string(forKey: StorageKey.theme) == Defaults.theme.rawValue)
+    }
+
     @Test func resetRestoresEveryScalarKey() {
         let d = makeDefaults(#function)
         // Dirty every key with a non-default value.
         d.set(ThemeMode.light.rawValue, forKey: StorageKey.theme)
+        d.set("ja", forKey: StorageKey.appLanguage)
         d.set(PollInterval.s5.rawValue, forKey: StorageKey.pollInterval)
         d.set(PowerMode.performance.rawValue, forKey: StorageKey.powerMode)
         d.set(PanelMode.b.rawValue, forKey: StorageKey.panelMode)
@@ -46,6 +54,7 @@ struct SettingsResetTests {
         SettingsReset.applyDefaults(into: d, login: nil)
 
         #expect(d.string(forKey: StorageKey.theme) == Defaults.theme.rawValue)
+        #expect(d.string(forKey: StorageKey.appLanguage) == Defaults.appLanguage)
         #expect(d.string(forKey: StorageKey.pollInterval) == Defaults.pollInterval.rawValue)
         #expect(d.string(forKey: StorageKey.powerMode) == PowerMode.eco.rawValue)
         #expect(Defaults.panelMode == .c)
@@ -234,5 +243,14 @@ struct SettingsResetTests {
         #expect(loaded.isCoreClockSelected("P"))
         #expect(loaded.isMemPressureSelected)
         #expect(!loaded.isBatteryTempSelected)
+    }
+
+    @Test func layoutSegmentOptionOrdering() {
+        #expect(PanelMode.allCases == [.a, .c, .b])
+        #expect(PanelMode.allCases.map(\.label) == ["스택 행", "히어로 + 리스트", "카드 그리드"])
+    }
+
+    @Test func systemOptionCopyConsistency() {
+        #expect(ThemeMode.allCases.map(\.label) == ["라이트", "다크", "시스템"])
     }
 }

@@ -82,7 +82,7 @@ struct SettingsMenuBarSection: View {
             SettingsToggleRow(isOn: $kineticNotchMotionEnabled, divider: true) {
                 VStack(alignment: .leading, spacing: 2) {
                     SettingsRowTitle("부하에 맞춰 아이콘 움직이기")
-                    Text("선택한 부하가 높을수록 메뉴바 아이콘의 회전/모션 속도가 빨라집니다.")
+                    Text("선택한 부하가 높을수록 메뉴바 아이콘의 움직임 속도가 빨라집니다.")
                         .font(WattlyFont.at(11.5, weight: .regular))
                         .foregroundStyle(t.faint)
                         .fixedSize(horizontal: false, vertical: true)
@@ -100,16 +100,22 @@ struct SettingsMenuBarSection: View {
 
                 if kineticNotchMotionEnabled {
                     kineticNotchField(title: "부하 원본") {
-                        WattlySegment(selection: $kineticNotchSource,
-                                      options: KineticNotchSource.allCases.map { ($0, $0.label) },
-                                      fontSize: 11.5, pillVPadding: 6)
+                        VStack(alignment: .leading, spacing: 8) {
+                            WattlySegment(selection: $kineticNotchSource,
+                                          options: KineticNotchSource.allCases.map { ($0, $0.label) },
+                                          fontSize: 11.5, pillVPadding: 6)
+                            Text(LocalizedStringKey(kineticNotchSource.description))
+                                .font(WattlyFont.at(11.5, weight: .regular))
+                                .foregroundStyle(t.faint)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
-                    kineticNotchField(title: "움직임 속도 (앱 활성화 시)") {
+                    kineticNotchField(title: "움직임 속도") {
                         VStack(alignment: .leading, spacing: 8) {
                             WattlySegment(selection: $kineticNotchSpeed,
                                           options: KineticNotchSpeed.allCases.map { ($0, $0.label) },
                                           fontSize: 11.5, pillVPadding: 6)
-                            Text(kineticNotchSpeed.description)
+                            Text(LocalizedStringKey(kineticNotchSpeed.description))
                                 .font(WattlyFont.at(11.5, weight: .regular))
                                 .foregroundStyle(t.faint)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -127,14 +133,21 @@ struct SettingsMenuBarSection: View {
                                     isForeground: true,
                                     frameCount: iconStyle.frameCount
                                 )
-                                let fpsText: String = if kineticNotchSpeed == .smart {
-                                    "\(Int(previewLoad.rounded()))% · \(String(format: "%.2f", rps)) rps (활성 [\(powerStateTag)]: \(Int(fps.rounded())) fps)"
-                                } else {
-                                    "\(Int(previewLoad.rounded()))% · \(String(format: "%.2f", rps)) rps (활성: \(Int(fps.rounded())) fps)"
+                                Group {
+                                    if kineticNotchSpeed == .smart {
+                                        (Text("\(Int(previewLoad.rounded()))% · \(String(format: "%.2f", rps)) rps (")
+                                         + Text("활성")
+                                         + Text(" [")
+                                         + Text(LocalizedStringKey(powerStateTag))
+                                         + Text("]: \(Int(fps.rounded())) fps)"))
+                                    } else {
+                                        (Text("\(Int(previewLoad.rounded()))% · \(String(format: "%.2f", rps)) rps (")
+                                         + Text("활성")
+                                         + Text(": \(Int(fps.rounded())) fps)"))
+                                    }
                                 }
-                                Text(fpsText)
-                                    .font(WattlyFont.at(11.5, weight: .medium))
-                                    .foregroundStyle(t.faint)
+                                .font(WattlyFont.at(11.5, weight: .medium))
+                                .foregroundStyle(t.faint)
                             } else {
                                 Text("선택한 부하를 읽는 동안 아이콘은 정지합니다.")
                                     .font(WattlyFont.at(11.5, weight: .regular))
@@ -221,9 +234,12 @@ struct SettingsMenuBarSection: View {
                 .frame(width: 28, height: 24)
                 .foregroundStyle(fgColor)
 
-                Text(style.label)
+                Text(LocalizedStringKey(style.label))
                     .font(WattlyFont.at(11.5, weight: isSelected ? .semibold : .regular))
                     .foregroundStyle(labelColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                    .allowsTightening(true)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
@@ -243,7 +259,7 @@ struct SettingsMenuBarSection: View {
     private func kineticNotchField<Content: View>(title: String,
                                                    @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
+            Text(LocalizedStringKey(title))
                 .font(WattlyFont.at(11.5, weight: .regular))
                 .foregroundStyle(t.faint)
             content()

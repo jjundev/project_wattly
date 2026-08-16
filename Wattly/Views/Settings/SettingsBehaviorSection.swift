@@ -59,7 +59,7 @@ struct SettingsBehaviorSection: View {
                                       pillVPadding: 6)
                     }
 
-                    Text(pollingDescription(for: pollInterval, mode: powerMode))
+                    Text(LocalizedStringKey(pollingDescription(for: pollInterval, mode: powerMode)))
                         .font(WattlyFont.at(11.5, weight: .regular))
                         .foregroundStyle(t.faint)
                         .fixedSize(horizontal: false, vertical: true)
@@ -68,10 +68,10 @@ struct SettingsBehaviorSection: View {
         }
     }
 
-    // MARK: - 전력 표시 안정화
+    // MARK: - 전력 표시
 
     private var smoothingSection: some View {
-        SettingsSection(title: "전력 표시 안정화") {
+        SettingsSection(title: "전력 표시") {
             SettingsCard {
                 SettingsToggleRow(isOn: $powerSmoothed, divider: false) {
                     VStack(alignment: .leading, spacing: 2) {
