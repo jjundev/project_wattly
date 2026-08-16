@@ -73,4 +73,22 @@ struct KineticNotchMotionTests {
         let highFrame = MenuBarIconMotion.displayedFrame(style: .vuMeter, phase: 0, load: 100.0, reduceMotion: false)
         #expect(highFrame >= 21)
     }
+
+    @Test func equalizerScalesTierWithLoad() {
+        // Low load (< 25%): Tier 0 (frames 0..5)
+        let lowFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 2, load: 10.0, reduceMotion: false)
+        #expect(lowFrame >= 0 && lowFrame <= 5)
+
+        // Mid-low load (25~50%): Tier 1 (frames 6..11)
+        let midLowFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 2, load: 35.0, reduceMotion: false)
+        #expect(midLowFrame >= 6 && midLowFrame <= 11)
+
+        // Mid-high load (50~75%): Tier 2 (frames 12..17)
+        let midHighFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 2, load: 60.0, reduceMotion: false)
+        #expect(midHighFrame >= 12 && midHighFrame <= 17)
+
+        // High load (>= 75%): Tier 3 (frames 18..23)
+        let highFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 2, load: 95.0, reduceMotion: false)
+        #expect(highFrame >= 18 && highFrame <= 23)
+    }
 }

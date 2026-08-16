@@ -61,6 +61,14 @@ enum MenuBarIconMotion {
             return min(max(target, 0), count - 1)
         }
 
+        // Digital Equalizer dynamically scales bar heights based on workload tier (4 tiers x 6 subphases)
+        if style == .equalizer, let load {
+            let clampedLoad = min(max(load, 0), 100)
+            let tier = min(Int(clampedLoad / 25.0), 3) // Tier 0 (low) ~ Tier 3 (max load)
+            let subPhase = ((phase % 6) + 6) % 6
+            return tier * 6 + subPhase
+        }
+
         return ((phase % count) + count) % count
     }
 
