@@ -44,53 +44,74 @@ struct PulseWMark: View {
     }
 }
 
-/// The Kinetic Notch outline leaves its centered top notch open, matching the
-/// compact menu-bar mark rather than suggesting a generic battery indicator.
-struct KineticNotchOutline: Shape {
+struct FluxLoopOutline: Shape {
     func path(in rect: CGRect) -> Path {
-        let x = rect.minX
-        let y = rect.minY
-        let w = rect.width
-        let h = rect.height
+        let inset = min(rect.width, rect.height) * 0.10
+        let track = rect.insetBy(dx: inset, dy: inset)
+        return Path(roundedRect: track, cornerRadius: track.height * 0.36)
+    }
+}
+
+struct FluxLoopCore: Shape {
+    func path(in rect: CGRect) -> Path {
         var path = Path()
-        path.move(to: CGPoint(x: x + w * 0.10, y: y + h * 0.88))
-        path.addLine(to: CGPoint(x: x + w * 0.10, y: y + h * 0.20))
-        path.addQuadCurve(to: CGPoint(x: x + w * 0.22, y: y + h * 0.10),
-                          control: CGPoint(x: x + w * 0.10, y: y + h * 0.10))
-        path.addLine(to: CGPoint(x: x + w * 0.40, y: y + h * 0.10))
-        path.addLine(to: CGPoint(x: x + w * 0.40, y: y + h * 0.28))
-        path.addLine(to: CGPoint(x: x + w * 0.60, y: y + h * 0.28))
-        path.addLine(to: CGPoint(x: x + w * 0.60, y: y + h * 0.10))
-        path.addLine(to: CGPoint(x: x + w * 0.78, y: y + h * 0.10))
-        path.addQuadCurve(to: CGPoint(x: x + w * 0.90, y: y + h * 0.20),
-                          control: CGPoint(x: x + w * 0.90, y: y + h * 0.10))
-        path.addLine(to: CGPoint(x: x + w * 0.90, y: y + h * 0.88))
-        path.addLine(to: CGPoint(x: x + w * 0.10, y: y + h * 0.88))
+        func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            CGPoint(x: rect.minX + rect.width * x, y: rect.minY + rect.height * y)
+        }
+        path.move(to: point(0.27, 0.31))
+        path.addLine(to: point(0.41, 0.71))
+        path.addLine(to: point(0.50, 0.47))
+        path.addLine(to: point(0.59, 0.71))
+        path.addLine(to: point(0.73, 0.31))
         return path
     }
 }
 
-/// A seven-frame load indicator. The menu bar rasterizes it as a monochrome
-/// template image; settings keeps the accent-blue needle as a live preview.
+/// A seven-frame energy loop. The active charge pauses at the lateral extremes
+/// through KineticNotchMotion's phase delays; this view itself is a static frame.
+struct FluxLoopMark: View {
+    let frame: Int
+    var markerColor: Color = Tokens.accent
+
+    private static let chargePositions = [
+        CGPoint(x: 0.50, y: 0.10), CGPoint(x: 0.79, y: 0.20),
+        // Phase 2 is KineticNotchMotion.rightEdgePhase.
+        CGPoint(x: 0.90, y: 0.50), CGPoint(x: 0.70, y: 0.84),
+        CGPoint(x: 0.30, y: 0.84),
+        // Phase 5 is KineticNotchMotion.leftEdgePhase.
+        CGPoint(x: 0.10, y: 0.50),
+        CGPoint(x: 0.21, y: 0.20)
+    ]
+
+    private var chargePosition: CGPoint {
+        Self.chargePositions[min(max(frame, 0), Self.chargePositions.count - 1)]
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            let diameter = min(proxy.size.width, proxy.size.height) * 0.22
+            ZStack {
+                FluxLoopOutline()
+                    .stroke(style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                FluxLoopCore()
+                    .stroke(style: StrokeStyle(lineWidth: 1.65, lineCap: .round, lineJoin: .round))
+                Circle()
+                    .fill(markerColor)
+                    .frame(width: diameter, height: diameter)
+                    .position(x: proxy.size.width * chargePosition.x,
+                              y: proxy.size.height * chargePosition.y)
+            }
+        }
+    }
+}
+
+/// Compatibility wrapper for the Settings preview until its Flux Loop migration.
 struct KineticNotchMark: View {
     let frame: Int
     var markerColor: Color = Tokens.accent
 
-    private var needleAngle: Double {
-        -28 + Double(min(max(frame, 0), 6)) * (56 / 6)
-    }
-
     var body: some View {
-        ZStack {
-            KineticNotchOutline()
-                .stroke(style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-            Rectangle()
-                .fill(markerColor)
-                .frame(width: 2, height: 9)
-                .offset(y: -3)
-                .rotationEffect(.degrees(needleAngle), anchor: .bottom)
-            Circle().fill(markerColor).frame(width: 3.5, height: 3.5)
-        }
+        FluxLoopMark(frame: frame, markerColor: markerColor)
     }
 }
 

@@ -47,9 +47,11 @@ struct MenuBarLabel: View {
         .task(id: "\(kineticNotchMotionEnabled)-\(kineticNotchSource.rawValue)-\(kineticNotchSpeed.rawValue)-\(reduceMotion)-\(kineticNotchFrameRate ?? 0)") {
             guard let frameRate = kineticNotchFrameRate else { return }
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1 / frameRate))
+                let phase = kineticNotchPhase
+                let delay = KineticNotchMotion.frameDelay(phase: phase, frameRate: frameRate)
+                try? await Task.sleep(for: .seconds(delay))
                 guard !Task.isCancelled else { return }
-                kineticNotchPhase = (kineticNotchPhase + 1) % KineticNotchMotion.frameCount
+                kineticNotchPhase = (phase + 1) % KineticNotchMotion.frameCount
             }
         }
     }
@@ -98,8 +100,10 @@ struct MenuBarLabel: View {
     }
 
     private var kineticNotchFrame: Int {
-        KineticNotchMotion.displayedFrame(load: kineticNotchLoad ?? 0, phase: kineticNotchPhase,
-                                          reduceMotion: reduceMotion || kineticNotchFrameRate == nil)
+        KineticNotchMotion.displayedFrame(
+            phase: kineticNotchPhase,
+            reduceMotion: reduceMotion || kineticNotchFrameRate == nil
+        )
     }
 
     private var kineticNotchFrameRate: Double? {
@@ -120,7 +124,7 @@ enum MenuBarGlyph {
     static func template(frame: Int) -> NSImage? {
         let index = min(max(frame, 0), KineticNotchMotion.frameCount - 1)
         if let image = templates[index] { return image }
-        let renderer = ImageRenderer(content: KineticNotchMark(frame: index, markerColor: .black)
+        let renderer = ImageRenderer(content: FluxLoopMark(frame: index, markerColor: .black)
             .frame(width: 16, height: 14)
             .padding(1.5)
             .foregroundStyle(.black))
