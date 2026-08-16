@@ -1101,6 +1101,7 @@
           const s = size;
           const strokeW = Math.max(1.4, s * 0.08);
           const headR = s * 0.095;
+          const tier = load < 25 ? 0 : (load < 65 ? 1 : 2);
           const t = Math.min(Math.max(load / 100, 0), 1); // 0.0 (오르막) ~ 0.5 (평지) ~ 1.0 (내리막)
 
           // 1. Continuous Ground Slope Interpolation
