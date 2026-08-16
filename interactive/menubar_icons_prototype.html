@@ -1179,30 +1179,29 @@
           const leg1 = solveLegIK(hipX, hipY, foot1.x, foot1.y);
           const leg2 = solveLegIK(hipX, hipY, foot2.x, foot2.y);
 
-          // 5. Biomechanical Runner Arm Kinematics (Cheek-to-Pocket Model)
-          const A1 = s * 0.14; // Upper arm length
-          const A2 = s * 0.13; // Forearm length
+          // 5. Exaggerated 2D Animation Arm Swing (Full Rear & Forward Extension)
+          const A1 = s * 0.13; // Upper arm length
+          const A2 = s * 0.12; // Forearm length
 
           function calcArm(isFront, u) {
             const shX = neckX + (isFront ? s * 0.02 : -s * 0.02);
             const shY = neckY + (isFront ? s * 0.02 : 0.0);
 
-            // swing = +1: Arm forward at "Cheek" (hand near chin/chest)
-            // swing = -1: Arm backward at "Pocket" (elbow drives far behind back, hand near waist/hip pocket)
+            // swing = +1: High forward punch (reaching forward-up into the air)
+            // swing = -1: Full backward extension (arm stretches completely behind the back into empty space)
             const swing = Math.sin(u * Math.PI * 2);
 
             let upperAngle, forearmAngle;
             if (swing >= 0) {
-              // Forward Swing (Hand rises to cheek/chin)
+              // Forward Swing (Thrusts forward-up)
               const prog = swing;
-              upperAngle = 1.30 - prog * 0.85; // 74° down to 25° (reaches forward-down)
-              forearmAngle = upperAngle - (1.15 + prog * 0.35); // -40° to -60° (bends up towards cheek)
+              upperAngle = 1.30 - prog * 0.90; // 74° down to 23°
+              forearmAngle = upperAngle - (1.10 + prog * 0.40); // -40° to -65°
             } else {
-              // Backward Swing (Elbow drives high behind back, hand rests at pocket)
+              // Backward Swing (Stretches completely behind back)
               const prog = -swing;
-              upperAngle = 1.30 + prog * 1.35; // 74° up to 152° (Elbow drives far behind the back)
-              // Elbow maintains sharp ~90° bend: forearm points down-forward towards pocket/waist
-              forearmAngle = upperAngle - (1.70 - prog * 0.15); // Points down-forward towards pocket
+              upperAngle = 1.30 + prog * 1.55; // 74° up to 163° (upper arm points straight back)
+              forearmAngle = upperAngle + 0.35 + prog * 0.25; // 190° ~ 200° (forearm extends cleanly behind back)
             }
 
             let ex = shX + Math.cos(upperAngle) * A1;
