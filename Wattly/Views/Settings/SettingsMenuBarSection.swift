@@ -11,6 +11,8 @@ struct SettingsMenuBarSection: View {
     @AppStorage(StorageKey.kineticNotchSource) private var kineticNotchSource = Defaults.kineticNotchSource
     @AppStorage(StorageKey.kineticNotchSpeed) private var kineticNotchSpeed = Defaults.kineticNotchSpeed
 
+    @AppStorage(StorageKey.menubarIconStyle) private var iconStyle = Defaults.menubarIconStyle
+
     // 메뉴바 칩 (multi-select).
     @AppStorage(StorageKey.menu(.cpu))     private var menuCPU     = Defaults.menuMetrics[.cpu]     ?? false
     @AppStorage(StorageKey.menu(.gpu))     private var menuGPU     = Defaults.menuMetrics[.gpu]     ?? false
@@ -27,7 +29,7 @@ struct SettingsMenuBarSection: View {
     @AppStorage(StorageKey.menu(.fan))     private var menuFan     = Defaults.menuMetrics[.fan]     ?? false
 
     @State private var isAdvancedMenuMetricsExpanded = false
-    @State private var fluxLoopPreviewPhase = KineticNotchMotion.staticFrame
+    @State private var iconPreviewPhase = 0
 
     private var hasActiveAdvancedMetrics: Bool {
         menuSClock || menuPClock || menuEClock || menuMemPressure || menuBatteryTemp
@@ -76,18 +78,26 @@ struct SettingsMenuBarSection: View {
 
     private var kineticNotchControls: some View {
         VStack(spacing: 0) {
-            SettingsToggleRow(isOn: $kineticNotchMotionEnabled, divider: kineticNotchMotionEnabled) {
+            SettingsToggleRow(isOn: $kineticNotchMotionEnabled, divider: true) {
                 VStack(alignment: .leading, spacing: 2) {
-                    SettingsRowTitle("부하에 맞춰 전류 흐름 보이기")
-                    Text("선택한 부하가 높을수록 메뉴바 Flux Loop 전류가 더 빠르게 순환합니다. 양 가장자리에서는 잠시 느려집니다.")
+                    SettingsRowTitle("부하에 맞춰 아이콘 움직이기")
+                    Text("선택한 부하가 높을수록 메뉴바 아이콘의 회전/모션 속도가 빨라집니다.")
                         .font(WattlyFont.at(11.5, weight: .regular))
                         .foregroundStyle(t.faint)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
-            if kineticNotchMotionEnabled {
-                VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 14) {
+                kineticNotchField(title: "아이콘 디자인 테마") {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                        ForEach(MenuBarIconStyle.allCases) { style in
+                            iconStyleButton(for: style)
+                        }
+                    }
+                }
+
+                if kineticNotchMotionEnabled {
                     kineticNotchField(title: "부하 원본") {
                         WattlySegment(selection: $kineticNotchSource,
                                       options: KineticNotchSource.allCases.map { ($0, $0.label) },
@@ -104,42 +114,83 @@ struct SettingsMenuBarSection: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
-                    kineticNotchField(title: "미리보기") {
-                        HStack(spacing: 10) {
-                            FluxLoopMark(frame: previewFrame)
-                                .frame(width: 34, height: 28)
-                                .foregroundStyle(t.text)
-                                .task(id: "\(kineticNotchMotionEnabled)-\(kineticNotchSpeed.rawValue)-\(previewFrameRate ?? 0)-\(reduceMotion)") {
-                                    guard let frameRate = previewFrameRate,
-                                          kineticNotchMotionEnabled,
-                                          !reduceMotion else {
-                                        fluxLoopPreviewPhase = KineticNotchMotion.staticFrame
-                                        return
-                                    }
-                                    while !Task.isCancelled {
-                                        let phase = fluxLoopPreviewPhase
-                                        let delay = KineticNotchMotion.frameDelay(phase: phase, frameRate: frameRate)
-                                        try? await Task.sleep(for: .seconds(delay))
-                                        guard !Task.isCancelled else { return }
-                                        fluxLoopPreviewPhase = (phase + 1) % KineticNotchMotion.frameCount
-                                    }
-                                }
+                    kineticNotchField(title: "실시간 속도") {
+                        HStack(spacing: 8) {
                             if let previewLoad {
-                                let frameRate = KineticNotchMotion.frameRate(load: previewLoad, speed: kineticNotchSpeed) ?? 0
+                                let frameRate = MenuBarIconMotion.frameRate(load: previewLoad, speed: kineticNotchSpeed) ?? 0
                                 Text("\(Int(previewLoad.rounded()))% · \(frameRate, specifier: "%.1f") fps")
                                     .font(WattlyFont.at(11.5, weight: .medium))
                                     .foregroundStyle(t.faint)
                             } else {
-                                Text("선택한 부하를 읽는 동안 전류는 정지합니다.")
+                                Text("선택한 부하를 읽는 동안 아이콘은 정지합니다.")
                                     .font(WattlyFont.at(11.5, weight: .regular))
                                     .foregroundStyle(t.faint)
                             }
                         }
                     }
                 }
-                .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
+            }
+            .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
+            .task(id: "\(iconStyle.rawValue)-\(kineticNotchMotionEnabled)-\(kineticNotchSpeed.rawValue)-\(previewFrameRate ?? 0)-\(reduceMotion)") {
+                guard let frameRate = previewFrameRate,
+                      kineticNotchMotionEnabled,
+                      !reduceMotion else {
+                    iconPreviewPhase = iconStyle.staticFrame
+                    return
+                }
+                while !Task.isCancelled {
+                    let phase = iconPreviewPhase
+                    let delay = MenuBarIconMotion.frameDelay(style: iconStyle, phase: phase, frameRate: frameRate)
+                    try? await Task.sleep(for: .seconds(delay))
+                    guard !Task.isCancelled else { return }
+                    iconPreviewPhase = (phase + 1) % iconStyle.frameCount
+                }
             }
         }
+    }
+
+    private func iconStyleButton(for style: MenuBarIconStyle) -> some View {
+        let isSelected = iconStyle == style
+        let previewFrame = MenuBarIconMotion.displayedFrame(
+            style: style,
+            phase: iconPreviewPhase,
+            reduceMotion: !kineticNotchMotionEnabled || reduceMotion
+        )
+        let fgColor = isSelected ? Tokens.accent : t.text
+        let labelColor = isSelected ? t.text : t.faint
+        let bgColor = isSelected ? Tokens.accent.opacity(0.12) : t.rowBg
+        let strokeColor = isSelected ? Tokens.accent : t.rowBorder
+        let strokeWidth: CGFloat = isSelected ? 1.5 : 1.0
+
+        return Button {
+            iconStyle = style
+        } label: {
+            VStack(spacing: 6) {
+                DynamicMenuBarIconMark(
+                    style: style,
+                    frame: previewFrame,
+                    markerColor: fgColor
+                )
+                .frame(width: 28, height: 24)
+                .foregroundStyle(fgColor)
+
+                Text(style.label)
+                    .font(WattlyFont.at(11.5, weight: isSelected ? .semibold : .regular))
+                    .foregroundStyle(labelColor)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(bgColor)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(strokeColor, lineWidth: strokeWidth)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private func kineticNotchField<Content: View>(title: String,
@@ -154,14 +205,7 @@ struct SettingsMenuBarSection: View {
 
     private var previewFrameRate: Double? {
         guard kineticNotchMotionEnabled, !reduceMotion, let previewLoad else { return nil }
-        return KineticNotchMotion.frameRate(load: previewLoad, speed: kineticNotchSpeed)
-    }
-
-    private var previewFrame: Int {
-        KineticNotchMotion.displayedFrame(
-            phase: fluxLoopPreviewPhase,
-            reduceMotion: previewFrameRate == nil
-        )
+        return MenuBarIconMotion.frameRate(load: previewLoad, speed: kineticNotchSpeed)
     }
 
     private var previewLoad: Double? {
