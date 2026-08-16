@@ -22,6 +22,7 @@ enum SettingsReset {
         defaults.set(Defaults.kineticNotchMotionEnabled, forKey: StorageKey.kineticNotchMotionEnabled)
         defaults.set(Defaults.kineticNotchSource.rawValue, forKey: StorageKey.kineticNotchSource)
         defaults.set(Defaults.kineticNotchSpeed.rawValue, forKey: StorageKey.kineticNotchSpeed)
+        defaults.set(Defaults.menubarIconStyle.rawValue, forKey: StorageKey.menubarIconStyle)
         defaults.set(Defaults.powerSmoothed, forKey: StorageKey.powerSmoothed)
         defaults.set(Defaults.showBatteryEfficiency, forKey: StorageKey.showBatteryEfficiency)
         defaults.set(Defaults.memoryProcessLimit, forKey: StorageKey.memoryProcessLimit)
