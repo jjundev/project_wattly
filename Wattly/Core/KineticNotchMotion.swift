@@ -1,4 +1,25 @@
 import Foundation
+import IOKit.ps
+
+enum HardwarePowerSource {
+    /// Zero-cost, instantaneous O(1) OS kernel snapshot of AC adapter connection.
+    /// Does NOT perform SMC I/O or background polling. Returns true for desktop Macs.
+    static func isACConnected() -> Bool {
+        guard let snapshot = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
+              let sources = IOPSCopyPowerSourcesList(snapshot)?.takeRetainedValue() as? [CFTypeRef] else {
+            return true // Desktop Mac fallback
+        }
+        for source in sources {
+            guard let desc = IOPSGetPowerSourceDescription(snapshot, source)?.takeUnretainedValue() as? [String: Any] else {
+                continue
+            }
+            if let state = desc[kIOPSPowerSourceStateKey] as? String, state == kIOPSACPowerValue {
+                return true
+            }
+        }
+        return false
+    }
+}
 
 enum KineticNotchSource: String, CaseIterable, Identifiable, Sendable {
     case power

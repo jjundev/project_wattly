@@ -96,10 +96,7 @@ struct MenuBarLabel: View {
     }
 
     private var isACConnected: Bool {
-        if case .value(.battery(let sample)) = monitor.cardState(.battery) {
-            return sample.externalConnected
-        }
-        return true // Desktop Macs (Mac mini, Mac Studio, Mac Pro, iMac) are always AC
+        HardwarePowerSource.isACConnected()
     }
 
     private var isLowPowerMode: Bool {
