@@ -85,7 +85,7 @@ struct CardExpandRegion: View {
                 Text("\(Int(s.overall.rounded()))%")
                     .font(WattlyFont.at(12, weight: .bold))
                     .monospacedDigit()
-                    .foregroundStyle(Tokens.accent)
+                    .foregroundStyle(t.sub)
             }
             
             gpuEngineRow(label: "렌더러", usage: s.rendererUsage)
