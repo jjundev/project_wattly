@@ -290,7 +290,7 @@ enum Defaults {
     static let menubarTextEnabled = true   // default menubar metric = CPU only
     static let kineticNotchMotionEnabled = true
     static let kineticNotchSource = KineticNotchSource.power
-    static let kineticNotchSpeed = KineticNotchSpeed.standard
+    static let kineticNotchSpeed = KineticNotchSpeed.smart
     static let menubarIconStyle = MenuBarIconStyle.turbine
     static let powerSmoothed = true        // 프로세서 전력 + 배터리 카드: EMA-smoothed display (raw spikes mislead)
     /// Battery health can feel sensitive as it declines from 100%, so keep it opt-in.
