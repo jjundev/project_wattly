@@ -62,13 +62,17 @@ struct SettingsView: View {
                     }
                 }
 
-                VStack(alignment: .leading, spacing: 8) {
-                    SettingsRowTitle("언어")
-                    WattlySegment(selection: $selectedLanguage, options: [
-                        ("ko", "한국어"), ("en", "English"), ("system", "시스템 설정"),
-                    ], fontSize: 11.5, pillVPadding: 6)
+                HStack(alignment: .center, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        SettingsRowTitle("언어")
+                        Text("앱의 표시 언어를 선택합니다.")
+                            .font(WattlyFont.at(11.5, weight: .regular))
+                            .foregroundStyle(t.faint)
+                    }
+                    Spacer(minLength: 8)
+                    languageMenu
                 }
-                .padding(EdgeInsets(top: 10, leading: 14, bottom: 12, trailing: 14))
+                .padding(EdgeInsets(top: 10, leading: 14, bottom: 10, trailing: 14))
 
                 Rectangle().fill(t.line).frame(height: 1)
 
@@ -89,6 +93,86 @@ struct SettingsView: View {
             }
         }
     }
+
+    private var languageMenu: some View {
+        Menu {
+            ForEach(Self.supportedLanguages) { lang in
+                Button {
+                    selectedLanguage = lang.id
+                } label: {
+                    if selectedLanguage == lang.id {
+                        Label(lang.displayName, systemImage: "checkmark")
+                    } else {
+                        Text(lang.displayName)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(currentLanguageDisplayName)
+                    .font(WattlyFont.at(12, weight: .medium))
+                    .foregroundStyle(t.text)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(t.faint)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(t.segTrack)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(t.rowBorder, lineWidth: 1)
+            )
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+    }
+
+    private var currentLanguageDisplayName: String {
+        Self.supportedLanguages.first(where: { $0.id == selectedLanguage })?.displayName ?? "한국어"
+    }
+
+    private struct LanguageOption: Identifiable {
+        let id: String
+        let displayName: String
+    }
+
+    private static let supportedLanguages: [LanguageOption] = [
+        LanguageOption(id: "system", displayName: "시스템 기본값"),
+        LanguageOption(id: "ko", displayName: "한국어"),
+        LanguageOption(id: "en", displayName: "English"),
+        LanguageOption(id: "ja", displayName: "日本語"),
+        LanguageOption(id: "zh-Hans", displayName: "简体中文"),
+        LanguageOption(id: "zh-Hant", displayName: "繁體中文"),
+        LanguageOption(id: "de", displayName: "Deutsch"),
+        LanguageOption(id: "fr", displayName: "Français"),
+        LanguageOption(id: "es", displayName: "Español"),
+        LanguageOption(id: "it", displayName: "Italiano"),
+        LanguageOption(id: "pt-BR", displayName: "Português (Brasil)"),
+        LanguageOption(id: "pt-PT", displayName: "Português (Portugal)"),
+        LanguageOption(id: "ru", displayName: "Русский"),
+        LanguageOption(id: "pl", displayName: "Polski"),
+        LanguageOption(id: "nl", displayName: "Nederlands"),
+        LanguageOption(id: "sv", displayName: "Svenska"),
+        LanguageOption(id: "tr", displayName: "Türkçe"),
+        LanguageOption(id: "ar", displayName: "العربية"),
+        LanguageOption(id: "th", displayName: "ไทย"),
+        LanguageOption(id: "vi", displayName: "Tiếng Việt"),
+        LanguageOption(id: "id", displayName: "Bahasa Indonesia"),
+        LanguageOption(id: "hi", displayName: "हिन्दी"),
+        LanguageOption(id: "uk", displayName: "Українська"),
+        LanguageOption(id: "cs", displayName: "Čeština"),
+        LanguageOption(id: "da", displayName: "Dansk"),
+        LanguageOption(id: "fi", displayName: "Suomi"),
+        LanguageOption(id: "nb", displayName: "Norsk Bokmål"),
+        LanguageOption(id: "el", displayName: "Ελληνικά"),
+        LanguageOption(id: "he", displayName: "עברית"),
+        LanguageOption(id: "ro", displayName: "Română"),
+        LanguageOption(id: "hu", displayName: "Magyar"),
+    ]
 
     private var loginBinding: Binding<Bool> {
         Binding(
