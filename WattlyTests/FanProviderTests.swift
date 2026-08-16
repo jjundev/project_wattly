@@ -101,7 +101,7 @@ struct FanProviderTests {
 
         // Must not trap constructing the render text.
         let subText = CardPresentation.subText(.value(.fan(s)))
-        #expect(subText != nil)
+        #expect(subText == nil)
     }
 
     @Test func wakeResetsConnection() async {

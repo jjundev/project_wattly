@@ -28,8 +28,8 @@ enum PowerMode: String, CaseIterable, Identifiable, Sendable {
 
     var label: String {
         switch self {
-        case .eco: "절전"
-        case .performance: "항상 최신"
+        case .eco: "스마트(권장)"
+        case .performance: "고성능"
         }
     }
 }
@@ -43,8 +43,8 @@ enum BackgroundRefreshPreset: String, CaseIterable, Identifiable, Sendable {
 
     var label: String {
         switch self {
-        case .eco: "절전"
-        case .performance: "항상 최신"
+        case .eco: "스마트(권장)"
+        case .performance: "고성능"
         case .custom: "사용자 지정"
         }
     }
@@ -215,11 +215,31 @@ struct CardOrder: Equatable, Sendable, RawRepresentable {
         let parts = rawValue.split(separator: ",").map(String.init)
         let parsed = parts.compactMap { CardKind(rawValue: $0) }
         guard parsed.count == parts.count, !parsed.isEmpty else { return nil }
-        // Migration: append any card kinds added after this order was persisted (e.g. the fan
-        // card), so upgraders see new cards at the end instead of never (visibility is still
-        // governed by the per-card show flags). Preserves the user's existing relative order.
+
+        var arr = parsed
         let missing = CardKind.allCases.filter { !parsed.contains($0) }
-        self.init(parsed + missing)
+
+        // When migrating newly added cards:
+        // .gpu belongs immediately after .cpu, others (e.g. .fan) go at the end.
+        for card in missing {
+            if card == .gpu, let cpuIdx = arr.firstIndex(of: .cpu) {
+                arr.insert(.gpu, at: cpuIdx + 1)
+            } else {
+                arr.append(card)
+            }
+        }
+
+        // Legacy fix: If .gpu was appended at the very end by an older migration
+        // while .cpu precedes .mem, reposition .gpu directly after .cpu.
+        if arr.last == .gpu,
+           let cpuIdx = arr.firstIndex(of: .cpu),
+           let memIdx = arr.firstIndex(of: .mem),
+           cpuIdx < memIdx {
+            arr.removeLast()
+            arr.insert(.gpu, at: cpuIdx + 1)
+        }
+
+        self.init(arr)
     }
 
     var rawValue: String { cards.map(\.rawValue).joined(separator: ",") }

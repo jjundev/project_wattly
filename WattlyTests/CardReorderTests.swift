@@ -90,14 +90,22 @@ struct CardReorderTests {
     }
 
     @Test func cardOrderAppendsNewlyAddedCards() {
-        // A persisted order from before the fan card shipped (7 cards, no ".fan").
+        // A persisted order from before the fan card shipped (7 cards, no ".fan", no ".gpu").
         let legacy = "power,battery,cpu,mem,cpuTemp,gpuTemp,batTemp"
         let order = CardOrder(rawValue: legacy)
         #expect(order != nil)
         #expect(order?.cards.contains(.fan) == true)               // migrated in
         #expect(order?.cards.contains(.gpu) == true)               // migrated in
         #expect(Set(order?.cards ?? []) == Set(CardKind.allCases))  // every card present
-        #expect(order?.cards.prefix(7).map(\.rawValue) == legacy.split(separator: ",").map(String.init))  // user order preserved, new card appended
+        // .gpu is inserted directly after .cpu, .fan is appended at the end
+        #expect(order?.cards == [.power, .battery, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
     }
 
+    @Test func cardOrderNormalizesLegacyTrailingGpuAfterCpu() {
+        // A legacy order where GPU was placed after memory or at the end
+        let legacyTrailingGpu = "power,battery,cpu,mem,cpuTemp,gpuTemp,batTemp,fan,gpu"
+        let order = CardOrder(rawValue: legacyTrailingGpu)
+        #expect(order != nil)
+        #expect(order?.cards == [.power, .battery, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
+    }
 }

@@ -83,10 +83,6 @@ struct SettingsView: View {
     // Theme / poll / smoothing / menubar text.
     @AppStorage(StorageKey.theme) private var theme = Defaults.theme
     @AppStorage(StorageKey.panelMode) private var panelMode = Defaults.panelMode
-    // Mode C: the hero metric + the card order, so the hero picker can resolve the same visible
-    // set the popover shows (plan 20). Shared keys → the picker and the popover row-tap sync free.
-    @AppStorage(StorageKey.heroMetric) private var heroMetric = Defaults.heroMetric
-    @AppStorage(StorageKey.cardOrder) private var cardOrder = Defaults.cardOrder
     @AppStorage(StorageKey.pollInterval) private var pollInterval = Defaults.pollInterval
     @AppStorage(StorageKey.powerMode) private var powerMode = Defaults.powerMode
     @AppStorage(StorageKey.powerSmoothed) private var powerSmoothed = Defaults.powerSmoothed
@@ -261,10 +257,7 @@ struct SettingsView: View {
 
     // MARK: 레이아웃 (issue 19 + plan 20)
 
-    /// Popover layout picker (A·B·C). When mode C is selected, a hero-metric sub-picker appears
-    /// beneath the segment — a single-select grid over the visible cards, writing the same
-    /// `heroMetric` key the popover row-tap does (plan 20). The window is a `ScrollView`, so the
-    /// extra section scrolls rather than overflowing.
+    /// Popover layout picker (A·B·C).
     private var layoutSection: some View {
         SettingsSection(title: "레이아웃") {
             SettingsCard(padding: Tokens.cardPadding) {
@@ -276,7 +269,6 @@ struct SettingsView: View {
                         .font(WattlyFont.at(11.5, weight: .regular))
                         .foregroundStyle(t.faint)
                         .fixedSize(horizontal: false, vertical: true)
-                    if panelMode == .c { heroPicker }
                 }
             }
         }
@@ -285,54 +277,11 @@ struct SettingsView: View {
     private var layoutDescription: String {
         switch panelMode {
         case .a:
-            "모든 지표를 카드 형태로 세로 배치합니다. 세부 정보 펼침과 순서 변경을 지원합니다."
+            "모든 지표를 카드로 세로 배치하며 세부 펼침과 순서 변경을 지원합니다."
         case .b:
             "2열 그리드로 지표를 콤팩트하게 배치하여 한눈에 확인하기 좋습니다."
         case .c:
             "주요 지표 하나를 상단에 강조하고 나머지는 목록으로 표시합니다."
-        }
-    }
-
-    /// Mode-C hero-metric picker: single-select over the visible cards. Highlights the RESOLVED
-    /// hero (`resolveHero`), so a hidden persisted pick shows the live fallback — matching the
-    /// popover — and a tap writes the raw `heroMetric`.
-    private var heroPicker: some View {
-        let visible = visibleCards
-        let resolved = CardPresentation.resolveHero(persisted: heroMetric, visible: visible)
-        let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 2)
-        return VStack(alignment: .leading, spacing: 8) {
-            Text("히어로 지표")
-                .font(WattlyFont.at(11.5, weight: .regular))
-                .foregroundStyle(t.faint)
-            LazyVGrid(columns: columns, spacing: 4) {
-                ForEach(visible) { card in
-                    WattlyChip(label: CardPresentation.label(card), isOn: resolved == card) {
-                        heroMetric = card
-                    }
-                }
-            }
-            .padding(3)
-            .background(RoundedRectangle(cornerRadius: 8).fill(t.segTrack))
-        }
-    }
-
-    /// The cards the popover would show, computed through the shared `CardOrder.visible` so the
-    /// picker can't drift from the live panel (desktop battery/batTemp drop out via `isPresent`).
-    private var visibleCards: [CardKind] {
-        cardOrder.visible(present: { monitor.isPresent($0) }, shown: { isShown($0) })
-    }
-
-    private func isShown(_ card: CardKind) -> Bool {
-        switch card {
-        case .power: showPower
-        case .battery: showBattery
-        case .cpu: showCPU
-        case .gpu: showGPU
-        case .mem: showMem
-        case .cpuTemp: showCpuTemp
-        case .gpuTemp: showGpuTemp
-        case .batTemp: showBatTemp
-        case .fan: showFan
         }
     }
 
@@ -874,18 +823,23 @@ struct SettingsView: View {
     }
 
     private var menuChipGrid: some View {
-        let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 3)
-        return VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 8) {
             // 주요 지표 (Primary)
-            LazyVGrid(columns: columns, spacing: 4) {
-                menuMetricChip(.cpu, label: "CPU (%)", isOn: menuCPU) { menuCPU.toggle() }
-                menuMetricChip(.gpu, label: "GPU (%)", isOn: menuGPU) { menuGPU.toggle() }
-                menuMetricChip(.power, label: "전력 (W)", isOn: menuPower) { menuPower.toggle() }
-                menuMetricChip(.battery, label: "배터리 (W)", isOn: menuBattery) { menuBattery.toggle() }
-                menuMetricChip(.mem, label: "메모리 (GB)", isOn: menuMem) { menuMem.toggle() }
-                menuMetricChip(.cpuTemp, label: "CPU 온도 (°C)", isOn: menuCpuTemp) { menuCpuTemp.toggle() }
-                menuMetricChip(.gpuTemp, label: "GPU 온도 (°C)", isOn: menuGpuTemp) { menuGpuTemp.toggle() }
-                menuMetricChip(.fan, label: "팬 (RPM)", isOn: menuFan) { menuFan.toggle() }
+            Grid(horizontalSpacing: 4, verticalSpacing: 4) {
+                GridRow {
+                    menuMetricChip(.cpu, label: "CPU (%)", isOn: menuCPU) { menuCPU.toggle() }
+                    menuMetricChip(.gpu, label: "GPU (%)", isOn: menuGPU) { menuGPU.toggle() }
+                    menuMetricChip(.power, label: "전력 (W)", isOn: menuPower) { menuPower.toggle() }
+                }
+                GridRow {
+                    menuMetricChip(.battery, label: "배터리 (W)", isOn: menuBattery) { menuBattery.toggle() }
+                    menuMetricChip(.mem, label: "메모리 (GB)", isOn: menuMem) { menuMem.toggle() }
+                    menuMetricChip(.cpuTemp, label: "CPU 온도 (°C)", isOn: menuCpuTemp) { menuCpuTemp.toggle() }
+                }
+                GridRow {
+                    menuMetricChip(.gpuTemp, label: "GPU 온도 (°C)", isOn: menuGpuTemp) { menuGpuTemp.toggle() }
+                    menuMetricChip(.fan, label: "팬 (RPM)", isOn: menuFan) { menuFan.toggle() }
+                }
             }
             .padding(3)
             .background(RoundedRectangle(cornerRadius: 8).fill(t.segTrack))
@@ -909,12 +863,16 @@ struct SettingsView: View {
 
             // 세부 지표 (Advanced)
             if isAdvancedMenuMetricsExpanded {
-                LazyVGrid(columns: columns, spacing: 4) {
-                    menuClockChip(label: "S 코어 클럭 (GHz)", isOn: menuSClock) { menuSClock.toggle() }
-                    menuClockChip(label: "P 코어 클럭 (GHz)", isOn: menuPClock) { menuPClock.toggle() }
-                    menuClockChip(label: "E 코어 클럭 (GHz)", isOn: menuEClock) { menuEClock.toggle() }
-                    menuMetricChip(.mem, label: "메모리 압력 (%)", isOn: menuMemPressure) { menuMemPressure.toggle() }
-                    menuMetricChip(.batTemp, label: "배터리 온도 (°C)", isOn: menuBatTemp) { menuBatTemp.toggle() }
+                Grid(horizontalSpacing: 4, verticalSpacing: 4) {
+                    GridRow {
+                        menuClockChip(label: "S 코어 클럭 (GHz)", isOn: menuSClock) { menuSClock.toggle() }
+                        menuClockChip(label: "P 코어 클럭 (GHz)", isOn: menuPClock) { menuPClock.toggle() }
+                        menuClockChip(label: "E 코어 클럭 (GHz)", isOn: menuEClock) { menuEClock.toggle() }
+                    }
+                    GridRow {
+                        menuMetricChip(.mem, label: "메모리 압력 (%)", isOn: menuMemPressure) { menuMemPressure.toggle() }
+                        menuMetricChip(.batTemp, label: "배터리 온도 (°C)", isOn: menuBatTemp) { menuBatTemp.toggle() }
+                    }
                 }
                 .padding(3)
                 .background(RoundedRectangle(cornerRadius: 8).fill(t.segTrack))
