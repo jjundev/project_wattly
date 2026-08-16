@@ -17,14 +17,38 @@ enum MenuBarText {
     /// list — they're appended as pre-formatted "extra parts" by the caller (`MenuBarLabel`).
     static let order: [CardKind] = [.cpu, .gpu, .power, .battery, .mem, .cpuTemp, .gpuTemp, .fan]
 
+    /// The joined menubar string for the specified items in their given order, or `nil`
+    /// when `items` is empty. Missing states fall back to `.loading` (cold placeholders).
+    static func assemble(items: [MenuBarItem], states: [CardKind: MetricState]) -> String? {
+        guard !items.isEmpty else { return nil }
+        let parts = items.map { formatItem($0, states: states) }
+        return parts.joined(separator: "  ·  ")
+    }
+
+    /// Formats a single `MenuBarItem` using the appropriate card state from `states`.
+    static func formatItem(_ item: MenuBarItem, states: [CardKind: MetricState]) -> String {
+        let state = states[item.requiredCard] ?? .loading
+        switch item {
+        case .card(let kind):
+            return part(kind, state)
+        case .coreClock(let prefix):
+            return coreClockPart(prefix, state)
+        case .memPressure:
+            return memPressurePart(state)
+        case .batteryTemp:
+            return batteryTempPart(state)
+        }
+    }
+
     /// The joined menubar string for the selected metrics in canonical order, or `nil`
     /// when none is selected (→ icon only, the prototype's `hasMenuMetric`). Parts join
     /// with the prototype's two-space middle-dot. A selected card missing from `states`
     /// is treated as `.loading` (→ its cold placeholder), so the result is always total.
     static func assemble(selected: Set<CardKind>, states: [CardKind: MetricState]) -> String? {
-        let parts = order.filter(selected.contains).map { part($0, states[$0] ?? .loading) }
-        return parts.isEmpty ? nil : parts.joined(separator: "  ·  ")
+        let items = order.filter(selected.contains).map { MenuBarItem.card($0) }
+        return assemble(items: items, states: states)
     }
+
 
     /// One metric's compact part. A live value formats per metric; loading/unavailable
     /// yields the long-label placeholder "<label> —". **Total** over `MetricState`, so callers

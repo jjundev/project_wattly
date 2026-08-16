@@ -143,3 +143,72 @@ struct MenuBarTextTests {
         #expect(MenuBarText.coreClockPart("P", .loading) == "P 코어 클럭 —")
     }
 }
+
+@Suite struct MenuBarItemTests {
+    @Test func unifiedAssemblyPreservesCanonicalOrder() {
+        let items: [MenuBarItem] = [
+            .card(.cpu),
+            .coreClock(prefix: "P"),
+            .card(.mem),
+            .memPressure,
+            .card(.battery),
+            .batteryTemp
+        ]
+        let cpuSample = CPUSample(overall: 45.0, perfLevels: [
+            PerfLevelUsage(name: "Performance", usage: 50.0, activeGHz: 3.45)
+        ])
+        let memSample = MemorySample(usedGB: 12.5, totalGB: 32.0, wiredGB: 4.0, compressedGB: 2.0, pressurePercent: 35)
+        let batterySample = BatterySample(netW: -15.2, milliamps: 1200, volts: 12.6, charging: true, externalConnected: true, temperatureCelsius: 29.5)
+        
+        let states: [CardKind: MetricState] = [
+            .cpu: .value(.cpu(cpuSample)),
+            .mem: .value(.memory(memSample)),
+            .battery: .value(.battery(batterySample))
+        ]
+        
+        let assembled = MenuBarText.assemble(items: items, states: states)
+        #expect(assembled == "CPU 45%  ·  P 3.45 GHz  ·  12.5 GB  ·  압력 35%  ·  +15.2 W  ·  배터리 30°C")
+    }
+
+    @Test func formatItemBranches() {
+        let cpuSample = CPUSample(overall: 50.0, perfLevels: [
+            PerfLevelUsage(name: "Super", usage: 60.0, activeGHz: 4.10)
+        ])
+        let memSample = MemorySample(usedGB: 16.0, totalGB: 32.0, wiredGB: 4.0, compressedGB: 2.0, pressurePercent: 20)
+        let batterySample = BatterySample(netW: 10.0, milliamps: 1000, volts: 12.0, charging: false, externalConnected: false, temperatureCelsius: 28.0)
+        let states: [CardKind: MetricState] = [
+            .cpu: .value(.cpu(cpuSample)),
+            .mem: .value(.memory(memSample)),
+            .battery: .value(.battery(batterySample))
+        ]
+
+        #expect(MenuBarText.formatItem(.card(.cpu), states: states) == "CPU 50%")
+        #expect(MenuBarText.formatItem(.coreClock(prefix: "S"), states: states) == "S 4.10 GHz")
+        #expect(MenuBarText.formatItem(.memPressure, states: states) == "압력 20%")
+        #expect(MenuBarText.formatItem(.batteryTemp, states: states) == "배터리 28°C")
+
+        // Missing state falls back to loading/cold
+        #expect(MenuBarText.formatItem(.card(.gpu), states: [:]) == "GPU —")
+        #expect(MenuBarText.formatItem(.coreClock(prefix: "P"), states: [:]) == "P 코어 클럭 —")
+        #expect(MenuBarText.formatItem(.memPressure, states: [:]) == "압력 —")
+        #expect(MenuBarText.formatItem(.batteryTemp, states: [:]) == "배터리 온도 —")
+    }
+
+    @Test func menuBarItemProperties() {
+        #expect(MenuBarItem.card(.cpu).id == "card.cpu")
+        #expect(MenuBarItem.coreClock(prefix: "P").id == "clock.P")
+        #expect(MenuBarItem.memPressure.id == "memPressure")
+        #expect(MenuBarItem.batteryTemp.id == "batteryTemp")
+
+        #expect(MenuBarItem.card(.gpu).requiredCard == .gpu)
+        #expect(MenuBarItem.coreClock(prefix: "S").requiredCard == .cpu)
+        #expect(MenuBarItem.memPressure.requiredCard == .mem)
+        #expect(MenuBarItem.batteryTemp.requiredCard == .battery)
+    }
+
+    @Test func assembleItemsEmptyIsNil() {
+        #expect(MenuBarText.assemble(items: [], states: [:]) == nil)
+    }
+}
+
+
