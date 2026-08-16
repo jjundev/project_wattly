@@ -289,7 +289,7 @@ enum Defaults {
     static let loginItem = true            // F1: a MIRROR of SMAppService — NOT authoritative
     static let menubarTextEnabled = true   // default menubar metric = CPU only
     static let kineticNotchMotionEnabled = true
-    static let kineticNotchSource = KineticNotchSource.cpu
+    static let kineticNotchSource = KineticNotchSource.power
     static let kineticNotchSpeed = KineticNotchSpeed.standard
     static let menubarIconStyle = MenuBarIconStyle.turbine
     static let powerSmoothed = true        // 프로세서 전력 + 배터리 카드: EMA-smoothed display (raw spikes mislead)
