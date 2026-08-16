@@ -64,7 +64,7 @@ enum Accessibility {
         switch card {
         case .power: return "\(v) W"
         case .battery: return batteryPhrase(state) ?? "\(v) W"
-        case .cpu: return "\(v)%"
+        case .cpu, .gpu: return "\(v)%"
         case .mem: return "\(v) GB"
         case .cpuTemp, .gpuTemp, .batTemp: return "\(v)°C"
         case .fan: return "\(v) RPM"

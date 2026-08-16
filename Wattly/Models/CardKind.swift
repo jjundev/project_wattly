@@ -3,7 +3,7 @@ import Foundation
 /// The seven cards the popover can show, in the prototype's default order
 /// (`cardOrder`, prototype line 413).
 enum CardKind: String, CaseIterable, Codable, Sendable, Identifiable, Hashable {
-    case power, battery, cpu, mem, cpuTemp, gpuTemp, batTemp, fan
+    case power, battery, cpu, gpu, mem, cpuTemp, gpuTemp, batTemp, fan
 
     var id: String { rawValue }
 
@@ -14,6 +14,7 @@ enum CardKind: String, CaseIterable, Codable, Sendable, Identifiable, Hashable {
         case .power: .power
         case .battery: .battery
         case .cpu: .cpu
+        case .gpu: .gpu
         case .mem: .memory
         case .cpuTemp, .gpuTemp, .batTemp: .temperature
         case .fan: .fan
@@ -29,7 +30,7 @@ enum CardKind: String, CaseIterable, Codable, Sendable, Identifiable, Hashable {
     /// voltage/current, CPU per-core, memory Top-3, CPU/GPU-temp clusters, fan
     /// actual/target). Drives both the chevron and whether a tap toggles.
     var isExpandable: Bool {
-        self == .power || self == .battery || self == .cpu || self == .mem || self == .cpuTemp || self == .gpuTemp || self == .fan
+        self == .power || self == .battery || self == .cpu || self == .gpu || self == .mem || self == .cpuTemp || self == .gpuTemp || self == .fan
     }
 
     /// The battery card draws a polyline only; every other card fills the sparkline
@@ -49,5 +50,5 @@ enum CardKind: String, CaseIterable, Codable, Sendable, Identifiable, Hashable {
 /// The five providers that cross the actor boundary (PRD line 73). Distinct from
 /// `CardKind` because the temperature provider yields three cards.
 enum ProviderKind: String, CaseIterable, Sendable, Hashable {
-    case cpu, memory, power, battery, temperature, fan
+    case cpu, gpu, memory, power, battery, temperature, fan
 }

@@ -146,6 +146,17 @@ actor FakeProvider: MetricProvider {
             return .fan(FanSample(fans: [
                 FanReading(index: 0, actualRPM: v("fan"), minRPM: 1200, maxRPM: 6000, targetRPM: base),
             ]))
+        case .gpu:
+            let g = v("gpu")
+            return .gpu(makeGPUSample(
+                overall: g,
+                rendererUsage: g * 0.9,
+                tilerUsage: g * 0.35,
+                inUseMemoryBytes: 858 * 1024 * 1024,
+                allocMemoryBytes: 2048 * 1024 * 1024,
+                coreCount: 10,
+                activeGHz: 1.28
+            ))
         }
     }
 
@@ -161,6 +172,8 @@ actor FakeProvider: MetricProvider {
         case .cpu:
             return ["cpu": desktop ? Base(b: 28, step: 9, min: 5, max: 99)
                                    : Base(b: 42, step: 10, min: 6, max: 99)]
+        case .gpu:
+            return ["gpu": desktop ? Base(b: 24, step: 8, min: 2, max: 98) : Base(b: 36, step: 9, min: 4, max: 98)]
         case .memory:
             return ["mem": desktop ? Base(b: 22.4, step: 0.8, min: 14, max: 60)
                                    : Base(b: 9.2, step: 0.5, min: 6, max: 15.6)]
@@ -196,6 +209,7 @@ enum FakeProviders {
         ProviderKind.allCases.map { kind -> any MetricProvider in
             switch kind {
             case .cpu:    return CPUProvider()
+            case .gpu:    return GPUProvider()
             case .memory: return MemoryProvider()
             case .power where scenario != .fail: return PowerProvider()
             case .battery where scenario != .desktop: return BatteryProvider()

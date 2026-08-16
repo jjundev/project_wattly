@@ -52,6 +52,12 @@ struct AccessibilityTests {
         #expect(Accessibility.cardLabel(.cpu, cpu(42.4)) == "CPU, 42%, P 30% · E 12%")
     }
 
+    @Test func gpuUsesPercentSymbolAndClock() {
+        let sample = GPUSample(overall: 38.4, coreCount: 10, activeGHz: 1.28)
+        let state = MetricState.value(.gpu(sample))
+        #expect(Accessibility.cardLabel(.gpu, state) == "GPU, 38%, 1.28 GHz")
+    }
+
     @Test func powerFoldsCpuGpuNpuBreakdown() {
         // The CPU/GPU/NPU split exists ONLY in subText — it must survive into the label.
         #expect(Accessibility.cardLabel(.power, power(8.42))
@@ -98,6 +104,28 @@ struct AccessibilityTests {
         #expect(Accessibility.stateWord(.cpu, cpu(95), th) == "위험")
         #expect(Accessibility.stateWord(.cpu, cpu(75), th) == "주의")
         #expect(Accessibility.stateWord(.cpu, cpu(40), th) == nil)
+    }
+
+    @Test func gpuStateWordCritWarnNormal() {
+        let sampleCrit = GPUSample(overall: 98.0, coreCount: 10, activeGHz: 1.28)
+        let sampleWarn = GPUSample(overall: 88.0, coreCount: 10, activeGHz: 1.28)
+        let sampleNormal = GPUSample(overall: 50.0, coreCount: 10, activeGHz: 1.28)
+
+        // Disabled by default -> no warning state word
+        let thDefault = Defaults.thresholds
+        #expect(Accessibility.stateWord(.gpu, .value(.gpu(sampleCrit)), thDefault) == nil)
+        #expect(Accessibility.stateWord(.gpu, .value(.gpu(sampleWarn)), thDefault) == nil)
+        #expect(Accessibility.stateWord(.gpu, .value(.gpu(sampleNormal)), thDefault) == nil)
+
+        // Enabled -> returns "위험" / "주의" / nil
+        let thEnabled = Thresholds(
+            cpu: ThresholdPair(warn: 70, crit: 90),
+            temp: ThresholdPair(warn: 70, crit: 90),
+            gpu: ThresholdPair(warn: 85, crit: 95)
+        )
+        #expect(Accessibility.stateWord(.gpu, .value(.gpu(sampleCrit)), thEnabled) == "위험")
+        #expect(Accessibility.stateWord(.gpu, .value(.gpu(sampleWarn)), thEnabled) == "주의")
+        #expect(Accessibility.stateWord(.gpu, .value(.gpu(sampleNormal)), thEnabled) == nil)
     }
 
     @Test func powerCardHasNoStateWord() {

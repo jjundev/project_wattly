@@ -23,6 +23,8 @@ struct CardExpandRegion: View {
             batteryExpand(s)
         } else if card == .cpu, case .value(.cpu(let s)) = state {
             cpuExpand(s)
+        } else if card == .gpu, case .value(.gpu(let s)) = state {
+            gpuExpand(s)
         } else if card == .mem, case .value(.memory(let s)) = state {
             memExpand(s)
         } else if card == .cpuTemp, case .value(.temperature(let s)) = state, case .reading(let r) = s.cpu {
@@ -63,6 +65,86 @@ struct CardExpandRegion: View {
             }
         }
         .padding(.top, 8)
+    }
+
+    // MARK: GPU expand — Renderer, Tiler, and VRAM pipeline bars
+
+    private func gpuExpand(_ s: GPUSample) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text("\(s.coreCount)-Core GPU")
+                    .font(WattlyFont.at(11, weight: .bold))
+                    .foregroundStyle(t.sub)
+                Spacer(minLength: 8)
+                if let ghz = s.activeGHz {
+                    Text(CardPresentation.ghzText(ghz))
+                        .font(WattlyFont.at(11, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(t.faint)
+                }
+                Text("\(Int(s.overall.rounded()))%")
+                    .font(WattlyFont.at(12, weight: .bold))
+                    .monospacedDigit()
+                    .foregroundStyle(t.sub)
+            }
+            
+            gpuEngineRow(label: "렌더러", usage: s.rendererUsage)
+            gpuEngineRow(label: "타일러", usage: s.tilerUsage)
+            gpuMemoryRow(label: "VRAM", inUse: s.inUseMemoryBytes, alloc: s.allocMemoryBytes)
+        }
+        .padding(.top, 8)
+    }
+
+    private func gpuEngineRow(label: String, usage: Double) -> some View {
+        HStack(spacing: 9) {
+            Text(label)
+                .font(WattlyFont.at(10.5, weight: .semibold))
+                .foregroundStyle(t.faint)
+                .frame(width: 44, alignment: .leading)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3).fill(t.sparkFill)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(t.faint)
+                        .frame(width: geo.size.width * min(100, max(0, usage)) / 100)
+                }
+            }
+            .frame(height: 6)
+            Text("\(Int(usage.rounded()))%")
+                .font(WattlyFont.at(10.5, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(t.sub)
+                .frame(width: 32, alignment: .trailing)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(label), \(Int(usage.rounded())) 퍼센트")
+    }
+
+    private func gpuMemoryRow(label: String, inUse: UInt64, alloc: UInt64) -> some View {
+        let frac = CardPresentation.gpuMemoryFraction(inUse: inUse, alloc: alloc)
+        let text = CardPresentation.mbText(inUse)
+        return HStack(spacing: 9) {
+            Text(label)
+                .font(WattlyFont.at(10.5, weight: .semibold))
+                .foregroundStyle(t.faint)
+                .frame(width: 44, alignment: .leading)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3).fill(t.sparkFill)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(t.faint)
+                        .frame(width: geo.size.width * frac)
+                }
+            }
+            .frame(height: 6)
+            Text(text)
+                .font(WattlyFont.at(10.5, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(t.sub)
+                .frame(width: 58, alignment: .trailing)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(label), \(text)")
     }
 
     private func coreRow(label: String, usage: Double, accent: Bool) -> some View {

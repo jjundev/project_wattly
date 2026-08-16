@@ -535,6 +535,7 @@ final class SystemMonitor {
         case (.power, .power(let s)): return s.totalW
         case (.battery, .battery(let s)): return s.netW
         case (.cpu, .cpu(let s)): return s.overall
+        case (.gpu, .gpu(let s)): return s.overall
         case (.mem, .memory(let s)): return s.usedGB
         case (.cpuTemp, .temperature(let s)): return s.cpu.celsius
         case (.gpuTemp, .temperature(let s)): return s.gpu.celsius

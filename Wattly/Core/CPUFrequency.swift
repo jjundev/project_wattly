@@ -16,7 +16,8 @@ enum CPUFrequency {
         data.withUnsafeBytes { raw in
             for i in 0..<n {
                 let f = raw.loadUnaligned(fromByteOffset: i * 8, as: UInt32.self)
-                out.append(Double(f) / 1_000_000.0)
+                let ghz = f >= 100_000_000 ? Double(f) / 1_000_000_000.0 : Double(f) / 1_000_000.0
+                out.append(ghz)
             }
         }
         return out

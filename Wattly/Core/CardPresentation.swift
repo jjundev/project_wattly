@@ -76,7 +76,7 @@ enum CardPresentation {
         case .value:
             let v = valueText(card, state)
             let u = unitText(card, state)
-            return card == .cpu ? v + u : "\(v) \(u)"
+            return (card == .cpu || card == .gpu) ? v + u : "\(v) \(u)"
         }
     }
 
@@ -97,6 +97,8 @@ enum CardPresentation {
         switch (card, sample) {
         case (.cpu, .cpu(let s)):
             return thresholds.cpu.level(s.overall)
+        case (.gpu, .gpu(let s)):
+            return thresholds.gpu?.level(s.overall)
         case (.mem, .memory(let sample)):
             return sample.pressure?.thresholdLevel
         case (.cpuTemp, .temperature(let s)): return tempLevel(s.cpu, thresholds.temp)
@@ -119,6 +121,7 @@ enum CardPresentation {
         case .power: "프로세서 전력"
         case .battery: "배터리"
         case .cpu: "CPU"
+        case .gpu: "GPU"
         case .mem: "메모리"
         case .cpuTemp: "CPU 온도"
         case .gpuTemp: "GPU 온도"
@@ -132,7 +135,7 @@ enum CardPresentation {
     static func unitText(_ card: CardKind, _ state: MetricState) -> String {
         switch card {
         case .power, .battery: return "W"
-        case .cpu: return "%"
+        case .cpu, .gpu: return "%"
         case .mem:
             if case .value(.memory(let s)) = state { return "/ \(Int(s.totalGB)) GB" }
             return "GB"
@@ -151,6 +154,7 @@ enum CardPresentation {
             // so the card shows "0.0", never a meaningless "−0.0".
             return batterySign(netW: s.netW, charging: s.charging) + f1(abs(s.netW))
         case (.cpu, .cpu(let s)): return String(Int(s.overall.rounded()))
+        case (.gpu, .gpu(let s)): return String(Int(s.overall.rounded()))
         case (.mem, .memory(let s)): return f1(s.usedGB)
         case (.cpuTemp, .temperature(let s)): return tempText(s.cpu)
         case (.gpuTemp, .temperature(let s)): return tempText(s.gpu)
@@ -173,13 +177,23 @@ enum CardPresentation {
         case .cpu(let s):
             // Order-based (not name-coupled): runtime perf-level names ("Performance"/
             // "Efficiency" → "P"/"E") differ from the prototype's "S". Guard
-            // single-cluster hardware (<2 levels) against an out-of-range read.
-            guard s.perfLevels.count >= 2 else {
-                guard let only = s.perfLevels.first else { return nil }
-                return clusterSubText(only)
+            // <2 levels defensively — a single-cluster chip (or single-cluster test)
+            // drops the second token rather than crashing on [1].
+            guard !s.perfLevels.isEmpty else { return nil }
+            if s.perfLevels.count < 2 {
+                return clusterSubText(s.perfLevels[0])
             }
             let a = s.perfLevels[0], b = s.perfLevels[1]
             return "\(clusterSubText(a)) · \(clusterSubText(b))"
+        case .gpu(let s):
+            var parts: [String] = []
+            if let ghz = s.activeGHz {
+                parts.append(ghzText(ghz))
+            }
+            if s.inUseMemoryBytes > 0 {
+                parts.append(mbText(s.inUseMemoryBytes))
+            }
+            return parts.isEmpty ? nil : parts.joined(separator: " · ")
         case .memory(let s):
             let detail = "고정 \(f1(s.wiredGB)) GB · 압축 \(f1(s.compressedGB)) GB · 스왑 \(f1(s.swapUsedGB)) GB"
             // Lead with the exact RAM-pressure % (Activity Monitor "메모리 압력") when the kernel
@@ -275,7 +289,8 @@ enum CardPresentation {
 
     /// Runtime perf-level name → single-letter label prefix ("Performance" → "P").
     static func corePrefix(_ name: String) -> String {
-        name.first.map { String($0).uppercased() } ?? "C"
+        if name.hasPrefix("G") || name == "Graphics" || name == "GPU" { return "G" }
+        return name.first.map { String($0).uppercased() } ?? "C"
     }
 
     /// One cluster's collapsed sub-line token: "<prefix> [<GHz> ]<usage>%" (plan 21 follow-up
@@ -302,6 +317,21 @@ enum CardPresentation {
     /// Bytes → "X.X GB" for the memory card's process rows.
     static func gbText(_ bytes: UInt64) -> String {
         String(format: "%.1f GB", Double(bytes) / (1024.0 * 1024.0 * 1024.0))
+    }
+
+    /// Format bytes to "X MB" (or "X.X GB" if >= 1 GB).
+    static func mbText(_ bytes: UInt64) -> String {
+        let mb = Double(bytes) / 1_048_576.0
+        if mb >= 1024 {
+            return String(format: "%.1f GB", mb / 1024.0)
+        }
+        return "\(Int(mb.rounded())) MB"
+    }
+
+    /// Calculate fraction of in-use memory against allocated memory, clamped 0...1.
+    static func gpuMemoryFraction(inUse: UInt64, alloc: UInt64) -> Double {
+        guard alloc > 0 else { return 0 }
+        return min(1.0, max(0.0, Double(inUse) / Double(alloc)))
     }
 
     /// Watts → "X.XX W" for the power card's per-app rows (issue 16 follow-up). 2 decimals:

@@ -20,6 +20,7 @@ struct PollPolicyBridge: View {
     @AppStorage(StorageKey.show(.power))   private var showPower   = Defaults.show[.power]   ?? true
     @AppStorage(StorageKey.show(.battery)) private var showBattery = Defaults.show[.battery] ?? true
     @AppStorage(StorageKey.show(.cpu))     private var showCPU     = Defaults.show[.cpu]     ?? true
+    @AppStorage(StorageKey.show(.gpu))     private var showGPU     = Defaults.show[.gpu]     ?? true
     @AppStorage(StorageKey.show(.mem))     private var showMem     = Defaults.show[.mem]     ?? true
     @AppStorage(StorageKey.show(.cpuTemp)) private var showCpuTemp = Defaults.show[.cpuTemp] ?? true
     @AppStorage(StorageKey.show(.gpuTemp)) private var showGpuTemp = Defaults.show[.gpuTemp] ?? true
@@ -29,6 +30,7 @@ struct PollPolicyBridge: View {
     // The menubar metric chips (issue 14). Pushed alongside `shownCards` so a metric shown
     // ONLY in the menubar keeps its provider polled even while its card is hidden.
     @AppStorage(StorageKey.menu(.cpu))     private var menuCPU     = Defaults.menuMetrics[.cpu]     ?? false
+    @AppStorage(StorageKey.menu(.gpu))     private var menuGPU     = Defaults.menuMetrics[.gpu]     ?? false
     @AppStorage(StorageKey.menuCoreClock("S")) private var menuSClock = Defaults.menuCoreClockEnabled["S"] ?? false
     @AppStorage(StorageKey.menuCoreClock("P")) private var menuPClock = Defaults.menuCoreClockEnabled["P"] ?? false
     @AppStorage(StorageKey.menuCoreClock("E")) private var menuEClock = Defaults.menuCoreClockEnabled["E"] ?? false
@@ -47,6 +49,7 @@ struct PollPolicyBridge: View {
         if showPower   { s.insert(.power) }
         if showBattery { s.insert(.battery) }
         if showCPU     { s.insert(.cpu) }
+        if showGPU     { s.insert(.gpu) }
         if showMem     { s.insert(.mem) }
         if showCpuTemp { s.insert(.cpuTemp) }
         if showGpuTemp { s.insert(.gpuTemp) }
@@ -62,6 +65,7 @@ struct PollPolicyBridge: View {
     private var menubarMetrics: Set<CardKind> {
         var s = Set<CardKind>()
         if menuCPU        { s.insert(.cpu) }
+        if menuGPU        { s.insert(.gpu) }
         if menuSClock     { s.insert(.cpu) }
         if menuPClock     { s.insert(.cpu) }
         if menuEClock     { s.insert(.cpu) }

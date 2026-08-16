@@ -15,7 +15,7 @@ enum MenuBarText {
     /// after `.power` (menubar items update — matches `Defaults.cardOrder`'s power/battery
     /// grouping). Memory-pressure % and self-power have no `CardKind` and are NOT in this
     /// list — they're appended as pre-formatted "extra parts" by the caller (`MenuBarLabel`).
-    static let order: [CardKind] = [.cpu, .power, .battery, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan]
+    static let order: [CardKind] = [.cpu, .gpu, .power, .battery, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan]
 
     /// The joined menubar string for the selected metrics in canonical order, or `nil`
     /// when none is selected (→ icon only, the prototype's `hasMenuMetric`). Parts join
@@ -34,6 +34,7 @@ enum MenuBarText {
         guard case .value(let sample) = state else { return "\(longLabel(card)) —" }
         switch (card, sample) {
         case (.cpu, .cpu(let s)):             return "CPU \(Int(s.overall.rounded()))%"
+        case (.gpu, .gpu(let s)):             return "GPU \(Int(s.overall.rounded()))%"
         case (.power, .power(let s)):         return "\(CardPresentation.f1(s.totalW)) W"
         case (.battery, .battery(let s)):
             return "\(CardPresentation.batterySign(netW: s.netW, charging: s.charging))\(CardPresentation.f1(abs(s.netW))) W"
@@ -53,6 +54,7 @@ enum MenuBarText {
     private static func longLabel(_ card: CardKind) -> String {
         switch card {
         case .cpu: "CPU"
+        case .gpu: "GPU"
         case .power: "전력"
         case .mem: "메모리"
         case .cpuTemp: "CPU 온도"

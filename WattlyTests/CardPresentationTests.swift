@@ -13,6 +13,93 @@ struct CardPresentationTests {
 
     // MARK: Battery sign rule (#17) — one home, shared by value + sub-line
 
+    @Test func gpuCardKindProperties() {
+        let card = CardKind.gpu
+        #expect(card.id == "gpu")
+        #expect(card.provider == .gpu)
+        #expect(card.isExpandable)
+        #expect(card.hasSparkArea)
+        #expect(!card.isAccented)
+        #expect(!card.isSmoothable)
+    }
+
+    @Test func gpuSampleEquality() {
+        let s1 = GPUSample(overall: 45.2, coreCount: 10, activeGHz: 1.28, rendererUsage: 45.0, tilerUsage: 20.0, inUseMemoryBytes: 100, allocMemoryBytes: 200)
+        let s2 = GPUSample(overall: 45.2, coreCount: 10, activeGHz: 1.28, rendererUsage: 45.0, tilerUsage: 20.0, inUseMemoryBytes: 100, allocMemoryBytes: 200)
+        let s3 = GPUSample(overall: 50.0, coreCount: 10, activeGHz: 1.35, rendererUsage: 50.0, tilerUsage: 25.0, inUseMemoryBytes: 100, allocMemoryBytes: 200)
+        #expect(s1 == s2)
+        #expect(s1 != s3)
+        let sample = MetricSample.gpu(s1)
+        if case .gpu(let s) = sample {
+            #expect(s.overall == 45.2)
+            #expect(s.coreCount == 10)
+            #expect(s.activeGHz == 1.28)
+            #expect(s.rendererUsage == 45.0)
+            #expect(s.tilerUsage == 20.0)
+            #expect(s.inUseMemoryBytes == 100)
+            #expect(s.allocMemoryBytes == 200)
+        } else {
+            Issue.record("Expected .gpu sample")
+        }
+    }
+
+    @Test func gpuCardPresentation() {
+        let sampleWithBoth = GPUSample(overall: 38.4, coreCount: 10, activeGHz: 1.28, inUseMemoryBytes: 858 * 1024 * 1024)
+        let stateWithBoth = MetricState.value(.gpu(sampleWithBoth))
+        #expect(CardPresentation.label(.gpu) == "GPU")
+        #expect(CardPresentation.unitText(.gpu, stateWithBoth) == "%")
+        #expect(CardPresentation.valueText(.gpu, stateWithBoth) == "38")
+        #expect(CardPresentation.compactRowText(.gpu, stateWithBoth) == "38%")
+        #expect(CardPresentation.subText(stateWithBoth) == "1.28 GHz · 858 MB")
+
+        let sampleClockOnly = GPUSample(overall: 38.4, coreCount: 10, activeGHz: 1.28, inUseMemoryBytes: 0)
+        #expect(CardPresentation.subText(.value(.gpu(sampleClockOnly))) == "1.28 GHz")
+
+        let sampleMemOnly = GPUSample(overall: 38.4, coreCount: 10, activeGHz: nil, inUseMemoryBytes: 858 * 1024 * 1024)
+        #expect(CardPresentation.subText(.value(.gpu(sampleMemOnly))) == "858 MB")
+
+        let sampleNone = GPUSample(overall: 38.4, coreCount: 10, activeGHz: nil, inUseMemoryBytes: 0)
+        #expect(CardPresentation.subText(.value(.gpu(sampleNone))) == nil)
+    }
+
+    @Test func gpuMemoryFormatting() {
+        #expect(CardPresentation.mbText(0) == "0 MB")
+        #expect(CardPresentation.mbText(858 * 1024 * 1024) == "858 MB")
+        #expect(CardPresentation.mbText(2048 * 1024 * 1024) == "2.0 GB")
+        
+        let inUse: UInt64 = 858 * 1024 * 1024
+        let alloc: UInt64 = 2048 * 1024 * 1024
+        let frac = CardPresentation.gpuMemoryFraction(inUse: inUse, alloc: alloc)
+        #expect(abs(frac - (858.0 / 2048.0)) < 1e-4)
+        #expect(CardPresentation.gpuMemoryFraction(inUse: 100, alloc: 0) == 0.0)
+    }
+
+    @Test func gpuThresholdEvaluation() {
+        let sampleLow = GPUSample(overall: 50.0, coreCount: 10, activeGHz: 1.28)
+        let sampleWarn = GPUSample(overall: 88.0, coreCount: 10, activeGHz: 1.28)
+        let sampleCrit = GPUSample(overall: 98.0, coreCount: 10, activeGHz: 1.28)
+
+        // When disabled (default): always returns nil regardless of overall usage
+        let thresholdsDisabled = Thresholds(
+            cpu: ThresholdPair(warn: 70, crit: 90),
+            temp: ThresholdPair(warn: 70, crit: 90),
+            gpu: nil
+        )
+        #expect(CardPresentation.thresholdLevel(.gpu, .value(.gpu(sampleLow)), thresholdsDisabled) == nil)
+        #expect(CardPresentation.thresholdLevel(.gpu, .value(.gpu(sampleWarn)), thresholdsDisabled) == nil)
+        #expect(CardPresentation.thresholdLevel(.gpu, .value(.gpu(sampleCrit)), thresholdsDisabled) == nil)
+
+        // When enabled: evaluates against gpu threshold pair (.normal, .warn, .crit)
+        let thresholdsEnabled = Thresholds(
+            cpu: ThresholdPair(warn: 70, crit: 90),
+            temp: ThresholdPair(warn: 70, crit: 90),
+            gpu: ThresholdPair(warn: 85, crit: 95)
+        )
+        #expect(CardPresentation.thresholdLevel(.gpu, .value(.gpu(sampleLow)), thresholdsEnabled) == .normal)
+        #expect(CardPresentation.thresholdLevel(.gpu, .value(.gpu(sampleWarn)), thresholdsEnabled) == .warn)
+        #expect(CardPresentation.thresholdLevel(.gpu, .value(.gpu(sampleCrit)), thresholdsEnabled) == .crit)
+    }
+
     @Test func batterySignDropsAtZeroMagnitude() {
         #expect(CardPresentation.batterySign(netW: 12.0, charging: false) == minus)   // discharging
         #expect(CardPresentation.batterySign(netW: -30.0, charging: true) == "+")     // charging
@@ -371,8 +458,8 @@ struct CardPresentationTests {
     // MARK: CardKind structural facts (D) — single home for the card-family flags
 
     @Test func cardKindStructuralFlags() {
-        #expect(CardKind.allCases.filter(\.isExpandable) == [.power, .battery, .cpu, .mem, .cpuTemp, .gpuTemp, .fan])
-        #expect(CardKind.allCases.filter(\.hasSparkArea) == [.power, .cpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
+        #expect(CardKind.allCases.filter(\.isExpandable) == [.power, .battery, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .fan])
+        #expect(CardKind.allCases.filter(\.hasSparkArea) == [.power, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
         #expect(CardKind.allCases.filter(\.isAccented) == [.power])
     }
 
@@ -409,6 +496,8 @@ struct CardPresentationTests {
         case .battery: return .value(.battery(BatterySample(netW: 5, milliamps: 400, volts: 12,
                                                             charging: false, externalConnected: false)))
         case .cpu:     return .value(.cpu(CPUSample(overall: 42, perfLevels: [])))
+        case .gpu:
+            return .value(.gpu(GPUSample(overall: 38.0, coreCount: 10, activeGHz: 1.28)))
         case .mem:     return .value(.memory(MemorySample(usedGB: 8, totalGB: 16, wiredGB: 2, compressedGB: 1)))
         case .cpuTemp, .gpuTemp, .batTemp:
             return .value(.temperature(TemperatureSnapshot(

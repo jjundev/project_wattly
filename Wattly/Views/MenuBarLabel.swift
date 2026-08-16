@@ -15,6 +15,7 @@ struct MenuBarLabel: View {
     @AppStorage(StorageKey.menubarTextEnabled) private var textEnabled = Defaults.menubarTextEnabled
     @AppStorage(StorageKey.powerSmoothed)      private var powerSmoothed = Defaults.powerSmoothed
     @AppStorage(StorageKey.menu(.cpu))     private var menuCPU     = Defaults.menuMetrics[.cpu]     ?? false
+    @AppStorage(StorageKey.menu(.gpu))     private var menuGPU     = Defaults.menuMetrics[.gpu]     ?? false
     @AppStorage(StorageKey.menuCoreClock("S")) private var menuSClock = Defaults.menuCoreClockEnabled["S"] ?? false
     @AppStorage(StorageKey.menuCoreClock("P")) private var menuPClock = Defaults.menuCoreClockEnabled["P"] ?? false
     @AppStorage(StorageKey.menuCoreClock("E")) private var menuEClock = Defaults.menuCoreClockEnabled["E"] ?? false
@@ -78,6 +79,7 @@ struct MenuBarLabel: View {
     private var selected: Set<CardKind> {
         var s = Set<CardKind>()
         if menuCPU     { s.insert(.cpu) }
+        if menuGPU     { s.insert(.gpu) }
         if menuPower   { s.insert(.power) }
         if menuBattery { s.insert(.battery) }
         if menuMem     { s.insert(.mem) }
