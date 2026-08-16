@@ -927,97 +927,9 @@
         }
       },
       {
-        id: 'plasmaVolt',
-        title: '3. 플라즈마 W 볼트 (Plasma Volt)',
-        category: 'Wattly Identity',
-        desc: 'Wattly의 시그니처 "W" 형상을 띈 고전압 번개/스파크 에너지. 전력 소비가 증가할수록 전류가 초고속으로 방전됩니다.',
-        render: (size, rot, phase, load) => {
-          const s = size;
-          const c = s / 2;
-          const strokeW = Math.max(1.7, s * 0.085);
-          const p1 = { x: s * 0.16, y: s * 0.28 };
-          const p2 = { x: s * 0.36, y: s * 0.74 };
-          const p3 = { x: s * 0.50, y: s * 0.38 };
-          const p4 = { x: s * 0.64, y: s * 0.74 };
-          const p5 = { x: s * 0.84, y: s * 0.28 };
-
-          return `
-            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
-              <!-- Faint Energy Ring -->
-              <circle cx="${c}" cy="${c}" r="${s * 0.44}" class="svg-stroke" stroke-width="${strokeW * 0.6}" opacity="0.25" stroke-dasharray="2,3" />
-              <!-- W Lightning Bolt -->
-              <path d="M ${p1.x} ${p1.y} L ${p2.x} ${p2.y} L ${p3.x} ${p3.y} L ${p4.x} ${p4.y} L ${p5.x} ${p5.y}" 
-                    class="svg-stroke" stroke-width="${strokeW}" stroke-linejoin="miter" stroke-linecap="round" />
-              <!-- Orbiting Plasma Spark -->
-              <circle cx="${c + Math.cos(phase * 4.5) * s * 0.32}" 
-                      cy="${c + Math.sin(phase * 4.5) * s * 0.32}" 
-                      r="${strokeW * 1.1}" fill="var(--accent)" />
-            </svg>
-          `;
-        }
-      },
-      {
-        id: 'wattDisc',
-        title: '4. 와트미터 디스크 (Watt-Hour Disc)',
-        category: 'Precision Meter',
-        desc: '전력량계(전기 계량기)의 회전 알루미늄 디스크 모티프. 전력 소비량(Watt)에 비례하여 인덱스 노치가 정밀 회전합니다.',
-        render: (size, rot, phase, load) => {
-          const s = size;
-          const c = s / 2;
-          const strokeW = Math.max(1.5, s * 0.08);
-          const r = s * 0.44;
-          return `
-            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
-              <!-- Meter Frame Outer Housing -->
-              <circle cx="${c}" cy="${c}" r="${r}" class="svg-stroke" stroke-width="${strokeW * 0.8}" opacity="0.35" />
-              <!-- Rotating Watt Disc -->
-              <g transform="rotate(${rot * 360} ${c} ${c})">
-                <circle cx="${c}" cy="${c}" r="${r * 0.85}" class="svg-stroke" stroke-width="${strokeW * 0.5}" opacity="0.5" stroke-dasharray="2,3" />
-                <!-- Signature Black Meter Notch -->
-                <rect x="${c - strokeW * 0.9}" y="${c - r * 0.98}" width="${strokeW * 1.8}" height="${s * 0.22}" rx="1" fill="var(--accent)" />
-                <!-- Sub Index Marks -->
-                ${[90, 180, 270].map(a => `
-                  <rect x="${c - strokeW * 0.5}" y="${c - r * 0.98}" width="${strokeW}" height="${s * 0.12}" rx="0.5" fill="currentColor" opacity="0.7" transform="rotate(${a} ${c} ${c})" />
-                `).join('')}
-                <!-- Center Spindle Hub -->
-                <circle cx="${c}" cy="${c}" r="${s * 0.11}" fill="currentColor" />
-                <circle cx="${c}" cy="${c}" r="${s * 0.045}" fill="var(--bg-surface)" />
-              </g>
-            </svg>
-          `;
-        }
-      },
-      {
-        id: 'teslaVortex',
-        title: '5. 테슬라 볼텍스 (Tesla Vortex)',
-        category: 'Electromagnetics',
-        desc: '전자기 유도 코일 주변으로 4가닥의 자력선(Flux Field)이 소용돌이치며 에너지를 중심 코어로 집속합니다.',
-        render: (size, rot, phase, load) => {
-          const s = size;
-          const c = s / 2;
-          const strokeW = Math.max(1.5, s * 0.08);
-          return `
-            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
-              <g transform="rotate(${rot * 360} ${c} ${c})">
-                ${[0, 90, 180, 270].map(a => `
-                  <g transform="rotate(${a} ${c} ${c})">
-                    <path d="M ${c} ${c - s * 0.09} 
-                             C ${c + s * 0.18} ${c - s * 0.14}, 
-                               ${c + s * 0.38} ${c - s * 0.30}, 
-                               ${c + s * 0.22} ${c - s * 0.44}" 
-                          class="svg-stroke" stroke-width="${strokeW}" stroke-linecap="round" />
-                  </g>
-                `).join('')}
-                <circle cx="${c}" cy="${c}" r="${s * 0.13}" fill="currentColor" />
-                <circle cx="${c}" cy="${c}" r="${s * 0.055}" fill="var(--accent)" />
-              </g>
-            </svg>
-          `;
-        }
-      },
       {
         id: 'vuMeter',
-        title: '6. VU 파워 미터 (VU Power Meter)',
+        title: '3. VU 파워 미터 (VU Power Meter)',
         category: 'Precision Meter',
         desc: '아날로그 전력 계측기 바늘 게이지. 실시간 전력 소비량 변화에 따라 정밀 바늘이 기민하게 틱(Tick) 스윙합니다.',
         render: (size, rot, phase, load) => {
@@ -1054,36 +966,8 @@
         }
       },
       {
-        id: 'chargeArc',
-        title: '7. 차지 아크 링 (Charge Arc)',
-        category: 'Futuristic Energy',
-        desc: '다중 세그먼트 전력 아크가 상호 반대 방향으로 회전하며 스마트하고 미래지향적인 전력 관리를 표현합니다.',
-        render: (size, rot, phase, load) => {
-          const s = size;
-          const c = s / 2;
-          const strokeW = Math.max(1.6, s * 0.085);
-          const r = s * 0.40;
-          return `
-            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
-              <!-- Outer Orbit (Clockwise) -->
-              <g transform="rotate(${rot * 360} ${c} ${c})">
-                <circle cx="${c}" cy="${c}" r="${r}" class="svg-stroke" stroke-width="${strokeW}" 
-                        stroke-dasharray="${r * 1.3}, ${r * 0.8}" stroke-linecap="round" />
-              </g>
-              <!-- Inner Counter Orbit (Counter-Clockwise) -->
-              <g transform="rotate(${-rot * 360 * 1.4} ${c} ${c})">
-                <circle cx="${c}" cy="${c}" r="${r * 0.65}" stroke="var(--accent)" fill="none" stroke-width="${strokeW * 0.9}" 
-                        stroke-dasharray="${r * 0.8}, ${r * 0.5}" stroke-linecap="round" />
-              </g>
-              <!-- Center Energy Hub -->
-              <circle cx="${c}" cy="${c}" r="${s * 0.10}" fill="currentColor" />
-            </svg>
-          `;
-        }
-      },
-      {
         id: 'cube3D',
-        title: '8. 아이소메트릭 큐브 (Rotating 3D Cube)',
+        title: '4. 아이소메트릭 큐브 (Rotating 3D Cube)',
         category: '3D Geometric',
         desc: '3차원 대각선 축을 기준으로 와이어프레임 큐브가 자전하여 현대적이고 테크니컬한 감성을 연출합니다.',
         render: (size, rot, phase, load) => {
@@ -1131,7 +1015,7 @@
       },
       {
         id: 'thermalBubble',
-        title: '9. 열 대류 버블 (Thermal Convection)',
+        title: '5. 열 대류 버블 (Thermal Convection)',
         category: 'Thermodynamics',
         desc: '발열과 쿨링에 따라 하단에서 상단으로 빠르게 솟아오르는 기포 파티클. 온도 변화에 직관적입니다.',
         render: (size, rot, phase, load) => {
