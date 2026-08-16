@@ -6,6 +6,9 @@ struct SettingsMenuBarSection: View {
     @Environment(\.tokens) private var t
 
     @AppStorage(StorageKey.menubarTextEnabled) private var menubarText = Defaults.menubarTextEnabled
+    @AppStorage(StorageKey.kineticNotchMotionEnabled) private var kineticNotchMotionEnabled = Defaults.kineticNotchMotionEnabled
+    @AppStorage(StorageKey.kineticNotchSource) private var kineticNotchSource = Defaults.kineticNotchSource
+    @AppStorage(StorageKey.kineticNotchSpeed) private var kineticNotchSpeed = Defaults.kineticNotchSpeed
 
     // 메뉴바 칩 (multi-select).
     @AppStorage(StorageKey.menu(.cpu))     private var menuCPU     = Defaults.menuMetrics[.cpu]     ?? false
@@ -31,6 +34,7 @@ struct SettingsMenuBarSection: View {
     var body: some View {
         SettingsSection(title: "메뉴바") {
             SettingsCard {
+                kineticNotchControls
                 SettingsToggleRow(isOn: $menubarText, divider: true) {
                     VStack(alignment: .leading, spacing: 2) {
                         SettingsRowTitle("텍스트 표시")
@@ -57,6 +61,70 @@ struct SettingsMenuBarSection: View {
         .task {
             if hasActiveAdvancedMetrics { isAdvancedMenuMetricsExpanded = true }
         }
+    }
+
+    private var kineticNotchControls: some View {
+        VStack(spacing: 0) {
+            SettingsToggleRow(isOn: $kineticNotchMotionEnabled, divider: true) {
+                VStack(alignment: .leading, spacing: 2) {
+                    SettingsRowTitle("부하에 맞춰 바늘 움직이기")
+                    Text("선택한 부하가 높을수록 메뉴바 Kinetic Notch 바늘이 더 빠르게 움직입니다.")
+                        .font(WattlyFont.at(11.5, weight: .regular))
+                        .foregroundStyle(t.faint)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            if kineticNotchMotionEnabled {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("부하 원본")
+                        .font(WattlyFont.at(11.5, weight: .regular))
+                        .foregroundStyle(t.faint)
+                    WattlySegment(selection: $kineticNotchSource,
+                                  options: KineticNotchSource.allCases.map { ($0, $0.label) },
+                                  fontSize: 11.5, pillVPadding: 6)
+                    Text("움직임 속도")
+                        .font(WattlyFont.at(11.5, weight: .regular))
+                        .foregroundStyle(t.faint)
+                    WattlySegment(selection: $kineticNotchSpeed,
+                                  options: KineticNotchSpeed.allCases.map { ($0, $0.label) },
+                                  fontSize: 11.5, pillVPadding: 6)
+                    HStack(spacing: 10) {
+                        KineticNotchMark(frame: KineticNotchMotion.restFrame(load: previewLoad ?? 0))
+                            .frame(width: 34, height: 28)
+                            .foregroundStyle(t.text)
+                        if let previewLoad {
+                            let frameRate = KineticNotchMotion.frameRate(load: previewLoad, speed: kineticNotchSpeed) ?? 0
+                            Text("\(Int(previewLoad.rounded()))% · \(frameRate, specifier: "%.1f") fps")
+                                .font(WattlyFont.at(11.5, weight: .medium))
+                                .foregroundStyle(t.faint)
+                        } else {
+                            Text("선택한 부하를 읽는 동안 바늘은 정지합니다.")
+                                .font(WattlyFont.at(11.5, weight: .regular))
+                                .foregroundStyle(t.faint)
+                        }
+                    }
+                }
+                .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
+            }
+        }
+    }
+
+    private var previewLoad: Double? {
+        let cpu: Double?
+        if case .value(.cpu(let sample)) = monitor.cardState(.cpu) {
+            cpu = sample.overall
+        } else {
+            cpu = nil
+        }
+
+        let gpu: Double?
+        if case .value(.gpu(let sample)) = monitor.cardState(.gpu) {
+            gpu = sample.overall
+        } else {
+            gpu = nil
+        }
+        return kineticNotchSource.load(cpu: cpu, gpu: gpu)
     }
 
     private var menuChipGrid: some View {

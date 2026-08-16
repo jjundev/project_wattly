@@ -44,6 +44,56 @@ struct PulseWMark: View {
     }
 }
 
+/// The Kinetic Notch outline leaves its centered top notch open, matching the
+/// compact menu-bar mark rather than suggesting a generic battery indicator.
+struct KineticNotchOutline: Shape {
+    func path(in rect: CGRect) -> Path {
+        let x = rect.minX
+        let y = rect.minY
+        let w = rect.width
+        let h = rect.height
+        var path = Path()
+        path.move(to: CGPoint(x: x + w * 0.10, y: y + h * 0.88))
+        path.addLine(to: CGPoint(x: x + w * 0.10, y: y + h * 0.20))
+        path.addQuadCurve(to: CGPoint(x: x + w * 0.22, y: y + h * 0.10),
+                          control: CGPoint(x: x + w * 0.10, y: y + h * 0.10))
+        path.addLine(to: CGPoint(x: x + w * 0.40, y: y + h * 0.10))
+        path.addLine(to: CGPoint(x: x + w * 0.40, y: y + h * 0.28))
+        path.addLine(to: CGPoint(x: x + w * 0.60, y: y + h * 0.28))
+        path.addLine(to: CGPoint(x: x + w * 0.60, y: y + h * 0.10))
+        path.addLine(to: CGPoint(x: x + w * 0.78, y: y + h * 0.10))
+        path.addQuadCurve(to: CGPoint(x: x + w * 0.90, y: y + h * 0.20),
+                          control: CGPoint(x: x + w * 0.90, y: y + h * 0.10))
+        path.addLine(to: CGPoint(x: x + w * 0.90, y: y + h * 0.88))
+        path.addLine(to: CGPoint(x: x + w * 0.10, y: y + h * 0.88))
+        return path
+    }
+}
+
+/// A seven-frame load indicator. The menu bar rasterizes it as a monochrome
+/// template image; settings keeps the accent-blue needle as a live preview.
+struct KineticNotchMark: View {
+    let frame: Int
+    var markerColor: Color = Tokens.accent
+
+    private var needleAngle: Double {
+        -28 + Double(min(max(frame, 0), 6)) * (56 / 6)
+    }
+
+    var body: some View {
+        ZStack {
+            KineticNotchOutline()
+                .stroke(style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+            Rectangle()
+                .fill(markerColor)
+                .frame(width: 2, height: 9)
+                .offset(y: -3)
+                .rotationEffect(.degrees(needleAngle), anchor: .bottom)
+            Circle().fill(markerColor).frame(width: 3.5, height: 3.5)
+        }
+    }
+}
+
 /// Header status dot: 6px, pulsing opacity 1↔0.35 over 2.4s
 /// (`@keyframes wapulse`, prototype lines 16–17). Honors Reduce Motion.
 struct StatusDot: View {

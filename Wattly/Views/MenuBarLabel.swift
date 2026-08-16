@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 
-/// The always-present menubar item: the Pulse W glyph plus, optionally, the
+/// The always-present menubar item: the Kinetic Notch glyph plus, optionally, the
 /// user-selected metrics as compact text (issue 14). Clicking toggles the popover.
 ///
 /// The text is assembled by the pure `MenuBarText` (its own per-metric format, not the
@@ -12,9 +12,14 @@ import AppKit
 struct MenuBarLabel: View {
     let monitor: SystemMonitor
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var visibilitySettings = VisibilitySettings.shared
+    @State private var kineticNotchPhase = 0
     @AppStorage(StorageKey.menubarTextEnabled) private var textEnabled = Defaults.menubarTextEnabled
     @AppStorage(StorageKey.powerSmoothed)      private var powerSmoothed = Defaults.powerSmoothed
+    @AppStorage(StorageKey.kineticNotchMotionEnabled) private var kineticNotchMotionEnabled = Defaults.kineticNotchMotionEnabled
+    @AppStorage(StorageKey.kineticNotchSource) private var kineticNotchSource = Defaults.kineticNotchSource
+    @AppStorage(StorageKey.kineticNotchSpeed) private var kineticNotchSpeed = Defaults.kineticNotchSpeed
 
     var body: some View {
         let label = assembled
@@ -22,7 +27,7 @@ struct MenuBarLabel: View {
         // (the status item captures it as a template bitmap), so the glyph is a rasterized
         // template image; if rasterization ever fails, fall back to an SF Symbol so the
         // icon is never blank.
-        let glyph = MenuBarGlyph.template.map(Image.init(nsImage:)) ?? Image(systemName: "waveform.path")
+        let glyph = MenuBarGlyph.template(frame: kineticNotchFrame).map(Image.init(nsImage:)) ?? Image(systemName: "waveform.path")
         return HStack(spacing: 4) {
             glyph
             if let label {
@@ -39,6 +44,14 @@ struct MenuBarLabel: View {
         // `.accessibilityLabel` may not surface to VoiceOver — verify on-device; if it does
         // not announce, set the status button's accessibility label via AppKit (issue 15 §메모).
         .accessibilityLabel(accessibilityLabel)
+        .task(id: "\(kineticNotchMotionEnabled)-\(kineticNotchSource.rawValue)-\(kineticNotchSpeed.rawValue)-\(reduceMotion)-\(kineticNotchFrameRate ?? 0)") {
+            guard let frameRate = kineticNotchFrameRate else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1 / frameRate))
+                guard !Task.isCancelled else { return }
+                kineticNotchPhase = (kineticNotchPhase + 1) % KineticNotchMotion.frameCount
+            }
+        }
     }
 
     /// The VoiceOver label for the status item — selected metrics in canonical order, always
@@ -67,26 +80,54 @@ struct MenuBarLabel: View {
             kinds.map { ($0, monitor.cardState($0, smoothed: powerSmoothed)) })
     }
 
+    private var kineticNotchLoad: Double? {
+        let cpu: Double?
+        if case .value(.cpu(let sample)) = monitor.cardState(.cpu) {
+            cpu = sample.overall
+        } else {
+            cpu = nil
+        }
+
+        let gpu: Double?
+        if case .value(.gpu(let sample)) = monitor.cardState(.gpu) {
+            gpu = sample.overall
+        } else {
+            gpu = nil
+        }
+        return kineticNotchSource.load(cpu: cpu, gpu: gpu)
+    }
+
+    private var kineticNotchFrame: Int {
+        KineticNotchMotion.displayedFrame(load: kineticNotchLoad ?? 0, phase: kineticNotchPhase,
+                                          reduceMotion: reduceMotion || !kineticNotchMotionEnabled)
+    }
+
+    private var kineticNotchFrameRate: Double? {
+        guard kineticNotchMotionEnabled, !reduceMotion, let kineticNotchLoad else { return nil }
+        return KineticNotchMotion.frameRate(load: kineticNotchLoad, speed: kineticNotchSpeed)
+    }
+
 }
 
-/// The Pulse W mark rasterized once to a template `NSImage` for the menubar.
-/// Rendering it to a template image (rather than drawing the `Shape` live in the label)
+/// Kinetic Notch frames rasterized once each as template `NSImage`s for the menubar.
+/// Rendering the `Shape` to template images (rather than drawing it live in the label)
 /// is what makes it actually appear in the status bar and tint for light/dark + the
 /// open-panel highlight. Built lazily on the main actor, cached for the process.
 @MainActor
 enum MenuBarGlyph {
-    static let template: NSImage? = render()
+    static var templates = Array<NSImage?>(repeating: nil, count: KineticNotchMotion.frameCount)
 
-    private static func render() -> NSImage? {
-        let renderer = ImageRenderer(content:
-            PulseWGlyph()
-                .stroke(style: StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round))
-                .frame(width: 13, height: 13)
+    static func template(frame: Int) -> NSImage? {
+        let index = min(max(frame, 0), KineticNotchMotion.frameCount - 1)
+        if let image = templates[index] { return image }
+        let renderer = ImageRenderer(content: KineticNotchMark(frame: index, markerColor: .black)
+            .frame(width: 16, height: 14)
             .padding(1.5)
             .foregroundStyle(.black))
         renderer.scale = NSScreen.main?.backingScaleFactor ?? 2
         guard let image = renderer.nsImage else { return nil }
         image.isTemplate = true
+        templates[index] = image
         return image
     }
 }
