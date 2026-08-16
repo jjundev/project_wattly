@@ -2,41 +2,73 @@ import Testing
 @testable import Wattly
 
 struct KineticNotchMotionTests {
-    @Test func sourceRequirementsAndLoadsAreExact() {
-        #expect(KineticNotchSource.cpu.requiredCards == [.cpu])
-        #expect(KineticNotchSource.gpu.requiredCards == [.gpu])
-        #expect(KineticNotchSource.cpuGPU.requiredCards == [.cpu, .gpu])
-        #expect(KineticNotchSource.cpu.load(cpu: 40, gpu: 80) == 40)
-        #expect(KineticNotchSource.gpu.load(cpu: 40, gpu: 80) == 80)
-        #expect(KineticNotchSource.cpuGPU.load(cpu: 40, gpu: 80) == 60)
-        #expect(KineticNotchSource.cpuGPU.load(cpu: 40, gpu: nil) == nil)
+    @Test func sourceRequirementsAndLabels() {
+        #expect(KineticNotchSource.power.requiredCards == [.power])
+        #expect(KineticNotchSource.cpuClock.requiredCards == [.cpu])
+        #expect(KineticNotchSource.compute.requiredCards == [.cpu, .gpu])
+
+        #expect(KineticNotchSource.power.label == "전력 소비")
+        #expect(KineticNotchSource.cpuClock.label == "CPU 클럭")
+        #expect(KineticNotchSource.compute.label == "CPU + GPU")
     }
 
-    @Test func idleInvalidAndMaximumRatesAreSafe() {
-        #expect(KineticNotchSource.cpu.load(cpu: .nan, gpu: 0) == nil)
-        #expect(MenuBarIconMotion.frameRate(load: 5, speed: .standard) == nil)
-        #expect(MenuBarIconMotion.frameRate(load: 100, speed: .eco) == 36)
-        #expect(MenuBarIconMotion.frameRate(load: 100, speed: .standard) == 48)
-        #expect(MenuBarIconMotion.frameRate(load: 100, speed: .responsive) == 60)
+    @Test func targetWattsByFormFactor() {
+        // MacBook Air (fanCount == 0) -> 20W
+        #expect(KineticNotchSource.targetWatts(gpuCores: 8, fanCount: 0) == 20.0)
+        #expect(KineticNotchSource.targetWatts(gpuCores: 10, fanCount: 0) == 20.0)
+
+        // Base MacBook Pro / Mac mini (fanCount >= 1, gpuCores <= 10) -> 30W
+        #expect(KineticNotchSource.targetWatts(gpuCores: 10, fanCount: 1) == 30.0)
+
+        // Pro chip (gpuCores 14~20) -> 55W
+        #expect(KineticNotchSource.targetWatts(gpuCores: 16, fanCount: 2) == 55.0)
+
+        // Max chip (gpuCores 24~40) -> 100W
+        #expect(KineticNotchSource.targetWatts(gpuCores: 32, fanCount: 2) == 100.0)
+
+        // Ultra chip (gpuCores >= 48) -> 200W
+        #expect(KineticNotchSource.targetWatts(gpuCores: 64, fanCount: 2) == 200.0)
     }
 
-    @Test func ratesUseSquareRootProgressionAndPerPresetMinimums() {
-        // 5.0095 is just above the 5% idle threshold. Its normalized distance is
-        // 0.01%, so the square-root curve has advanced by 1% of each preset's range.
-        let nearThreshold = 5.0095
-        #expect(MenuBarIconMotion.frameRate(load: 5, speed: .eco) == nil)
-        #expect(MenuBarIconMotion.frameRate(load: 5, speed: .standard) == nil)
-        #expect(MenuBarIconMotion.frameRate(load: 5, speed: .responsive) == nil)
-        #expect(abs((MenuBarIconMotion.frameRate(load: nearThreshold, speed: .eco) ?? 0) - 6.30) < 1e-12)
-        #expect(abs((MenuBarIconMotion.frameRate(load: nearThreshold, speed: .standard) ?? 0) - 8.40) < 1e-12)
-        #expect(abs((MenuBarIconMotion.frameRate(load: nearThreshold, speed: .responsive) ?? 0) - 12.48) < 1e-12)
+    @Test func powerLoadNormalization() {
+        #expect(KineticNotchSource.power.load(power: 0.0, gpuCores: 8, fanCount: 0) == 0.0)
+        #expect(KineticNotchSource.power.load(power: 10.0, gpuCores: 8, fanCount: 0) == 50.0)
+        #expect(KineticNotchSource.power.load(power: 20.0, gpuCores: 8, fanCount: 0) == 100.0)
+        #expect(KineticNotchSource.power.load(power: 35.0, gpuCores: 8, fanCount: 0) == 100.0) // clamped
+        #expect(KineticNotchSource.power.load(power: .nan, gpuCores: 8, fanCount: 0) == nil)
+    }
 
-        // 28.75% is one quarter through the load range, which square-root interpolation
-        // maps to halfway through each rate range (not the linear one-quarter point).
-        let interiorLoad = 28.75
-        #expect(abs((MenuBarIconMotion.frameRate(load: interiorLoad, speed: .eco) ?? 0) - 21.0) < 1e-12)
-        #expect(abs((MenuBarIconMotion.frameRate(load: interiorLoad, speed: .standard) ?? 0) - 28.0) < 1e-12)
-        #expect(abs((MenuBarIconMotion.frameRate(load: interiorLoad, speed: .responsive) ?? 0) - 36.0) < 1e-12)
+    @Test func cpuClockLoadNormalization() {
+        #expect(KineticNotchSource.cpuClock.load(cpuClockGHz: 0.8) == 0.0)
+        #expect(abs((KineticNotchSource.cpuClock.load(cpuClockGHz: 2.4) ?? 0) - 50.0) < 1e-9)
+        #expect(KineticNotchSource.cpuClock.load(cpuClockGHz: 4.0) == 100.0)
+        #expect(KineticNotchSource.cpuClock.load(cpuClockGHz: 4.5) == 100.0) // clamped
+        #expect(KineticNotchSource.cpuClock.load(cpuClockGHz: .nan) == nil)
+    }
+
+    @Test func computeLoadNormalization() {
+        #expect(KineticNotchSource.compute.load(cpu: 20, gpu: 80) == 50.0)
+        #expect(KineticNotchSource.compute.load(cpu: 0, gpu: 0) == 0.0)
+        #expect(KineticNotchSource.compute.load(cpu: 100, gpu: 100) == 100.0)
+        #expect(KineticNotchSource.compute.load(cpu: 40, gpu: nil) == nil)
+        #expect(KineticNotchSource.compute.load(cpu: .nan, gpu: 0) == nil)
+    }
+
+    @Test func continuousFrameRateWithoutHardThreshold() {
+        // At 0% load, returns exactly minimumFrameRate (continuous alive motion)
+        #expect(MenuBarIconMotion.frameRate(load: 0, speed: .eco) == 6.0)
+        #expect(MenuBarIconMotion.frameRate(load: 0, speed: .standard) == 8.0)
+        #expect(MenuBarIconMotion.frameRate(load: 0, speed: .responsive) == 12.0)
+
+        // At 100% load, returns maximumFrameRate
+        #expect(MenuBarIconMotion.frameRate(load: 100, speed: .eco) == 36.0)
+        #expect(MenuBarIconMotion.frameRate(load: 100, speed: .standard) == 48.0)
+        #expect(MenuBarIconMotion.frameRate(load: 100, speed: .responsive) == 60.0)
+
+        // At 25% load, square root interpolation gives 50% of the speed range
+        #expect(abs(MenuBarIconMotion.frameRate(load: 25, speed: .eco) - 21.0) < 1e-9)
+        #expect(abs(MenuBarIconMotion.frameRate(load: 25, speed: .standard) - 28.0) < 1e-9)
+        #expect(abs(MenuBarIconMotion.frameRate(load: 25, speed: .responsive) - 36.0) < 1e-9)
     }
 
     @Test func motionCalculatesDisplayedFrameForVariousStyles() {

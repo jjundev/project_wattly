@@ -1,25 +1,75 @@
 import Foundation
 
 enum KineticNotchSource: String, CaseIterable, Identifiable, Sendable {
-    case cpu, gpu, cpuGPU
+    case power
+    case cpuClock
+    case compute
+
     var id: String { rawValue }
+
     var label: String {
-        switch self { case .cpu: "CPU"; case .gpu: "GPU"; case .cpuGPU: "CPU + GPU" }
+        switch self {
+        case .power: "전력 소비"
+        case .cpuClock: "CPU 클럭"
+        case .compute: "CPU + GPU"
+        }
     }
+
     var requiredCards: Set<CardKind> {
-        switch self { case .cpu: [.cpu]; case .gpu: [.gpu]; case .cpuGPU: [.cpu, .gpu] }
+        switch self {
+        case .power: [.power]
+        case .cpuClock: [.cpu]
+        case .compute: [.cpu, .gpu]
+        }
     }
-    func load(cpu: Double?, gpu: Double?) -> Double? {
+
+    /// Resolves target full-load package wattage based on hardware cooling/form factor.
+    /// MacBook Air (fanless) sustains ~10-15W under throttling, mapped to 20W for responsive 100% full-load motion.
+    static func targetWatts(gpuCores: Int?, fanCount: Int?, model: String? = nil) -> Double {
+        if let fanCount, fanCount == 0 { return 20.0 }
+        let cores = gpuCores ?? 8
+        if cores >= 48 { return 200.0 } // Ultra
+        if cores >= 24 { return 100.0 } // Max
+        if cores >= 14 { return 55.0 }  // Pro
+        // Base Pro / Mac mini (with fans) vs fallback
+        return (fanCount ?? 0) > 0 ? 30.0 : 20.0
+    }
+
+    static func normalizePower(watts: Double, targetWatts: Double) -> Double {
+        guard watts.isFinite, targetWatts > 0 else { return 0 }
+        return min(max(watts / targetWatts * 100.0, 0), 100.0)
+    }
+
+    static func normalizeCPUClock(activeGHz: Double, baseGHz: Double = 0.8, maxGHz: Double = 4.0) -> Double {
+        guard activeGHz.isFinite, maxGHz > baseGHz else { return 0 }
+        return min(max((activeGHz - baseGHz) / (maxGHz - baseGHz) * 100.0, 0), 100.0)
+    }
+
+    static func normalizeCompute(cpu: Double?, gpu: Double?) -> Double? {
         func valid(_ value: Double?) -> Double? {
             guard let value, value.isFinite else { return nil }
             return min(max(value, 0), 100)
         }
+        guard let c = valid(cpu), let g = valid(gpu) else { return nil }
+        return (c + g) / 2.0
+    }
+
+    func load(power: Double? = nil,
+              cpuClockGHz: Double? = nil,
+              cpu: Double? = nil,
+              gpu: Double? = nil,
+              gpuCores: Int? = nil,
+              fanCount: Int? = nil) -> Double? {
         switch self {
-        case .cpu: return valid(cpu)
-        case .gpu: return valid(gpu)
-        case .cpuGPU:
-            guard let cpu = valid(cpu), let gpu = valid(gpu) else { return nil }
-            return (cpu + gpu) / 2
+        case .power:
+            guard let power, power.isFinite else { return nil }
+            let target = Self.targetWatts(gpuCores: gpuCores, fanCount: fanCount)
+            return Self.normalizePower(watts: power, targetWatts: target)
+        case .cpuClock:
+            guard let cpuClockGHz, cpuClockGHz.isFinite else { return nil }
+            return Self.normalizeCPUClock(activeGHz: cpuClockGHz)
+        case .compute:
+            return Self.normalizeCompute(cpu: cpu, gpu: gpu)
         }
     }
 }
@@ -46,8 +96,6 @@ enum KineticNotchSpeed: String, CaseIterable, Identifiable, Sendable {
 }
 
 enum MenuBarIconMotion {
-    static let idleThreshold = 5.0
-
     static func displayedFrame(style: MenuBarIconStyle, phase: Int, load: Double? = nil, reduceMotion: Bool) -> Int {
         guard !reduceMotion else { return style.staticFrame }
         let count = style.frameCount
@@ -89,10 +137,9 @@ enum MenuBarIconMotion {
         (1.0 / frameRate) * phaseDelayMultiplier(style: style, phase: phase)
     }
 
-    static func frameRate(load: Double, speed: KineticNotchSpeed) -> Double? {
-        let load = min(max(load, 0), 100)
-        guard load > idleThreshold else { return nil }
-        let progress = sqrt((load - idleThreshold) / (100 - idleThreshold))
+    static func frameRate(load: Double, speed: KineticNotchSpeed) -> Double {
+        let clampedLoad = min(max(load, 0), 100)
+        let progress = sqrt(clampedLoad / 100.0)
         return speed.minimumFrameRate + (speed.maximumFrameRate - speed.minimumFrameRate) * progress
     }
 }
