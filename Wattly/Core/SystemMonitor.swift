@@ -80,6 +80,14 @@ final class SystemMonitor {
     /// Seeded to the default-selected set (= `[.cpu]`) so `menubarNeeds` matches the prior
     /// hardcode until `PollPolicyBridge` pushes the user's chips.
     private var menubarMetrics = Set(Defaults.menuMetrics.filter(\.value).map(\.key))
+    /// The cards whose metrics drive Kinetic Notch animation. Motion stays a separate demand
+    /// from visible menubar text so it can continue polling its selected source while text is off.
+    private var menubarMotionMetrics = Defaults.kineticNotchMotionEnabled
+        ? Defaults.kineticNotchSource.requiredCards : []
+    private var currentMenubarNeeds: Set<CardKind> {
+        let textNeeds = menubarTextEnabled ? menubarMetrics : []
+        return textNeeds.union(menubarMotionMetrics)
+    }
     /// The cards currently shown. Providers feeding no shown (or menubar-needed) card drop
     /// out of the poll. Seeded to every card so the filter is a no-op until a card is hidden
     /// (issue 13's toggles) — never empty, which would skip every provider at launch.
@@ -127,10 +135,9 @@ final class SystemMonitor {
     }
 
     private var currentProviderIntervals: [ProviderKind: Duration] {
-        let needs: Set<CardKind> = menubarTextEnabled ? menubarMetrics : []
         return providerIntervals(mode: powerMode, setting: pollSetting, panelVisible: panelVisible,
-                                 menubarTextEnabled: menubarTextEnabled,
-                                 active: activeProviderKinds, menubarNeeds: needs,
+                                 menubarLiveContentEnabled: !currentMenubarNeeds.isEmpty,
+                                 active: activeProviderKinds, menubarNeeds: currentMenubarNeeds,
                                  isACConnected: isACConnected)
     }
 
@@ -245,13 +252,23 @@ final class SystemMonitor {
         if after != before || !forced.isEmpty { reschedule(forceProviders: forced) }
     }
 
+    func setMenubarMotionMetrics(_ cards: Set<CardKind>) async {
+        guard cards != menubarMotionMetrics else { return }
+        let before = currentProviderIntervals
+        menubarMotionMetrics = cards
+        let newlyActivated = await recomputeGating()
+        let after = currentProviderIntervals
+        let forced = Set(after.keys).subtracting(before.keys)
+            .union(newlyActivated.intersection(Set(after.keys)))
+        if after != before || !forced.isEmpty { reschedule(forceProviders: forced) }
+    }
+
     private func recomputeGating() async -> Set<ProviderKind> {
-        let menubarNeeds: Set<CardKind> = menubarTextEnabled ? menubarMetrics : []
-        let needed = activeProviders(shown: shownCards, menubarNeeds: menubarNeeds)
+        let needed = activeProviders(shown: shownCards, menubarNeeds: currentMenubarNeeds)
         var newlyActivated = needed.subtracting(activeProviderKinds)
         activeProviderKinds = needed
 
-        let neededCards = shownCards.union(menubarNeeds)
+        let neededCards = shownCards.union(currentMenubarNeeds)
         let want = neededCards.contains(.cpuTemp) || neededCards.contains(.gpuTemp)
         let tempTurnedOn = want && !tempEnabled
         tempEnabled = want

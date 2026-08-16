@@ -10,20 +10,20 @@ struct PollPolicyTests {
 
     @Test func autoAdaptsToPanelAndMenubar() {
         // Open → 1 s live view, regardless of the menubar text.
-        #expect(resolvePollInterval(setting: .auto, panelVisible: true, menubarTextEnabled: true) == .seconds(1))
-        #expect(resolvePollInterval(setting: .auto, panelVisible: true, menubarTextEnabled: false) == .seconds(1))
+        #expect(resolvePollInterval(setting: .auto, panelVisible: true, menubarLiveContentEnabled: true) == .seconds(1))
+        #expect(resolvePollInterval(setting: .auto, panelVisible: true, menubarLiveContentEnabled: false) == .seconds(1))
         // Closed → 2 s while the menubar shows a number, 5 s when it doesn't.
-        #expect(resolvePollInterval(setting: .auto, panelVisible: false, menubarTextEnabled: true) == .seconds(2))
-        #expect(resolvePollInterval(setting: .auto, panelVisible: false, menubarTextEnabled: false) == .seconds(5))
+        #expect(resolvePollInterval(setting: .auto, panelVisible: false, menubarLiveContentEnabled: true) == .seconds(2))
+        #expect(resolvePollInterval(setting: .auto, panelVisible: false, menubarLiveContentEnabled: false) == .seconds(5))
     }
 
     @Test func fixedSettingsAreConstant() {
         // A pinned cadence ignores panel/menubar state entirely (only `.auto` adapts).
         for panel in [true, false] {
             for text in [true, false] {
-                #expect(resolvePollInterval(setting: .s1, panelVisible: panel, menubarTextEnabled: text) == .seconds(1))
-                #expect(resolvePollInterval(setting: .s2, panelVisible: panel, menubarTextEnabled: text) == .seconds(2))
-                #expect(resolvePollInterval(setting: .s5, panelVisible: panel, menubarTextEnabled: text) == .seconds(5))
+                #expect(resolvePollInterval(setting: .s1, panelVisible: panel, menubarLiveContentEnabled: text) == .seconds(1))
+                #expect(resolvePollInterval(setting: .s2, panelVisible: panel, menubarLiveContentEnabled: text) == .seconds(2))
+                #expect(resolvePollInterval(setting: .s5, panelVisible: panel, menubarLiveContentEnabled: text) == .seconds(5))
             }
         }
     }
@@ -60,35 +60,48 @@ struct PollPolicyTests {
     @Test func autoPolicyBudgetsProvidersByVisibility() {
         let all = Set(ProviderKind.allCases)
         #expect(providerIntervals(mode: .eco, setting: .auto, panelVisible: true,
-                                  menubarTextEnabled: true, active: all,
+                                  menubarLiveContentEnabled: true, active: all,
                                   menubarNeeds: [.cpu]) == [
             .cpu: .seconds(1), .gpu: .seconds(1), .power: .seconds(1), .temperature: .seconds(2),
             .memory: .seconds(5), .battery: .seconds(5), .fan: .seconds(5),
         ])
         #expect(providerIntervals(mode: .eco, setting: .auto, panelVisible: false,
-                                  menubarTextEnabled: true, active: all,
+                                  menubarLiveContentEnabled: true, active: all,
                                   menubarNeeds: [.cpu]) == [.cpu: .seconds(2)])
         #expect(providerIntervals(mode: .eco, setting: .auto, panelVisible: false,
-                                  menubarTextEnabled: true, active: all,
+                                  menubarLiveContentEnabled: true, active: all,
                                   menubarNeeds: [.mem]) == [.memory: .seconds(5)])
         #expect(providerIntervals(mode: .eco, setting: .auto, panelVisible: false,
-                                  menubarTextEnabled: false, active: all,
+                                  menubarLiveContentEnabled: false, active: all,
                                   menubarNeeds: [.cpu]).isEmpty)
     }
 
     @Test func fixedPolicyKeepsEveryActiveProviderAtChosenInterval() {
         #expect(providerIntervals(mode: .eco, setting: .s2, panelVisible: false,
-                                  menubarTextEnabled: false,
+                                  menubarLiveContentEnabled: false,
                                   active: [.cpu, .power], menubarNeeds: []) == [
             .cpu: .seconds(2), .power: .seconds(2),
         ])
+    }
+
+    @Test func closedMenuRetainsOnlyMotionSourceWhenTextIsOff() {
+        let active: Set<ProviderKind> = [.cpu, .gpu, .memory]
+        #expect(providerIntervals(mode: .eco, setting: .auto, panelVisible: false,
+                                  menubarLiveContentEnabled: true, active: active,
+                                  menubarNeeds: [.cpu]) == [.cpu: .seconds(2)])
+        #expect(providerIntervals(mode: .eco, setting: .auto, panelVisible: false,
+                                  menubarLiveContentEnabled: true, active: active,
+                                  menubarNeeds: [.cpu, .gpu]) == [.cpu: .seconds(2), .gpu: .seconds(2)])
+        #expect(providerIntervals(mode: .eco, setting: .auto, panelVisible: false,
+                                  menubarLiveContentEnabled: false, active: active,
+                                  menubarNeeds: []).isEmpty)
     }
 
     @Test func performanceTieredCadenceAdaptsByMetricSpeedAndAC() {
         let all = Set(ProviderKind.allCases)
         // Panel open
         let open = providerIntervals(mode: .performance, setting: .auto, panelVisible: true,
-                                     menubarTextEnabled: true, active: all, menubarNeeds: [.cpu])
+                                     menubarLiveContentEnabled: true, active: all, menubarNeeds: [.cpu])
         #expect(open[.cpu] == .seconds(1))
         #expect(open[.gpu] == .seconds(1))
         #expect(open[.power] == .seconds(1))
@@ -99,7 +112,7 @@ struct PollPolicyTests {
 
         // Panel closed on battery (text on)
         let closedBattery = providerIntervals(mode: .performance, setting: .auto, panelVisible: false,
-                                              menubarTextEnabled: true, active: all, menubarNeeds: [.cpu],
+                                              menubarLiveContentEnabled: true, active: all, menubarNeeds: [.cpu],
                                               isACConnected: false)
         #expect(closedBattery[.cpu] == .seconds(3))
         #expect(closedBattery[.gpu] == .seconds(3))
@@ -110,7 +123,7 @@ struct PollPolicyTests {
 
         // Panel closed on AC (text on)
         let closedAC = providerIntervals(mode: .performance, setting: .auto, panelVisible: false,
-                                         menubarTextEnabled: true, active: all, menubarNeeds: [.cpu],
+                                         menubarLiveContentEnabled: true, active: all, menubarNeeds: [.cpu],
                                          isACConnected: true)
         #expect(closedAC[.cpu] == .seconds(2))
         #expect(closedAC[.gpu] == .seconds(2))
@@ -122,12 +135,12 @@ struct PollPolicyTests {
 
     @Test func gpuPollIntervals() {
         let intervals = providerIntervals(mode: .eco, setting: .auto, panelVisible: true,
-                                          menubarTextEnabled: true, active: [.gpu],
+                                          menubarLiveContentEnabled: true, active: [.gpu],
                                           menubarNeeds: [.gpu], isACConnected: true)
         #expect(intervals[.gpu] == .seconds(1))
 
         let closedIntervals = providerIntervals(mode: .eco, setting: .auto, panelVisible: false,
-                                                menubarTextEnabled: true, active: [.gpu],
+                                                menubarLiveContentEnabled: true, active: [.gpu],
                                                 menubarNeeds: [.gpu], isACConnected: true)
         #expect(closedIntervals[.gpu] == .seconds(2))
     }
@@ -135,11 +148,11 @@ struct PollPolicyTests {
     @Test func performanceAndEcoAgreeForFixedInterval() {
         let active: Set<ProviderKind> = [.cpu, .power]
         let eco = providerIntervals(mode: .eco, setting: .s2, panelVisible: false,
-                                    menubarTextEnabled: false, active: active,
+                                    menubarLiveContentEnabled: false, active: active,
                                     menubarNeeds: [])
         let performance = providerIntervals(mode: .performance, setting: .s2,
                                             panelVisible: false,
-                                            menubarTextEnabled: false, active: active,
+                                            menubarLiveContentEnabled: false, active: active,
                                             menubarNeeds: [])
         #expect(performance == eco)
     }
@@ -176,7 +189,7 @@ struct PollPolicyTests {
 
     @Test func panelOpenSchedulesEveryProvider() {
         let ivals = providerIntervals(mode: .eco, setting: .auto, panelVisible: true,
-                                      menubarTextEnabled: true,
+                                      menubarLiveContentEnabled: true,
                                       active: Set(ProviderKind.allCases), menubarNeeds: [])
         for kind in ProviderKind.allCases {
             #expect(ivals[kind] != nil, "\(kind) missing from the panel-open schedule")

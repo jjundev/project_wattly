@@ -335,11 +335,12 @@ struct SystemMonitorTests {
         #expect(await cpu.reads == 2)
     }
 
-    @Test func textOffPerformsNoMetricReads() async {
+    @Test func textAndMotionOffPerformNoMetricReads() async {
         let cpu = CountingProvider(kind: .cpu)
         let monitor = SystemMonitor(providers: [cpu], clock: ManualClock())
 
         await monitor.setMenubarTextEnabled(false)
+        await monitor.setMenubarMotionMetrics([])
         monitor.stop()
         await monitor.pollScheduled(force: false)
 
@@ -562,4 +563,3 @@ struct SystemMonitorTests {
         monitor.stop()
     }
 }
-
