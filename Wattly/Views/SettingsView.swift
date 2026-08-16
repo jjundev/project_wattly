@@ -20,6 +20,7 @@ struct SettingsView: View {
     private let loginItem: LoginItemControlling = LoginItem()
 
     @State private var isResetConfirmationPresented = false
+    @State private var selectedLanguage: String = "ko"
 
     var body: some View {
         ScrollView {
@@ -28,7 +29,6 @@ struct SettingsView: View {
                 displayGroup
                 behaviorGroup
                 advancedGroup
-                resetButton
             }
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -48,12 +48,12 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - 일반 (로그인)
+    // MARK: - 일반 (로그인 · 언어 · 되돌리기)
 
     private var generalSection: some View {
         SettingsSection(title: "일반") {
             SettingsCard {
-                SettingsToggleRow(isOn: loginBinding, divider: false) {
+                SettingsToggleRow(isOn: loginBinding, divider: true) {
                     VStack(alignment: .leading, spacing: 2) {
                         SettingsRowTitle("로그인 시 자동 실행")
                         Text("Mac에 로그인하면 Wattly가 메뉴바에서 자동으로 시작됩니다.")
@@ -61,6 +61,31 @@ struct SettingsView: View {
                             .foregroundStyle(t.faint)
                     }
                 }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    SettingsRowTitle("언어")
+                    WattlySegment(selection: $selectedLanguage, options: [
+                        ("ko", "한국어"), ("en", "English"), ("system", "시스템 설정"),
+                    ], fontSize: 11.5, pillVPadding: 6)
+                }
+                .padding(EdgeInsets(top: 10, leading: 14, bottom: 12, trailing: 14))
+
+                Rectangle().fill(t.line).frame(height: 1)
+
+                Button {
+                    isResetConfirmationPresented = true
+                } label: {
+                    HStack(spacing: 7) {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text("기본값으로 되돌리기")
+                            .font(WattlyFont.at(12.5, weight: .semibold))
+                    }
+                    .foregroundStyle(t.text)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -108,26 +133,6 @@ struct SettingsView: View {
                 SettingsFanCurveSection(monitor: monitor, fanControl: fanControl)
             }
         }
-    }
-
-    // MARK: - 되돌리기
-
-    private var resetButton: some View {
-        Button {
-            isResetConfirmationPresented = true
-        } label: {
-            SettingsCard(padding: 11) {
-                HStack(spacing: 7) {
-                    Image(systemName: "arrow.counterclockwise")
-                        .font(.system(size: 13, weight: .semibold))
-                    Text("기본값으로 되돌리기")
-                        .font(WattlyFont.at(13, weight: .semibold))
-                }
-                .foregroundStyle(t.text)
-                .frame(maxWidth: .infinity)
-            }
-        }
-        .buttonStyle(.plain)
     }
 
     private func applyDefaults() {

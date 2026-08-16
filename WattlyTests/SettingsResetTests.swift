@@ -26,6 +26,13 @@ struct SettingsResetTests {
         return d
     }
 
+    @Test func generalSectionContractAndResetOperation() {
+        let d = makeDefaults(#function)
+        d.set(ThemeMode.light.rawValue, forKey: StorageKey.theme)
+        SettingsReset.applyDefaults(into: d, login: nil)
+        #expect(d.string(forKey: StorageKey.theme) == Defaults.theme.rawValue)
+    }
+
     @Test func resetRestoresEveryScalarKey() {
         let d = makeDefaults(#function)
         // Dirty every key with a non-default value.
