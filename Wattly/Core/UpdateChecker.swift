@@ -62,7 +62,7 @@ public final class UpdateChecker {
     public private(set) var status: Status = .idle
     public let repo: String
 
-    public init(repo: String = "jjundev/Wattly") {
+    public init(repo: String = "jjundev/project_wattly") {
         self.repo = repo
     }
 
