@@ -134,7 +134,8 @@ actor FakeProvider: MetricProvider {
             ]))
             let g = v("gpuTemp")
             let gpu = CategoryReading.reading(TemperatureReading(celsius: g, groups: [
-                TemperatureGroup(name: "GPU", average: g, hottest: g + 5),
+                TemperatureGroup(name: "GPU 클러스터 1", average: g - 0.4, hottest: g + 0.3),
+                TemperatureGroup(name: "GPU 클러스터 2", average: g + 0.2, hottest: g + 0.7),
             ]))
             let bat: CategoryReading = effectiveScenario == .desktop
                 ? .notPresent("배터리 없음 — 데스크톱 Mac")

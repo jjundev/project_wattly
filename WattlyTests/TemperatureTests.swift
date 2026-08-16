@@ -84,7 +84,8 @@ struct TemperatureTests {
         let tx = FakeTempTransport()
         tx.keyValues = ["Tp00": 80, "Tp0X": 90,   // P-코어 → avg 85, hottest 90
                         "Te04": 60, "Te08": 70,   // E-코어 → avg 65, hottest 70
-                        "Tg04": 50, "Tg1s": 60]   // GPU   → avg 55, hottest 60
+                        "Tg04": 50, "Tg0C": 60,   // GPU 클러스터 1 → avg 55, hottest 60
+                        "Tg12": 70, "Tg1s": 80]   // GPU 클러스터 2 → avg 75, hottest 80
         let p = TemperatureProvider(transport: tx, model: "Mac17,2")
         let snap = await readSnapshot(p, at: base)
 
@@ -94,8 +95,9 @@ struct TemperatureTests {
                                TemperatureGroup(name: "E-코어", average: 65, hottest: 70)])
 
         guard case .reading(let gpu) = snap.gpu else { Issue.record("gpu should read"); return }
-        #expect(gpu.celsius == 55)
-        #expect(gpu.groups == [TemperatureGroup(name: "GPU", average: 55, hottest: 60)])
+        #expect(gpu.celsius == 65)            // headline = mean of all GPU sensors (50+60+70+80)/4
+        #expect(gpu.groups == [TemperatureGroup(name: "GPU 클러스터 1", average: 55, hottest: 60),
+                               TemperatureGroup(name: "GPU 클러스터 2", average: 75, hottest: 80)])
     }
 
     @Test func connectionOpensOnceAcrossPolls() async {
