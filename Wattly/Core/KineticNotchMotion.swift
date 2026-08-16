@@ -256,6 +256,8 @@ enum MenuBarIconMotion {
         switch style {
         case .equalizer:
             return 1.8
+        case .hillRunner:
+            return 1.4
         default:
             return 1.0
         }

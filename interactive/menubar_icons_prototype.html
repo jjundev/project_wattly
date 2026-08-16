@@ -1076,33 +1076,33 @@
       timestamp: 0
     };
 
-    // Speed config formulas (RunCat style: idle threshold + sqrt curve)
+    // Speed config formulas (RunCat natural cadence: 0.35Hz idle -> 0.8Hz walk -> 3.2Hz sprint)
     const speedConfigs = {
-      eco: { minFps: 0.8, maxFps: 3.5, idleSpeed: 0.15 },
-      standard: { minFps: 1.5, maxFps: 6.0, idleSpeed: 0.25 },
-      responsive: { minFps: 2.2, maxFps: 9.0, idleSpeed: 0.35 }
+      eco: { minHz: 0.5, maxHz: 2.0, idleHz: 0.20 },
+      standard: { minHz: 0.8, maxHz: 3.0, idleHz: 0.30 },
+      responsive: { minHz: 1.0, maxHz: 4.2, idleHz: 0.40 }
     };
 
     // Calculate current dynamic rotation speed / frequency
     function calculateSpeed(load, profile) {
-      const cfg = speedConfigs[profile];
+      const cfg = speedConfigs[profile] || speedConfigs.standard;
       if (load <= 5) {
-        // RunCat idle behavior: very calm / near-idle
         return {
-          fps: cfg.idleSpeed,
-          rotSpeed: 0.3, // rev/sec
-          phaseSpeed: 0.5,
+          fps: parseFloat((cfg.idleHz * 8).toFixed(1)),
+          rotSpeed: 0.25,
+          phaseSpeed: cfg.idleHz * Math.PI * 2,
           isIdle: true
         };
       }
-      // Non-linear progress (sqrt curve makes low-medium load feel responsive)
+      // Non-linear progress (sqrt curve for responsive low-mid feel)
       const progress = Math.sqrt((load - 5) / 95);
-      const fps = cfg.minFps + (cfg.maxFps - cfg.minFps) * progress;
-      const rotSpeed = 0.5 + progress * 3.5; // rotations per second
-      const phaseSpeed = 1.0 + progress * 5.0;
+      const hz = cfg.minHz + (cfg.maxHz - cfg.minHz) * progress;
+      const fps = hz * 8;
+      const rotSpeed = 0.35 + progress * 2.2;
+      const phaseSpeed = hz * Math.PI * 2;
 
       return {
-        fps: parseFloat(fps.toFixed(2)),
+        fps: parseFloat(fps.toFixed(1)),
         rotSpeed: parseFloat(rotSpeed.toFixed(2)),
         phaseSpeed: parseFloat(phaseSpeed.toFixed(2)),
         isIdle: false
@@ -1348,9 +1348,7 @@
         desc: '부하(0%~100%)에 따라 오르막 힘겨운 걸음 → 평지 조깅 → 내리막 폭풍 질주로 지형 경사와 캐릭터의 2단 관절 팔다리가 자연스럽게 움직입니다.',
         render: (size, rot, phase, load) => {
           const tier = load < 25 ? 0 : (load < 65 ? 1 : 2);
-          const t = Math.min(Math.max(load / 100, 0), 1);
-          const stepFreq = 3.2 + t * 5.0; // 3.2Hz at idle -> 8.2Hz at full sprint
-          const rawFrameIdx = Math.floor(((phase * stepFreq) % (Math.PI * 2)) / (Math.PI * 2) * 8);
+          const rawFrameIdx = Math.floor(((phase / (Math.PI * 2)) % 1.0 + 1.0) % 1.0 * 8);
           const frameIdx = (rawFrameIdx % 8 + 8) % 8;
           const frameNum = tier * 8 + frameIdx;
           return renderHillRunnerFrame(frameNum, size, load);
