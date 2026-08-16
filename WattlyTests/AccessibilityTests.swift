@@ -155,6 +155,22 @@ struct AccessibilityTests {
         #expect(s == "Wattly, 자체 0.3 W")
     }
 
+    @Test func menuBarLabelWithItemsUnified() {
+        let items: [MenuBarItem] = [.card(.cpu), .memPressure, .card(.power)]
+        let states: [CardKind: MetricState] = [
+            .cpu: cpu(42),
+            .mem: .value(.memory(MemorySample(usedGB: 8, totalGB: 16, wiredGB: 1, compressedGB: 0.5, pressurePercent: 46))),
+            .power: power(8.4)
+        ]
+        #expect(Accessibility.menuBarLabel(items: items, states: states)
+                == "Wattly, CPU 42%  ·  압력 46%  ·  8.4 W")
+    }
+
+    @Test func menuBarLabelWithItemsEmptyIsWattlyOnly() {
+        #expect(Accessibility.menuBarLabel(items: [], states: [:]) == "Wattly")
+    }
+
+
     // MARK: Fan-curve anchor copy
 
     @Test func fanAnchorLabelSpeaksTempAndRole() {

@@ -82,6 +82,12 @@ struct FanControlProtocolTests {
         #expect(fake.requests == [.status])
     }
 
+    @MainActor @Test func clientInitialStateIsUnavailableAndNotInstalling() {
+        let client = FanControlClient()
+        #expect(client.status.mode == .unavailable)
+        #expect(client.isInstallingHelper == false)
+    }
+
     private static let testCurve = FanCurve(rpms: [800, 900, 1000, 1200, 1500,
                                                      1900, 2400, 3000, 3600, 4200,
                                                      4800, 5500, 6200, 6800, 7400])

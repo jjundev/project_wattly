@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// Custom settings chrome (issue 13 §3) — the prototype's hand-rolled toggle/segment/chip
 /// pixels (`sw`/`seg` helpers, prototype lines 672–673), which the native `Picker`/`Toggle`
@@ -278,3 +279,69 @@ struct SettingsToggleRow<Label: View>: View {
         .accessibilityAction { guard isEnabled else { return }; isOn.toggle() }
     }
 }
+
+/// Standard title for a settings row (13.5px semibold) with optional regular faint suffix.
+struct SettingsRowTitle: View {
+    let title: String
+    var suffix: String? = nil
+    @Environment(\.tokens) private var t
+
+    init(_ title: String, suffix: String? = nil) {
+        self.title = title
+        self.suffix = suffix
+    }
+
+    var body: some View {
+        if let suffix {
+            (Text(title).font(WattlyFont.at(13.5, weight: .semibold)).foregroundColor(t.text)
+                + Text(" \(suffix)").font(WattlyFont.at(11.5, weight: .regular)).foregroundColor(t.faint))
+        } else {
+            Text(title).font(WattlyFont.at(13.5, weight: .semibold)).foregroundStyle(t.text)
+        }
+    }
+}
+
+// MARK: - Window Appearance Sync
+
+/// Reactively syncs the Settings window's own `NSAppearance` to the theme setting.
+/// `.preferredColorScheme` (applied by `ThemedRoot.body`) only sets the color-scheme
+/// trait SwiftUI content renders with — it does NOT re-resolve an already-visible `NSWindow`'s
+/// AppKit-drawn chrome (the native titlebar) after the theme changes; that chrome only picks up
+/// the new value the next time the window is created. Assigning `.appearance` on the hosting
+/// window directly, on every reactive update, fixes it.
+final class WindowAppearanceSyncView: NSView {
+    var mode: ThemeMode = .system {
+        didSet { applyAppearance() }
+    }
+
+    private var systemAppearanceObservation: NSKeyValueObservation?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        applyAppearance()
+        systemAppearanceObservation = NSApp.observe(\.effectiveAppearance) { [weak self] _, _ in
+            DispatchQueue.main.async { self?.applyAppearance() }
+        }
+    }
+
+    private func applyAppearance() {
+        let resolved: NSAppearance? = mode == .system
+            ? NSAppearance(named: SystemAppearance.isDark() ? .darkAqua : .aqua)
+            : ThemeResolver.nsAppearance(mode)
+        window?.appearance = resolved
+    }
+}
+
+struct WindowAppearanceSync: NSViewRepresentable {
+    let mode: ThemeMode
+
+    func makeNSView(context: Context) -> WindowAppearanceSyncView {
+        WindowAppearanceSyncView()
+    }
+
+    func updateNSView(_ nsView: WindowAppearanceSyncView, context: Context) {
+        nsView.mode = mode
+    }
+}
+
+

@@ -30,17 +30,9 @@ enum SettingsReset {
         defaults.set("", forKey: StorageKey.expandedCards)        // collapse all cards (가정 C)
         defaults.set(Defaults.loginItem, forKey: StorageKey.loginItem)
 
-        // Iterate allCases so every card's menu key is written, including `.battery` (a real
-        // menu chip now, default off — see Defaults.menuMetrics).
-        for card in CardKind.allCases {
-            defaults.set(Defaults.show[card] ?? true, forKey: StorageKey.show(card))
-            defaults.set(Defaults.menuMetrics[card] ?? false, forKey: StorageKey.menu(card))
-        }
-        defaults.set(Defaults.menuBatteryTempEnabled, forKey: StorageKey.menuBatteryTemp)
-        defaults.set(Defaults.menuMemPressureEnabled, forKey: StorageKey.menuMemPressure)
-        for prefix in Defaults.menuCoreClockEnabled.keys {
-            defaults.set(Defaults.menuCoreClockEnabled[prefix] ?? false, forKey: StorageKey.menuCoreClock(prefix))
-        }
+        // Card visibility and menubar selection domain models encapsulate defaults serialization.
+        CardVisibility().write(to: defaults)
+        MenuBarSelection().write(to: defaults)
 
         // Re-sync the real login item to the default (ON). Best-effort.
         try? login?.setEnabled(Defaults.loginItem)

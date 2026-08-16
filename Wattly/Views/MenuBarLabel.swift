@@ -12,21 +12,9 @@ import AppKit
 struct MenuBarLabel: View {
     let monitor: SystemMonitor
 
+    @State private var visibilitySettings = VisibilitySettings.shared
     @AppStorage(StorageKey.menubarTextEnabled) private var textEnabled = Defaults.menubarTextEnabled
     @AppStorage(StorageKey.powerSmoothed)      private var powerSmoothed = Defaults.powerSmoothed
-    @AppStorage(StorageKey.menu(.cpu))     private var menuCPU     = Defaults.menuMetrics[.cpu]     ?? false
-    @AppStorage(StorageKey.menu(.gpu))     private var menuGPU     = Defaults.menuMetrics[.gpu]     ?? false
-    @AppStorage(StorageKey.menuCoreClock("S")) private var menuSClock = Defaults.menuCoreClockEnabled["S"] ?? false
-    @AppStorage(StorageKey.menuCoreClock("P")) private var menuPClock = Defaults.menuCoreClockEnabled["P"] ?? false
-    @AppStorage(StorageKey.menuCoreClock("E")) private var menuEClock = Defaults.menuCoreClockEnabled["E"] ?? false
-    @AppStorage(StorageKey.menu(.power))   private var menuPower   = Defaults.menuMetrics[.power]   ?? false
-    @AppStorage(StorageKey.menu(.battery)) private var menuBattery = Defaults.menuMetrics[.battery] ?? false
-    @AppStorage(StorageKey.menu(.mem))     private var menuMem     = Defaults.menuMetrics[.mem]     ?? false
-    @AppStorage(StorageKey.menuMemPressure) private var menuMemPressure = Defaults.menuMemPressureEnabled
-    @AppStorage(StorageKey.menu(.cpuTemp)) private var menuCpuTemp = Defaults.menuMetrics[.cpuTemp] ?? false
-    @AppStorage(StorageKey.menu(.gpuTemp)) private var menuGpuTemp = Defaults.menuMetrics[.gpuTemp] ?? false
-    @AppStorage(StorageKey.menuBatteryTemp) private var menuBatteryTemp = Defaults.menuBatteryTempEnabled
-    @AppStorage(StorageKey.menu(.fan))     private var menuFan     = Defaults.menuMetrics[.fan]     ?? false
 
     var body: some View {
         let label = assembled
@@ -57,9 +45,7 @@ struct MenuBarLabel: View {
     /// assembled (unlike `assembled`, which gates on `textEnabled`). "Wattly" when nothing is
     /// selected (decision A).
     private var accessibilityLabel: String {
-        let states = Dictionary(uniqueKeysWithValues:
-            selected.map { ($0, monitor.cardState($0, smoothed: powerSmoothed)) })
-        return Accessibility.menuBarLabel(selected: selected, states: states, extraParts: extraParts)
+        Accessibility.menuBarLabel(items: items, states: activeStates)
     }
 
     /// The composed menubar string, or nil → icon only (text off, or no metric selected).
@@ -67,43 +53,18 @@ struct MenuBarLabel: View {
     /// no-op for the other menu metrics (the `isSmoothable` guard), so the call is uniform.
     private var assembled: String? {
         guard textEnabled else { return nil }
-        let states = Dictionary(uniqueKeysWithValues:
-            selected.map { ($0, monitor.cardState($0, smoothed: powerSmoothed)) })
-        var parts: [String] = []
-        if let base = MenuBarText.assemble(selected: selected, states: states) { parts.append(base) }
-        parts.append(contentsOf: extraParts)
-        return parts.isEmpty ? nil : parts.joined(separator: "  ·  ")
+        return MenuBarText.assemble(items: items, states: activeStates)
     }
 
-    /// Selected menubar metrics, from the per-chip flags (mirrors the settings grid).
-    private var selected: Set<CardKind> {
-        var s = Set<CardKind>()
-        if menuCPU     { s.insert(.cpu) }
-        if menuGPU     { s.insert(.gpu) }
-        if menuPower   { s.insert(.power) }
-        if menuBattery { s.insert(.battery) }
-        if menuMem     { s.insert(.mem) }
-        if menuCpuTemp { s.insert(.cpuTemp) }
-        if menuGpuTemp { s.insert(.gpuTemp) }
-        if menuFan     { s.insert(.fan) }
-        return s
+    /// Selected menubar items in canonical order.
+    private var items: [MenuBarItem] {
+        visibilitySettings.menuItems
     }
 
-    /// Pre-formatted parts for the menubar-only figures that have no `CardKind` (memory
-    /// pressure % is independent of the `.mem` GB chip; the S/P/E cluster clocks are
-    /// independent of the `.cpu` % chip; battery temperature is independent of the `.battery` W chip — menubar items update).
-    /// Read directly off the monitor, independent of `selected`.
-    private var extraParts: [String] {
-        var parts: [String] = []
-        if menuMemPressure { parts.append(MenuBarText.memPressurePart(monitor.cardState(.mem))) }
-        let cpuState = monitor.cardState(.cpu)
-        if menuSClock { parts.append(MenuBarText.coreClockPart("S", cpuState)) }
-        if menuPClock { parts.append(MenuBarText.coreClockPart("P", cpuState)) }
-        if menuEClock { parts.append(MenuBarText.coreClockPart("E", cpuState)) }
-        if menuBatteryTemp {
-            parts.append(MenuBarText.batteryTempPart(monitor.cardState(.battery, smoothed: powerSmoothed)))
-        }
-        return parts
+    private var activeStates: [CardKind: MetricState] {
+        let kinds = Set(items.map(\.requiredCard))
+        return Dictionary(uniqueKeysWithValues:
+            kinds.map { ($0, monitor.cardState($0, smoothed: powerSmoothed)) })
     }
 }
 

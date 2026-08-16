@@ -147,4 +147,85 @@ struct SettingsResetTests {
         #expect(defaults.object(forKey: StorageKey.showBatteryEfficiency) != nil)
         #expect(defaults.bool(forKey: StorageKey.showBatteryEfficiency) == false)
     }
+
+    @Test func cardVisibilityDefaultsAndMutations() {
+        var visibility = CardVisibility()
+        #expect(visibility.isShown(.cpu))
+        #expect(visibility.isShown(.power))
+        #expect(visibility.activeCards.contains(.cpu))
+        #expect(visibility.activeCards.contains(.power))
+
+        visibility.setShown(.gpu, false)
+        #expect(!visibility.isShown(.gpu))
+        #expect(visibility.activeCards.contains(.cpu))
+        #expect(!visibility.activeCards.contains(.gpu))
+
+        visibility.setShown(.gpu, true)
+        #expect(visibility.isShown(.gpu))
+        #expect(visibility.activeCards.contains(.gpu))
+    }
+
+    @Test func cardVisibilityUserDefaultsRoundTrip() {
+        let d = makeDefaults(#function)
+        var visibility = CardVisibility()
+        visibility.setShown(.cpu, false)
+        visibility.setShown(.power, false)
+        visibility.write(to: d)
+
+        let loaded = CardVisibility(userDefaults: d)
+        #expect(loaded == visibility)
+        #expect(!loaded.isShown(.cpu))
+        #expect(!loaded.isShown(.power))
+        #expect(loaded.isShown(.gpu))
+    }
+
+    @Test func menuBarSelectionDefaultsAndMutations() {
+        var selection = MenuBarSelection()
+        #expect(selection.isSelected(.cpu))
+        #expect(!selection.isSelected(.gpu))
+        #expect(!selection.isSelected(.power))
+        #expect(!selection.isBatteryTempSelected)
+        #expect(!selection.isMemPressureSelected)
+        #expect(!selection.isCoreClockSelected("S"))
+
+        #expect(selection.items == [.card(.cpu)])
+        #expect(selection.requiredCards == [.cpu])
+
+        selection.setSelected(.gpu, true)
+        selection.setCoreClockSelected("S", true)
+        selection.setMemPressureSelected(true)
+        selection.setBatteryTempSelected(true)
+
+        #expect(selection.isSelected(.gpu))
+        #expect(selection.isCoreClockSelected("S"))
+        #expect(selection.isMemPressureSelected)
+        #expect(selection.isBatteryTempSelected)
+
+        #expect(selection.items == [
+            .card(.cpu),
+            .coreClock(prefix: "S"),
+            .card(.gpu),
+            .batteryTemp,
+            .memPressure
+        ])
+        #expect(selection.requiredCards == [.cpu, .gpu, .mem, .battery])
+    }
+
+    @Test func menuBarSelectionUserDefaultsRoundTrip() {
+        let d = makeDefaults(#function)
+        var selection = MenuBarSelection()
+        selection.setSelected(.cpu, false)
+        selection.setSelected(.power, true)
+        selection.setCoreClockSelected("P", true)
+        selection.setMemPressureSelected(true)
+        selection.write(to: d)
+
+        let loaded = MenuBarSelection(userDefaults: d)
+        #expect(loaded == selection)
+        #expect(!loaded.isSelected(.cpu))
+        #expect(loaded.isSelected(.power))
+        #expect(loaded.isCoreClockSelected("P"))
+        #expect(loaded.isMemPressureSelected)
+        #expect(!loaded.isBatteryTempSelected)
+    }
 }

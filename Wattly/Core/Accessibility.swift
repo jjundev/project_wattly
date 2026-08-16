@@ -39,6 +39,17 @@ enum Accessibility {
         CardPresentation.thresholdLevel(card, state, thresholds)?.stateWord
     }
 
+    /// The menubar VoiceOver label — "Wattly" plus the assembled items,
+    /// computed regardless of whether the visible text is on (issue 15 §1). Decision A: an
+    /// empty selection reads just "Wattly". Reuses the MenuBarText assembler so the symbol copy
+    /// matches the menubar text exactly.
+    static func menuBarLabel(items: [MenuBarItem], states: [CardKind: MetricState]) -> String {
+        guard let metrics = MenuBarText.assemble(items: items, states: states) else {
+            return "Wattly"
+        }
+        return "Wattly, \(metrics)"
+    }
+
     /// The menubar VoiceOver label — "Wattly" plus the selected metrics in canonical order,
     /// computed regardless of whether the visible text is on (issue 15 §1). Decision A: an
     /// empty selection reads just "Wattly". Reuses the #14 assembler so the symbol copy
