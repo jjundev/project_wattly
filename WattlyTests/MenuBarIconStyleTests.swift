@@ -26,8 +26,8 @@ struct MenuBarIconStyleTests {
         #expect(runner.staticFrame == 8)
     }
 
-    @Test func defaultIconStyleIsCoolingTurbine() {
-        #expect(Defaults.menubarIconStyle == .turbine)
+    @Test func defaultIconStyleIsHillRunner() {
+        #expect(Defaults.menubarIconStyle == .hillRunner)
         #expect(StorageKey.menubarIconStyle == "menubarIconStyle")
     }
 

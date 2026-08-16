@@ -169,7 +169,7 @@ enum MenuBarIconMotion {
                                 isLowPowerMode: Bool = false,
                                 isForeground: Bool = false,
                                 frameCount: Int = 24,
-                                style: MenuBarIconStyle = .turbine) -> TimeInterval {
+                                style: MenuBarIconStyle = .hillRunner) -> TimeInterval {
         let targetFPS = KineticNotchSpeed.resolveTargetFPS(speed: speed, isACConnected: isACConnected, isLowPowerMode: isLowPowerMode, isForeground: isForeground)
         let maxFPSDelay = 1.0 / targetFPS
 
