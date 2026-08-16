@@ -381,36 +381,60 @@ struct HillRunnerMark: View {
     private static let poses: [[Pose]] = [
         // Tier 0: Uphill Heavy Walk (0..7)
         [
-            Pose(bob: 0.00, ft: 0.40, fk: -0.05, bt: -0.35, bk: -0.15, fa: -0.45, fab: 0.20, ba: 0.35, bab: -1.20),
-            Pose(bob: 0.02, ft: 0.15, fk: -0.40, bt: -0.50, bk: -0.65, fa: -0.60, fab: 0.10, ba: 0.50, bab: -1.35),
-            Pose(bob: -0.01, ft: -0.05, fk: -0.10, bt: 0.25, bk: -0.90, fa: -0.15, fab: -0.30, ba: 0.10, bab: -0.70),
-            Pose(bob: -0.03, ft: -0.30, fk: -0.05, bt: 0.40, bk: -0.30, fa: 0.35, fab: -1.20, ba: -0.45, bab: 0.20),
-            Pose(bob: 0.00, ft: -0.35, fk: -0.15, bt: 0.40, bk: -0.05, fa: 0.35, fab: -1.20, ba: -0.45, bab: 0.20),
-            Pose(bob: 0.02, ft: -0.50, fk: -0.65, bt: 0.15, bk: -0.40, fa: 0.50, fab: -1.35, ba: -0.60, bab: 0.10),
-            Pose(bob: -0.01, ft: 0.25, fk: -0.90, bt: -0.05, bk: -0.10, fa: 0.10, fab: -0.70, ba: -0.15, bab: -0.30),
-            Pose(bob: -0.03, ft: 0.40, fk: -0.30, bt: -0.30, bk: -0.05, fa: -0.45, fab: 0.20, ba: 0.35, bab: -1.20)
+            // Frame 0: Contact (Lead Heel Strike on Hill)
+            Pose(bob:  0.00, ft:  0.38, fk: 0.22, bt: -0.36, bk: 0.32, fa: -0.45, fab: -1.25, ba:  0.40, bab: -1.40),
+            // Frame 1: Recoil / Down (Weight Acceptance & Knee Cushion)
+            Pose(bob:  0.02, ft:  0.18, fk: 0.65, bt: -0.48, bk: 0.85, fa: -0.55, fab: -1.20, ba:  0.50, bab: -1.45),
+            // Frame 2: Passing (Single Support / Foot Clearance)
+            Pose(bob: -0.01, ft: -0.08, fk: 0.20, bt:  0.28, bk: 1.10, fa: -0.15, fab: -1.15, ba:  0.15, bab: -1.25),
+            // Frame 3: High Point / Up (Uphill Push-Off)
+            Pose(bob: -0.03, ft: -0.32, fk: 0.10, bt:  0.38, bk: 0.35, fa:  0.30, fab: -1.35, ba: -0.38, bab: -1.20),
+            // Frame 4: Contact Mirror
+            Pose(bob:  0.00, ft: -0.36, fk: 0.32, bt:  0.38, bk: 0.22, fa:  0.40, fab: -1.40, ba: -0.45, bab: -1.25),
+            // Frame 5: Recoil Mirror
+            Pose(bob:  0.02, ft: -0.48, fk: 0.85, bt:  0.18, bk: 0.65, fa:  0.50, fab: -1.45, ba: -0.55, bab: -1.20),
+            // Frame 6: Passing Mirror
+            Pose(bob: -0.01, ft:  0.28, fk: 1.10, bt: -0.08, bk: 0.20, fa:  0.15, fab: -1.25, ba: -0.15, bab: -1.15),
+            // Frame 7: High Point Mirror
+            Pose(bob: -0.03, ft:  0.38, fk: 0.35, bt: -0.32, bk: 0.10, fa: -0.38, fab: -1.20, ba:  0.30, bab: -1.35)
         ],
-        // Tier 1: Flat Athletic Jog (0..7)
+        // Tier 1: Flat Athletic Jog (8..15)
         [
-            Pose(bob: 0.00, ft: 0.65, fk: -0.20, bt: -0.60, bk: -0.35, fa: -0.80, fab: 0.15, ba: 0.65, bab: -1.50),
-            Pose(bob: 0.04, ft: 0.25, fk: -0.75, bt: -0.85, bk: -1.05, fa: -1.00, fab: 0.10, ba: 0.85, bab: -1.65),
-            Pose(bob: -0.02, ft: -0.15, fk: -0.15, bt: 0.50, bk: -1.45, fa: -0.20, fab: -0.50, ba: 0.15, bab: -1.10),
-            Pose(bob: -0.06, ft: -0.60, fk: -0.10, bt: 0.80, bk: -0.55, fa: 0.65, fab: -1.50, ba: -0.80, bab: 0.15),
-            Pose(bob: 0.00, ft: -0.60, fk: -0.35, bt: 0.65, bk: -0.20, fa: 0.65, fab: -1.50, ba: -0.80, bab: 0.15),
-            Pose(bob: 0.04, ft: -0.85, fk: -1.05, bt: 0.25, bk: -0.75, fa: 0.85, fab: -1.65, ba: -1.00, bab: 0.10),
-            Pose(bob: -0.02, ft: 0.50, fk: -1.45, bt: -0.15, bk: -0.15, fa: 0.15, fab: -1.10, ba: -0.20, bab: -0.50),
-            Pose(bob: -0.06, ft: 0.80, fk: -0.55, bt: -0.60, bk: -0.10, fa: -0.80, fab: 0.15, ba: 0.65, bab: -1.50)
+            // Frame 8 (0): Contact (Forward Foot Strike)
+            Pose(bob:  0.00, ft:  0.62, fk: 0.32, bt: -0.58, bk: 0.65, fa: -0.75, fab: -1.45, ba:  0.65, bab: -1.55),
+            // Frame 9 (1): Compression (Maximum Stance Knee Cushion)
+            Pose(bob:  0.04, ft:  0.22, fk: 0.95, bt: -0.75, bk: 1.35, fa: -0.90, fab: -1.40, ba:  0.80, bab: -1.65),
+            // Frame 10 (2): Drive / Passing (Explosive Takeoff)
+            Pose(bob: -0.02, ft: -0.25, fk: 0.25, bt:  0.52, bk: 1.45, fa: -0.20, fab: -1.35, ba:  0.20, bab: -1.45),
+            // Frame 11 (3): Air Apex (Flight Phase Suspension)
+            Pose(bob: -0.06, ft: -0.62, fk: 0.45, bt:  0.78, bk: 0.60, fa:  0.65, fab: -1.55, ba: -0.75, bab: -1.45),
+            // Frame 12 (4): Contact Mirror
+            Pose(bob:  0.00, ft: -0.58, fk: 0.65, bt:  0.62, bk: 0.32, fa:  0.65, fab: -1.55, ba: -0.75, bab: -1.45),
+            // Frame 13 (5): Compression Mirror
+            Pose(bob:  0.04, ft: -0.75, fk: 1.35, bt:  0.22, bk: 0.95, fa:  0.80, fab: -1.65, ba: -0.90, bab: -1.40),
+            // Frame 14 (6): Drive Mirror
+            Pose(bob: -0.02, ft:  0.52, fk: 1.45, bt: -0.25, bk: 0.25, fa:  0.20, fab: -1.45, ba: -0.20, bab: -1.35),
+            // Frame 15 (7): Air Apex Mirror
+            Pose(bob: -0.06, ft:  0.78, fk: 0.60, bt: -0.62, bk: 0.45, fa: -0.75, fab: -1.45, ba:  0.65, bab: -1.55)
         ],
-        // Tier 2: Downhill Frantic Sprint (0..7)
+        // Tier 2: Downhill Frantic Sprint (16..23)
         [
-            Pose(bob: 0.00, ft: 0.95, fk: -0.30, bt: -0.90, bk: -0.55, fa: -1.20, fab: 0.20, ba: 0.95, bab: -1.65),
-            Pose(bob: 0.05, ft: 0.40, fk: -1.10, bt: -1.20, bk: -1.35, fa: -1.40, fab: 0.15, ba: 1.25, bab: -1.75),
-            Pose(bob: -0.04, ft: -0.30, fk: -0.30, bt: 0.80, bk: -1.85, fa: -0.35, fab: -0.60, ba: 0.25, bab: -1.30),
-            Pose(bob: -0.09, ft: -0.90, fk: -0.20, bt: 1.15, bk: -0.75, fa: 0.95, fab: -1.65, ba: -1.20, bab: 0.20),
-            Pose(bob: 0.00, ft: -0.90, fk: -0.55, bt: 0.95, bk: -0.30, fa: 0.95, fab: -1.65, ba: -1.20, bab: 0.20),
-            Pose(bob: 0.05, ft: -1.20, fk: -1.35, bt: 0.40, bk: -1.10, fa: 1.25, fab: -1.75, ba: -1.40, bab: 0.15),
-            Pose(bob: -0.04, ft: 0.80, fk: -1.85, bt: -0.30, bk: -0.30, fa: 0.25, fab: -1.30, ba: -0.35, bab: -0.60),
-            Pose(bob: -0.09, ft: 1.15, fk: -0.75, bt: -0.90, bk: -0.20, fa: -1.20, fab: 0.20, ba: 0.95, bab: -1.65)
+            // Frame 16 (0): Wide Touchdown (Downhill Ground Reach)
+            Pose(bob:  0.00, ft:  0.88, fk: 0.42, bt: -0.85, bk: 0.85, fa: -1.15, fab: -1.50, ba:  0.95, bab: -1.70),
+            // Frame 17 (1): Hard Stomp (Deep Compression & Butt-Kick)
+            Pose(bob:  0.05, ft:  0.35, fk: 1.25, bt: -1.10, bk: 1.65, fa: -1.35, fab: -1.45, ba:  1.20, bab: -1.75),
+            // Frame 18 (2): Air Launch (High Knee Propulsion)
+            Pose(bob: -0.04, ft: -0.45, fk: 0.35, bt:  0.85, bk: 1.75, fa: -0.30, fab: -1.40, ba:  0.30, bab: -1.55),
+            // Frame 19 (3): Max Spread (Airborne Sprint Stride)
+            Pose(bob: -0.09, ft: -0.95, fk: 0.65, bt:  1.15, bk: 0.75, fa:  0.95, fab: -1.70, ba: -1.15, bab: -1.50),
+            // Frame 20 (4): Wide Touchdown Mirror
+            Pose(bob:  0.00, ft: -0.85, fk: 0.85, bt:  0.88, bk: 0.42, fa:  0.95, fab: -1.70, ba: -1.15, bab: -1.50),
+            // Frame 21 (5): Hard Stomp Mirror
+            Pose(bob:  0.05, ft: -1.10, fk: 1.65, bt:  0.35, bk: 1.25, fa:  1.20, fab: -1.75, ba: -1.35, bab: -1.45),
+            // Frame 22 (6): Air Launch Mirror
+            Pose(bob: -0.04, ft:  0.85, fk: 1.75, bt: -0.45, bk: 0.35, fa:  0.30, fab: -1.55, ba: -0.30, bab: -1.40),
+            // Frame 23 (7): Max Spread Mirror
+            Pose(bob: -0.09, ft:  1.15, fk: 0.75, bt: -0.95, bk: 0.65, fa: -1.15, fab: -1.50, ba:  0.95, bab: -1.70)
         ]
     ]
 
