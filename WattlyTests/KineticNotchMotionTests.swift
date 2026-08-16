@@ -65,4 +65,25 @@ struct KineticNotchMotionTests {
             .reduce(0, +)
         #expect(abs(lapDuration - 1.4) < 1e-12)
     }
+
+    @Test func motionCalculatesDisplayedFrameForVariousStyles() {
+        for style in MenuBarIconStyle.allCases {
+            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 0, reduceMotion: false) == 0)
+            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: style.frameCount - 1, reduceMotion: false) == style.frameCount - 1)
+            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: style.frameCount, reduceMotion: false) == 0)
+            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: -1, reduceMotion: false) == style.frameCount - 1)
+            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 3, reduceMotion: true) == style.staticFrame)
+        }
+    }
+
+    @Test func frameDelaysSumToCycleTime() {
+        for style in MenuBarIconStyle.allCases {
+            let delays = (0..<style.frameCount).map {
+                MenuBarIconMotion.frameDelay(style: style, phase: $0, frameRate: 5.0)
+            }
+            let totalTime = delays.reduce(0, +)
+            let expectedTotalTime = Double(style.frameCount) / 5.0
+            #expect(abs(totalTime - expectedTotalTime) < 1e-9)
+        }
+    }
 }
