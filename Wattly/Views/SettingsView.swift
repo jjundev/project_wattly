@@ -20,6 +20,8 @@ struct SettingsView: View {
     @AppStorage(StorageKey.loginItem) private var loginMirror = Defaults.loginItem
     private let loginItem: LoginItemControlling = LoginItem()
 
+    @State private var updateChecker = UpdateChecker()
+    @State private var autoUpdater = AutoUpdater()
     @State private var isResetConfirmationPresented = false
 
     var body: some View {
@@ -78,6 +80,67 @@ struct SettingsView: View {
 
                 Rectangle().fill(t.line).frame(height: 1)
 
+                // 소프트웨어 업데이트
+                HStack(alignment: .center, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        SettingsRowTitle("소프트웨어 업데이트")
+                        HStack(spacing: 6) {
+                            Text("현재 버전 v\(updateChecker.currentVersion)")
+                                .font(WattlyFont.at(11.5, weight: .regular))
+                                .foregroundStyle(t.faint)
+
+                            switch autoUpdater.state {
+                            case .downloading(let fraction):
+                                ProgressView(value: fraction)
+                                    .progressViewStyle(.linear)
+                                    .frame(width: 80)
+                                Text("\(Int(fraction * 100))%")
+                                    .font(WattlyFont.at(11, weight: .medium))
+                                    .foregroundStyle(t.text)
+                            case .extracting, .readyToRelaunch:
+                                ProgressView()
+                                    .scaleEffect(0.5)
+                                    .frame(width: 10, height: 10)
+                                Text("설치 준비 중...")
+                                    .font(WattlyFont.at(11, weight: .medium))
+                                    .foregroundStyle(t.faint)
+                            case .failed(let reason):
+                                Text("• \(reason)")
+                                    .font(WattlyFont.at(11, weight: .regular))
+                                    .foregroundStyle(.red)
+                            case .idle:
+                                switch updateChecker.status {
+                                case .checking:
+                                    ProgressView()
+                                        .scaleEffect(0.5)
+                                        .frame(width: 10, height: 10)
+                                case .upToDate:
+                                    Text("• 최신 버전입니다")
+                                        .font(WattlyFont.at(11.5, weight: .medium))
+                                        .foregroundStyle(.green)
+                                case .available(let release):
+                                    Text("• v\(release.version) 사용 가능")
+                                        .font(WattlyFont.at(11.5, weight: .medium))
+                                        .foregroundStyle(Tokens.accent)
+                                case .failed(let reason):
+                                    Text("• \(reason)")
+                                        .font(WattlyFont.at(11, weight: .regular))
+                                        .foregroundStyle(.red)
+                                case .idle:
+                                    EmptyView()
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(minLength: 8)
+
+                    updateActionButton
+                }
+                .padding(EdgeInsets(top: 10, leading: 14, bottom: 10, trailing: 14))
+
+                Rectangle().fill(t.line).frame(height: 1)
+
                 Button {
                     isResetConfirmationPresented = true
                 } label: {
@@ -93,6 +156,59 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
             }
+        }
+    }
+
+    @ViewBuilder
+    private var updateActionButton: some View {
+        if case .available(let release) = updateChecker.status, case .idle = autoUpdater.state {
+            if let asset = release.zipAsset {
+                Button {
+                    autoUpdater.startUpdate(asset: asset)
+                } label: {
+                    Text("지금 업데이트")
+                        .font(WattlyFont.at(12, weight: .medium))
+                        .foregroundStyle(Color.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Tokens.accent)
+                        )
+                }
+                .buttonStyle(.plain)
+            } else {
+                Button {
+                    NSWorkspace.shared.open(release.htmlURL)
+                } label: {
+                    Text("릴리즈 열기")
+                        .font(WattlyFont.at(12, weight: .medium))
+                        .foregroundStyle(t.text)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(t.segTrack))
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(t.rowBorder, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+        } else {
+            Button {
+                Task {
+                    await updateChecker.checkForUpdates()
+                }
+            } label: {
+                HStack(spacing: 5) {
+                    Text(updateChecker.status == .checking ? "확인 중..." : "업데이트 확인")
+                        .font(WattlyFont.at(12, weight: .medium))
+                        .foregroundStyle(t.text)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(RoundedRectangle(cornerRadius: 6).fill(t.segTrack))
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(t.rowBorder, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .disabled(updateChecker.status == .checking || autoUpdater.state != .idle)
         }
     }
 
