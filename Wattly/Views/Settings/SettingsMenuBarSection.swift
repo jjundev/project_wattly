@@ -29,7 +29,7 @@ struct SettingsMenuBarSection: View {
     @AppStorage(StorageKey.menu(.fan))     private var menuFan     = Defaults.menuMetrics[.fan]     ?? false
 
     @State private var isAdvancedMenuMetricsExpanded = false
-    @State private var continuousPreviewPhase: Double = 0.0
+    @State private var displayedPreviewFrame: Int = 0
 
     private var hasActiveAdvancedMetrics: Bool {
         menuSClock || menuPClock || menuEClock || menuMemPressure || menuBatteryTemp
@@ -145,30 +145,43 @@ struct SettingsMenuBarSection: View {
             .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
             .task(id: "\(iconStyle.rawValue)-\(kineticNotchMotionEnabled)-\(kineticNotchSpeed.rawValue)-\(reduceMotion)") {
                 guard kineticNotchMotionEnabled, !reduceMotion else {
-                    continuousPreviewPhase = Double(iconStyle.staticFrame) / Double(iconStyle.frameCount)
+                    displayedPreviewFrame = iconStyle.staticFrame
                     return
                 }
+                var continuousPhase = 0.0
+                var currentRPS = 0.25
                 var lastInstant = CACurrentMediaTime()
+
                 while !Task.isCancelled {
                     let load = previewLoad ?? 0.0
-                    let rps = MenuBarIconMotion.revolutionsPerSecond(load: load)
-                    let activeFPS = MenuBarIconMotion.effectiveFrameRate(
+                    let targetRPS = MenuBarIconMotion.revolutionsPerSecond(load: load)
+
+                    let now = CACurrentMediaTime()
+                    let dt = min(max(now - lastInstant, 0.001), 1.0)
+                    lastInstant = now
+
+                    currentRPS = MenuBarIconMotion.smoothedRPS(current: currentRPS, target: targetRPS, dt: dt)
+                    continuousPhase = MenuBarIconMotion.advancePhase(currentPhase: continuousPhase, rps: currentRPS, dt: dt)
+
+                    let newFrame = MenuBarIconMotion.displayedFrame(
+                        style: iconStyle,
+                        phase: continuousPhase,
                         load: load,
+                        reduceMotion: reduceMotion || !kineticNotchMotionEnabled
+                    )
+                    if newFrame != displayedPreviewFrame {
+                        displayedPreviewFrame = newFrame
+                    }
+
+                    let delay = MenuBarIconMotion.interFrameDelay(
+                        rps: currentRPS,
                         speed: kineticNotchSpeed,
                         isACConnected: isACConnected,
                         isLowPowerMode: isLowPowerMode,
-                        frameCount: iconStyle.frameCount
+                        frameCount: iconStyle.frameCount,
+                        style: iconStyle
                     )
-                    let targetDelay = max(1.0 / activeFPS, 0.016)
-
-                    try? await Task.sleep(for: .seconds(targetDelay))
-                    guard !Task.isCancelled else { return }
-
-                    let now = CACurrentMediaTime()
-                    let dt = min(now - lastInstant, 1.0)
-                    lastInstant = now
-
-                    continuousPreviewPhase = MenuBarIconMotion.advancePhase(currentPhase: continuousPreviewPhase, rps: rps, dt: dt)
+                    try? await Task.sleep(for: .seconds(delay))
                 }
             }
         }
@@ -176,11 +189,11 @@ struct SettingsMenuBarSection: View {
 
     private func iconStyleButton(for style: MenuBarIconStyle) -> some View {
         let isSelected = iconStyle == style
-        let previewFrame = MenuBarIconMotion.displayedFrame(
+        let previewFrame = isSelected ? displayedPreviewFrame : MenuBarIconMotion.displayedFrame(
             style: style,
-            phase: continuousPreviewPhase,
+            phase: 0.0,
             load: previewLoad,
-            reduceMotion: !kineticNotchMotionEnabled || reduceMotion
+            reduceMotion: true
         )
         let fgColor = isSelected ? Tokens.accent : t.text
         let labelColor = isSelected ? t.text : t.faint

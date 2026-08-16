@@ -14,7 +14,7 @@ struct MenuBarLabel: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var visibilitySettings = VisibilitySettings.shared
-    @State private var continuousPhase: Double = 0.0
+    @State private var displayedFrameIndex: Int = 0
     @AppStorage(StorageKey.menubarTextEnabled) private var textEnabled = Defaults.menubarTextEnabled
     @AppStorage(StorageKey.powerSmoothed)      private var powerSmoothed = Defaults.powerSmoothed
     @AppStorage(StorageKey.kineticNotchMotionEnabled) private var kineticNotchMotionEnabled = Defaults.kineticNotchMotionEnabled
@@ -25,7 +25,7 @@ struct MenuBarLabel: View {
     var body: some View {
         let label = assembled
         let trailingMargin: CGFloat = (label != nil) ? 5.0 : 0.0
-        let glyph = MenuBarGlyph.template(style: iconStyle, frame: currentFrame, trailingPadding: trailingMargin).map(Image.init(nsImage:)) ?? Image(systemName: "waveform.path")
+        let glyph = MenuBarGlyph.template(style: iconStyle, frame: displayedFrameIndex, trailingPadding: trailingMargin).map(Image.init(nsImage:)) ?? Image(systemName: "waveform.path")
         return HStack(spacing: 0) {
             glyph
             if let label {
@@ -37,28 +37,40 @@ struct MenuBarLabel: View {
         .accessibilityLabel(accessibilityLabel)
         .task(id: "\(iconStyle.rawValue)-\(kineticNotchMotionEnabled)-\(kineticNotchSpeed.rawValue)-\(reduceMotion)") {
             guard kineticNotchMotionEnabled, !reduceMotion else { return }
+            var continuousPhase = 0.0
+            var currentRPS = 0.25
             var lastInstant = CACurrentMediaTime()
 
             while !Task.isCancelled {
                 let load = kineticNotchLoad ?? 0.0
-                let rps = MenuBarIconMotion.revolutionsPerSecond(load: load)
-                let activeFPS = MenuBarIconMotion.effectiveFrameRate(
+                let targetRPS = MenuBarIconMotion.revolutionsPerSecond(load: load)
+
+                let now = CACurrentMediaTime()
+                let dt = min(max(now - lastInstant, 0.001), 1.0)
+                lastInstant = now
+
+                currentRPS = MenuBarIconMotion.smoothedRPS(current: currentRPS, target: targetRPS, dt: dt)
+                continuousPhase = MenuBarIconMotion.advancePhase(currentPhase: continuousPhase, rps: currentRPS, dt: dt)
+
+                let newFrame = MenuBarIconMotion.displayedFrame(
+                    style: iconStyle,
+                    phase: continuousPhase,
                     load: load,
+                    reduceMotion: reduceMotion || !kineticNotchMotionEnabled
+                )
+                if newFrame != displayedFrameIndex {
+                    displayedFrameIndex = newFrame
+                }
+
+                let delay = MenuBarIconMotion.interFrameDelay(
+                    rps: currentRPS,
                     speed: kineticNotchSpeed,
                     isACConnected: isACConnected,
                     isLowPowerMode: isLowPowerMode,
-                    frameCount: iconStyle.frameCount
+                    frameCount: iconStyle.frameCount,
+                    style: iconStyle
                 )
-                let targetDelay = max(1.0 / activeFPS, 0.016)
-
-                try? await Task.sleep(for: .seconds(targetDelay))
-                guard !Task.isCancelled else { return }
-
-                let now = CACurrentMediaTime()
-                let dt = min(now - lastInstant, 1.0)
-                lastInstant = now
-
-                continuousPhase = MenuBarIconMotion.advancePhase(currentPhase: continuousPhase, rps: rps, dt: dt)
+                try? await Task.sleep(for: .seconds(delay))
             }
         }
     }
@@ -138,14 +150,6 @@ struct MenuBarLabel: View {
         )
     }
 
-    private var currentFrame: Int {
-        MenuBarIconMotion.displayedFrame(
-            style: iconStyle,
-            phase: continuousPhase,
-            load: kineticNotchLoad,
-            reduceMotion: reduceMotion || !kineticNotchMotionEnabled
-        )
-    }
 }
 
 @MainActor
