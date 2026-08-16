@@ -23,6 +23,8 @@ struct CardExpandRegion: View {
             batteryExpand(s)
         } else if card == .cpu, case .value(.cpu(let s)) = state {
             cpuExpand(s)
+        } else if card == .gpu, case .value(.gpu(let s)) = state {
+            gpuExpand(s)
         } else if card == .mem, case .value(.memory(let s)) = state {
             memExpand(s)
         } else if card == .cpuTemp, case .value(.temperature(let s)) = state, case .reading(let r) = s.cpu {
@@ -59,6 +61,35 @@ struct CardExpandRegion: View {
                     ForEach(Array(level.cores.enumerated()), id: \.offset) { ci, usage in
                         coreRow(label: "\(CardPresentation.corePrefix(level.name))\(ci)", usage: usage, accent: idx == 0)
                     }
+                }
+            }
+        }
+        .padding(.top, 8)
+    }
+
+    // MARK: GPU expand — per-core bars (mirrors CPU expand)
+
+    private func gpuExpand(_ s: GPUSample) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 7) {
+                HStack(spacing: 8) {
+                    Text("Graphics")
+                        .font(WattlyFont.at(11, weight: .bold))
+                        .foregroundStyle(t.sub)
+                    Spacer(minLength: 8)
+                    if let ghz = s.activeGHz {
+                        Text(CardPresentation.ghzText(ghz))
+                            .font(WattlyFont.at(11, weight: .semibold))
+                            .monospacedDigit()
+                            .foregroundStyle(t.faint)
+                    }
+                    Text("\(Int(s.overall.rounded()))%")
+                        .font(WattlyFont.at(12, weight: .bold))
+                        .monospacedDigit()
+                        .foregroundStyle(Tokens.accent)
+                }
+                ForEach(Array(s.cores.enumerated()), id: \.offset) { ci, usage in
+                    coreRow(label: "G\(ci)", usage: usage, accent: true)
                 }
             }
         }

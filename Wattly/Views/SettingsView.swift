@@ -362,6 +362,7 @@ struct SettingsView: View {
                     .padding(.leading, 14)
                 }
                 metricToggle(.cpu, isOn: $showCPU, divider: true, title: "CPU 사용률")
+                metricToggle(.gpu, isOn: $showGPU, divider: true, title: "GPU 사용률")
                 metricToggle(.mem, isOn: $showMem, divider: true, title: "메모리")
                 metricToggle(.cpuTemp, isOn: $showCpuTemp, divider: true, title: "CPU 온도")
                 metricToggle(.gpuTemp, isOn: $showGpuTemp, divider: true, title: "GPU 온도")
@@ -811,6 +812,7 @@ struct SettingsView: View {
             // 주요 지표 (Primary)
             LazyVGrid(columns: columns, spacing: 4) {
                 menuMetricChip(.cpu, label: "CPU (%)", isOn: menuCPU) { menuCPU.toggle() }
+                menuMetricChip(.gpu, label: "GPU (%)", isOn: menuGPU) { menuGPU.toggle() }
                 menuMetricChip(.power, label: "전력 (W)", isOn: menuPower) { menuPower.toggle() }
                 menuMetricChip(.battery, label: "배터리 (W)", isOn: menuBattery) { menuBattery.toggle() }
                 menuMetricChip(.mem, label: "메모리 (GB)", isOn: menuMem) { menuMem.toggle() }
