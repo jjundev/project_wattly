@@ -1084,6 +1084,162 @@
             </svg>
           `;
         }
+      },
+      {
+        id: 'powerRipple',
+        title: '7. 파워 리플 (Concentric Power Ripple) [NEW]',
+        category: 'Wave Dynamics',
+        desc: '중심 코어에서 3개의 동심원 에너지 링이 끊임없이 피어나며 바깥쪽으로 유려하게 퍼져나갑니다.',
+        render: (size, rot, phase, load) => {
+          const s = size;
+          const c = s / 2;
+          const strokeW = Math.max(1.4, s * 0.075);
+          const numRings = 3;
+          const maxR = s * 0.45;
+          const minR = s * 0.10;
+
+          const rings = [0, 1, 2].map(i => {
+            const progress = ((phase * 1.6) + i / numRings) % 1.0;
+            const r = minR + progress * (maxR - minR);
+            const opacity = Math.sin(progress * Math.PI) * 0.75;
+            return `<circle cx="${c}" cy="${c}" r="${r.toFixed(1)}" class="svg-stroke" stroke-width="${strokeW}" opacity="${opacity.toFixed(2)}" />`;
+          });
+
+          return `
+            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+              ${rings.join('')}
+              <circle cx="${c}" cy="${c}" r="${(s * 0.11).toFixed(1)}" fill="var(--accent)" />
+            </svg>
+          `;
+        }
+      },
+      {
+        id: 'apertureIris',
+        title: '8. 아이리스 조리개 (Aperture Iris) [NEW]',
+        category: 'Mechanical Optics',
+        desc: '6장의 곡면 조리개 날개가 나선형으로 맞물려 중심 구경(Aperture)을 부드럽게 개폐하며 호흡합니다.',
+        render: (size, rot, phase, load) => {
+          const s = size;
+          const c = s / 2;
+          const strokeW = Math.max(1.4, s * 0.075);
+          const outerR = s * 0.44;
+          const apertureR = s * (0.08 + (load / 100) * 0.06 + Math.sin(phase * 3.5) * 0.06);
+          const bladeRot = rot * 180 + Math.sin(phase * 3.5) * 20;
+
+          return `
+            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+              <circle cx="${c}" cy="${c}" r="${outerR.toFixed(1)}" class="svg-stroke" stroke-width="${(strokeW * 0.85).toFixed(1)}" opacity="0.4" />
+              <g transform="rotate(${bladeRot.toFixed(1)} ${c} ${c})">
+                ${[0, 60, 120, 180, 240, 300].map(a => {
+                  const rad = a * Math.PI / 180;
+                  const p1x = c + Math.cos(rad) * outerR * 0.95;
+                  const p1y = c + Math.sin(rad) * outerR * 0.95;
+                  const rad2 = (a + 65) * Math.PI / 180;
+                  const p2x = c + Math.cos(rad2) * apertureR;
+                  const p2y = c + Math.sin(rad2) * apertureR;
+                  return `<line x1="${p1x.toFixed(1)}" y1="${p1y.toFixed(1)}" x2="${p2x.toFixed(1)}" y2="${p2y.toFixed(1)}" class="svg-stroke" stroke-width="${strokeW}" stroke-linecap="round" />`;
+                }).join('')}
+                <circle cx="${c}" cy="${c}" r="${apertureR.toFixed(1)}" fill="var(--accent)" opacity="0.3" />
+                <circle cx="${c}" cy="${c}" r="${Math.max(1.5, apertureR * 0.5).toFixed(1)}" fill="var(--accent)" />
+              </g>
+            </svg>
+          `;
+        }
+      },
+      {
+        id: 'chipBus',
+        title: '9. 칩셋 수렴 버스 (Chip Interconnect) [NEW]',
+        category: 'Semiconductor Hardware',
+        desc: '사방 4개 인터커넥트 라인을 타고 전력 및 데이터 비트가 중심 프로세서 다이로 쉼 없이 흡수됩니다.',
+        render: (size, rot, phase, load) => {
+          const s = size;
+          const c = s / 2;
+          const strokeW = Math.max(1.5, s * 0.08);
+          const chipSize = s * 0.34;
+          const chipHalf = chipSize / 2;
+          const chipX = c - chipHalf;
+          const chipY = c - chipHalf;
+
+          const pNorm = (phase * 2.5) % 1.0;
+          const packetDist = s * 0.44 - pNorm * (s * 0.44 - chipHalf - 1.5);
+          const pSize = Math.max(1.8, s * 0.08);
+
+          const packets = [
+            { x: c, y: c - packetDist },
+            { x: c + packetDist, y: c },
+            { x: c, y: c + packetDist },
+            { x: c - packetDist, y: c }
+          ];
+
+          return `
+            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+              <line x1="${c}" y1="${(s * 0.06).toFixed(1)}" x2="${c}" y2="${(s * 0.94).toFixed(1)}" class="svg-stroke" stroke-width="${(strokeW * 0.6).toFixed(1)}" opacity="0.35" />
+              <line x1="${(s * 0.06).toFixed(1)}" y1="${c}" x2="${(s * 0.94).toFixed(1)}" y2="${c}" class="svg-stroke" stroke-width="${(strokeW * 0.6).toFixed(1)}" opacity="0.35" />
+              ${packets.map(p => `
+                <rect x="${(p.x - pSize / 2).toFixed(1)}" y="${(p.y - pSize / 2).toFixed(1)}" 
+                      width="${pSize.toFixed(1)}" height="${pSize.toFixed(1)}" rx="0.5" fill="var(--accent)" />
+              `).join('')}
+              <rect x="${chipX.toFixed(1)}" y="${chipY.toFixed(1)}" width="${chipSize.toFixed(1)}" height="${chipSize.toFixed(1)}" rx="${(s * 0.06).toFixed(1)}" 
+                    class="svg-stroke" stroke-width="${strokeW}" fill="currentColor" fill-opacity="0.15" />
+              <rect x="${(c - s * 0.07).toFixed(1)}" y="${(c - s * 0.07).toFixed(1)}" width="${(s * 0.14).toFixed(1)}" height="${(s * 0.14).toFixed(1)}" rx="1" fill="currentColor" />
+            </svg>
+          `;
+        }
+      },
+      {
+        id: 'stadiumRail',
+        title: '10. 스타디움 전하 레일 (Stadium Circuit) [NEW]',
+        category: 'Circuit Flow',
+        desc: '둥근 캡슐형 스타디움 트랙 레일을 따라 4개의 전하 도트가 일정한 간격으로 매끄럽게 질주합니다.',
+        render: (size, rot, phase, load) => {
+          const s = size;
+          const strokeW = Math.max(1.4, s * 0.075);
+          const trackW = s * 0.82;
+          const trackH = s * 0.54;
+          const trackX = (s - trackW) / 2;
+          const trackY = (s - trackH) / 2;
+          const rx = trackH / 2;
+
+          const straightL = trackW - 2 * rx;
+          const arcL = Math.PI * rx;
+          const totalP = straightL * 2 + arcL * 2;
+
+          const getTrackPos = (d) => {
+            let dist = (d % totalP + totalP) % totalP;
+            if (dist < straightL) {
+              return { x: trackX + rx + dist, y: trackY };
+            }
+            dist -= straightL;
+            if (dist < arcL) {
+              const theta = -Math.PI / 2 + (dist / arcL) * Math.PI;
+              return { x: trackX + trackW - rx + Math.cos(theta) * rx, y: trackY + rx + Math.sin(theta) * rx };
+            }
+            dist -= arcL;
+            if (dist < straightL) {
+              return { x: trackX + rx + straightL - dist, y: trackY + trackH };
+            }
+            dist -= straightL;
+            const theta = Math.PI / 2 + (dist / arcL) * Math.PI;
+            return { x: trackX + rx + Math.cos(theta) * rx, y: trackY + rx + Math.sin(theta) * rx };
+          };
+
+          const numDots = 4;
+          const baseDist = (phase * 1.8 * totalP) % totalP;
+          const dots = [0, 1, 2, 3].map(i => {
+            const pos = getTrackPos(baseDist + (i / numDots) * totalP);
+            return `<circle cx="${pos.x.toFixed(1)}" cy="${pos.y.toFixed(1)}" r="${(strokeW * 1.1).toFixed(1)}" fill="${i === 0 ? 'var(--accent)' : 'currentColor'}" />`;
+          });
+
+          return `
+            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+              <rect x="${trackX.toFixed(1)}" y="${trackY.toFixed(1)}" width="${trackW.toFixed(1)}" height="${trackH.toFixed(1)}" rx="${rx.toFixed(1)}" 
+                    class="svg-stroke" stroke-width="${(strokeW * 0.75).toFixed(1)}" opacity="0.35" />
+              <rect x="${(trackX + rx * 0.5).toFixed(1)}" y="${(trackY + rx * 0.5).toFixed(1)}" width="${(trackW - rx).toFixed(1)}" height="${(trackH - rx).toFixed(1)}" rx="${(rx * 0.5).toFixed(1)}" 
+                    class="svg-stroke" stroke-width="${(strokeW * 0.5).toFixed(1)}" opacity="0.2" stroke-dasharray="2,2" />
+              ${dots.join('')}
+            </svg>
+          `;
+        }
       }
     ];
 
