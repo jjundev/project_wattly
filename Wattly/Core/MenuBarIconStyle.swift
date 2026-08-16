@@ -7,6 +7,7 @@ public enum MenuBarIconStyle: String, CaseIterable, Identifiable, Sendable {
     case cube3D = "cube3D"               // 4. 3D 와이어프레임 큐브
     case thermalBubble = "thermalBubble" // 5. 열 대류 버블
     case equalizer = "equalizer"         // 6. 디지털 이퀄라이저
+    case hillRunner = "hillRunner"       // 7. 경사로 러너 (Hill Runner)
 
     public var id: String { rawValue }
 
@@ -18,6 +19,7 @@ public enum MenuBarIconStyle: String, CaseIterable, Identifiable, Sendable {
         case .cube3D: "3D 큐브"
         case .thermalBubble: "열 대류 버블"
         case .equalizer: "디지털 이퀄라이저"
+        case .hillRunner: "러너 (경사로 질주)"
         }
     }
 
@@ -29,6 +31,7 @@ public enum MenuBarIconStyle: String, CaseIterable, Identifiable, Sendable {
         case .cube3D: "3D 기하학"
         case .thermalBubble: "열역학"
         case .equalizer: "디지털 스펙트럼"
+        case .hillRunner: "캐릭터 / 라이프"
         }
     }
 
@@ -40,15 +43,24 @@ public enum MenuBarIconStyle: String, CaseIterable, Identifiable, Sendable {
         case .cube3D: "3차원 대각선 축을 기준으로 와이어프레임 큐브가 자전합니다."
         case .thermalBubble: "하단에서 상단으로 열 배출 기포 파티클이 상승합니다."
         case .equalizer: "4개의 수직 디지털 바가 연산 및 전력 부하에 맞춰 상하 바운스합니다."
+        case .hillRunner: "부하(0%~100%)에 따라 오르막 힘겨운 걸음 → 평지 조깅 → 내리막 폭풍 질주로 지형 경사와 캐릭터 자세가 연속 전환됩니다."
         }
     }
 
     public var frameCount: Int {
         switch self {
-        case .turbine, .pulseWave, .vuMeter, .cube3D, .thermalBubble, .equalizer:
+        case .turbine, .pulseWave, .vuMeter, .cube3D, .thermalBubble, .equalizer, .hillRunner:
             return 24
         }
     }
 
-    public var staticFrame: Int { 0 }
+    public var staticFrame: Int {
+        switch self {
+        case .hillRunner:
+            return 8
+        default:
+            return 0
+        }
+    }
 }
+
