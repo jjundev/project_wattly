@@ -59,4 +59,18 @@ struct KineticNotchMotionTests {
             #expect(abs(totalTime - expectedTotalTime) < 1e-9)
         }
     }
+
+    @Test func vuMeterMovesFromLeftToRightWithLoad() {
+        // Low load: needle stays near left edge (frames 0~3)
+        let lowFrame = MenuBarIconMotion.displayedFrame(style: .vuMeter, phase: 0, load: 5.0, reduceMotion: false)
+        #expect(lowFrame <= 3)
+
+        // Mid load: needle moves toward center (frames 10~13)
+        let midFrame = MenuBarIconMotion.displayedFrame(style: .vuMeter, phase: 0, load: 50.0, reduceMotion: false)
+        #expect(midFrame >= 10 && midFrame <= 14)
+
+        // High load: needle moves to far right (frames 21~23)
+        let highFrame = MenuBarIconMotion.displayedFrame(style: .vuMeter, phase: 0, load: 100.0, reduceMotion: false)
+        #expect(highFrame >= 21)
+    }
 }

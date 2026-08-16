@@ -162,8 +162,8 @@ struct VUMeterMark: View {
             let s = min(proxy.size.width, proxy.size.height)
             let c = CGPoint(x: s / 2, y: s / 2)
             let strokeW = max(1.5, s * 0.08)
-            let phase = Double(frame) / 24.0
-            let angle = sin(phase * .pi * 2.0) * 38.0
+            let clampedFrame = min(max(frame, 0), 23)
+            let angle = -40.0 + (Double(clampedFrame) / 23.0) * 80.0
             let pivot = CGPoint(x: c.x, y: s * 0.78)
 
             ZStack {

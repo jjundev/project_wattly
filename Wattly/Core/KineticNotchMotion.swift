@@ -48,10 +48,24 @@ enum KineticNotchSpeed: String, CaseIterable, Identifiable, Sendable {
 enum MenuBarIconMotion {
     static let idleThreshold = 5.0
 
-    static func displayedFrame(style: MenuBarIconStyle, phase: Int, reduceMotion: Bool) -> Int {
+    static func displayedFrame(style: MenuBarIconStyle, phase: Int, load: Double? = nil, reduceMotion: Bool) -> Int {
         guard !reduceMotion else { return style.staticFrame }
         let count = style.frameCount
+
+        // Gauge-type meter styles (e.g. VU Meter) move needle from left to right as load increases
+        if style == .vuMeter, let load {
+            let clampedLoad = min(max(load, 0), 100)
+            let baseIndex = (clampedLoad / 100.0) * Double(count - 1)
+            let jitter = sin(Double(phase) * 0.8) * (0.5 + (clampedLoad / 100.0) * 1.5)
+            let target = Int(round(baseIndex + jitter))
+            return min(max(target, 0), count - 1)
+        }
+
         return ((phase % count) + count) % count
+    }
+
+    static func displayedFrame(style: MenuBarIconStyle, phase: Int, reduceMotion: Bool) -> Int {
+        displayedFrame(style: style, phase: phase, load: nil, reduceMotion: reduceMotion)
     }
 
     static func phaseDelayMultiplier(style: MenuBarIconStyle, phase: Int) -> Double {

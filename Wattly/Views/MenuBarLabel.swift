@@ -86,6 +86,7 @@ struct MenuBarLabel: View {
         MenuBarIconMotion.displayedFrame(
             style: iconStyle,
             phase: dynamicIconPhase,
+            load: kineticNotchLoad,
             reduceMotion: reduceMotion || dynamicIconFrameRate == nil
         )
     }
