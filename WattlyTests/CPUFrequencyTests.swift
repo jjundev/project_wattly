@@ -22,6 +22,23 @@ struct CPUFrequencyTests {
         #expect(CPUFrequency.decodeDVFSTable(dvfs([(2_000_000, 700), (4_000_000, 800)])) == [2.0, 4.0])
     }
 
+    @Test func gpuDVFSTableDecoding() {
+        var data = Data()
+        var f1: UInt32 = 338_000_000
+        var v1: UInt32 = 800_000
+        var f2: UInt32 = 1_278_000_000
+        var v2: UInt32 = 950_000
+        data.append(Data(bytes: &f1, count: 4))
+        data.append(Data(bytes: &v1, count: 4))
+        data.append(Data(bytes: &f2, count: 4))
+        data.append(Data(bytes: &v2, count: 4))
+
+        let freqs = CPUFrequency.decodeDVFSTable(data)
+        #expect(freqs.count == 2)
+        #expect(abs(freqs[0] - 0.338) < 1e-4)
+        #expect(abs(freqs[1] - 1.278) < 1e-4)
+    }
+
     @Test func keepsEveryEntryIncludingZeroForBinAlignment() {
         // A zero-freq padding entry is KEPT (as 0.0) so table index stays aligned to residency bins.
         #expect(CPUFrequency.decodeDVFSTable(dvfs([(1_000_000, 700), (0, 0), (2_000_000, 800)])) == [1.0, 0.0, 2.0])
