@@ -58,16 +58,6 @@ enum KineticNotchMotion {
         return ((phase % frameCount) + frameCount) % frameCount
     }
 
-    // Transitional overloads keep the unchanged menu-bar and Settings call sites
-    // buildable until their Flux Loop migrations in Tasks 2 and 3.
-    static func restFrame(load: Double) -> Int {
-        staticFrame
-    }
-
-    static func displayedFrame(load: Double, phase: Int, reduceMotion: Bool) -> Int {
-        displayedFrame(phase: phase, reduceMotion: reduceMotion)
-    }
-
     static func phaseDelayMultiplier(phase: Int) -> Double {
         phaseDelayMultipliers[((phase % frameCount) + frameCount) % frameCount]
     }

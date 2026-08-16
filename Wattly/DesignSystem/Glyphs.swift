@@ -105,16 +105,6 @@ struct FluxLoopMark: View {
     }
 }
 
-/// Compatibility wrapper for the Settings preview until its Flux Loop migration.
-struct KineticNotchMark: View {
-    let frame: Int
-    var markerColor: Color = Tokens.accent
-
-    var body: some View {
-        FluxLoopMark(frame: frame, markerColor: markerColor)
-    }
-}
-
 /// Header status dot: 6px, pulsing opacity 1↔0.35 over 2.4s
 /// (`@keyframes wapulse`, prototype lines 16–17). Honors Reduce Motion.
 struct StatusDot: View {

@@ -4,6 +4,7 @@ import SwiftUI
 struct SettingsMenuBarSection: View {
     let monitor: SystemMonitor
     @Environment(\.tokens) private var t
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @AppStorage(StorageKey.menubarTextEnabled) private var menubarText = Defaults.menubarTextEnabled
     @AppStorage(StorageKey.kineticNotchMotionEnabled) private var kineticNotchMotionEnabled = Defaults.kineticNotchMotionEnabled
@@ -26,6 +27,7 @@ struct SettingsMenuBarSection: View {
     @AppStorage(StorageKey.menu(.fan))     private var menuFan     = Defaults.menuMetrics[.fan]     ?? false
 
     @State private var isAdvancedMenuMetricsExpanded = false
+    @State private var fluxLoopPreviewPhase = KineticNotchMotion.staticFrame
 
     private var hasActiveAdvancedMetrics: Bool {
         menuSClock || menuPClock || menuEClock || menuMemPressure || menuBatteryTemp
@@ -76,8 +78,8 @@ struct SettingsMenuBarSection: View {
         VStack(spacing: 0) {
             SettingsToggleRow(isOn: $kineticNotchMotionEnabled, divider: kineticNotchMotionEnabled) {
                 VStack(alignment: .leading, spacing: 2) {
-                    SettingsRowTitle("부하에 맞춰 바늘 움직이기")
-                    Text("선택한 부하가 높을수록 메뉴바 Kinetic Notch 바늘이 더 빠르게 움직입니다.")
+                    SettingsRowTitle("부하에 맞춰 전류 흐름 보이기")
+                    Text("선택한 부하가 높을수록 메뉴바 Flux Loop 전류가 더 빠르게 순환합니다. 양 가장자리에서는 잠시 느려집니다.")
                         .font(WattlyFont.at(11.5, weight: .regular))
                         .foregroundStyle(t.faint)
                         .fixedSize(horizontal: false, vertical: true)
@@ -104,16 +106,31 @@ struct SettingsMenuBarSection: View {
                     }
                     kineticNotchField(title: "미리보기") {
                         HStack(spacing: 10) {
-                            KineticNotchMark(frame: KineticNotchMotion.restFrame(load: previewLoad ?? 0))
+                            FluxLoopMark(frame: previewFrame)
                                 .frame(width: 34, height: 28)
                                 .foregroundStyle(t.text)
+                                .task(id: "\(kineticNotchMotionEnabled)-\(kineticNotchSpeed.rawValue)-\(previewFrameRate ?? 0)-\(reduceMotion)") {
+                                    guard let frameRate = previewFrameRate,
+                                          kineticNotchMotionEnabled,
+                                          !reduceMotion else {
+                                        fluxLoopPreviewPhase = KineticNotchMotion.staticFrame
+                                        return
+                                    }
+                                    while !Task.isCancelled {
+                                        let phase = fluxLoopPreviewPhase
+                                        let delay = KineticNotchMotion.frameDelay(phase: phase, frameRate: frameRate)
+                                        try? await Task.sleep(for: .seconds(delay))
+                                        guard !Task.isCancelled else { return }
+                                        fluxLoopPreviewPhase = (phase + 1) % KineticNotchMotion.frameCount
+                                    }
+                                }
                             if let previewLoad {
                                 let frameRate = KineticNotchMotion.frameRate(load: previewLoad, speed: kineticNotchSpeed) ?? 0
                                 Text("\(Int(previewLoad.rounded()))% · \(frameRate, specifier: "%.1f") fps")
                                     .font(WattlyFont.at(11.5, weight: .medium))
                                     .foregroundStyle(t.faint)
                             } else {
-                                Text("선택한 부하를 읽는 동안 바늘은 정지합니다.")
+                                Text("선택한 부하를 읽는 동안 전류는 정지합니다.")
                                     .font(WattlyFont.at(11.5, weight: .regular))
                                     .foregroundStyle(t.faint)
                             }
@@ -133,6 +150,18 @@ struct SettingsMenuBarSection: View {
                 .foregroundStyle(t.faint)
             content()
         }
+    }
+
+    private var previewFrameRate: Double? {
+        guard kineticNotchMotionEnabled, !reduceMotion, let previewLoad else { return nil }
+        return KineticNotchMotion.frameRate(load: previewLoad, speed: kineticNotchSpeed)
+    }
+
+    private var previewFrame: Int {
+        KineticNotchMotion.displayedFrame(
+            phase: fluxLoopPreviewPhase,
+            reduceMotion: previewFrameRate == nil
+        )
     }
 
     private var previewLoad: Double? {
