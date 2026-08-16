@@ -11,10 +11,8 @@ import Foundation
 /// "프로세서 전력 —" for cold power and "CPU 온도 54°C" for warm temps — both wrong.
 /// Verbatim from the prototype (lines 663–668).
 enum MenuBarText {
-    /// Canonical menubar order = the prototype's source order, with `.battery` inserted right
-    /// after `.power` (menubar items update — matches `Defaults.cardOrder`'s power/battery
-    /// grouping). Memory-pressure % and battery temperature have no `CardKind` of their own and are NOT in this
-    /// list — they're appended as pre-formatted "extra parts" by the caller (`MenuBarLabel`).
+    /// Canonical menubar order for CardKind metrics. Used when converting a Set<CardKind>
+    /// into ordered items, while `MenuBarItem` handles full canonical ordering including sub-metrics.
     static let order: [CardKind] = [.cpu, .gpu, .power, .battery, .mem, .cpuTemp, .gpuTemp, .fan]
 
     /// The joined menubar string for the specified items in their given order, or `nil`
