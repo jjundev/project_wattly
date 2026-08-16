@@ -207,7 +207,7 @@ struct SettingsFanCurveSection: View {
         // rather than the alarming "제어 실패"; a failure that outlasts the window still surfaces.
         if isWithinApplyGrace, fanControl.status.mode == .failed { return "적용 중…" }
         switch fanControl.status.mode {
-        case .controlling: return "적용 중 · 커브대로 제어"
+        case .controlling: return "적용 중 · 사용자 지정 곡선으로 제어"
         case .engaging:    return "연결 중…"
         case .automatic:   return "대기 중 · macOS 자동 제어"
         case .unavailable: return "도우미 미설치 — 토글을 켜면 설치됩니다"

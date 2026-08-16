@@ -82,7 +82,7 @@ struct SettingsMenuBarSection: View {
             SettingsToggleRow(isOn: $kineticNotchMotionEnabled, divider: true) {
                 VStack(alignment: .leading, spacing: 2) {
                     SettingsRowTitle("부하에 맞춰 아이콘 움직이기")
-                    Text("선택한 부하가 높을수록 메뉴바 아이콘의 회전/모션 속도가 빨라집니다.")
+                    Text("선택한 부하가 높을수록 메뉴바 아이콘의 움직임 속도가 빨라집니다.")
                         .font(WattlyFont.at(11.5, weight: .regular))
                         .foregroundStyle(t.faint)
                         .fixedSize(horizontal: false, vertical: true)
@@ -110,7 +110,7 @@ struct SettingsMenuBarSection: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
-                    kineticNotchField(title: "움직임 속도 (앱 활성화 시)") {
+                    kineticNotchField(title: "움직임 속도") {
                         VStack(alignment: .leading, spacing: 8) {
                             WattlySegment(selection: $kineticNotchSpeed,
                                           options: KineticNotchSpeed.allCases.map { ($0, $0.label) },
