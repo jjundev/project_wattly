@@ -3,9 +3,8 @@ import Foundation
 public enum MenuBarIconStyle: String, CaseIterable, Identifiable, Sendable {
     case turbine = "turbine"             // 1. 쿨링 터빈
     case pulseWave = "pulseWave"         // 2. 흐르는 펄스 W 파형
-    case atomicOrbit = "atomicOrbit"     // 3. 원자 궤도
-    case cube3D = "cube3D"               // 4. 3D 와이어프레임 큐브
-    case thermalBubble = "thermalBubble" // 5. 열 대류 버블
+    case cube3D = "cube3D"               // 3. 3D 와이어프레임 큐브
+    case thermalBubble = "thermalBubble" // 4. 열 대류 버블
 
     public var id: String { rawValue }
 
@@ -13,7 +12,6 @@ public enum MenuBarIconStyle: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .turbine: "쿨링 터빈"
         case .pulseWave: "펄스 웨이브"
-        case .atomicOrbit: "원자 궤도"
         case .cube3D: "3D 큐브"
         case .thermalBubble: "열 대류 버블"
         }
@@ -23,7 +21,6 @@ public enum MenuBarIconStyle: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .turbine: "쿨링 / 팬"
         case .pulseWave: "전력 / 신호"
-        case .atomicOrbit: "에너지 물리"
         case .cube3D: "3D 기하학"
         case .thermalBubble: "열역학"
         }
@@ -33,7 +30,6 @@ public enum MenuBarIconStyle: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .turbine: "맥북 쿨링 팬 블레이드가 부하에 맞춰 고속 회전합니다."
         case .pulseWave: "Wattly 시그니처 W 파형이 좌에서 우로 전파되며 전력 부하에 따라 가속됩니다."
-        case .atomicOrbit: "중앙 핵 주위의 2개 타원 궤도를 따라 전자가 고속 순환합니다."
         case .cube3D: "3차원 대각선 축을 기준으로 와이어프레임 큐브가 자전합니다."
         case .thermalBubble: "하단에서 상단으로 열 배출 기포 파티클이 상승합니다."
         }
@@ -41,7 +37,7 @@ public enum MenuBarIconStyle: String, CaseIterable, Identifiable, Sendable {
 
     public var frameCount: Int {
         switch self {
-        case .turbine, .pulseWave, .atomicOrbit, .cube3D, .thermalBubble:
+        case .turbine, .pulseWave, .cube3D, .thermalBubble:
             return 24
         }
     }

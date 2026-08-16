@@ -152,59 +152,7 @@ struct PulseWaveMark: View {
     }
 }
 
-// 3. Atomic Orbit Mark
-struct AtomicOrbitMark: View {
-    let frame: Int
-    var markerColor: Color = Tokens.accent
-
-    var body: some View {
-        GeometryReader { proxy in
-            let s = min(proxy.size.width, proxy.size.height)
-            let c = CGPoint(x: s / 2, y: s / 2)
-            let rx = s * 0.42
-            let ry = s * 0.17
-            let strokeW = max(1.2, s * 0.07)
-            let angle = Double(frame) / 24.0 * .pi * 2.0
-
-            ZStack {
-                // Orbit 1
-                ZStack {
-                    Ellipse()
-                        .stroke(lineWidth: strokeW * 0.75)
-                        .opacity(0.35)
-                        .frame(width: rx * 2, height: ry * 2)
-                    Circle()
-                        .fill(markerColor)
-                        .frame(width: strokeW * 2.2, height: strokeW * 2.2)
-                        .position(x: rx + cos(angle) * rx, y: ry + sin(angle) * ry)
-                }
-                .rotationEffect(.degrees(35))
-                .position(c)
-
-                // Orbit 2
-                ZStack {
-                    Ellipse()
-                        .stroke(lineWidth: strokeW * 0.75)
-                        .opacity(0.35)
-                        .frame(width: rx * 2, height: ry * 2)
-                    Circle()
-                        .fill(markerColor)
-                        .frame(width: strokeW * 2.2, height: strokeW * 2.2)
-                        .position(x: rx + cos(-angle * 1.3 + .pi) * rx, y: ry + sin(-angle * 1.3 + .pi) * ry)
-                }
-                .rotationEffect(.degrees(-35))
-                .position(c)
-
-                Circle()
-                    .fill(markerColor)
-                    .frame(width: s * 0.20, height: s * 0.20)
-                    .position(c)
-            }
-        }
-    }
-}
-
-// 4. Isometric Rotating 3D Cube Mark
+// 3. Isometric Rotating 3D Cube Mark
 struct Cube3DMark: View {
     let frame: Int
     var markerColor: Color = Tokens.accent
@@ -321,7 +269,6 @@ struct DynamicMenuBarIconMark: View {
         switch style {
         case .turbine: TurbineMark(frame: frame, markerColor: markerColor)
         case .pulseWave: PulseWaveMark(frame: frame, markerColor: markerColor)
-        case .atomicOrbit: AtomicOrbitMark(frame: frame, markerColor: markerColor)
         case .cube3D: Cube3DMark(frame: frame, markerColor: markerColor)
         case .thermalBubble: ThermalBubbleMark(frame: frame, markerColor: markerColor)
         }
