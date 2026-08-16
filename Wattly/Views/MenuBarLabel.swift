@@ -24,8 +24,9 @@ struct MenuBarLabel: View {
 
     var body: some View {
         let label = assembled
-        let glyph = MenuBarGlyph.template(style: iconStyle, frame: currentFrame).map(Image.init(nsImage:)) ?? Image(systemName: "waveform.path")
-        return HStack(spacing: 7) {
+        let trailingMargin: CGFloat = (label != nil) ? 5.0 : 0.0
+        let glyph = MenuBarGlyph.template(style: iconStyle, frame: currentFrame, trailingPadding: trailingMargin).map(Image.init(nsImage:)) ?? Image(systemName: "waveform.path")
+        return HStack(spacing: 0) {
             glyph
             if let label {
                 Text(label)
@@ -99,29 +100,36 @@ struct MenuBarLabel: View {
 
 @MainActor
 public enum MenuBarGlyph {
-    private static var multiStyleCache: [MenuBarIconStyle: [Int: NSImage]] = [:]
+    private static var multiStyleCache: [String: [Int: NSImage]] = [:]
 
-    public static func template(style: MenuBarIconStyle = .turbine, frame: Int) -> NSImage? {
+    public static func template(style: MenuBarIconStyle = .turbine, frame: Int, trailingPadding: CGFloat = 0.0) -> NSImage? {
         let index = min(max(frame, 0), style.frameCount - 1)
-        if let cached = multiStyleCache[style]?[index] { return cached }
+        let cacheKey = "\(style.rawValue)-\(Int(trailingPadding))"
+        if let cached = multiStyleCache[cacheKey]?[index] { return cached }
 
-        let renderer = ImageRenderer(content:
+        let content = HStack(spacing: 0) {
             DynamicMenuBarIconMark(style: style, frame: index, markerColor: .black)
                 .frame(width: 18, height: 18)
-                .foregroundStyle(.black)
-        )
+            if trailingPadding > 0 {
+                Color.clear
+                    .frame(width: trailingPadding, height: 18)
+            }
+        }
+        .foregroundStyle(.black)
+
+        let renderer = ImageRenderer(content: content)
         renderer.scale = NSScreen.main?.backingScaleFactor ?? 2
         guard let image = renderer.nsImage else { return nil }
         image.isTemplate = true
 
-        if multiStyleCache[style] == nil {
-            multiStyleCache[style] = [:]
+        if multiStyleCache[cacheKey] == nil {
+            multiStyleCache[cacheKey] = [:]
         }
-        multiStyleCache[style]?[index] = image
+        multiStyleCache[cacheKey]?[index] = image
         return image
     }
 
     public static func template(frame: Int) -> NSImage? {
-        template(style: .turbine, frame: frame)
+        template(style: .turbine, frame: frame, trailingPadding: 0.0)
     }
 }
