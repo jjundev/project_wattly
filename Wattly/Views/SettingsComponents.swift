@@ -110,7 +110,7 @@ struct WattlySegment<T: Hashable>: View {
 
     private func pill(_ value: T, _ label: String) -> some View {
         let active = selection == value
-        return Text(label)
+        return Text(LocalizedStringKey(label))
             .font(WattlyFont.at(fontSize, weight: .semibold))
             .foregroundStyle(active ? t.text : scheme.segInactiveText)
             .frame(maxWidth: .infinity)
@@ -156,7 +156,7 @@ struct WattlyChip: View {
     }
 
     var body: some View {
-        Text(label)
+        Text(LocalizedStringKey(label))
             .font(WattlyFont.at(12, weight: .semibold))
             .foregroundStyle(isOn ? t.text : scheme.segInactiveText)
             .frame(maxWidth: .infinity)

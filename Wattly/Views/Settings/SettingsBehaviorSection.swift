@@ -59,7 +59,7 @@ struct SettingsBehaviorSection: View {
                                       pillVPadding: 6)
                     }
 
-                    Text(pollingDescription(for: pollInterval, mode: powerMode))
+                    Text(LocalizedStringKey(pollingDescription(for: pollInterval, mode: powerMode)))
                         .font(WattlyFont.at(11.5, weight: .regular))
                         .foregroundStyle(t.faint)
                         .fixedSize(horizontal: false, vertical: true)

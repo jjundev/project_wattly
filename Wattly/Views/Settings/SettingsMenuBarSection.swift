@@ -104,7 +104,7 @@ struct SettingsMenuBarSection: View {
                             WattlySegment(selection: $kineticNotchSource,
                                           options: KineticNotchSource.allCases.map { ($0, $0.label) },
                                           fontSize: 11.5, pillVPadding: 6)
-                            Text(kineticNotchSource.description)
+                            Text(LocalizedStringKey(kineticNotchSource.description))
                                 .font(WattlyFont.at(11.5, weight: .regular))
                                 .foregroundStyle(t.faint)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -115,7 +115,7 @@ struct SettingsMenuBarSection: View {
                             WattlySegment(selection: $kineticNotchSpeed,
                                           options: KineticNotchSpeed.allCases.map { ($0, $0.label) },
                                           fontSize: 11.5, pillVPadding: 6)
-                            Text(kineticNotchSpeed.description)
+                            Text(LocalizedStringKey(kineticNotchSpeed.description))
                                 .font(WattlyFont.at(11.5, weight: .regular))
                                 .foregroundStyle(t.faint)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -227,7 +227,7 @@ struct SettingsMenuBarSection: View {
                 .frame(width: 28, height: 24)
                 .foregroundStyle(fgColor)
 
-                Text(style.label)
+                Text(LocalizedStringKey(style.label))
                     .font(WattlyFont.at(11.5, weight: isSelected ? .semibold : .regular))
                     .foregroundStyle(labelColor)
             }
@@ -249,7 +249,7 @@ struct SettingsMenuBarSection: View {
     private func kineticNotchField<Content: View>(title: String,
                                                    @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
+            Text(LocalizedStringKey(title))
                 .font(WattlyFont.at(11.5, weight: .regular))
                 .foregroundStyle(t.faint)
             content()

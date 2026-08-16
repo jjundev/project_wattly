@@ -334,6 +334,23 @@ public enum AppLanguage: Sendable {
     }
 }
 
+// MARK: - String Localization Helper
+
+extension String {
+    /// Resolves localized string for a specific locale from the application bundle.
+    public init(localized key: String, locale: Locale, bundle: Bundle = .main) {
+        let langId = locale.identifier
+        let baseLang = locale.language.languageCode?.identifier ?? langId
+        if let lprojPath = bundle.path(forResource: langId, ofType: "lproj") ??
+                          bundle.path(forResource: baseLang, ofType: "lproj"),
+           let langBundle = Bundle(path: lprojPath) {
+            self = langBundle.localizedString(forKey: key, value: nil, table: nil)
+        } else {
+            self = bundle.localizedString(forKey: key, value: nil, table: nil)
+        }
+    }
+}
+
 // MARK: - Single source of defaults
 
 /// One place that both `@AppStorage` initial values and "reset to defaults" read,

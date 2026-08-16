@@ -49,7 +49,7 @@ struct SettingsDisplaySection: View {
                     WattlySegment(selection: $panelMode, options: [
                         (.a, PanelMode.a.label), (.c, PanelMode.c.label), (.b, PanelMode.b.label),
                     ])
-                    Text(layoutDescription)
+                    Text(LocalizedStringKey(layoutDescription))
                         .font(WattlyFont.at(11.5, weight: .regular))
                         .foregroundStyle(t.faint)
                         .fixedSize(horizontal: false, vertical: true)

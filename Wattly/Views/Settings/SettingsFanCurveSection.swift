@@ -179,7 +179,7 @@ struct SettingsFanCurveSection: View {
     private var fanStatusIndicator: some View {
         HStack(spacing: 6) {
             Circle().fill(fanStatusColor).frame(width: 7, height: 7)
-            Text(fanStatusText)
+            Text(LocalizedStringKey(fanStatusText))
                 .font(WattlyFont.at(11.5, weight: .medium))
                 .foregroundStyle(t.sub)
                 .fixedSize(horizontal: false, vertical: true)
