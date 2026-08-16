@@ -93,17 +93,24 @@ enum KineticNotchSpeed: String, CaseIterable, Identifiable, Sendable {
 
     var description: String {
         switch self {
-        case .smart: "전원 상태(AC 어댑터 연결 시 60 fps, 배터리 사용 시 24 fps, 저전력 모드 시 15 fps)에 따라 최적의 주사율을 자동으로 전환합니다."
+        case .smart: "메뉴바 상주 시에는 ProMotion 절전을 위해 24 fps로 고정되며, 팝오버를 열거나 설정창을 볼 때는 전원 상태(AC 60 fps / 배터리 24 fps)에 따라 부드럽게 동작합니다."
         case .eco: "24 fps 시네마틱 주사율로 배터리를 절약하며 부드럽게 회전합니다."
-        case .standard: "48 fps 고주사율로 ProMotion 화면에서도 자연스럽고 균형 잡힌 모션을 제공합니다."
-        case .responsive: "60 fps 최고 주사율로 극도로 부드러운 고주사율 화면을 제공합니다."
+        case .standard: "메뉴바 상주 시 24 fps, 앱 활성화 시 48 fps 고주사율로 ProMotion 화면에서 자연스럽고 균형 잡힌 모션을 제공합니다."
+        case .responsive: "메뉴바 상주 시 24 fps, 앱 활성화 시 60 fps 최고 주사율로 극도로 부드러운 고주사율 화면을 제공합니다."
         }
     }
 
-    static func resolveTargetFPS(speed: KineticNotchSpeed, isACConnected: Bool, isLowPowerMode: Bool) -> Double {
+    static func resolveTargetFPS(speed: KineticNotchSpeed,
+                                 isACConnected: Bool,
+                                 isLowPowerMode: Bool,
+                                 isForeground: Bool = false) -> Double {
+        if isLowPowerMode { return 15.0 }
+        guard isForeground else {
+            // Closed / Background state: Always strictly capped at 24 fps to preserve ProMotion 24Hz baseline battery efficiency
+            return 24.0
+        }
         switch speed {
         case .smart:
-            if isLowPowerMode { return 15.0 }
             return isACConnected ? 60.0 : 24.0
         case .eco:
             return 24.0
@@ -136,19 +143,20 @@ enum MenuBarIconMotion {
     /// Computes exact uniform inter-frame delay for the next discrete sprite transition.
     /// Eliminates 33ms beat artifacts / micro-stuttering by sleeping precisely the duration needed for 1 sprite advance.
     static func interFrameDelay(rps: Double,
-                               speed: KineticNotchSpeed,
-                               isACConnected: Bool = true,
-                               isLowPowerMode: Bool = false,
-                               frameCount: Int = 24,
-                               style: MenuBarIconStyle = .turbine) -> TimeInterval {
-        let targetFPS = KineticNotchSpeed.resolveTargetFPS(speed: speed, isACConnected: isACConnected, isLowPowerMode: isLowPowerMode)
+                                speed: KineticNotchSpeed,
+                                isACConnected: Bool = true,
+                                isLowPowerMode: Bool = false,
+                                isForeground: Bool = false,
+                                frameCount: Int = 24,
+                                style: MenuBarIconStyle = .turbine) -> TimeInterval {
+        let targetFPS = KineticNotchSpeed.resolveTargetFPS(speed: speed, isACConnected: isACConnected, isLowPowerMode: isLowPowerMode, isForeground: isForeground)
         let maxFPSDelay = 1.0 / targetFPS
 
         // Natural duration for 1 sprite advance at current RPS
         let naturalFPS = max(rps * Double(frameCount), 1.0)
         let naturalDelay = 1.0 / naturalFPS
 
-        // Floor at targetFPS limit (e.g. at high load, never exceed 60fps / 16.7ms)
+        // Floor at targetFPS limit (e.g. at high load, never exceed targetFPS)
         let baseDelay = max(naturalDelay, maxFPSDelay)
         let multiplier = phaseDelayMultiplier(style: style, phase: 0)
         return baseDelay * multiplier
@@ -159,8 +167,9 @@ enum MenuBarIconMotion {
                                    speed: KineticNotchSpeed,
                                    isACConnected: Bool = true,
                                    isLowPowerMode: Bool = false,
+                                   isForeground: Bool = false,
                                    frameCount: Int = 24) -> Double {
-        KineticNotchSpeed.resolveTargetFPS(speed: speed, isACConnected: isACConnected, isLowPowerMode: isLowPowerMode)
+        KineticNotchSpeed.resolveTargetFPS(speed: speed, isACConnected: isACConnected, isLowPowerMode: isLowPowerMode, isForeground: isForeground)
     }
 
     /// Advance continuous fractional phase [0.0, 1.0) given rps and elapsed dt (clamped to 1.0s for sleep/wake).

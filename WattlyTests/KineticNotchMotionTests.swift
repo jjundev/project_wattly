@@ -70,50 +70,47 @@ struct KineticNotchMotionTests {
 
     @Test func interFramePrecisionScheduler() {
         // At 0.50 RPS, 24 frames -> natural interval is 1.0 / (0.50 * 24) = 1.0 / 12.0 = 0.083333s (83.3ms)
-        let idleDelay = MenuBarIconMotion.interFrameDelay(rps: 0.50, speed: .smart, isACConnected: true, frameCount: 24, style: .turbine)
+        let idleDelay = MenuBarIconMotion.interFrameDelay(rps: 0.50, speed: .smart, isACConnected: true, isForeground: true, frameCount: 24, style: .turbine)
         #expect(abs(idleDelay - (1.0 / 12.0)) < 1e-9)
 
-        // At 2.50 RPS, 24 frames on AC 60fps -> interval is 1.0 / 60.0 = 0.016667s (16.7ms)
-        let maxACDelay = MenuBarIconMotion.interFrameDelay(rps: 2.50, speed: .smart, isACConnected: true, frameCount: 24, style: .turbine)
+        // At 2.50 RPS, 24 frames on AC 60fps (foreground) -> interval is 1.0 / 60.0 = 0.016667s (16.7ms)
+        let maxACDelay = MenuBarIconMotion.interFrameDelay(rps: 2.50, speed: .smart, isACConnected: true, isForeground: true, frameCount: 24, style: .turbine)
         #expect(abs(maxACDelay - (1.0 / 60.0)) < 1e-9)
 
+        // At 2.50 RPS, 24 frames in background (isForeground: false) -> capped at 24fps = 1.0 / 24.0 = 0.041667s (41.7ms)
+        let maxBgDelay = MenuBarIconMotion.interFrameDelay(rps: 2.50, speed: .smart, isACConnected: true, isForeground: false, frameCount: 24, style: .turbine)
+        #expect(abs(maxBgDelay - (1.0 / 24.0)) < 1e-9)
+
         // At 2.50 RPS, 24 frames on Battery 24fps -> interval is 1.0 / 24.0 = 0.041667s (41.7ms)
-        let maxBatDelay = MenuBarIconMotion.interFrameDelay(rps: 2.50, speed: .smart, isACConnected: false, isLowPowerMode: false, frameCount: 24, style: .turbine)
+        let maxBatDelay = MenuBarIconMotion.interFrameDelay(rps: 2.50, speed: .smart, isACConnected: false, isLowPowerMode: false, isForeground: true, frameCount: 24, style: .turbine)
         #expect(abs(maxBatDelay - (1.0 / 24.0)) < 1e-9)
     }
 
     @Test func presetTargetFPSAndEffectiveRates() {
-        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .smart, isACConnected: true, isLowPowerMode: false) == 60.0)
-        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .smart, isACConnected: false, isLowPowerMode: false) == 24.0)
-        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .smart, isACConnected: true, isLowPowerMode: true) == 15.0)
-        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .smart, isACConnected: false, isLowPowerMode: true) == 15.0)
-        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .eco, isACConnected: true, isLowPowerMode: false) == 24.0)
-        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .standard, isACConnected: true, isLowPowerMode: false) == 48.0)
-        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .responsive, isACConnected: true, isLowPowerMode: false) == 60.0)
+        // Foreground (isForeground: true): respects selected speed preset and AC state
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .smart, isACConnected: true, isLowPowerMode: false, isForeground: true) == 60.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .smart, isACConnected: false, isLowPowerMode: false, isForeground: true) == 24.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .smart, isACConnected: true, isLowPowerMode: true, isForeground: true) == 15.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .smart, isACConnected: false, isLowPowerMode: true, isForeground: true) == 15.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .eco, isACConnected: true, isLowPowerMode: false, isForeground: true) == 24.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .standard, isACConnected: true, isLowPowerMode: false, isForeground: true) == 48.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .responsive, isACConnected: true, isLowPowerMode: false, isForeground: true) == 60.0)
 
-        // At full load (2.5 RPS, 24 frames -> 60 visual FPS):
-        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .smart, isACConnected: true, isLowPowerMode: false, frameCount: 24) == 60.0)
-        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .smart, isACConnected: false, isLowPowerMode: false, frameCount: 24) == 24.0)
-        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .smart, isACConnected: false, isLowPowerMode: true, frameCount: 24) == 15.0)
-        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .eco, frameCount: 24) == 24.0)
-        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .standard, frameCount: 24) == 48.0)
-        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .responsive, frameCount: 24) == 60.0)
+        // Background / Closed (isForeground: false, default): Strictly capped at 24.0 fps to protect ProMotion baseline
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .smart, isACConnected: true, isLowPowerMode: false, isForeground: false) == 24.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .standard, isACConnected: true, isLowPowerMode: false, isForeground: false) == 24.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .responsive, isACConnected: true, isLowPowerMode: false, isForeground: false) == 24.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .responsive, isACConnected: true, isLowPowerMode: true, isForeground: false) == 15.0)
 
-        // At idle load (0.0):
-        #expect(MenuBarIconMotion.effectiveFrameRate(load: 0, speed: .smart, isACConnected: true, isLowPowerMode: false) == 60.0)
-        #expect(MenuBarIconMotion.effectiveFrameRate(load: 0, speed: .smart, isACConnected: false, isLowPowerMode: false) == 24.0)
-        #expect(MenuBarIconMotion.effectiveFrameRate(load: 0, speed: .smart, isACConnected: false, isLowPowerMode: true) == 15.0)
-        #expect(MenuBarIconMotion.effectiveFrameRate(load: 0, speed: .eco) == 24.0)
-        #expect(MenuBarIconMotion.effectiveFrameRate(load: 0, speed: .standard) == 48.0)
-        #expect(MenuBarIconMotion.effectiveFrameRate(load: 0, speed: .responsive) == 60.0)
+        // effectiveFrameRate foreground
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .smart, isACConnected: true, isLowPowerMode: false, isForeground: true, frameCount: 24) == 60.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .smart, isACConnected: false, isLowPowerMode: false, isForeground: true, frameCount: 24) == 24.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .standard, isForeground: true, frameCount: 24) == 48.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .responsive, isForeground: true, frameCount: 24) == 60.0)
 
-        // At light load (5.0):
-        #expect(MenuBarIconMotion.effectiveFrameRate(load: 5.0, speed: .smart, isACConnected: true, isLowPowerMode: false) == 60.0)
-        #expect(MenuBarIconMotion.effectiveFrameRate(load: 5.0, speed: .smart, isACConnected: false, isLowPowerMode: false) == 24.0)
-        #expect(MenuBarIconMotion.effectiveFrameRate(load: 5.0, speed: .smart, isACConnected: false, isLowPowerMode: true) == 15.0)
-        #expect(MenuBarIconMotion.effectiveFrameRate(load: 5.0, speed: .eco) == 24.0)
-        #expect(MenuBarIconMotion.effectiveFrameRate(load: 5.0, speed: .standard) == 48.0)
-        #expect(MenuBarIconMotion.effectiveFrameRate(load: 5.0, speed: .responsive) == 60.0)
+        // effectiveFrameRate background (closed panel)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .responsive, isACConnected: true, isLowPowerMode: false, isForeground: false, frameCount: 24) == 24.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 0, speed: .responsive, isACConnected: true, isLowPowerMode: false, isForeground: false, frameCount: 24) == 24.0)
     }
 
     @Test func timeBasedPhaseAdvancePreservesContinuity() {

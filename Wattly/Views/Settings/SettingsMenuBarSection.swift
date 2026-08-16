@@ -103,7 +103,7 @@ struct SettingsMenuBarSection: View {
                                       options: KineticNotchSource.allCases.map { ($0, $0.label) },
                                       fontSize: 11.5, pillVPadding: 6)
                     }
-                    kineticNotchField(title: "움직임 속도") {
+                    kineticNotchField(title: "움직임 속도 (앱 활성화 시)") {
                         VStack(alignment: .leading, spacing: 8) {
                             WattlySegment(selection: $kineticNotchSpeed,
                                           options: KineticNotchSpeed.allCases.map { ($0, $0.label) },
@@ -123,12 +123,13 @@ struct SettingsMenuBarSection: View {
                                     speed: kineticNotchSpeed,
                                     isACConnected: isACConnected,
                                     isLowPowerMode: isLowPowerMode,
+                                    isForeground: true,
                                     frameCount: iconStyle.frameCount
                                 )
                                 let fpsText: String = if kineticNotchSpeed == .smart {
-                                    "\(Int(previewLoad.rounded()))% · \(String(format: "%.2f", rps)) rps (스마트 [\(powerStateTag)]: \(Int(fps.rounded())) fps)"
+                                    "\(Int(previewLoad.rounded()))% · \(String(format: "%.2f", rps)) rps (활성 [\(powerStateTag)]: \(Int(fps.rounded())) fps)"
                                 } else {
-                                    "\(Int(previewLoad.rounded()))% · \(String(format: "%.2f", rps)) rps (\(Int(fps.rounded())) fps)"
+                                    "\(Int(previewLoad.rounded()))% · \(String(format: "%.2f", rps)) rps (활성: \(Int(fps.rounded())) fps)"
                                 }
                                 Text(fpsText)
                                     .font(WattlyFont.at(11.5, weight: .medium))
@@ -149,7 +150,7 @@ struct SettingsMenuBarSection: View {
                     return
                 }
                 var continuousPhase = 0.0
-                var currentRPS = 0.25
+                var currentRPS = 0.50
                 var lastInstant = CACurrentMediaTime()
 
                 while !Task.isCancelled {
@@ -178,6 +179,7 @@ struct SettingsMenuBarSection: View {
                         speed: kineticNotchSpeed,
                         isACConnected: isACConnected,
                         isLowPowerMode: isLowPowerMode,
+                        isForeground: true,
                         frameCount: iconStyle.frameCount,
                         style: iconStyle
                     )

@@ -72,6 +72,7 @@ final class SystemMonitor {
     private var powerMode = Defaults.powerMode
     /// Whether the popover is on-screen (pushed by `PopoverContentView`'s lifecycle).
     private var panelVisible = false
+    var isPanelVisible: Bool { panelVisible }
     /// Whether the menubar shows a metric number (keeps a closed panel at 2 s, not 5 s).
     private var menubarTextEnabled = Defaults.menubarTextEnabled
     /// The cards whose metric is shown in the menubar text (issue 14). When the text is

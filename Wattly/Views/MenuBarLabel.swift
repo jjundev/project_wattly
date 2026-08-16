@@ -38,7 +38,7 @@ struct MenuBarLabel: View {
         .task(id: "\(iconStyle.rawValue)-\(kineticNotchMotionEnabled)-\(kineticNotchSpeed.rawValue)-\(reduceMotion)") {
             guard kineticNotchMotionEnabled, !reduceMotion else { return }
             var continuousPhase = 0.0
-            var currentRPS = 0.25
+            var currentRPS = 0.50
             var lastInstant = CACurrentMediaTime()
 
             while !Task.isCancelled {
@@ -67,6 +67,7 @@ struct MenuBarLabel: View {
                     speed: kineticNotchSpeed,
                     isACConnected: isACConnected,
                     isLowPowerMode: isLowPowerMode,
+                    isForeground: monitor.isPanelVisible,
                     frameCount: iconStyle.frameCount,
                     style: iconStyle
                 )
