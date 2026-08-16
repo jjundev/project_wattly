@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Menu bar settings section: Menu bar icon text toggle and metric chip multi-select grid.
+/// Menu bar settings: a group containing icon-motion and text-metric sections.
 struct SettingsMenuBarSection: View {
     let monitor: SystemMonitor
     @Environment(\.tokens) private var t
@@ -32,30 +32,39 @@ struct SettingsMenuBarSection: View {
     }
 
     var body: some View {
-        SettingsSection(title: "메뉴바") {
-            SettingsCard {
-                kineticNotchControls
-                SettingsToggleRow(isOn: $menubarText, divider: true) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        SettingsRowTitle("텍스트 표시")
-                        Text("메뉴바 아이콘 옆에 선택한 지표를 함께 표시합니다.")
+        VStack(alignment: .leading, spacing: 18) {
+            SettingsGroupHeader(title: "메뉴바")
+
+            SettingsSection(title: "아이콘") {
+                SettingsCard {
+                    kineticNotchControls
+                }
+            }
+
+            SettingsSection(title: "텍스트") {
+                SettingsCard {
+                    SettingsToggleRow(isOn: $menubarText, divider: true) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            SettingsRowTitle("텍스트 표시")
+                            Text("메뉴바 아이콘 옆에 선택한 지표를 함께 표시합니다.")
+                                .font(WattlyFont.at(11.5, weight: .regular))
+                                .foregroundStyle(t.faint)
+                        }
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("표시할 지표 (복수 선택)")
                             .font(WattlyFont.at(11.5, weight: .regular))
                             .foregroundStyle(t.faint)
+                        if !menubarText {
+                            Text("텍스트 표시를 켜면 선택한 지표가 아이콘 옆에 표시됩니다.")
+                                .font(WattlyFont.at(11.5, weight: .regular))
+                                .foregroundStyle(t.faint)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        menuChipGrid
                     }
+                    .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
                 }
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("표시할 지표 (복수 선택)")
-                        .font(WattlyFont.at(11.5, weight: .regular))
-                        .foregroundStyle(t.faint)
-                    if !menubarText {
-                        Text("텍스트 표시를 켜면 선택한 지표가 아이콘 옆에 표시됩니다.")
-                            .font(WattlyFont.at(11.5, weight: .regular))
-                            .foregroundStyle(t.faint)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    menuChipGrid
-                }
-                .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
             }
         }
         .task {
@@ -65,7 +74,7 @@ struct SettingsMenuBarSection: View {
 
     private var kineticNotchControls: some View {
         VStack(spacing: 0) {
-            SettingsToggleRow(isOn: $kineticNotchMotionEnabled, divider: true) {
+            SettingsToggleRow(isOn: $kineticNotchMotionEnabled, divider: kineticNotchMotionEnabled) {
                 VStack(alignment: .leading, spacing: 2) {
                     SettingsRowTitle("부하에 맞춰 바늘 움직이기")
                     Text("선택한 부하가 높을수록 메뉴바 Kinetic Notch 바늘이 더 빠르게 움직입니다.")
@@ -77,36 +86,52 @@ struct SettingsMenuBarSection: View {
 
             if kineticNotchMotionEnabled {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("부하 원본")
-                        .font(WattlyFont.at(11.5, weight: .regular))
-                        .foregroundStyle(t.faint)
-                    WattlySegment(selection: $kineticNotchSource,
-                                  options: KineticNotchSource.allCases.map { ($0, $0.label) },
-                                  fontSize: 11.5, pillVPadding: 6)
-                    Text("움직임 속도")
-                        .font(WattlyFont.at(11.5, weight: .regular))
-                        .foregroundStyle(t.faint)
-                    WattlySegment(selection: $kineticNotchSpeed,
-                                  options: KineticNotchSpeed.allCases.map { ($0, $0.label) },
-                                  fontSize: 11.5, pillVPadding: 6)
-                    HStack(spacing: 10) {
-                        KineticNotchMark(frame: KineticNotchMotion.restFrame(load: previewLoad ?? 0))
-                            .frame(width: 34, height: 28)
-                            .foregroundStyle(t.text)
-                        if let previewLoad {
-                            let frameRate = KineticNotchMotion.frameRate(load: previewLoad, speed: kineticNotchSpeed) ?? 0
-                            Text("\(Int(previewLoad.rounded()))% · \(frameRate, specifier: "%.1f") fps")
-                                .font(WattlyFont.at(11.5, weight: .medium))
-                                .foregroundStyle(t.faint)
-                        } else {
-                            Text("선택한 부하를 읽는 동안 바늘은 정지합니다.")
+                    kineticNotchField(title: "부하 원본") {
+                        WattlySegment(selection: $kineticNotchSource,
+                                      options: KineticNotchSource.allCases.map { ($0, $0.label) },
+                                      fontSize: 11.5, pillVPadding: 6)
+                    }
+                    kineticNotchField(title: "움직임 속도") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            WattlySegment(selection: $kineticNotchSpeed,
+                                          options: KineticNotchSpeed.allCases.map { ($0, $0.label) },
+                                          fontSize: 11.5, pillVPadding: 6)
+                            Text(kineticNotchSpeed.description)
                                 .font(WattlyFont.at(11.5, weight: .regular))
                                 .foregroundStyle(t.faint)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    kineticNotchField(title: "미리보기") {
+                        HStack(spacing: 10) {
+                            KineticNotchMark(frame: KineticNotchMotion.restFrame(load: previewLoad ?? 0))
+                                .frame(width: 34, height: 28)
+                                .foregroundStyle(t.text)
+                            if let previewLoad {
+                                let frameRate = KineticNotchMotion.frameRate(load: previewLoad, speed: kineticNotchSpeed) ?? 0
+                                Text("\(Int(previewLoad.rounded()))% · \(frameRate, specifier: "%.1f") fps")
+                                    .font(WattlyFont.at(11.5, weight: .medium))
+                                    .foregroundStyle(t.faint)
+                            } else {
+                                Text("선택한 부하를 읽는 동안 바늘은 정지합니다.")
+                                    .font(WattlyFont.at(11.5, weight: .regular))
+                                    .foregroundStyle(t.faint)
+                            }
                         }
                     }
                 }
                 .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
             }
+        }
+    }
+
+    private func kineticNotchField<Content: View>(title: String,
+                                                   @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(WattlyFont.at(11.5, weight: .regular))
+                .foregroundStyle(t.faint)
+            content()
         }
     }
 

@@ -36,6 +36,13 @@ enum KineticNotchSpeed: String, CaseIterable, Identifiable, Sendable {
     var maximumFrameRate: Double {
         switch self { case .eco: 3; case .standard: 5; case .responsive: 7 }
     }
+    var description: String {
+        switch self {
+        case .eco: "낮은 전력으로 부하에 따라 0.75~3 fps로 움직입니다."
+        case .standard: "균형 잡힌 반응으로 부하에 따라 1.25~5 fps로 움직입니다."
+        case .responsive: "부하 변화에 민감하게 2~7 fps로 움직입니다."
+        }
+    }
 }
 
 enum KineticNotchMotion {
