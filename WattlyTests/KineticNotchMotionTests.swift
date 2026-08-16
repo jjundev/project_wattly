@@ -20,6 +20,25 @@ struct KineticNotchMotionTests {
         #expect(KineticNotchMotion.frameRate(load: 100, speed: .responsive) == 7)
     }
 
+    @Test func ratesUseSquareRootProgressionAndPerPresetMinimums() {
+        // 5.0095 is just above the 5% idle threshold. Its normalized distance is
+        // 0.01%, so the square-root curve has advanced by 1% of each preset's range.
+        let nearThreshold = 5.0095
+        #expect(KineticNotchMotion.frameRate(load: 5, speed: .eco) == nil)
+        #expect(KineticNotchMotion.frameRate(load: 5, speed: .standard) == nil)
+        #expect(KineticNotchMotion.frameRate(load: 5, speed: .responsive) == nil)
+        #expect(abs((KineticNotchMotion.frameRate(load: nearThreshold, speed: .eco) ?? 0) - 0.7725) < 1e-12)
+        #expect(abs((KineticNotchMotion.frameRate(load: nearThreshold, speed: .standard) ?? 0) - 1.2875) < 1e-12)
+        #expect(abs((KineticNotchMotion.frameRate(load: nearThreshold, speed: .responsive) ?? 0) - 2.05) < 1e-12)
+
+        // 28.75% is one quarter through the load range, which square-root interpolation
+        // maps to halfway through each rate range (not the linear one-quarter point).
+        let interiorLoad = 28.75
+        #expect(abs((KineticNotchMotion.frameRate(load: interiorLoad, speed: .eco) ?? 0) - 1.875) < 1e-12)
+        #expect(abs((KineticNotchMotion.frameRate(load: interiorLoad, speed: .standard) ?? 0) - 3.125) < 1e-12)
+        #expect(abs((KineticNotchMotion.frameRate(load: interiorLoad, speed: .responsive) ?? 0) - 4.5) < 1e-12)
+    }
+
     @Test func frameSelectionClampsAndReduceMotionIsStatic() {
         #expect(KineticNotchMotion.restFrame(load: -1) == 0)
         #expect(KineticNotchMotion.restFrame(load: 100) == 6)

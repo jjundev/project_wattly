@@ -537,7 +537,7 @@ struct SystemMonitorTests {
         monitor.setPollInterval(.auto)
         monitor.start()
 
-        #expect(await power.reads == 0) // Closed panel in eco mode without menubar text skips power
+        #expect(await power.reads == 0) // Closed eco mode: power is absent from current closed-menu demands.
         monitor.setPanelVisible(true)
         // t = 0 immediate poll triggered by reschedule
         for _ in 0..<50 where (await power.reads < 1) { await Task.yield() }
