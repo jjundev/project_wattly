@@ -1179,33 +1179,30 @@
           const leg1 = solveLegIK(hipX, hipY, foot1.x, foot1.y);
           const leg2 = solveLegIK(hipX, hipY, foot2.x, foot2.y);
 
-          // 5. Natural Inverted Arm Swing (Forward: Elbow Down / Hand Up, Backward: Elbow Up / Hand Down)
-          const A1 = s * 0.13; // Upper arm length
-          const A2 = s * 0.12; // Forearm length
+          // 5. Powerful Athletic Runner Arm Kinematics (Crisp Locked Elbow Joint ~85°-95°)
+          const A1 = s * 0.14; // Upper arm length (solid bone)
+          const A2 = s * 0.13; // Forearm length (solid bone)
 
           function calcArm(isFront, u) {
             const shX = neckX + (isFront ? s * 0.02 : -s * 0.02);
             const shY = neckY + (isFront ? s * 0.02 : 0.0);
 
-            // swing = +1: Forward Swing (Upper arm down-forward, forearm up-forward to chest/chin)
-            // swing = -1: Backward Swing (Upper arm up-back, forearm down-back trailing behind hips)
+            // swing = +1: High forward punch (reaching forward-up)
+            // swing = -1: Powerful backward thrust (driving elbow high back)
             const swing = Math.sin(u * Math.PI * 2);
 
-            let upperAngle, forearmAngle;
-            if (swing >= 0) {
-              // Forward Swing: Elbow points down-forward, hand points up-forward (V-shape)
-              const prog = swing;
-              upperAngle = 1.25 - prog * 0.85; // 71° down to 22°
-              forearmAngle = upperAngle - (1.10 + prog * 0.40); // -42° to -65° (hand up in front of chin)
-            } else {
-              // Backward Swing: Upper arm drives up-back, forearm trails down-back (Inverted V / trailing)
-              const prog = -swing;
-              upperAngle = 1.25 + prog * 1.55; // 71° up to 160° (elbow drives high up-back)
-              forearmAngle = upperAngle - (0.60 + prog * 0.35); // 105° ~ 125° (forearm points down-back!)
-            }
+            // 1. Shoulder Joint Driven Pendulum (muscular power)
+            const baseShoulder = 1.38 - t * 0.15; // 79° down to 70° forward lean
+            const swingAmp = 0.70 + t * 0.45;  // Powerful angular swing
+            const shoulderAngle = baseShoulder - swing * swingAmp;
 
-            let ex = shX + Math.cos(upperAngle) * A1;
-            let ey = shY + Math.sin(upperAngle) * A1;
+            // 2. Rigid Athletic Elbow Lock (~82° to 96° across full cycle)
+            // Maintains a crisp, snappy, bone-like hinge without rubbery bending
+            const elbowBend = 1.55 - swing * 0.12;
+            const forearmAngle = shoulderAngle - elbowBend;
+
+            let ex = shX + Math.cos(shoulderAngle) * A1;
+            let ey = shY + Math.sin(shoulderAngle) * A1;
             let hx = ex + Math.cos(forearmAngle) * A2;
             let hy = ey + Math.sin(forearmAngle) * A2;
 
