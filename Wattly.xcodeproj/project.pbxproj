@@ -96,6 +96,7 @@
 		9116A7E504B9F1FDF8F70F17 /* MetricSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5280F85A9A3EAB8E9FF4F733 /* MetricSample.swift */; };
 		9164682B8D7954ADA22F3710 /* BatteryPower.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0BB325E6C8D3C6B7207404B /* BatteryPower.swift */; };
 		96CC0B6CE6DB4D8F39E0807F /* FanProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BEE551AD87114CD8B769E6B /* FanProviderTests.swift */; };
+		98FFEDBA03EB593EF689E781 /* AppUninstallerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D987ECF9FA534486FD44FE62 /* AppUninstallerTests.swift */; };
 		994DF9C6292BD94FD6D281A4 /* PollPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = D85F4FD3A4E6BB168DABACA7 /* PollPolicy.swift */; };
 		9C4329A35497EAEC641093F2 /* PollPolicyBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CB2A49DA4F828109BC87F53 /* PollPolicyBridge.swift */; };
 		9FEB7B58ADB954A8827E3A17 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 67FE518CDA8ED1E9E6BAB874 /* Assets.xcassets */; };
@@ -124,6 +125,7 @@
 		C92331E86977F35E32A93DCD /* HardwareModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F29DD358CE8F3D499D04E593 /* HardwareModel.swift */; };
 		C9E719E7D0D0152859146746 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B2DE33D7B63228682966B89 /* SettingsView.swift */; };
 		CB779576E890F03DA64A3430 /* FanControlPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = E81B47E3252A5121772114A7 /* FanControlPolicy.swift */; };
+		CB7EC9C8F05538B7AAA385E6 /* AppUninstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26D090D32552BB2923E4E526 /* AppUninstaller.swift */; };
 		CBE11652E044DD70C60D7A8D /* SettingsReset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14B2BDFF1DB69E370CC26C75 /* SettingsReset.swift */; };
 		CC025CBE8EF328436E0E80DA /* CPUClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8851659C2CDAC260D4C7134 /* CPUClock.swift */; };
 		D0E1282AFC9B1A74DE556B85 /* PanelPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FC4B0A6E07A2BA0DBE34A4F /* PanelPresentationTests.swift */; };
@@ -207,6 +209,7 @@
 		21242F142598B4648C88DB0C /* ProcessPower.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessPower.swift; sourceTree = "<group>"; };
 		21C8BF6274BBB6992A1F1633 /* PopoverGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverGridView.swift; sourceTree = "<group>"; };
 		2416472810E29E43641FBC70 /* PretendardVariable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = PretendardVariable.ttf; sourceTree = "<group>"; };
+		26D090D32552BB2923E4E526 /* AppUninstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUninstaller.swift; sourceTree = "<group>"; };
 		2CE18CEEC4C10EBF94CFD85F /* MenuBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarItem.swift; sourceTree = "<group>"; };
 		2E3CEC05A8EC12EB24156C91 /* CardReorderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardReorderTests.swift; sourceTree = "<group>"; };
 		2FDBCEE7C543E46F486E93C0 /* ThresholdTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThresholdTests.swift; sourceTree = "<group>"; };
@@ -300,6 +303,7 @@
 		D8019EC757BBE28FC570B71D /* PowerEnergyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerEnergyTests.swift; sourceTree = "<group>"; };
 		D85F4FD3A4E6BB168DABACA7 /* PollPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollPolicy.swift; sourceTree = "<group>"; };
 		D8851659C2CDAC260D4C7134 /* CPUClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUClock.swift; sourceTree = "<group>"; };
+		D987ECF9FA534486FD44FE62 /* AppUninstallerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUninstallerTests.swift; sourceTree = "<group>"; };
 		DABD59B5D69709138741DA7F /* SettingsMenuBarIconSectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsMenuBarIconSectionTests.swift; sourceTree = "<group>"; };
 		DD98A9BCB03687E506F17880 /* GlyphsRenderingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlyphsRenderingTests.swift; sourceTree = "<group>"; };
 		DECFD3734A1569FA8CFE4AF5 /* OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = OFL.txt; sourceTree = "<group>"; };
@@ -344,6 +348,7 @@
 			children = (
 				1FB43BADD9D2756BBE8F6A7B /* Accessibility.swift */,
 				124595F06443853225A78F1C /* AppReplacer.swift */,
+				26D090D32552BB2923E4E526 /* AppUninstaller.swift */,
 				7FF3A85EC269993CF6023AEB /* AutoUpdater.swift */,
 				F0BB325E6C8D3C6B7207404B /* BatteryPower.swift */,
 				5B0B9C6EF5A318DFB992A8FF /* BatteryRuntimeProjection.swift */,
@@ -456,6 +461,7 @@
 			children = (
 				C59C21E293258105C63FB142 /* AccessibilityTests.swift */,
 				0087639C19083396DB06A189 /* AppReplacerTests.swift */,
+				D987ECF9FA534486FD44FE62 /* AppUninstallerTests.swift */,
 				4B193EC77CC4F6135B8F3566 /* BatteryPowerTests.swift */,
 				6D813B4616751253BC3A7789 /* BatteryRuntimeProjectionTests.swift */,
 				6C9EC23D454E4B738EF329E8 /* BatteryTelemetryPipelineTests.swift */,
@@ -749,6 +755,7 @@
 			files = (
 				2F21C6921E2896512BD4FF55 /* AccessibilityTests.swift in Sources */,
 				D7BADF2FB54956C1BB865849 /* AppReplacerTests.swift in Sources */,
+				98FFEDBA03EB593EF689E781 /* AppUninstallerTests.swift in Sources */,
 				E6D4F1BE411CB7202D52B89D /* BatteryPowerTests.swift in Sources */,
 				6CAE0BD5C90333E8DFC025E3 /* BatteryRuntimeProjectionTests.swift in Sources */,
 				383A1CE9829D7708C6293B41 /* BatteryTelemetryPipelineTests.swift in Sources */,
@@ -819,6 +826,7 @@
 			files = (
 				0CCE23A7B4FB7DEC009ECA18 /* Accessibility.swift in Sources */,
 				327B519F858C0BCAE3AB2296 /* AppReplacer.swift in Sources */,
+				CB7EC9C8F05538B7AAA385E6 /* AppUninstaller.swift in Sources */,
 				55D146D89F01CBC8A4224B66 /* AutoUpdater.swift in Sources */,
 				9164682B8D7954ADA22F3710 /* BatteryPower.swift in Sources */,
 				54CC1A4B35743BD034DC72F0 /* BatteryProvider.swift in Sources */,
@@ -995,7 +1003,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Created by jjundev";
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.jjundev.Wattly;
 				PRODUCT_NAME = Wattly;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1025,7 +1033,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Created by jjundev";
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.jjundev.Wattly;
 				PRODUCT_NAME = Wattly;
 				SWIFT_EMIT_LOC_STRINGS = YES;
