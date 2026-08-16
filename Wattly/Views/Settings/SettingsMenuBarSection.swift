@@ -29,7 +29,8 @@ struct SettingsMenuBarSection: View {
     @AppStorage(StorageKey.menu(.fan))     private var menuFan     = Defaults.menuMetrics[.fan]     ?? false
 
     @State private var isAdvancedMenuMetricsExpanded = false
-    @State private var iconPreviewPhase = 0
+    @State private var displayedPreviewFrame: Int = 0
+    @State private var liveACConnected: Bool = HardwarePowerSource.isACConnected()
 
     private var hasActiveAdvancedMetrics: Bool {
         menuSClock || menuPClock || menuEClock || menuMemPressure || menuBatteryTemp
@@ -103,7 +104,7 @@ struct SettingsMenuBarSection: View {
                                       options: KineticNotchSource.allCases.map { ($0, $0.label) },
                                       fontSize: 11.5, pillVPadding: 6)
                     }
-                    kineticNotchField(title: "움직임 속도") {
+                    kineticNotchField(title: "움직임 속도 (앱 활성화 시)") {
                         VStack(alignment: .leading, spacing: 8) {
                             WattlySegment(selection: $kineticNotchSpeed,
                                           options: KineticNotchSpeed.allCases.map { ($0, $0.label) },
@@ -117,8 +118,21 @@ struct SettingsMenuBarSection: View {
                     kineticNotchField(title: "실시간 속도") {
                         HStack(spacing: 8) {
                             if let previewLoad {
-                                let frameRate = MenuBarIconMotion.frameRate(load: previewLoad, speed: kineticNotchSpeed) ?? 0
-                                Text("\(Int(previewLoad.rounded()))% · \(frameRate, specifier: "%.1f") fps")
+                                let rps = MenuBarIconMotion.revolutionsPerSecond(load: previewLoad)
+                                let fps = MenuBarIconMotion.effectiveFrameRate(
+                                    load: previewLoad,
+                                    speed: kineticNotchSpeed,
+                                    isACConnected: isACConnected,
+                                    isLowPowerMode: isLowPowerMode,
+                                    isForeground: true,
+                                    frameCount: iconStyle.frameCount
+                                )
+                                let fpsText: String = if kineticNotchSpeed == .smart {
+                                    "\(Int(previewLoad.rounded()))% · \(String(format: "%.2f", rps)) rps (활성 [\(powerStateTag)]: \(Int(fps.rounded())) fps)"
+                                } else {
+                                    "\(Int(previewLoad.rounded()))% · \(String(format: "%.2f", rps)) rps (활성: \(Int(fps.rounded())) fps)"
+                                }
+                                Text(fpsText)
                                     .font(WattlyFont.at(11.5, weight: .medium))
                                     .foregroundStyle(t.faint)
                             } else {
@@ -131,19 +145,51 @@ struct SettingsMenuBarSection: View {
                 }
             }
             .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
-            .task(id: "\(iconStyle.rawValue)-\(kineticNotchMotionEnabled)-\(kineticNotchSpeed.rawValue)-\(previewFrameRate ?? 0)-\(reduceMotion)") {
-                guard let frameRate = previewFrameRate,
-                      kineticNotchMotionEnabled,
-                      !reduceMotion else {
-                    iconPreviewPhase = iconStyle.staticFrame
+            .task(id: "\(iconStyle.rawValue)-\(kineticNotchMotionEnabled)-\(kineticNotchSpeed.rawValue)-\(reduceMotion)") {
+                guard kineticNotchMotionEnabled, !reduceMotion else {
+                    displayedPreviewFrame = iconStyle.staticFrame
                     return
                 }
+                var continuousPhase = 0.0
+                var currentRPS = 0.50
+                var lastInstant = CACurrentMediaTime()
+
                 while !Task.isCancelled {
-                    let phase = iconPreviewPhase
-                    let delay = MenuBarIconMotion.frameDelay(style: iconStyle, phase: phase, frameRate: frameRate)
+                    let load = previewLoad ?? 0.0
+                    let targetRPS = MenuBarIconMotion.revolutionsPerSecond(load: load)
+
+                    let now = CACurrentMediaTime()
+                    let dt = min(max(now - lastInstant, 0.001), 1.0)
+                    lastInstant = now
+
+                    currentRPS = MenuBarIconMotion.smoothedRPS(current: currentRPS, target: targetRPS, dt: dt)
+                    continuousPhase = MenuBarIconMotion.advancePhase(currentPhase: continuousPhase, rps: currentRPS, dt: dt)
+
+                    let newFrame = MenuBarIconMotion.displayedFrame(
+                        style: iconStyle,
+                        phase: continuousPhase,
+                        load: load,
+                        reduceMotion: reduceMotion || !kineticNotchMotionEnabled
+                    )
+                    if newFrame != displayedPreviewFrame {
+                        displayedPreviewFrame = newFrame
+                    }
+
+                    let ac = HardwarePowerSource.isACConnected()
+                    if ac != liveACConnected {
+                        liveACConnected = ac
+                    }
+
+                    let delay = MenuBarIconMotion.interFrameDelay(
+                        rps: currentRPS,
+                        speed: kineticNotchSpeed,
+                        isACConnected: liveACConnected,
+                        isLowPowerMode: isLowPowerMode,
+                        isForeground: true,
+                        frameCount: iconStyle.frameCount,
+                        style: iconStyle
+                    )
                     try? await Task.sleep(for: .seconds(delay))
-                    guard !Task.isCancelled else { return }
-                    iconPreviewPhase = (phase + 1) % 24
                 }
             }
         }
@@ -151,10 +197,11 @@ struct SettingsMenuBarSection: View {
 
     private func iconStyleButton(for style: MenuBarIconStyle) -> some View {
         let isSelected = iconStyle == style
-        let previewFrame = MenuBarIconMotion.displayedFrame(
+        let previewFrame = isSelected ? displayedPreviewFrame : MenuBarIconMotion.displayedFrame(
             style: style,
-            phase: iconPreviewPhase,
-            reduceMotion: !kineticNotchMotionEnabled || reduceMotion
+            phase: 0.0,
+            load: previewLoad,
+            reduceMotion: true
         )
         let fgColor = isSelected ? Tokens.accent : t.text
         let labelColor = isSelected ? t.text : t.faint
@@ -203,26 +250,62 @@ struct SettingsMenuBarSection: View {
         }
     }
 
-    private var previewFrameRate: Double? {
-        guard kineticNotchMotionEnabled, !reduceMotion, let previewLoad else { return nil }
-        return MenuBarIconMotion.frameRate(load: previewLoad, speed: kineticNotchSpeed)
+    private var isACConnected: Bool {
+        liveACConnected
+    }
+
+    private var isLowPowerMode: Bool {
+        ProcessInfo.processInfo.isLowPowerModeEnabled
+    }
+
+    private var powerStateTag: String {
+        if isLowPowerMode { return "저전력" }
+        return isACConnected ? "AC" : "배터리"
     }
 
     private var previewLoad: Double? {
+        let power: Double?
+        if case .value(.power(let sample)) = monitor.cardState(.power) {
+            power = sample.totalW
+        } else {
+            power = nil
+        }
+
+        let cpuClockGHz: Double?
         let cpu: Double?
         if case .value(.cpu(let sample)) = monitor.cardState(.cpu) {
             cpu = sample.overall
+            cpuClockGHz = sample.perfLevels.compactMap(\.activeGHz).first
         } else {
             cpu = nil
+            cpuClockGHz = nil
         }
 
         let gpu: Double?
+        let gpuCores: Int?
         if case .value(.gpu(let sample)) = monitor.cardState(.gpu) {
             gpu = sample.overall
+            gpuCores = sample.coreCount
         } else {
             gpu = nil
+            gpuCores = nil
         }
-        return kineticNotchSource.load(cpu: cpu, gpu: gpu)
+
+        let fanCount: Int?
+        if case .value(.fan(let sample)) = monitor.cardState(.fan) {
+            fanCount = sample.fans.count
+        } else {
+            fanCount = nil
+        }
+
+        return kineticNotchSource.load(
+            power: power,
+            cpuClockGHz: cpuClockGHz,
+            cpu: cpu,
+            gpu: gpu,
+            gpuCores: gpuCores,
+            fanCount: fanCount
+        )
     }
 
     private var menuChipGrid: some View {

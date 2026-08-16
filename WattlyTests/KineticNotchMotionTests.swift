@@ -1,95 +1,184 @@
 import Testing
+import Foundation
 @testable import Wattly
 
 struct KineticNotchMotionTests {
-    @Test func sourceRequirementsAndLoadsAreExact() {
-        #expect(KineticNotchSource.cpu.requiredCards == [.cpu])
-        #expect(KineticNotchSource.gpu.requiredCards == [.gpu])
-        #expect(KineticNotchSource.cpuGPU.requiredCards == [.cpu, .gpu])
-        #expect(KineticNotchSource.cpu.load(cpu: 40, gpu: 80) == 40)
-        #expect(KineticNotchSource.gpu.load(cpu: 40, gpu: 80) == 80)
-        #expect(KineticNotchSource.cpuGPU.load(cpu: 40, gpu: 80) == 60)
-        #expect(KineticNotchSource.cpuGPU.load(cpu: 40, gpu: nil) == nil)
+    @Test func sourceRequirementsAndLabels() {
+        #expect(KineticNotchSource.power.requiredCards == [.power])
+        #expect(KineticNotchSource.cpuClock.requiredCards == [.cpu])
+        #expect(KineticNotchSource.compute.requiredCards == [.cpu, .gpu])
+
+        #expect(KineticNotchSource.power.label == "전력 소비")
+        #expect(KineticNotchSource.cpuClock.label == "CPU 클럭")
+        #expect(KineticNotchSource.compute.label == "CPU + GPU")
     }
 
-    @Test func idleInvalidAndMaximumRatesAreSafe() {
-        #expect(KineticNotchSource.cpu.load(cpu: .nan, gpu: 0) == nil)
-        #expect(MenuBarIconMotion.frameRate(load: 5, speed: .standard) == nil)
-        #expect(MenuBarIconMotion.frameRate(load: 100, speed: .eco) == 36)
-        #expect(MenuBarIconMotion.frameRate(load: 100, speed: .standard) == 48)
-        #expect(MenuBarIconMotion.frameRate(load: 100, speed: .responsive) == 60)
+    @Test func targetWattsByFormFactor() {
+        // MacBook Air (fanCount == 0) -> 20W
+        #expect(KineticNotchSource.targetWatts(gpuCores: 8, fanCount: 0) == 20.0)
+        #expect(KineticNotchSource.targetWatts(gpuCores: 10, fanCount: 0) == 20.0)
+
+        // Base MacBook Pro / Mac mini (fanCount >= 1, gpuCores <= 10) -> 30W
+        #expect(KineticNotchSource.targetWatts(gpuCores: 10, fanCount: 1) == 30.0)
+
+        // Pro chip (gpuCores 14~20) -> 55W
+        #expect(KineticNotchSource.targetWatts(gpuCores: 16, fanCount: 2) == 55.0)
+
+        // Max chip (gpuCores 24~40) -> 100W
+        #expect(KineticNotchSource.targetWatts(gpuCores: 32, fanCount: 2) == 100.0)
+
+        // Ultra chip (gpuCores >= 48) -> 200W
+        #expect(KineticNotchSource.targetWatts(gpuCores: 64, fanCount: 2) == 200.0)
     }
 
-    @Test func ratesUseSquareRootProgressionAndPerPresetMinimums() {
-        // 5.0095 is just above the 5% idle threshold. Its normalized distance is
-        // 0.01%, so the square-root curve has advanced by 1% of each preset's range.
-        let nearThreshold = 5.0095
-        #expect(MenuBarIconMotion.frameRate(load: 5, speed: .eco) == nil)
-        #expect(MenuBarIconMotion.frameRate(load: 5, speed: .standard) == nil)
-        #expect(MenuBarIconMotion.frameRate(load: 5, speed: .responsive) == nil)
-        #expect(abs((MenuBarIconMotion.frameRate(load: nearThreshold, speed: .eco) ?? 0) - 6.30) < 1e-12)
-        #expect(abs((MenuBarIconMotion.frameRate(load: nearThreshold, speed: .standard) ?? 0) - 8.40) < 1e-12)
-        #expect(abs((MenuBarIconMotion.frameRate(load: nearThreshold, speed: .responsive) ?? 0) - 12.48) < 1e-12)
-
-        // 28.75% is one quarter through the load range, which square-root interpolation
-        // maps to halfway through each rate range (not the linear one-quarter point).
-        let interiorLoad = 28.75
-        #expect(abs((MenuBarIconMotion.frameRate(load: interiorLoad, speed: .eco) ?? 0) - 21.0) < 1e-12)
-        #expect(abs((MenuBarIconMotion.frameRate(load: interiorLoad, speed: .standard) ?? 0) - 28.0) < 1e-12)
-        #expect(abs((MenuBarIconMotion.frameRate(load: interiorLoad, speed: .responsive) ?? 0) - 36.0) < 1e-12)
+    @Test func powerLoadNormalization() {
+        #expect(KineticNotchSource.power.load(power: 0.0, gpuCores: 8, fanCount: 0) == 0.0)
+        #expect(KineticNotchSource.power.load(power: 10.0, gpuCores: 8, fanCount: 0) == 50.0)
+        #expect(KineticNotchSource.power.load(power: 20.0, gpuCores: 8, fanCount: 0) == 100.0)
+        #expect(KineticNotchSource.power.load(power: 35.0, gpuCores: 8, fanCount: 0) == 100.0) // clamped
+        #expect(KineticNotchSource.power.load(power: .nan, gpuCores: 8, fanCount: 0) == nil)
     }
 
-    @Test func motionCalculatesDisplayedFrameForVariousStyles() {
-        for style in MenuBarIconStyle.allCases {
-            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 0, reduceMotion: false) == 0)
-            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: style.frameCount - 1, reduceMotion: false) == style.frameCount - 1)
-            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: style.frameCount, reduceMotion: false) == 0)
-            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: -1, reduceMotion: false) == style.frameCount - 1)
-            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 3, reduceMotion: true) == style.staticFrame)
+    @Test func cpuClockLoadNormalization() {
+        #expect(KineticNotchSource.cpuClock.load(cpuClockGHz: 0.8) == 0.0)
+        #expect(abs((KineticNotchSource.cpuClock.load(cpuClockGHz: 2.4) ?? 0) - 50.0) < 1e-9)
+        #expect(KineticNotchSource.cpuClock.load(cpuClockGHz: 4.0) == 100.0)
+        #expect(KineticNotchSource.cpuClock.load(cpuClockGHz: 4.5) == 100.0) // clamped
+        #expect(KineticNotchSource.cpuClock.load(cpuClockGHz: .nan) == nil)
+    }
+
+    @Test func computeLoadNormalization() {
+        #expect(KineticNotchSource.compute.load(cpu: 20, gpu: 80) == 50.0)
+        #expect(KineticNotchSource.compute.load(cpu: 0, gpu: 0) == 0.0)
+        #expect(KineticNotchSource.compute.load(cpu: 100, gpu: 100) == 100.0)
+        #expect(KineticNotchSource.compute.load(cpu: 40, gpu: nil) == nil)
+        #expect(KineticNotchSource.compute.load(cpu: .nan, gpu: 0) == nil)
+    }
+
+    @Test func physicalRevolutionsPerSecondIsStrictlyBoundToLoad() {
+        // Physical RPS is identical regardless of presets
+        #expect(MenuBarIconMotion.revolutionsPerSecond(load: 0.0) == 0.50)
+        #expect(MenuBarIconMotion.revolutionsPerSecond(load: 100.0) == 2.50)
+        // 25% load -> sqrt(0.25) = 0.5 progression -> midpoint = 0.50 + 2.00 * 0.5 = 1.50
+        #expect(abs(MenuBarIconMotion.revolutionsPerSecond(load: 25.0) - 1.50) < 1e-9)
+    }
+
+    @Test func smoothedRPS_physicalInertiaSmoothing() {
+        #expect(abs(MenuBarIconMotion.smoothedRPS(current: 0.50, target: 2.50, dt: 0.25) - (0.50 + 2.00 * (1.0 - exp(-1.0)))) < 1e-9)
+        #expect(MenuBarIconMotion.smoothedRPS(current: 0.50, target: 2.50, dt: 0) == 2.50)
+    }
+
+    @Test func interFramePrecisionScheduler() {
+        // At 0.50 RPS, 24 frames -> natural interval is 1.0 / (0.50 * 24) = 1.0 / 12.0 = 0.083333s (83.3ms)
+        let idleDelay = MenuBarIconMotion.interFrameDelay(rps: 0.50, speed: .smart, isACConnected: true, isForeground: true, frameCount: 24, style: .turbine)
+        #expect(abs(idleDelay - (1.0 / 12.0)) < 1e-9)
+
+        // At 2.50 RPS, 24 frames on AC 60fps (foreground) -> interval is 1.0 / 60.0 = 0.016667s (16.7ms)
+        let maxACDelay = MenuBarIconMotion.interFrameDelay(rps: 2.50, speed: .smart, isACConnected: true, isForeground: true, frameCount: 24, style: .turbine)
+        #expect(abs(maxACDelay - (1.0 / 60.0)) < 1e-9)
+
+        // At 2.50 RPS, 24 frames in background (isForeground: false) -> capped at 24fps = 1.0 / 24.0 = 0.041667s (41.7ms)
+        let maxBgDelay = MenuBarIconMotion.interFrameDelay(rps: 2.50, speed: .smart, isACConnected: true, isForeground: false, frameCount: 24, style: .turbine)
+        #expect(abs(maxBgDelay - (1.0 / 24.0)) < 1e-9)
+
+        // At 2.50 RPS, 24 frames on Battery 24fps -> interval is 1.0 / 24.0 = 0.041667s (41.7ms)
+        let maxBatDelay = MenuBarIconMotion.interFrameDelay(rps: 2.50, speed: .smart, isACConnected: false, isLowPowerMode: false, isForeground: true, frameCount: 24, style: .turbine)
+        #expect(abs(maxBatDelay - (1.0 / 24.0)) < 1e-9)
+    }
+
+    @Test func presetTargetFPSAndEffectiveRates() {
+        // Foreground (isForeground: true): respects selected speed preset and AC state
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .smart, isACConnected: true, isLowPowerMode: false, isForeground: true) == 60.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .smart, isACConnected: false, isLowPowerMode: false, isForeground: true) == 24.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .smart, isACConnected: true, isLowPowerMode: true, isForeground: true) == 15.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .smart, isACConnected: false, isLowPowerMode: true, isForeground: true) == 15.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .eco, isACConnected: true, isLowPowerMode: false, isForeground: true) == 24.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .standard, isACConnected: true, isLowPowerMode: false, isForeground: true) == 48.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .responsive, isACConnected: true, isLowPowerMode: false, isForeground: true) == 60.0)
+
+        // Background / Closed (isForeground: false, default): Strictly capped at 24.0 fps to protect ProMotion baseline
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .smart, isACConnected: true, isLowPowerMode: false, isForeground: false) == 24.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .standard, isACConnected: true, isLowPowerMode: false, isForeground: false) == 24.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .responsive, isACConnected: true, isLowPowerMode: false, isForeground: false) == 24.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .responsive, isACConnected: true, isLowPowerMode: true, isForeground: false) == 15.0)
+
+        // effectiveFrameRate foreground
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .smart, isACConnected: true, isLowPowerMode: false, isForeground: true, frameCount: 24) == 60.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .smart, isACConnected: false, isLowPowerMode: false, isForeground: true, frameCount: 24) == 24.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .standard, isForeground: true, frameCount: 24) == 48.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .responsive, isForeground: true, frameCount: 24) == 60.0)
+
+        // effectiveFrameRate background (closed panel)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .responsive, isACConnected: true, isLowPowerMode: false, isForeground: false, frameCount: 24) == 24.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 0, speed: .responsive, isACConnected: true, isLowPowerMode: false, isForeground: false, frameCount: 24) == 24.0)
+    }
+
+    @Test func timeBasedPhaseAdvancePreservesContinuity() {
+        var phase = 0.0
+        // Advance 1 second at 1.0 RPS -> wraps to 0.0
+        phase = MenuBarIconMotion.advancePhase(currentPhase: phase, rps: 1.0, dt: 1.0)
+        #expect(phase == 0.0)
+
+        // Advance 0.25s at 1.0 RPS -> 0.25
+        phase = MenuBarIconMotion.advancePhase(currentPhase: phase, rps: 1.0, dt: 0.25)
+        #expect(abs(phase - 0.25) < 1e-9)
+
+        // Sleep/wake clamp test: a 10-second sleep is clamped to 1.0s max
+        let wrapped = MenuBarIconMotion.advancePhase(currentPhase: 0.2, rps: 0.5, dt: 10.0)
+        #expect(abs(wrapped - 0.7) < 1e-9) // 0.2 + (0.5 * 1.0) = 0.7
+    }
+
+    @Test func motionCalculatesDisplayedFrameForContinuousPhase() {
+        let rotationalStyles: [MenuBarIconStyle] = [.turbine, .pulseWave, .cube3D, .thermalBubble]
+        for style in rotationalStyles {
+            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 0.0, reduceMotion: false) == 0)
+            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 0.999, reduceMotion: false) == style.frameCount - 1)
+            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 1.0, reduceMotion: false) == 0)
         }
-    }
 
-    @Test func frameDelaysSumToCycleTime() {
         for style in MenuBarIconStyle.allCases {
-            let delays = (0..<style.frameCount).map {
-                MenuBarIconMotion.frameDelay(style: style, phase: $0, frameRate: 5.0)
-            }
-            let totalTime = delays.reduce(0, +)
-            let multiplier = MenuBarIconMotion.phaseDelayMultiplier(style: style, phase: 0)
-            let expectedTotalTime = (Double(style.frameCount) / 5.0) * multiplier
-            #expect(abs(totalTime - expectedTotalTime) < 1e-9)
+            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 0.5, reduceMotion: true) == style.staticFrame)
         }
     }
 
     @Test func vuMeterMovesFromLeftToRightWithLoad() {
-        // Low load: needle stays near left edge (frames 0~3)
-        let lowFrame = MenuBarIconMotion.displayedFrame(style: .vuMeter, phase: 0, load: 5.0, reduceMotion: false)
+        let lowFrame = MenuBarIconMotion.displayedFrame(style: .vuMeter, phase: 0.0, load: 5.0, reduceMotion: false)
         #expect(lowFrame <= 3)
 
-        // Mid load: needle moves toward center (frames 10~13)
-        let midFrame = MenuBarIconMotion.displayedFrame(style: .vuMeter, phase: 0, load: 50.0, reduceMotion: false)
+        let midFrame = MenuBarIconMotion.displayedFrame(style: .vuMeter, phase: 0.0, load: 50.0, reduceMotion: false)
         #expect(midFrame >= 10 && midFrame <= 14)
 
-        // High load: needle moves to far right (frames 21~23)
-        let highFrame = MenuBarIconMotion.displayedFrame(style: .vuMeter, phase: 0, load: 100.0, reduceMotion: false)
+        let highFrame = MenuBarIconMotion.displayedFrame(style: .vuMeter, phase: 0.0, load: 100.0, reduceMotion: false)
         #expect(highFrame >= 21)
     }
 
     @Test func equalizerScalesTierWithLoad() {
-        // Low load (< 25%): Tier 0 (frames 0..5)
-        let lowFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 2, load: 10.0, reduceMotion: false)
+        let lowFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 0.3, load: 10.0, reduceMotion: false)
         #expect(lowFrame >= 0 && lowFrame <= 5)
 
-        // Mid-low load (25~50%): Tier 1 (frames 6..11)
-        let midLowFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 2, load: 35.0, reduceMotion: false)
+        let midLowFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 0.3, load: 35.0, reduceMotion: false)
         #expect(midLowFrame >= 6 && midLowFrame <= 11)
 
-        // Mid-high load (50~75%): Tier 2 (frames 12..17)
-        let midHighFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 2, load: 60.0, reduceMotion: false)
+        let midHighFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 0.3, load: 60.0, reduceMotion: false)
         #expect(midHighFrame >= 12 && midHighFrame <= 17)
 
-        // High load (>= 75%): Tier 3 (frames 18..23)
-        let highFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 2, load: 95.0, reduceMotion: false)
+        let highFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 0.3, load: 95.0, reduceMotion: false)
         #expect(highFrame >= 18 && highFrame <= 23)
+    }
+
+    @Test func vuMeterAndEqualizerHandleNilAndNaNSafely() {
+        // nil load safely falls back to 0% idle state, not arbitrary full-range spinning
+        let vuNil = MenuBarIconMotion.displayedFrame(style: .vuMeter, phase: 0.5, load: nil, reduceMotion: false)
+        #expect(vuNil >= 0 && vuNil <= 3)
+
+        let eqNil = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 0.5, load: nil, reduceMotion: false)
+        #expect(eqNil >= 0 && eqNil <= 5) // Tier 0
+
+        // NaN load safely falls back to 0% idle state without crashing
+        let vuNaN = MenuBarIconMotion.displayedFrame(style: .vuMeter, phase: 0.5, load: .nan, reduceMotion: false)
+        #expect(vuNaN >= 0 && vuNaN <= 3)
+
+        let eqNaN = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 0.5, load: .nan, reduceMotion: false)
+        #expect(eqNaN >= 0 && eqNaN <= 5)
     }
 }

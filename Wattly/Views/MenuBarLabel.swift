@@ -14,7 +14,7 @@ struct MenuBarLabel: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var visibilitySettings = VisibilitySettings.shared
-    @State private var dynamicIconPhase = 0
+    @State private var displayedFrameIndex: Int = 0
     @AppStorage(StorageKey.menubarTextEnabled) private var textEnabled = Defaults.menubarTextEnabled
     @AppStorage(StorageKey.powerSmoothed)      private var powerSmoothed = Defaults.powerSmoothed
     @AppStorage(StorageKey.kineticNotchMotionEnabled) private var kineticNotchMotionEnabled = Defaults.kineticNotchMotionEnabled
@@ -25,7 +25,7 @@ struct MenuBarLabel: View {
     var body: some View {
         let label = assembled
         let trailingMargin: CGFloat = (label != nil) ? 5.0 : 0.0
-        let glyph = MenuBarGlyph.template(style: iconStyle, frame: currentFrame, trailingPadding: trailingMargin).map(Image.init(nsImage:)) ?? Image(systemName: "waveform.path")
+        let glyph = MenuBarGlyph.template(style: iconStyle, frame: displayedFrameIndex, trailingPadding: trailingMargin).map(Image.init(nsImage:)) ?? Image(systemName: "waveform.path")
         return HStack(spacing: 0) {
             glyph
             if let label {
@@ -35,14 +35,43 @@ struct MenuBarLabel: View {
             }
         }
         .accessibilityLabel(accessibilityLabel)
-        .task(id: "\(iconStyle.rawValue)-\(kineticNotchMotionEnabled)-\(kineticNotchSource.rawValue)-\(kineticNotchSpeed.rawValue)-\(reduceMotion)-\(dynamicIconFrameRate ?? 0)") {
-            guard let frameRate = dynamicIconFrameRate else { return }
+        .task(id: "\(iconStyle.rawValue)-\(kineticNotchMotionEnabled)-\(kineticNotchSpeed.rawValue)-\(reduceMotion)") {
+            guard kineticNotchMotionEnabled, !reduceMotion else { return }
+            var continuousPhase = 0.0
+            var currentRPS = 0.50
+            var lastInstant = CACurrentMediaTime()
+
             while !Task.isCancelled {
-                let phase = dynamicIconPhase
-                let delay = MenuBarIconMotion.frameDelay(style: iconStyle, phase: phase, frameRate: frameRate)
+                let load = kineticNotchLoad ?? 0.0
+                let targetRPS = MenuBarIconMotion.revolutionsPerSecond(load: load)
+
+                let now = CACurrentMediaTime()
+                let dt = min(max(now - lastInstant, 0.001), 1.0)
+                lastInstant = now
+
+                currentRPS = MenuBarIconMotion.smoothedRPS(current: currentRPS, target: targetRPS, dt: dt)
+                continuousPhase = MenuBarIconMotion.advancePhase(currentPhase: continuousPhase, rps: currentRPS, dt: dt)
+
+                let newFrame = MenuBarIconMotion.displayedFrame(
+                    style: iconStyle,
+                    phase: continuousPhase,
+                    load: load,
+                    reduceMotion: reduceMotion || !kineticNotchMotionEnabled
+                )
+                if newFrame != displayedFrameIndex {
+                    displayedFrameIndex = newFrame
+                }
+
+                let delay = MenuBarIconMotion.interFrameDelay(
+                    rps: currentRPS,
+                    speed: kineticNotchSpeed,
+                    isACConnected: isACConnected,
+                    isLowPowerMode: isLowPowerMode,
+                    isForeground: monitor.isPanelVisible,
+                    frameCount: iconStyle.frameCount,
+                    style: iconStyle
+                )
                 try? await Task.sleep(for: .seconds(delay))
-                guard !Task.isCancelled else { return }
-                dynamicIconPhase = (phase + 1) % iconStyle.frameCount
             }
         }
     }
@@ -66,36 +95,59 @@ struct MenuBarLabel: View {
             kinds.map { ($0, monitor.cardState($0, smoothed: powerSmoothed)) })
     }
 
+    private var isACConnected: Bool {
+        HardwarePowerSource.isACConnected()
+    }
+
+    private var isLowPowerMode: Bool {
+        ProcessInfo.processInfo.isLowPowerModeEnabled
+    }
+
     private var kineticNotchLoad: Double? {
+        let power: Double?
+        if case .value(.power(let sample)) = monitor.cardState(.power) {
+            power = sample.totalW
+        } else {
+            power = nil
+        }
+
+        let cpuClockGHz: Double?
         let cpu: Double?
         if case .value(.cpu(let sample)) = monitor.cardState(.cpu) {
             cpu = sample.overall
+            cpuClockGHz = sample.perfLevels.compactMap(\.activeGHz).first
         } else {
             cpu = nil
+            cpuClockGHz = nil
         }
 
         let gpu: Double?
+        let gpuCores: Int?
         if case .value(.gpu(let sample)) = monitor.cardState(.gpu) {
             gpu = sample.overall
+            gpuCores = sample.coreCount
         } else {
             gpu = nil
+            gpuCores = nil
         }
-        return kineticNotchSource.load(cpu: cpu, gpu: gpu)
-    }
 
-    private var currentFrame: Int {
-        MenuBarIconMotion.displayedFrame(
-            style: iconStyle,
-            phase: dynamicIconPhase,
-            load: kineticNotchLoad,
-            reduceMotion: reduceMotion || dynamicIconFrameRate == nil
+        let fanCount: Int?
+        if case .value(.fan(let sample)) = monitor.cardState(.fan) {
+            fanCount = sample.fans.count
+        } else {
+            fanCount = nil
+        }
+
+        return kineticNotchSource.load(
+            power: power,
+            cpuClockGHz: cpuClockGHz,
+            cpu: cpu,
+            gpu: gpu,
+            gpuCores: gpuCores,
+            fanCount: fanCount
         )
     }
 
-    private var dynamicIconFrameRate: Double? {
-        guard kineticNotchMotionEnabled, !reduceMotion, let kineticNotchLoad else { return nil }
-        return MenuBarIconMotion.frameRate(load: kineticNotchLoad, speed: kineticNotchSpeed)
-    }
 }
 
 @MainActor
