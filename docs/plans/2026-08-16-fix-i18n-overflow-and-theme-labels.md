@@ -63,7 +63,7 @@ Commit: `git commit -m "feat(i18n): add 30-language translations for 7 icon desi
 - Modify: `WattlyTests/SettingsResetTests.swift`
 - Modify: `WattlyTests/LocalizationTests.swift`
 
-- [ ] **Step 1: Update `KineticNotchSource` & `KineticNotchSpeed` labels and descriptions**
+- [x] **Step 1: Update `KineticNotchSource` & `KineticNotchSpeed` labels and descriptions**
 
 In `Wattly/Core/KineticNotchMotion.swift`:
 - `KineticNotchSource.power.label`: `"전력 소비"` (기존 `"전력 소비 (권장)"`에서 간결화)
@@ -75,12 +75,12 @@ In `Wattly/Settings/Settings.swift`:
 - `PowerMode.eco.label`: `"스마트"`
 - `BackgroundRefreshPreset.eco.label`: `"스마트"`
 
-- [ ] **Step 2: Update `Localizable.xcstrings` and unit test assertions**
+- [x] **Step 2: Update `Localizable.xcstrings` and unit test assertions**
 
 - Add translation for `"전력 소비"`, `"스마트"`, and updated descriptions.
 - Update `KineticNotchMotionTests.swift` and `SettingsResetTests.swift`.
 
-- [ ] **Step 3: Run tests & commit**
+- [x] **Step 3: Run tests & commit**
 
 Run: `xcodebuild test -project Wattly.xcodeproj -scheme Wattly -destination 'platform=macOS' -derivedDataPath ./build/DerivedData`
 Commit: `git commit -m "refactor(settings): streamline segment labels and move recommended badge to description"`
@@ -94,7 +94,7 @@ Commit: `git commit -m "refactor(settings): streamline segment labels and move r
 - Modify: `Wattly/Views/SettingsView.swift`
 - Modify: `Wattly/Views/Settings/SettingsMenuBarSection.swift`
 
-- [ ] **Step 1: Add `.lineLimit(1)` and `.minimumScaleFactor(0.7)` to `WattlySegment` and `WattlyChip`**
+- [x] **Step 1: Add `.lineLimit(1)` and `.minimumScaleFactor(0.7)` to `WattlySegment` and `WattlyChip`**
 
 In `Wattly/Views/SettingsComponents.swift`:
 ```swift
@@ -123,12 +123,12 @@ In `SettingsMenuBarSection.swift` (`iconStyleButton`):
                     .allowsTightening(true)
 ```
 
-- [ ] **Step 2: Update `SettingsView` content width from 440 to 480**
+- [x] **Step 2: Update `SettingsView` content width from 440 to 480**
 
 In `Wattly/Views/SettingsView.swift`:
 - Change `.frame(width: 440)` to `.frame(width: 480)`.
 
-- [ ] **Step 3: Run full tests, build and commit**
+- [x] **Step 3: Run full tests, build and commit**
 
 Run: `xcodebuild test -project Wattly.xcodeproj -scheme Wattly -destination 'platform=macOS' -derivedDataPath ./build/DerivedData`
 Commit: `git commit -m "fix(ui): apply responsive text scaling to segments and expand settings width to 480px"`

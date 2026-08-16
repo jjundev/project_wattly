@@ -230,6 +230,9 @@ struct SettingsMenuBarSection: View {
                 Text(LocalizedStringKey(style.label))
                     .font(WattlyFont.at(11.5, weight: isSelected ? .semibold : .regular))
                     .foregroundStyle(labelColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                    .allowsTightening(true)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)

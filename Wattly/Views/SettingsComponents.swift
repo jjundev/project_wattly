@@ -113,7 +113,11 @@ struct WattlySegment<T: Hashable>: View {
         return Text(LocalizedStringKey(label))
             .font(WattlyFont.at(fontSize, weight: .semibold))
             .foregroundStyle(active ? t.text : scheme.segInactiveText)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .allowsTightening(true)
             .frame(maxWidth: .infinity)
+            .padding(.horizontal, 2)
             .padding(.vertical, pillVPadding)
             .background(
                 RoundedRectangle(cornerRadius: 6)
@@ -159,7 +163,11 @@ struct WattlyChip: View {
         Text(LocalizedStringKey(label))
             .font(WattlyFont.at(12, weight: .semibold))
             .foregroundStyle(isOn ? t.text : scheme.segInactiveText)
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .allowsTightening(true)
             .frame(maxWidth: .infinity)
+            .padding(.horizontal, 2)
             .padding(.vertical, 6)
             .background(
                 RoundedRectangle(cornerRadius: 6)

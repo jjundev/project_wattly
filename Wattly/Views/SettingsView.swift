@@ -33,7 +33,7 @@ struct SettingsView: View {
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(width: 440, height: 560)
+        .frame(width: 480, height: 560)
         .background(t.settingsBg)
         .background(WindowAppearanceSync(mode: theme))
         .task {
