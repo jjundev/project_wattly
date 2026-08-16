@@ -54,74 +54,71 @@ struct KineticNotchMotionTests {
         #expect(KineticNotchSource.compute.load(cpu: .nan, gpu: 0) == nil)
     }
 
-    @Test func continuousFrameRateWithoutHardThreshold() {
-        // At 0% load, returns exactly minimumFrameRate (continuous alive motion)
-        #expect(MenuBarIconMotion.frameRate(load: 0, speed: .eco) == 6.0)
-        #expect(MenuBarIconMotion.frameRate(load: 0, speed: .standard) == 8.0)
-        #expect(MenuBarIconMotion.frameRate(load: 0, speed: .responsive) == 12.0)
-
-        // At 100% load, returns maximumFrameRate
-        #expect(MenuBarIconMotion.frameRate(load: 100, speed: .eco) == 36.0)
-        #expect(MenuBarIconMotion.frameRate(load: 100, speed: .standard) == 48.0)
-        #expect(MenuBarIconMotion.frameRate(load: 100, speed: .responsive) == 60.0)
-
-        // At 25% load, square root interpolation gives 50% of the speed range
-        #expect(abs(MenuBarIconMotion.frameRate(load: 25, speed: .eco) - 21.0) < 1e-9)
-        #expect(abs(MenuBarIconMotion.frameRate(load: 25, speed: .standard) - 28.0) < 1e-9)
-        #expect(abs(MenuBarIconMotion.frameRate(load: 25, speed: .responsive) - 36.0) < 1e-9)
+    @Test func physicalRevolutionsPerSecondIsStrictlyBoundToLoad() {
+        // Physical RPS is identical regardless of presets
+        #expect(MenuBarIconMotion.revolutionsPerSecond(load: 0.0) == 0.25)
+        #expect(MenuBarIconMotion.revolutionsPerSecond(load: 100.0) == 2.50)
+        // 25% load -> sqrt(0.25) = 0.5 progression -> midpoint = 0.25 + 2.25 * 0.5 = 1.375
+        #expect(abs(MenuBarIconMotion.revolutionsPerSecond(load: 25.0) - 1.375) < 1e-9)
     }
 
-    @Test func motionCalculatesDisplayedFrameForVariousStyles() {
-        for style in MenuBarIconStyle.allCases {
-            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 0, reduceMotion: false) == 0)
-            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: style.frameCount - 1, reduceMotion: false) == style.frameCount - 1)
-            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: style.frameCount, reduceMotion: false) == 0)
-            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: -1, reduceMotion: false) == style.frameCount - 1)
-            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 3, reduceMotion: true) == style.staticFrame)
-        }
+    @Test func presetTargetFPSAndEffectiveRates() {
+        #expect(KineticNotchSpeed.eco.targetFPS == 15.0)
+        #expect(KineticNotchSpeed.standard.targetFPS == 30.0)
+        #expect(KineticNotchSpeed.responsive.targetFPS == 60.0)
+
+        // At full load (2.5 RPS, 24 frames -> 60 visual FPS):
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .eco, frameCount: 24) == 15.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .standard, frameCount: 24) == 30.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .responsive, frameCount: 24) == 60.0)
     }
 
-    @Test func frameDelaysSumToCycleTime() {
+    @Test func timeBasedPhaseAdvancePreservesContinuity() {
+        var phase = 0.0
+        // Advance 1 second at 1.0 RPS -> wraps to 0.0
+        phase = MenuBarIconMotion.advancePhase(currentPhase: phase, rps: 1.0, dt: 1.0)
+        #expect(phase == 0.0)
+
+        // Advance 0.25s at 1.0 RPS -> 0.25
+        phase = MenuBarIconMotion.advancePhase(currentPhase: phase, rps: 1.0, dt: 0.25)
+        #expect(abs(phase - 0.25) < 1e-9)
+
+        // Sleep/wake clamp test: a 10-second sleep is clamped to 1.0s max
+        let wrapped = MenuBarIconMotion.advancePhase(currentPhase: 0.2, rps: 0.5, dt: 10.0)
+        #expect(abs(wrapped - 0.7) < 1e-9) // 0.2 + (0.5 * 1.0) = 0.7
+    }
+
+    @Test func motionCalculatesDisplayedFrameForContinuousPhase() {
         for style in MenuBarIconStyle.allCases {
-            let delays = (0..<style.frameCount).map {
-                MenuBarIconMotion.frameDelay(style: style, phase: $0, frameRate: 5.0)
-            }
-            let totalTime = delays.reduce(0, +)
-            let multiplier = MenuBarIconMotion.phaseDelayMultiplier(style: style, phase: 0)
-            let expectedTotalTime = (Double(style.frameCount) / 5.0) * multiplier
-            #expect(abs(totalTime - expectedTotalTime) < 1e-9)
+            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 0.0, reduceMotion: false) == 0)
+            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 0.999, reduceMotion: false) == style.frameCount - 1)
+            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 1.0, reduceMotion: false) == 0)
+            #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 0.5, reduceMotion: true) == style.staticFrame)
         }
     }
 
     @Test func vuMeterMovesFromLeftToRightWithLoad() {
-        // Low load: needle stays near left edge (frames 0~3)
-        let lowFrame = MenuBarIconMotion.displayedFrame(style: .vuMeter, phase: 0, load: 5.0, reduceMotion: false)
+        let lowFrame = MenuBarIconMotion.displayedFrame(style: .vuMeter, phase: 0.0, load: 5.0, reduceMotion: false)
         #expect(lowFrame <= 3)
 
-        // Mid load: needle moves toward center (frames 10~13)
-        let midFrame = MenuBarIconMotion.displayedFrame(style: .vuMeter, phase: 0, load: 50.0, reduceMotion: false)
+        let midFrame = MenuBarIconMotion.displayedFrame(style: .vuMeter, phase: 0.0, load: 50.0, reduceMotion: false)
         #expect(midFrame >= 10 && midFrame <= 14)
 
-        // High load: needle moves to far right (frames 21~23)
-        let highFrame = MenuBarIconMotion.displayedFrame(style: .vuMeter, phase: 0, load: 100.0, reduceMotion: false)
+        let highFrame = MenuBarIconMotion.displayedFrame(style: .vuMeter, phase: 0.0, load: 100.0, reduceMotion: false)
         #expect(highFrame >= 21)
     }
 
     @Test func equalizerScalesTierWithLoad() {
-        // Low load (< 25%): Tier 0 (frames 0..5)
-        let lowFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 2, load: 10.0, reduceMotion: false)
+        let lowFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 0.3, load: 10.0, reduceMotion: false)
         #expect(lowFrame >= 0 && lowFrame <= 5)
 
-        // Mid-low load (25~50%): Tier 1 (frames 6..11)
-        let midLowFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 2, load: 35.0, reduceMotion: false)
+        let midLowFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 0.3, load: 35.0, reduceMotion: false)
         #expect(midLowFrame >= 6 && midLowFrame <= 11)
 
-        // Mid-high load (50~75%): Tier 2 (frames 12..17)
-        let midHighFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 2, load: 60.0, reduceMotion: false)
+        let midHighFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 0.3, load: 60.0, reduceMotion: false)
         #expect(midHighFrame >= 12 && midHighFrame <= 17)
 
-        // High load (>= 75%): Tier 3 (frames 18..23)
-        let highFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 2, load: 95.0, reduceMotion: false)
+        let highFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 0.3, load: 95.0, reduceMotion: false)
         #expect(highFrame >= 18 && highFrame <= 23)
     }
 }

@@ -14,7 +14,7 @@ struct MenuBarLabel: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var visibilitySettings = VisibilitySettings.shared
-    @State private var dynamicIconPhase = 0
+    @State private var continuousPhase: Double = 0.0
     @AppStorage(StorageKey.menubarTextEnabled) private var textEnabled = Defaults.menubarTextEnabled
     @AppStorage(StorageKey.powerSmoothed)      private var powerSmoothed = Defaults.powerSmoothed
     @AppStorage(StorageKey.kineticNotchMotionEnabled) private var kineticNotchMotionEnabled = Defaults.kineticNotchMotionEnabled
@@ -35,14 +35,24 @@ struct MenuBarLabel: View {
             }
         }
         .accessibilityLabel(accessibilityLabel)
-        .task(id: "\(iconStyle.rawValue)-\(kineticNotchMotionEnabled)-\(kineticNotchSource.rawValue)-\(kineticNotchSpeed.rawValue)-\(reduceMotion)-\(dynamicIconFrameRate ?? 0)") {
-            guard let frameRate = dynamicIconFrameRate else { return }
+        .task(id: "\(iconStyle.rawValue)-\(kineticNotchMotionEnabled)-\(kineticNotchSpeed.rawValue)-\(reduceMotion)") {
+            guard kineticNotchMotionEnabled, !reduceMotion else { return }
+            var lastInstant = CACurrentMediaTime()
+
             while !Task.isCancelled {
-                let phase = dynamicIconPhase
-                let delay = MenuBarIconMotion.frameDelay(style: iconStyle, phase: phase, frameRate: frameRate)
-                try? await Task.sleep(for: .seconds(delay))
+                let load = kineticNotchLoad ?? 0.0
+                let rps = MenuBarIconMotion.revolutionsPerSecond(load: load)
+                let activeFPS = MenuBarIconMotion.effectiveFrameRate(load: load, speed: kineticNotchSpeed, frameCount: iconStyle.frameCount)
+                let targetDelay = max(1.0 / activeFPS, 0.016)
+
+                try? await Task.sleep(for: .seconds(targetDelay))
                 guard !Task.isCancelled else { return }
-                dynamicIconPhase = (phase + 1) % iconStyle.frameCount
+
+                let now = CACurrentMediaTime()
+                let dt = min(now - lastInstant, 1.0)
+                lastInstant = now
+
+                continuousPhase = MenuBarIconMotion.advancePhase(currentPhase: continuousPhase, rps: rps, dt: dt)
             }
         }
     }
@@ -114,15 +124,10 @@ struct MenuBarLabel: View {
     private var currentFrame: Int {
         MenuBarIconMotion.displayedFrame(
             style: iconStyle,
-            phase: dynamicIconPhase,
+            phase: continuousPhase,
             load: kineticNotchLoad,
-            reduceMotion: reduceMotion || dynamicIconFrameRate == nil
+            reduceMotion: reduceMotion || !kineticNotchMotionEnabled
         )
-    }
-
-    private var dynamicIconFrameRate: Double? {
-        guard kineticNotchMotionEnabled, !reduceMotion, let kineticNotchLoad else { return nil }
-        return MenuBarIconMotion.frameRate(load: kineticNotchLoad, speed: kineticNotchSpeed)
     }
 }
 

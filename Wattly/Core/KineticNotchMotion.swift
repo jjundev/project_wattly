@@ -80,31 +80,58 @@ enum KineticNotchSpeed: String, CaseIterable, Identifiable, Sendable {
     var label: String {
         switch self { case .eco: "절전"; case .standard: "표준"; case .responsive: "민감" }
     }
-    var minimumFrameRate: Double {
-        switch self { case .eco: 6.0; case .standard: 8.0; case .responsive: 12.0 }
-    }
-    var maximumFrameRate: Double {
-        switch self { case .eco: 36.0; case .standard: 48.0; case .responsive: 60.0 }
+    var targetFPS: Double {
+        switch self { case .eco: 15.0; case .standard: 30.0; case .responsive: 60.0 }
     }
     var description: String {
         switch self {
-        case .eco: "낮은 전력으로 부하에 따라 6~36 fps로 부드럽게 움직입니다."
-        case .standard: "균형 잡힌 반응으로 부하에 따라 8~48 fps로 매끄럽게 움직입니다."
-        case .responsive: "부하 변화에 민감하게 12~60 fps의 고주사율로 움직입니다."
+        case .eco: "15 fps 주사율로 배터리를 극도로 아끼며 부드럽게 회전합니다. (회전 속도는 부하에 일정)"
+        case .standard: "30 fps 주사율로 부드럽고 균형 잡힌 모션을 제공합니다."
+        case .responsive: "60 fps 고주사율로 ProMotion급의 극도로 부드러운 모션을 제공합니다."
         }
     }
 }
 
 enum MenuBarIconMotion {
-    static func displayedFrame(style: MenuBarIconStyle, phase: Int, load: Double? = nil, reduceMotion: Bool) -> Int {
+    static let rpsMin = 0.25 // 1 rev per 4.0s at 0% idle load
+    static let rpsMax = 2.50 // 1 rev per 0.4s at 100% full load
+
+    /// Physical rotation speed in revolutions per second (RPS), solely determined by workload.
+    static func revolutionsPerSecond(load: Double) -> Double {
+        let clampedLoad = min(max(load, 0), 100)
+        let progress = sqrt(clampedLoad / 100.0)
+        return rpsMin + (rpsMax - rpsMin) * progress
+    }
+
+    /// Dynamic rendering frame rate: visual necessity capped by the preset's target FPS.
+    static func effectiveFrameRate(load: Double, speed: KineticNotchSpeed, frameCount: Int) -> Double {
+        let rps = revolutionsPerSecond(load: load)
+        let visualFPS = rps * Double(frameCount)
+        return min(speed.targetFPS, max(visualFPS, 6.0))
+    }
+
+    /// Advance continuous fractional phase [0.0, 1.0) given rps and elapsed dt (clamped to 1.0s for sleep/wake).
+    static func advancePhase(currentPhase: Double, rps: Double, dt: TimeInterval) -> Double {
+        let clampedDt = min(max(dt, 0), 1.0)
+        let delta = rps * clampedDt
+        var next = currentPhase + delta
+        if next >= 1.0 {
+            next = next.truncatingRemainder(dividingBy: 1.0)
+        }
+        return next
+    }
+
+    /// Discrete frame index from continuous phase for a given style.
+    static func displayedFrame(style: MenuBarIconStyle, phase: Double, load: Double? = nil, reduceMotion: Bool) -> Int {
         guard !reduceMotion else { return style.staticFrame }
         let count = style.frameCount
+        let safePhase = max(phase, 0.0).truncatingRemainder(dividingBy: 1.0)
 
         // Gauge-type meter styles (e.g. VU Meter) move needle from left to right as load increases
         if style == .vuMeter, let load {
             let clampedLoad = min(max(load, 0), 100)
             let baseIndex = (clampedLoad / 100.0) * Double(count - 1)
-            let jitter = sin(Double(phase) * 0.8) * (0.5 + (clampedLoad / 100.0) * 1.5)
+            let jitter = sin(safePhase * 2.0 * .pi * 3.0) * (0.5 + (clampedLoad / 100.0) * 1.5)
             let target = Int(round(baseIndex + jitter))
             return min(max(target, 0), count - 1)
         }
@@ -113,21 +140,22 @@ enum MenuBarIconMotion {
         if style == .equalizer, let load {
             let clampedLoad = min(max(load, 0), 100)
             let tier = min(Int(clampedLoad / 25.0), 3) // Tier 0 (low) ~ Tier 3 (max load)
-            let subPhase = ((phase % 6) + 6) % 6
+            let subPhase = Int(safePhase * 6.0) % 6
             return tier * 6 + subPhase
         }
 
-        return ((phase % count) + count) % count
+        return Int(safePhase * Double(count)) % count
     }
 
     static func displayedFrame(style: MenuBarIconStyle, phase: Int, reduceMotion: Bool) -> Int {
-        displayedFrame(style: style, phase: phase, load: nil, reduceMotion: reduceMotion)
+        let continuous = Double(phase) / Double(style.frameCount)
+        return displayedFrame(style: style, phase: continuous, load: nil, reduceMotion: reduceMotion)
     }
 
     static func phaseDelayMultiplier(style: MenuBarIconStyle, phase: Int) -> Double {
         switch style {
         case .equalizer:
-            return 1.8 // Smooth, eye-pleasing spectrum cadence without rapid flashing
+            return 1.8
         default:
             return 1.0
         }
@@ -135,11 +163,5 @@ enum MenuBarIconMotion {
 
     static func frameDelay(style: MenuBarIconStyle, phase: Int, frameRate: Double) -> TimeInterval {
         (1.0 / frameRate) * phaseDelayMultiplier(style: style, phase: phase)
-    }
-
-    static func frameRate(load: Double, speed: KineticNotchSpeed) -> Double {
-        let clampedLoad = min(max(load, 0), 100)
-        let progress = sqrt(clampedLoad / 100.0)
-        return speed.minimumFrameRate + (speed.maximumFrameRate - speed.minimumFrameRate) * progress
     }
 }

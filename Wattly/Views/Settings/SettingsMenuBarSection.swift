@@ -29,7 +29,7 @@ struct SettingsMenuBarSection: View {
     @AppStorage(StorageKey.menu(.fan))     private var menuFan     = Defaults.menuMetrics[.fan]     ?? false
 
     @State private var isAdvancedMenuMetricsExpanded = false
-    @State private var iconPreviewPhase = 0
+    @State private var continuousPreviewPhase: Double = 0.0
 
     private var hasActiveAdvancedMetrics: Bool {
         menuSClock || menuPClock || menuEClock || menuMemPressure || menuBatteryTemp
@@ -117,8 +117,9 @@ struct SettingsMenuBarSection: View {
                     kineticNotchField(title: "실시간 속도") {
                         HStack(spacing: 8) {
                             if let previewLoad {
-                                let frameRate = MenuBarIconMotion.frameRate(load: previewLoad, speed: kineticNotchSpeed)
-                                Text("\(Int(previewLoad.rounded()))% · \(frameRate, specifier: "%.1f") fps")
+                                let rps = MenuBarIconMotion.revolutionsPerSecond(load: previewLoad)
+                                let fps = MenuBarIconMotion.effectiveFrameRate(load: previewLoad, speed: kineticNotchSpeed, frameCount: iconStyle.frameCount)
+                                Text("\(Int(previewLoad.rounded()))% · \(rps, specifier: "%.2f") rps (\(Int(fps.rounded())) fps)")
                                     .font(WattlyFont.at(11.5, weight: .medium))
                                     .foregroundStyle(t.faint)
                             } else {
@@ -131,19 +132,26 @@ struct SettingsMenuBarSection: View {
                 }
             }
             .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
-            .task(id: "\(iconStyle.rawValue)-\(kineticNotchMotionEnabled)-\(kineticNotchSpeed.rawValue)-\(previewFrameRate ?? 0)-\(reduceMotion)") {
-                guard let frameRate = previewFrameRate,
-                      kineticNotchMotionEnabled,
-                      !reduceMotion else {
-                    iconPreviewPhase = iconStyle.staticFrame
+            .task(id: "\(iconStyle.rawValue)-\(kineticNotchMotionEnabled)-\(kineticNotchSpeed.rawValue)-\(reduceMotion)") {
+                guard kineticNotchMotionEnabled, !reduceMotion else {
+                    continuousPreviewPhase = Double(iconStyle.staticFrame) / Double(iconStyle.frameCount)
                     return
                 }
+                var lastInstant = CACurrentMediaTime()
                 while !Task.isCancelled {
-                    let phase = iconPreviewPhase
-                    let delay = MenuBarIconMotion.frameDelay(style: iconStyle, phase: phase, frameRate: frameRate)
-                    try? await Task.sleep(for: .seconds(delay))
+                    let load = previewLoad ?? 0.0
+                    let rps = MenuBarIconMotion.revolutionsPerSecond(load: load)
+                    let activeFPS = MenuBarIconMotion.effectiveFrameRate(load: load, speed: kineticNotchSpeed, frameCount: iconStyle.frameCount)
+                    let targetDelay = max(1.0 / activeFPS, 0.016)
+
+                    try? await Task.sleep(for: .seconds(targetDelay))
                     guard !Task.isCancelled else { return }
-                    iconPreviewPhase = (phase + 1) % 24
+
+                    let now = CACurrentMediaTime()
+                    let dt = min(now - lastInstant, 1.0)
+                    lastInstant = now
+
+                    continuousPreviewPhase = MenuBarIconMotion.advancePhase(currentPhase: continuousPreviewPhase, rps: rps, dt: dt)
                 }
             }
         }
@@ -153,7 +161,7 @@ struct SettingsMenuBarSection: View {
         let isSelected = iconStyle == style
         let previewFrame = MenuBarIconMotion.displayedFrame(
             style: style,
-            phase: iconPreviewPhase,
+            phase: continuousPreviewPhase,
             reduceMotion: !kineticNotchMotionEnabled || reduceMotion
         )
         let fgColor = isSelected ? Tokens.accent : t.text
@@ -201,11 +209,6 @@ struct SettingsMenuBarSection: View {
                 .foregroundStyle(t.faint)
             content()
         }
-    }
-
-    private var previewFrameRate: Double? {
-        guard kineticNotchMotionEnabled, !reduceMotion, let previewLoad else { return nil }
-        return MenuBarIconMotion.frameRate(load: previewLoad, speed: kineticNotchSpeed)
     }
 
     private var previewLoad: Double? {
