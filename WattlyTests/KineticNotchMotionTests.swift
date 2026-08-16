@@ -143,7 +143,7 @@ struct KineticNotchMotionTests {
     }
 
     @Test func motionCalculatesDisplayedFrameForContinuousPhase() {
-        let rotationalStyles: [MenuBarIconStyle] = [.turbine, .pulseWave, .cube3D, .thermalBubble]
+        let rotationalStyles: [MenuBarIconStyle] = [.turbine, .pulseWave, .cube3D]
         for style in rotationalStyles {
             #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 0.0, reduceMotion: false) == 0)
             #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 0.999, reduceMotion: false) == style.frameCount - 1)

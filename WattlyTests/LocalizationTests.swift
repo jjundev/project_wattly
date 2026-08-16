@@ -48,7 +48,6 @@ struct LocalizationTests {
         #expect(String(localized: "펄스 웨이브", locale: Locale(identifier: "en")) == "Pulse Wave")
         #expect(String(localized: "VU 파워 미터", locale: Locale(identifier: "en")) == "VU Power Meter")
         #expect(String(localized: "3D 큐브", locale: Locale(identifier: "en")) == "3D Cube")
-        #expect(String(localized: "열 대류 버블", locale: Locale(identifier: "en")) == "Thermal Bubbles")
         #expect(String(localized: "디지털 이퀄라이저", locale: Locale(identifier: "en")) == "Equalizer")
         #expect(String(localized: "러너 (경사로 질주)", locale: Locale(identifier: "en")) == "Hill Runner")
     }

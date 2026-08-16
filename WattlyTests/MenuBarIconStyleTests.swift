@@ -5,7 +5,7 @@ import Foundation
 struct MenuBarIconStyleTests {
     @Test func allIconStylesHaveValidMetadataAndFrameCounts() {
         let styles = MenuBarIconStyle.allCases
-        #expect(styles.count == 7)
+        #expect(styles.count == 6)
         for style in styles {
             #expect(!style.id.isEmpty)
             #expect(!style.label.isEmpty)
