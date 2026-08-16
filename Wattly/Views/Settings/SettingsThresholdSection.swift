@@ -23,8 +23,19 @@ struct SettingsThresholdSection: View {
 
     private var gpuThresholdBlock: some View {
         let isEnabled = thresholds.gpu != nil
+        let gpuToggleBinding = Binding(
+            get: { thresholds.gpu != nil },
+            set: { on in
+                if on {
+                    thresholds.gpu = ThresholdPair(warn: 85, crit: 95)
+                } else {
+                    thresholds.gpu = nil
+                }
+            }
+        )
+
         return VStack(alignment: .leading, spacing: 10) {
-            HStack {
+            HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("GPU 사용률 (%)")
                         .font(WattlyFont.at(12.5, weight: .semibold))
@@ -35,19 +46,15 @@ struct SettingsThresholdSection: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 12)
-                Toggle("", isOn: Binding(
-                    get: { thresholds.gpu != nil },
-                    set: { on in
-                        if on {
-                            thresholds.gpu = ThresholdPair(warn: 85, crit: 95)
-                        } else {
-                            thresholds.gpu = nil
-                        }
-                    }
-                ))
-                .toggleStyle(.switch)
-                .labelsHidden()
-                .accessibilityLabel("GPU 사용률 상태 경고")
+                WattlyToggle(isOn: gpuToggleBinding, isEnabled: true)
+            }
+            .contentShape(Rectangle())
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("GPU 사용률 상태 경고")
+            .accessibilityValue(isEnabled ? "켜짐" : "꺼짐")
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction {
+                gpuToggleBinding.wrappedValue.toggle()
             }
 
             if isEnabled {
