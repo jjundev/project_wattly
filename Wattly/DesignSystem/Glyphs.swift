@@ -152,7 +152,69 @@ struct PulseWaveMark: View {
     }
 }
 
-// 3. Isometric Rotating 3D Cube Mark
+// 3. VU Power Meter Mark
+struct VUMeterMark: View {
+    let frame: Int
+    var markerColor: Color = Tokens.accent
+
+    var body: some View {
+        GeometryReader { proxy in
+            let s = min(proxy.size.width, proxy.size.height)
+            let c = CGPoint(x: s / 2, y: s / 2)
+            let strokeW = max(1.5, s * 0.08)
+            let phase = Double(frame) / 24.0
+            let angle = sin(phase * .pi * 2.0) * 38.0
+            let pivot = CGPoint(x: c.x, y: s * 0.78)
+
+            ZStack {
+                // Meter scale arc
+                Path { p in
+                    p.addArc(
+                        center: pivot,
+                        radius: s * 0.50,
+                        startAngle: .degrees(-135),
+                        endAngle: .degrees(-45),
+                        clockwise: false
+                    )
+                }
+                .stroke(style: StrokeStyle(lineWidth: strokeW * 0.8, lineCap: .round))
+                .opacity(0.35)
+
+                // Scale ticks
+                ForEach([-36.0, -18.0, 0.0, 18.0, 36.0], id: \.self) { a in
+                    let rad = (a - 90.0) * .pi / 180.0
+                    let x1 = pivot.x + cos(rad) * s * 0.44
+                    let y1 = pivot.y + sin(rad) * s * 0.44
+                    let x2 = pivot.x + cos(rad) * s * 0.52
+                    let y2 = pivot.y + sin(rad) * s * 0.52
+                    Path { p in
+                        p.move(to: CGPoint(x: x1, y: y1))
+                        p.addLine(to: CGPoint(x: x2, y: y2))
+                    }
+                    .stroke(style: StrokeStyle(lineWidth: strokeW * 0.7, lineCap: .round))
+                    .opacity(0.60)
+                }
+
+                // Swinging needle
+                Path { p in
+                    p.move(to: pivot)
+                    p.addLine(to: CGPoint(x: pivot.x, y: pivot.y - s * 0.50))
+                }
+                .stroke(style: StrokeStyle(lineWidth: strokeW * 1.15, lineCap: .round))
+                .fill(markerColor)
+                .rotationEffect(.degrees(angle), anchor: .init(x: 0.5, y: 0.78))
+
+                // Pivot base dot
+                Circle()
+                    .fill(markerColor)
+                    .frame(width: s * 0.22, height: s * 0.22)
+                    .position(pivot)
+            }
+        }
+    }
+}
+
+// 4. Isometric Rotating 3D Cube Mark
 struct Cube3DMark: View {
     let frame: Int
     var markerColor: Color = Tokens.accent
@@ -196,7 +258,7 @@ struct Cube3DMark: View {
                 ForEach(0..<projected.count, id: \.self) { idx in
                     Circle()
                         .fill(markerColor)
-                        .frame(width: strokeW * 1.5, height: strokeW * 1.5)
+                        .frame(width: strokeW * 1.4, height: strokeW * 1.4)
                         .position(projected[idx])
                 }
             }
@@ -204,7 +266,7 @@ struct Cube3DMark: View {
     }
 }
 
-// 5. Thermal Convection Bubble Mark
+// 5. Thermal Convection Rising Bubble Mark
 struct ThermalBubbleMark: View {
     let frame: Int
     var markerColor: Color = Tokens.accent
@@ -212,10 +274,10 @@ struct ThermalBubbleMark: View {
     var body: some View {
         GeometryReader { proxy in
             let s = min(proxy.size.width, proxy.size.height)
-            let strokeW = max(1.2, s * 0.065)
+            let strokeW = max(1.3, s * 0.065)
             let phase = Double(frame) / 24.0
 
-            let bubbles: [(x: Double, speed: Double, offset: Double, r: Double)] = [
+            let bubbles: [(x: CGFloat, speed: Double, offset: Double, r: CGFloat)] = [
                 (0.32, 1.0, 0.0, 0.12),
                 (0.68, 1.3, 0.35, 0.10),
                 (0.48, 0.8, 0.65, 0.14),
@@ -232,7 +294,7 @@ struct ThermalBubbleMark: View {
                     p.addLine(to: CGPoint(x: s * 0.85, y: s * 0.85))
                     p.closeSubpath()
                 }
-                .stroke(style: StrokeStyle(lineWidth: strokeW * 0.8, lineCap: .round, lineJoin: .round))
+                .stroke(style: StrokeStyle(lineWidth: strokeW * 0.8, lineCap: .round))
                 .opacity(0.35)
 
                 ForEach(0..<bubbles.count, id: \.self) { idx in
@@ -247,6 +309,52 @@ struct ThermalBubbleMark: View {
                         .frame(width: s * b.r * 2.0, height: s * b.r * 2.0)
                         .opacity(opacity * 0.95)
                         .position(x: bx, y: by)
+                }
+            }
+        }
+    }
+}
+
+// 6. Logic Equalizer Mark
+struct EqualizerMark: View {
+    let frame: Int
+    var markerColor: Color = Tokens.accent
+
+    var body: some View {
+        GeometryReader { proxy in
+            let s = min(proxy.size.width, proxy.size.height)
+            let barWidth = max(2.0, s * 0.14)
+            let gap = max(1.5, s * 0.08)
+            let totalW = barWidth * 4 + gap * 3
+            let startX = (s - totalW) / 2
+            let maxH = s * 0.72
+            let baseY = s * 0.86
+            let phase = Double(frame) / 24.0
+
+            let freqs = [3.0, 5.0, 2.0, 4.0]
+            let offsets = [0.0, 0.4, 0.8, 0.2]
+
+            ZStack {
+                // Baseline track
+                Path { p in
+                    p.move(to: CGPoint(x: startX - gap * 0.5, y: baseY + 1.5))
+                    p.addLine(to: CGPoint(x: startX + totalW + gap * 0.5, y: baseY + 1.5))
+                }
+                .stroke(style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
+                .opacity(0.30)
+
+                // 4 Bouncing Bars
+                ForEach(0..<4, id: \.self) { i in
+                    let x = startX + CGFloat(i) * (barWidth + gap)
+                    let wave = abs(sin((phase * freqs[i] + offsets[i]) * .pi * 2.0))
+                    let hFactor = max(0.20, min(1.0, 0.25 + wave * 0.75))
+                    let h = max(barWidth, maxH * hFactor)
+                    let y = baseY - h
+
+                    RoundedRectangle(cornerRadius: barWidth / 2)
+                        .fill(markerColor)
+                        .frame(width: barWidth, height: h)
+                        .position(x: x + barWidth / 2, y: y + h / 2)
                 }
             }
         }
@@ -269,8 +377,10 @@ struct DynamicMenuBarIconMark: View {
         switch style {
         case .turbine: TurbineMark(frame: frame, markerColor: markerColor)
         case .pulseWave: PulseWaveMark(frame: frame, markerColor: markerColor)
+        case .vuMeter: VUMeterMark(frame: frame, markerColor: markerColor)
         case .cube3D: Cube3DMark(frame: frame, markerColor: markerColor)
         case .thermalBubble: ThermalBubbleMark(frame: frame, markerColor: markerColor)
+        case .equalizer: EqualizerMark(frame: frame, markerColor: markerColor)
         }
     }
 }
