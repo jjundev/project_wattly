@@ -12,7 +12,7 @@ struct PollPolicyTests {
         // Open → 1 s live view, regardless of the menubar text.
         #expect(resolvePollInterval(setting: .auto, panelVisible: true, menubarLiveContentEnabled: true) == .seconds(1))
         #expect(resolvePollInterval(setting: .auto, panelVisible: true, menubarLiveContentEnabled: false) == .seconds(1))
-        // Closed → 2 s while the menubar shows a number, 5 s when it doesn't.
+        // Closed → 2 s while the menubar has live content (text or Kinetic Notch motion), 5 s when it doesn't.
         #expect(resolvePollInterval(setting: .auto, panelVisible: false, menubarLiveContentEnabled: true) == .seconds(2))
         #expect(resolvePollInterval(setting: .auto, panelVisible: false, menubarLiveContentEnabled: false) == .seconds(5))
     }

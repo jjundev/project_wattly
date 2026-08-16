@@ -6,8 +6,8 @@ import Foundation
 
 /// The poll interval for one cycle. Only `.auto` adapts to runtime state: an open panel
 /// means the user is watching (1 s live view — `Task.sleep` `tolerance` coalesces toward
-/// the prototype's "1–2초"), while a closed panel drops to 2 s when the menubar still
-/// shows a number and 5 s when it doesn't (issue 09 §1 + prototype hint copy). The fixed
+/// the prototype's "1–2초"), while a closed panel drops to 2 s when the menubar has live
+/// content (text or Kinetic Notch motion) and 5 s when it doesn't (issue 09 §1 + prototype hint copy). The fixed
 /// 1/2/5 settings are constant: the user pinned a cadence, so it doesn't idle down.
 func resolvePollInterval(setting: PollInterval,
                          panelVisible: Bool,
