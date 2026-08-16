@@ -3,7 +3,7 @@ import SwiftUI
 /// The settings window (issue 13). SwiftUI `Settings` scene, native window chrome.
 /// All state is `@AppStorage`, so a change reflects in the popover live and survives restart.
 ///
-/// Sections: 일반 · 표시(테마·레이아웃·표시 지표·카드 펼침 목록·메뉴바) · 동작(백그라운드 갱신·전력 표시 안정화) · 고급(상태 경고 기준·팬 커브) · 되돌리기.
+/// Sections: 일반(자동 실행·언어·되돌리기) · 표시(테마·레이아웃·표시 지표·카드 펼침 목록·메뉴바) · 동작(백그라운드 갱신·전력 표시 안정화) · 고급(상태 경고 기준·팬 커브).
 struct SettingsView: View {
     @Environment(\.tokens) private var t
 
