@@ -802,6 +802,13 @@
               <td><span class="tag-green">우수</span></td>
               <td>온도 모니터링 중심 사용자</td>
             </tr>
+            <tr>
+              <td><strong>9. 경사로 러너 (Hill Runner) [NEW]</strong></td>
+              <td>오르막/평지/내리막 러너</td>
+              <td><span class="tag-green">최상 (부하 직관 체감 & 캐릭터)</span></td>
+              <td><span class="tag-green">매우 우수</span></td>
+              <td>RunCat 감성의 생동감 넘치는 부하 반응형 캐릭터 선호 시</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -813,7 +820,7 @@
     const state = {
       load: 35, // 0 - 100
       speedProfile: 'standard', // 'eco', 'standard', 'responsive'
-      selectedIconId: 'turbine',
+      selectedIconId: 'hillRunner',
       isDarkTheme: true,
       autoWaveActive: false,
       autoWaveAngle: 0,
@@ -1081,6 +1088,196 @@
                     x2="${(startX + totalW + gap * 0.5).toFixed(1)}" y2="${(baseY + 1.5).toFixed(1)}" 
                     stroke="currentColor" stroke-width="1.2" opacity="0.3" stroke-linecap="round" />
               ${bars.join('')}
+            </svg>
+          `;
+        }
+      },
+      {
+        id: 'hillRunner',
+        title: '7. 경사로 러너 (Hill Runner) [NEW]',
+        category: 'Character / Dynamic',
+        desc: '부하(0%~100%)에 따라 오르막 힘겨운 걸음 → 평지 조깅 → 내리막 폭풍 질주로 지형 경사와 캐릭터의 2단 관절 팔다리가 자연스럽게 움직입니다.',
+        render: (size, rot, phase, load) => {
+          const s = size;
+          const strokeW = Math.max(1.4, s * 0.08);
+          const headR = s * 0.095;
+          const t = Math.min(Math.max(load / 100, 0), 1); // 0.0 (오르막) ~ 0.5 (평지) ~ 1.0 (내리막)
+
+          // 1. Continuous Ground Slope Interpolation
+          const gX1 = s * 0.08, gX2 = s * 0.92;
+          const gY1 = s * (0.88 - t * 0.30);
+          const gY2 = s * (0.62 + t * 0.28);
+          const groundSlope = (gY2 - gY1) / (gX2 - gX1);
+          const getGroundY = (x) => gY1 + (x - gX1) * groundSlope;
+
+          // 2. Character Hip & Dynamics
+          const hipX = s * 0.46;
+          const groundAtHip = getGroundY(hipX);
+          const stepFreq = 3.2 + t * 5.0; // 3.2Hz at idle -> 8.2Hz at full sprint
+          const p = (phase * stepFreq) % (Math.PI * 2);
+          const u1 = (p / (Math.PI * 2) + 1.0) % 1.0;
+          const u2 = (u1 + 0.5) % 1.0;
+
+          const bob = Math.abs(Math.sin(p * 2)) * s * (0.02 + t * 0.04);
+          const hipY = groundAtHip - s * (0.24 - t * 0.02) - bob;
+
+          // 3. Torso Spine & Head
+          const leanAngle = (0.24 - (1 - Math.abs(t - 0.5) * 2) * 0.12 + (t > 0.5 ? (t - 0.5) * 0.38 : 0)) * Math.PI;
+          const torsoLen = s * 0.22;
+          const neckX = hipX + Math.sin(leanAngle) * torsoLen;
+          const neckY = hipY - Math.cos(leanAngle) * torsoLen;
+
+          const headAngle = leanAngle * 0.65;
+          const headX = neckX + Math.sin(headAngle) * (s * 0.09);
+          const headY = neckY - Math.cos(headAngle) * (s * 0.09);
+
+          // 4. Leg Kinematics with 2-Link Constant Bone Length IK
+          const strideScale = s * (0.13 + t * 0.09);
+          const liftScale = s * (0.05 + t * 0.09);
+          const frenzy = Math.max(0, (t - 0.60) / 0.40); // High-speed windmill blend
+
+          function calcFoot(u, phaseOffset) {
+            let fx, fy;
+            if (u < 0.45) {
+              const xi = u / 0.45;
+              fx = hipX + strideScale * (1 - 2 * xi);
+              fy = getGroundY(fx);
+            } else {
+              const eta = (u - 0.45) / 0.55;
+              fx = hipX - strideScale * Math.cos(Math.PI * eta);
+              fy = getGroundY(fx) - liftScale * Math.sin(Math.PI * eta);
+            }
+
+            if (frenzy > 0) {
+              const circX = hipX + Math.cos(p + phaseOffset) * (s * 0.20);
+              const circY = hipY + Math.sin(p + phaseOffset) * (s * 0.20) + s * 0.06;
+              fx = fx * (1 - frenzy) + circX * frenzy;
+              fy = fy * (1 - frenzy) + circY * frenzy;
+            }
+            return { x: fx, y: fy };
+          }
+
+          const foot1 = calcFoot(u1, 0.6);
+          const foot2 = calcFoot(u2, Math.PI + 0.6);
+
+          const L1 = s * 0.13; // Thigh length
+          const L2 = s * 0.13; // Shin length
+
+          function solveLegIK(hx, hy, fx, fy) {
+            const dx = fx - hx;
+            const dy = fy - hy;
+            const dist = Math.min(Math.max(Math.sqrt(dx * dx + dy * dy), 0.01), (L1 + L2) * 0.999);
+            const baseAngle = Math.atan2(dy, dx);
+            const cosAlpha = (L1 * L1 + dist * dist - L2 * L2) / (2 * L1 * dist);
+            const alpha = Math.acos(Math.min(Math.max(cosAlpha, -1), 1));
+            const kneeAngle = baseAngle - alpha; // Knee bends forward
+            const kx = hx + Math.cos(kneeAngle) * L1;
+            const ky = hy + Math.sin(kneeAngle) * L1;
+            return { kx, ky, fx, fy };
+          }
+
+          const leg1 = solveLegIK(hipX, hipY, foot1.x, foot1.y);
+          const leg2 = solveLegIK(hipX, hipY, foot2.x, foot2.y);
+
+          // 5. Biomechanical Runner Arm Kinematics (Cheek-to-Pocket Model)
+          const A1 = s * 0.14; // Upper arm length
+          const A2 = s * 0.13; // Forearm length
+
+          function calcArm(isFront, u) {
+            const shX = neckX + (isFront ? s * 0.02 : -s * 0.02);
+            const shY = neckY + (isFront ? s * 0.02 : 0.0);
+
+            // swing = +1: Arm forward at "Cheek" (hand near chin/chest)
+            // swing = -1: Arm backward at "Pocket" (elbow drives far behind back, hand near waist/hip pocket)
+            const swing = Math.sin(u * Math.PI * 2);
+
+            let upperAngle, forearmAngle;
+            if (swing >= 0) {
+              // Forward Swing (Hand rises to cheek/chin)
+              const prog = swing;
+              upperAngle = 1.30 - prog * 0.85; // 74° down to 25° (reaches forward-down)
+              forearmAngle = upperAngle - (1.15 + prog * 0.35); // -40° to -60° (bends up towards cheek)
+            } else {
+              // Backward Swing (Elbow drives high behind back, hand rests at pocket)
+              const prog = -swing;
+              upperAngle = 1.30 + prog * 1.35; // 74° up to 152° (Elbow drives far behind the back)
+              // Elbow maintains sharp ~90° bend: forearm points down-forward towards pocket/waist
+              forearmAngle = upperAngle - (1.70 - prog * 0.15); // Points down-forward towards pocket
+            }
+
+            let ex = shX + Math.cos(upperAngle) * A1;
+            let ey = shY + Math.sin(upperAngle) * A1;
+            let hx = ex + Math.cos(forearmAngle) * A2;
+            let hy = ey + Math.sin(forearmAngle) * A2;
+
+            // High-speed Windmill Blend
+            if (frenzy > 0) {
+              const flailPhase = p + (isFront ? 0.0 : Math.PI); // Exactly 180° opposite
+              const flailUpperAngle = 0.4 - Math.cos(flailPhase) * 1.6;
+              const flailForearmAngle = flailUpperAngle - 1.1 + Math.sin(flailPhase) * 0.4;
+
+              const fex = shX + Math.cos(flailUpperAngle) * A1;
+              const fey = shY + Math.sin(flailUpperAngle) * A1;
+              const fhx = fex + Math.cos(flailForearmAngle) * A2;
+              const fhy = fey - Math.sin(flailForearmAngle) * A2;
+
+              ex = ex * (1 - frenzy) + fex * frenzy;
+              ey = ey * (1 - frenzy) + fey * frenzy;
+              hx = hx * (1 - frenzy) + fhx * frenzy;
+              hy = hy * (1 - frenzy) + fhy * frenzy;
+            }
+
+            return { shX, shY, ex, ey, hx, hy };
+          }
+
+          const arm1 = calcArm(true, u2);  // Front arm swings counter to front leg (u2)
+          const arm2 = calcArm(false, u1); // Back arm swings counter to back leg (u1)
+
+          // 6. High-load Speed Lines & Styling
+          const speedLineOpacity = frenzy > 0.05 ? (frenzy * 0.9).toFixed(2) : 0;
+          const sp1X1 = hipX - s * 0.28, sp1Y1 = hipY - s * 0.16;
+          const sp1X2 = hipX - s * 0.08, sp1Y2 = hipY - s * 0.12;
+          const sp2X1 = hipX - s * 0.24, sp2Y1 = hipY + s * 0.02;
+          const sp2X2 = hipX - s * 0.06, sp2Y2 = hipY + s * 0.05;
+
+          const spineColor = t > 0.75 ? 'var(--accent-hot)' : (t > 0.5 ? 'var(--accent-warm)' : 'currentColor');
+
+          return `
+            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+              <!-- Dynamic Ground Slope Line -->
+              <line x1="${gX1.toFixed(1)}" y1="${gY1.toFixed(1)}" x2="${gX2.toFixed(1)}" y2="${gY2.toFixed(1)}" 
+                    stroke="currentColor" stroke-width="${(strokeW * 0.7).toFixed(1)}" opacity="0.45" stroke-linecap="round" />
+              
+              <!-- Speed Dash Lines (Smoothly blend in at high workload) -->
+              ${speedLineOpacity > 0 ? `
+                <line x1="${sp1X1.toFixed(1)}" y1="${sp1Y1.toFixed(1)}" x2="${sp1X2.toFixed(1)}" y2="${sp1Y2.toFixed(1)}" 
+                      stroke="var(--accent-hot)" stroke-width="${(strokeW * 0.7).toFixed(1)}" stroke-linecap="round" opacity="${speedLineOpacity}" />
+                <line x1="${sp2X1.toFixed(1)}" y1="${sp2Y1.toFixed(1)}" x2="${sp2X2.toFixed(1)}" y2="${sp2Y2.toFixed(1)}" 
+                      stroke="var(--accent-warm)" stroke-width="${(strokeW * 0.7).toFixed(1)}" stroke-linecap="round" opacity="${(speedLineOpacity * 0.85).toFixed(2)}" />
+              ` : ''}
+
+              <!-- Back Arm (Shoulder -> Elbow -> Hand Polyline) -->
+              <polyline points="${arm2.shX.toFixed(1)},${arm2.shY.toFixed(1)} ${arm2.ex.toFixed(1)},${arm2.ey.toFixed(1)} ${arm2.hx.toFixed(1)},${arm2.hy.toFixed(1)}" 
+                        fill="none" stroke="currentColor" stroke-width="${(strokeW * 0.85).toFixed(1)}" opacity="0.5" stroke-linecap="round" stroke-linejoin="round" />
+
+              <!-- Back Leg (Hip -> Knee -> Foot Polyline) -->
+              <polyline points="${hipX.toFixed(1)},${hipY.toFixed(1)} ${leg2.kx.toFixed(1)},${leg2.ky.toFixed(1)} ${leg2.fx.toFixed(1)},${leg2.fy.toFixed(1)}" 
+                        fill="none" stroke="currentColor" stroke-width="${(strokeW * 0.85).toFixed(1)}" opacity="0.5" stroke-linecap="round" stroke-linejoin="round" />
+
+              <!-- Torso Spine -->
+              <line x1="${hipX.toFixed(1)}" y1="${hipY.toFixed(1)}" x2="${neckX.toFixed(1)}" y2="${neckY.toFixed(1)}" 
+                    stroke="${spineColor}" stroke-width="${strokeW.toFixed(1)}" stroke-linecap="round" />
+
+              <!-- Head -->
+              <circle cx="${headX.toFixed(1)}" cy="${headY.toFixed(1)}" r="${headR.toFixed(1)}" fill="currentColor" />
+
+              <!-- Front Leg (Hip -> Knee -> Foot Polyline) -->
+              <polyline points="${hipX.toFixed(1)},${hipY.toFixed(1)} ${leg1.kx.toFixed(1)},${leg1.ky.toFixed(1)} ${leg1.fx.toFixed(1)},${leg1.fy.toFixed(1)}" 
+                        fill="none" stroke="var(--accent)" stroke-width="${strokeW.toFixed(1)}" stroke-linecap="round" stroke-linejoin="round" />
+
+              <!-- Front Arm (Shoulder -> Elbow -> Hand Polyline) -->
+              <polyline points="${arm1.shX.toFixed(1)},${arm1.shY.toFixed(1)} ${arm1.ex.toFixed(1)},${arm1.ey.toFixed(1)} ${arm1.hx.toFixed(1)},${arm1.hy.toFixed(1)}" 
+                        fill="none" stroke="${t > 0.7 ? 'var(--accent-hot)' : 'currentColor'}" stroke-width="${strokeW.toFixed(1)}" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           `;
         }
