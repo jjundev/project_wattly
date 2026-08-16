@@ -63,7 +63,7 @@ struct PollPolicyTests {
         #expect(providerIntervals(mode: .eco, setting: .auto, panelVisible: true,
                                   menubarTextEnabled: true, active: all,
                                   menubarNeeds: [.cpu]) == [
-            .cpu: .seconds(1), .power: .seconds(1), .temperature: .seconds(2),
+            .cpu: .seconds(1), .gpu: .seconds(1), .power: .seconds(1), .temperature: .seconds(2),
             .memory: .seconds(5), .battery: .seconds(5), .fan: .seconds(5),
         ])
         #expect(providerIntervals(mode: .eco, setting: .auto, panelVisible: false,

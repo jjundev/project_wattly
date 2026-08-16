@@ -52,7 +52,7 @@ func providerIntervals(mode: PowerMode,
     if mode == .performance {
         if panelVisible {
             let open: [ProviderKind: Duration] = [
-                .cpu: .seconds(1), .power: .seconds(1), .temperature: .seconds(1),
+                .cpu: .seconds(1), .gpu: .seconds(1), .power: .seconds(1), .temperature: .seconds(1),
                 .memory: .seconds(3), .battery: .seconds(3), .fan: .seconds(3),
             ]
             return open.filter { active.contains($0.key) }
@@ -72,7 +72,7 @@ func providerIntervals(mode: PowerMode,
         var result: [ProviderKind: Duration] = [:]
         for kind in active {
             switch kind {
-            case .cpu, .power, .temperature:
+            case .cpu, .gpu, .power, .temperature:
                 result[kind] = fastInterval
             case .memory, .battery, .fan:
                 result[kind] = slowInterval
@@ -83,7 +83,7 @@ func providerIntervals(mode: PowerMode,
 
     if panelVisible {
         let open: [ProviderKind: Duration] = [
-            .cpu: .seconds(1), .power: .seconds(1), .temperature: .seconds(2),
+            .cpu: .seconds(1), .gpu: .seconds(1), .power: .seconds(1), .temperature: .seconds(2),
             .memory: .seconds(5), .battery: .seconds(5), .fan: .seconds(5),
         ]
         return open.filter { active.contains($0.key) }
@@ -94,7 +94,7 @@ func providerIntervals(mode: PowerMode,
     var result: [ProviderKind: Duration] = [:]
     for kind in menuProviders {
         switch kind {
-        case .cpu, .power, .temperature:
+        case .cpu, .gpu, .power, .temperature:
             result[kind] = .seconds(2)
         case .memory, .battery, .fan:
             result[kind] = .seconds(5)

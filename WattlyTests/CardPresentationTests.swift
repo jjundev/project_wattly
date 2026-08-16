@@ -13,6 +13,32 @@ struct CardPresentationTests {
 
     // MARK: Battery sign rule (#17) — one home, shared by value + sub-line
 
+    @Test func gpuCardKindProperties() {
+        let card = CardKind.gpu
+        #expect(card.id == "gpu")
+        #expect(card.provider == .gpu)
+        #expect(card.isExpandable)
+        #expect(card.hasSparkArea)
+        #expect(!card.isAccented)
+        #expect(!card.isSmoothable)
+    }
+
+    @Test func gpuSampleEquality() {
+        let s1 = GPUSample(overall: 45.2, coreCount: 10, activeGHz: 1.28, cores: [45.2, 45.2])
+        let s2 = GPUSample(overall: 45.2, coreCount: 10, activeGHz: 1.28, cores: [45.2, 45.2])
+        let s3 = GPUSample(overall: 50.0, coreCount: 10, activeGHz: 1.35, cores: [50.0, 50.0])
+        #expect(s1 == s2)
+        #expect(s1 != s3)
+        let sample = MetricSample.gpu(s1)
+        if case .gpu(let s) = sample {
+            #expect(s.overall == 45.2)
+            #expect(s.coreCount == 10)
+            #expect(s.activeGHz == 1.28)
+        } else {
+            Issue.record("Expected .gpu sample")
+        }
+    }
+
     @Test func batterySignDropsAtZeroMagnitude() {
         #expect(CardPresentation.batterySign(netW: 12.0, charging: false) == minus)   // discharging
         #expect(CardPresentation.batterySign(netW: -30.0, charging: true) == "+")     // charging
@@ -371,8 +397,8 @@ struct CardPresentationTests {
     // MARK: CardKind structural facts (D) — single home for the card-family flags
 
     @Test func cardKindStructuralFlags() {
-        #expect(CardKind.allCases.filter(\.isExpandable) == [.power, .battery, .cpu, .mem, .cpuTemp, .gpuTemp, .fan])
-        #expect(CardKind.allCases.filter(\.hasSparkArea) == [.power, .cpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
+        #expect(CardKind.allCases.filter(\.isExpandable) == [.power, .battery, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .fan])
+        #expect(CardKind.allCases.filter(\.hasSparkArea) == [.power, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
         #expect(CardKind.allCases.filter(\.isAccented) == [.power])
     }
 
@@ -409,6 +435,8 @@ struct CardPresentationTests {
         case .battery: return .value(.battery(BatterySample(netW: 5, milliamps: 400, volts: 12,
                                                             charging: false, externalConnected: false)))
         case .cpu:     return .value(.cpu(CPUSample(overall: 42, perfLevels: [])))
+        case .gpu:
+            return .value(.gpu(GPUSample(overall: 38.0, coreCount: 10, activeGHz: 1.28, cores: Array(repeating: 38.0, count: 10))))
         case .mem:     return .value(.memory(MemorySample(usedGB: 8, totalGB: 16, wiredGB: 2, compressedGB: 1)))
         case .cpuTemp, .gpuTemp, .batTemp:
             return .value(.temperature(TemperatureSnapshot(

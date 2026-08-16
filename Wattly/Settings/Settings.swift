@@ -260,11 +260,11 @@ enum Defaults {
     static let powerProcessLimit = 3
 
     static let show: [CardKind: Bool] = [
-        .power: true, .battery: true, .cpu: true, .mem: true,
+        .power: true, .battery: true, .cpu: true, .gpu: true, .mem: true,
         .cpuTemp: true, .gpuTemp: true, .batTemp: true, .fan: true,
     ]
     static let menuMetrics: [CardKind: Bool] = [
-        .cpu: true, .power: false, .battery: false, .mem: false,
+        .cpu: true, .gpu: false, .power: false, .battery: false, .mem: false,
         .cpuTemp: false, .gpuTemp: false, .batTemp: false, .fan: false,
     ]
     /// Memory pressure % is a menubar-only figure with no `CardKind` of its own — a distinct
@@ -276,7 +276,7 @@ enum Defaults {
     /// Mac's actual clusters ever show a live reading once enabled.
     static let menuCoreClockEnabled: [String: Bool] = ["S": false, "P": false, "E": false]
 
-    static let cardOrder = CardOrder([.power, .battery, .cpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
+    static let cardOrder = CardOrder([.power, .battery, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
     static let thresholds = Thresholds(
         cpu: ThresholdPair(warn: 70, crit: 90),
         temp: ThresholdPair(warn: 70, crit: 90))

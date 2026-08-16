@@ -102,6 +102,7 @@ struct SettingsView: View {
     @AppStorage(StorageKey.show(.power))   private var showPower   = Defaults.show[.power]   ?? true
     @AppStorage(StorageKey.show(.battery)) private var showBattery = Defaults.show[.battery] ?? true
     @AppStorage(StorageKey.show(.cpu))     private var showCPU     = Defaults.show[.cpu]     ?? true
+    @AppStorage(StorageKey.show(.gpu))     private var showGPU     = Defaults.show[.gpu]     ?? true
     @AppStorage(StorageKey.show(.mem))     private var showMem     = Defaults.show[.mem]     ?? true
     @AppStorage(StorageKey.show(.cpuTemp)) private var showCpuTemp = Defaults.show[.cpuTemp] ?? true
     @AppStorage(StorageKey.show(.gpuTemp)) private var showGpuTemp = Defaults.show[.gpuTemp] ?? true
@@ -110,6 +111,7 @@ struct SettingsView: View {
 
     // 메뉴바 칩 (multi-select). Persisted now; the visible menubar effect lands with issue 14.
     @AppStorage(StorageKey.menu(.cpu))     private var menuCPU     = Defaults.menuMetrics[.cpu]     ?? false
+    @AppStorage(StorageKey.menu(.gpu))     private var menuGPU     = Defaults.menuMetrics[.gpu]     ?? false
     @AppStorage(StorageKey.menuCoreClock("S")) private var menuSClock = Defaults.menuCoreClockEnabled["S"] ?? false
     @AppStorage(StorageKey.menuCoreClock("P")) private var menuPClock = Defaults.menuCoreClockEnabled["P"] ?? false
     @AppStorage(StorageKey.menuCoreClock("E")) private var menuEClock = Defaults.menuCoreClockEnabled["E"] ?? false
@@ -325,6 +327,7 @@ struct SettingsView: View {
         case .power: showPower
         case .battery: showBattery
         case .cpu: showCPU
+        case .gpu: showGPU
         case .mem: showMem
         case .cpuTemp: showCpuTemp
         case .gpuTemp: showGpuTemp

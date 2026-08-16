@@ -8,11 +8,23 @@ import Foundation
 /// provider and the partial-failure isolation break with it.
 enum MetricSample: Sendable, Equatable {
     case cpu(CPUSample)
+    case gpu(GPUSample)
     case memory(MemorySample)
     case power(PowerSample)
     case battery(BatterySample)
     case temperature(TemperatureSnapshot)
     case fan(FanSample)
+}
+
+struct GPUSample: Sendable, Equatable {
+    /// Overall GPU usage, 0–100.
+    var overall: Double
+    /// Total physical GPU core count from `gpu-core-count` (e.g. 10).
+    var coreCount: Int
+    /// Real-time active clock in GHz from DVFS residency, or nil when unavailable.
+    var activeGHz: Double? = nil
+    /// Per-core usage array (G0...Gn), 0–100.
+    var cores: [Double] = []
 }
 
 struct CPUSample: Sendable, Equatable {

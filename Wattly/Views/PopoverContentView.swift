@@ -70,6 +70,7 @@ struct PopoverContentView: View {
     @AppStorage(StorageKey.show(.power))   private var showPower   = Defaults.show[.power]   ?? true
     @AppStorage(StorageKey.show(.battery)) private var showBattery = Defaults.show[.battery] ?? true
     @AppStorage(StorageKey.show(.cpu))     private var showCPU     = Defaults.show[.cpu]     ?? true
+    @AppStorage(StorageKey.show(.gpu))     private var showGPU     = Defaults.show[.gpu]     ?? true
     @AppStorage(StorageKey.show(.mem))     private var showMem     = Defaults.show[.mem]     ?? true
     @AppStorage(StorageKey.show(.cpuTemp)) private var showCpuTemp = Defaults.show[.cpuTemp] ?? true
     @AppStorage(StorageKey.show(.gpuTemp)) private var showGpuTemp = Defaults.show[.gpuTemp] ?? true
@@ -424,6 +425,7 @@ struct PopoverContentView: View {
         case .power: showPower
         case .battery: showBattery
         case .cpu: showCPU
+        case .gpu: showGPU
         case .mem: showMem
         case .cpuTemp: showCpuTemp
         case .gpuTemp: showGpuTemp
