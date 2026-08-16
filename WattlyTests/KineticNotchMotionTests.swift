@@ -63,13 +63,20 @@ struct KineticNotchMotionTests {
     }
 
     @Test func presetTargetFPSAndEffectiveRates() {
-        #expect(KineticNotchSpeed.eco.targetFPS == 15.0)
-        #expect(KineticNotchSpeed.standard.targetFPS == 30.0)
-        #expect(KineticNotchSpeed.responsive.targetFPS == 60.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .smart, isACConnected: true, isLowPowerMode: false) == 60.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .smart, isACConnected: false, isLowPowerMode: false) == 24.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .smart, isACConnected: true, isLowPowerMode: true) == 15.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .smart, isACConnected: false, isLowPowerMode: true) == 15.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .eco, isACConnected: true, isLowPowerMode: false) == 24.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .standard, isACConnected: true, isLowPowerMode: false) == 48.0)
+        #expect(KineticNotchSpeed.resolveTargetFPS(speed: .responsive, isACConnected: true, isLowPowerMode: false) == 60.0)
 
         // At full load (2.5 RPS, 24 frames -> 60 visual FPS):
-        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .eco, frameCount: 24) == 15.0)
-        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .standard, frameCount: 24) == 30.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .smart, isACConnected: true, isLowPowerMode: false, frameCount: 24) == 60.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .smart, isACConnected: false, isLowPowerMode: false, frameCount: 24) == 24.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .smart, isACConnected: false, isLowPowerMode: true, frameCount: 24) == 15.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .eco, frameCount: 24) == 24.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .standard, frameCount: 24) == 48.0)
         #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .responsive, frameCount: 24) == 60.0)
     }
 

@@ -75,19 +75,42 @@ enum KineticNotchSource: String, CaseIterable, Identifiable, Sendable {
 }
 
 enum KineticNotchSpeed: String, CaseIterable, Identifiable, Sendable {
-    case eco, standard, responsive
+    case smart
+    case eco
+    case standard
+    case responsive
+
     var id: String { rawValue }
+
     var label: String {
-        switch self { case .eco: "절전"; case .standard: "표준"; case .responsive: "민감" }
+        switch self {
+        case .smart: "스마트"
+        case .eco: "절전"
+        case .standard: "표준"
+        case .responsive: "민감"
+        }
     }
-    var targetFPS: Double {
-        switch self { case .eco: 15.0; case .standard: 30.0; case .responsive: 60.0 }
-    }
+
     var description: String {
         switch self {
-        case .eco: "15 fps 주사율로 배터리를 극도로 아끼며 부드럽게 회전합니다. (회전 속도는 부하에 일정)"
-        case .standard: "30 fps 주사율로 부드럽고 균형 잡힌 모션을 제공합니다."
-        case .responsive: "60 fps 고주사율로 ProMotion급의 극도로 부드러운 모션을 제공합니다."
+        case .smart: "전원 상태(AC 어댑터 연결 시 60 fps, 배터리 사용 시 24 fps, 저전력 모드 시 15 fps)에 따라 최적의 주사율을 자동으로 전환합니다."
+        case .eco: "24 fps 시네마틱 주사율로 배터리를 절약하며 부드럽게 회전합니다."
+        case .standard: "48 fps 고주사율로 ProMotion 화면에서도 자연스럽고 균형 잡힌 모션을 제공합니다."
+        case .responsive: "60 fps 최고 주사율로 극도로 부드러운 고주사율 화면을 제공합니다."
+        }
+    }
+
+    static func resolveTargetFPS(speed: KineticNotchSpeed, isACConnected: Bool, isLowPowerMode: Bool) -> Double {
+        switch speed {
+        case .smart:
+            if isLowPowerMode { return 15.0 }
+            return isACConnected ? 60.0 : 24.0
+        case .eco:
+            return 24.0
+        case .standard:
+            return 48.0
+        case .responsive:
+            return 60.0
         }
     }
 }
@@ -104,10 +127,15 @@ enum MenuBarIconMotion {
     }
 
     /// Dynamic rendering frame rate: visual necessity capped by the preset's target FPS.
-    static func effectiveFrameRate(load: Double, speed: KineticNotchSpeed, frameCount: Int) -> Double {
+    static func effectiveFrameRate(load: Double,
+                                   speed: KineticNotchSpeed,
+                                   isACConnected: Bool = true,
+                                   isLowPowerMode: Bool = false,
+                                   frameCount: Int = 24) -> Double {
         let rps = revolutionsPerSecond(load: load)
         let visualFPS = rps * Double(frameCount)
-        return min(speed.targetFPS, max(visualFPS, 6.0))
+        let targetFPS = KineticNotchSpeed.resolveTargetFPS(speed: speed, isACConnected: isACConnected, isLowPowerMode: isLowPowerMode)
+        return min(targetFPS, max(visualFPS, 6.0))
     }
 
     /// Advance continuous fractional phase [0.0, 1.0) given rps and elapsed dt (clamped to 1.0s for sleep/wake).
