@@ -133,10 +133,12 @@ struct SettingsMenuBarSection: View {
                                     isForeground: true,
                                     frameCount: iconStyle.frameCount
                                 )
+                                let activeTag = String(localized: "활성")
+                                let stateTag = String(localized: LocalizedStringResource(stringLiteral: powerStateTag))
                                 let fpsText: String = if kineticNotchSpeed == .smart {
-                                    "\(Int(previewLoad.rounded()))% · \(String(format: "%.2f", rps)) rps (활성 [\(powerStateTag)]: \(Int(fps.rounded())) fps)"
+                                    "\(Int(previewLoad.rounded()))% · \(String(format: "%.2f", rps)) rps (\(activeTag) [\(stateTag)]: \(Int(fps.rounded())) fps)"
                                 } else {
-                                    "\(Int(previewLoad.rounded()))% · \(String(format: "%.2f", rps)) rps (활성: \(Int(fps.rounded())) fps)"
+                                    "\(Int(previewLoad.rounded()))% · \(String(format: "%.2f", rps)) rps (\(activeTag): \(Int(fps.rounded())) fps)"
                                 }
                                 Text(fpsText)
                                     .font(WattlyFont.at(11.5, weight: .medium))

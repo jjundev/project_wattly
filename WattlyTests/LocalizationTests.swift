@@ -60,4 +60,20 @@ struct LocalizationTests {
         #expect(String(localized: "메모리 압력 (%)", locale: Locale(identifier: "en")) == "Memory Pressure (%)")
         #expect(String(localized: "배터리 온도 (°C)", locale: Locale(identifier: "en")) == "Battery Temp (°C)")
     }
+
+    @Test func menuMetricChipsAndThresholdTranslations() {
+        #expect(String(localized: "전력 (W)", locale: Locale(identifier: "ja")) == "電力 (W)")
+        #expect(String(localized: "배터리 (W)", locale: Locale(identifier: "ja")) == "バッテリー (W)")
+        #expect(String(localized: "메모리 (GB)", locale: Locale(identifier: "ja")) == "メモリ (GB)")
+        #expect(String(localized: "CPU 온도 (°C)", locale: Locale(identifier: "ja")) == "CPU温度 (°C)")
+        #expect(String(localized: "GPU 온도 (°C)", locale: Locale(identifier: "ja")) == "GPU温度 (°C)")
+        #expect(String(localized: "팬 (RPM)", locale: Locale(identifier: "ja")) == "ファン (RPM)")
+
+        #expect(String(localized: "CPU 사용률 (%)", locale: Locale(identifier: "ja")) == "CPU使用率 (%)")
+        #expect(String(localized: "GPU 사용률 (%)", locale: Locale(identifier: "ja")) == "GPU使用率 (%)")
+
+        #expect(String(localized: "활성", locale: Locale(identifier: "ja")) == "アクティブ")
+        #expect(String(localized: "저전력", locale: Locale(identifier: "ja")) == "低電力")
+        #expect(String(localized: "AC", locale: Locale(identifier: "ja")) == "AC")
+    }
 }
