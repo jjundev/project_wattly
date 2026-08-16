@@ -67,21 +67,28 @@ struct FluxLoopCore: Shape {
     }
 }
 
-/// A seven-frame energy loop. The active charge pauses at the lateral extremes
+/// A fourteen-frame energy loop. The active charge pauses at the lateral extremes
 /// through KineticNotchMotion's phase delays; this view itself is a static frame.
 struct FluxLoopMark: View {
     let frame: Int
     var markerColor: Color = Tokens.accent
 
-    private static let chargePositions = [
-        CGPoint(x: 0.50, y: 0.10), CGPoint(x: 0.79, y: 0.20),
-        // Phase 2 is KineticNotchMotion.rightEdgePhase.
-        CGPoint(x: 0.90, y: 0.50), CGPoint(x: 0.70, y: 0.84),
-        CGPoint(x: 0.30, y: 0.84),
-        // Phase 5 is KineticNotchMotion.leftEdgePhase.
-        CGPoint(x: 0.10, y: 0.50),
-        CGPoint(x: 0.21, y: 0.20)
-    ]
+    private static let chargePositions: [CGPoint] = {
+        let base = [
+            CGPoint(x: 0.50, y: 0.10), CGPoint(x: 0.79, y: 0.20),
+            CGPoint(x: 0.90, y: 0.50), CGPoint(x: 0.70, y: 0.84),
+            CGPoint(x: 0.30, y: 0.84), CGPoint(x: 0.10, y: 0.50),
+            CGPoint(x: 0.21, y: 0.20)
+        ]
+        var list: [CGPoint] = []
+        for i in 0..<base.count {
+            let p1 = base[i]
+            let p2 = base[(i + 1) % base.count]
+            list.append(p1)
+            list.append(CGPoint(x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2))
+        }
+        return list
+    }()
 
     private var chargePosition: CGPoint {
         Self.chargePositions[min(max(frame, 0), Self.chargePositions.count - 1)]
@@ -117,7 +124,7 @@ struct TurbineMark: View {
             let s = min(proxy.size.width, proxy.size.height)
             let center = CGPoint(x: proxy.size.width / 2, y: proxy.size.height / 2)
             let strokeW = max(1.2, s * 0.08)
-            let angle = Double(frame) * (360.0 / 6.0)
+            let angle = (Double(frame) / 24.0) * 360.0
 
             ZStack {
                 Circle()
@@ -164,7 +171,7 @@ struct GearsMark: View {
             let c1 = CGPoint(x: s * 0.38, y: s * 0.42)
             let c2 = CGPoint(x: s * 0.74, y: s * 0.68)
             let strokeW = max(1.2, s * 0.06)
-            let rot = Double(frame) / 8.0
+            let rot = Double(frame) / 24.0
 
             ZStack {
                 // Gear 1
@@ -209,7 +216,7 @@ struct PulseWaveMark: View {
             let s = min(proxy.size.width, proxy.size.height)
             let strokeW = max(1.5, s * 0.08)
             let centerY = s * 0.52
-            let phase = Double(frame) / 8.0
+            let phase = Double(frame) / 24.0
 
             ZStack {
                 Path { p in
@@ -257,7 +264,7 @@ struct AtomicOrbitMark: View {
             let rx = s * 0.42
             let ry = s * 0.17
             let strokeW = max(1.2, s * 0.07)
-            let angle = Double(frame) / 8.0 * .pi * 2.0
+            let angle = Double(frame) / 24.0 * .pi * 2.0
 
             ZStack {
                 // Orbit 1
@@ -308,7 +315,7 @@ struct Cube3DMark: View {
             let c = CGPoint(x: s / 2, y: s / 2)
             let r = s * 0.32
             let strokeW = max(1.2, s * 0.075)
-            let angle = Double(frame) / 12.0 * .pi * 2.0
+            let angle = Double(frame) / 24.0 * .pi * 2.0
             let pitch = 0.45
 
             let vertices: [(Double, Double, Double)] = [
@@ -359,7 +366,7 @@ struct InfinityLoopMark: View {
             let s = min(proxy.size.width, proxy.size.height)
             let c = CGPoint(x: s / 2, y: s / 2)
             let strokeW = max(1.4, s * 0.08)
-            let t = Double(frame) / 8.0 * .pi * 2.0
+            let t = Double(frame) / 24.0 * .pi * 2.0
             let scale = s * 0.40
             let denom = 1.0 + sin(t) * sin(t)
             let px = c.x + (scale * cos(t)) / denom
@@ -374,11 +381,11 @@ struct InfinityLoopMark: View {
                     p.addCurve(to: CGPoint(x: c.x + s * 0.35, y: c.y),
                                control1: CGPoint(x: c.x + s * 0.25, y: c.y + s * 0.25),
                                control2: CGPoint(x: c.x + s * 0.35, y: c.y + s * 0.25))
-                    p.addCurve(to: CGPoint(x: c.x, y: c.y),
+                    p.addCurve(to: CGPoint(x: c.x + s * 0.35, y: c.y),
                                control1: CGPoint(x: c.x + s * 0.35, y: c.y - s * 0.25),
-                               control2: CGPoint(x: c.x, y: c.y - s * 0.25))
+                               control2: CGPoint(x: c.x + s * 0.35, y: c.y - s * 0.25))
                     p.addCurve(to: CGPoint(x: c.x - s * 0.35, y: c.y),
-                               control1: CGPoint(x: c.x - s * 0.25, y: c.y + s * 0.25),
+                               control1: CGPoint(x: c.x + s * 0.25, y: c.y + s * 0.25),
                                control2: CGPoint(x: c.x - s * 0.35, y: c.y + s * 0.25))
                 }
                 .stroke(style: StrokeStyle(lineWidth: strokeW, lineCap: .round, lineJoin: .round))
@@ -405,7 +412,7 @@ struct TapeReelMark: View {
             let strokeW = max(1.2, s * 0.065)
             let c1 = CGPoint(x: s * 0.30, y: s * 0.50)
             let c2 = CGPoint(x: s * 0.70, y: s * 0.50)
-            let rot = Double(frame) / 6.0 * 360.0
+            let rot = (Double(frame) / 24.0) * 360.0
 
             ZStack {
                 RoundedRectangle(cornerRadius: s * 0.08)
@@ -461,7 +468,7 @@ struct ThermalBubbleMark: View {
         GeometryReader { proxy in
             let s = min(proxy.size.width, proxy.size.height)
             let strokeW = max(1.2, s * 0.065)
-            let phase = Double(frame) / 8.0
+            let phase = Double(frame) / 24.0
 
             let bubbles: [(x: Double, speed: Double, offset: Double, r: Double)] = [
                 (0.32, 1.0, 0.0, 0.12),

@@ -57,15 +57,15 @@ public enum MenuBarIconStyle: String, CaseIterable, Identifiable, Sendable {
 
     public var frameCount: Int {
         switch self {
-        case .turbine: 6
-        case .gears: 8
-        case .pulseWave: 8
-        case .atomicOrbit: 8
-        case .cube3D: 12
-        case .infinityLoop: 8
-        case .tapeReel: 6
-        case .thermalBubble: 8
-        case .fluxLoop: 7
+        case .turbine: 24
+        case .gears: 24
+        case .pulseWave: 24
+        case .atomicOrbit: 24
+        case .cube3D: 24
+        case .infinityLoop: 24
+        case .tapeReel: 24
+        case .thermalBubble: 24
+        case .fluxLoop: 14
         }
     }
 

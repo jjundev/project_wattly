@@ -31,23 +31,25 @@ enum KineticNotchSpeed: String, CaseIterable, Identifiable, Sendable {
         switch self { case .eco: "절전"; case .standard: "표준"; case .responsive: "민감" }
     }
     var minimumFrameRate: Double {
-        switch self { case .eco: 0.75; case .standard: 1.25; case .responsive: 2 }
+        switch self { case .eco: 6.0; case .standard: 8.0; case .responsive: 12.0 }
     }
     var maximumFrameRate: Double {
-        switch self { case .eco: 3; case .standard: 5; case .responsive: 7 }
+        switch self { case .eco: 36.0; case .standard: 48.0; case .responsive: 60.0 }
     }
     var description: String {
         switch self {
-        case .eco: "낮은 전력으로 부하에 따라 0.75~3 fps로 움직입니다."
-        case .standard: "균형 잡힌 반응으로 부하에 따라 1.25~5 fps로 움직입니다."
-        case .responsive: "부하 변화에 민감하게 2~7 fps로 움직입니다."
+        case .eco: "낮은 전력으로 부하에 따라 6~36 fps로 부드럽게 움직입니다."
+        case .standard: "균형 잡힌 반응으로 부하에 따라 8~48 fps로 매끄럽게 움직입니다."
+        case .responsive: "부하 변화에 민감하게 12~60 fps의 고주사율로 움직입니다."
         }
     }
 }
 
 enum MenuBarIconMotion {
     static let idleThreshold = 5.0
-    static let fluxLoopPhaseDelayMultipliers = [0.92, 0.78, 1.32, 0.96, 0.78, 1.32, 0.92]
+    static let fluxLoopPhaseDelayMultipliers = [
+        0.92, 0.92, 0.78, 0.78, 1.32, 1.32, 0.96, 0.96, 0.78, 0.78, 1.32, 1.32, 0.92, 0.92
+    ]
 
     static func displayedFrame(style: MenuBarIconStyle, phase: Int, reduceMotion: Bool) -> Int {
         guard !reduceMotion else { return style.staticFrame }
@@ -77,11 +79,11 @@ enum MenuBarIconMotion {
 
 /// Backward-compatible wrapper for Flux Loop / Kinetic Notch
 enum KineticNotchMotion {
-    static let frameCount = 7
+    static let frameCount = 14
     static let idleThreshold = MenuBarIconMotion.idleThreshold
     static let staticFrame = 0
-    static let rightEdgePhase = 2
-    static let leftEdgePhase = 5
+    static let rightEdgePhase = 4
+    static let leftEdgePhase = 10
 
     static func displayedFrame(phase: Int, reduceMotion: Bool) -> Int {
         MenuBarIconMotion.displayedFrame(style: .fluxLoop, phase: phase, reduceMotion: reduceMotion)
