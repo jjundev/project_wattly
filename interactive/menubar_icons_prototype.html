@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wattly Dynamic MenuBar Icon Prototypes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #0c0e12;
+      --bg-surface: #15181f;
+      --bg-surface-elevated: #1e222b;
+      --bg-card: rgba(26, 30, 39, 0.75);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-active: rgba(0, 168, 255, 0.5);
+      --text-primary: #f2f5f8;
+      --text-secondary: #9aa5b5;
+      --text-muted: #5e6878;
+      --accent: #00b4d8;
+      --accent-glow: rgba(0, 180, 216, 0.25);
+      --accent-warm: #ff9f1c;
+      --accent-hot: #ef476f;
+      --accent-green: #06d6a0;
+      
+      --menubar-bg: rgba(20, 24, 30, 0.82);
+      --menubar-text: #ffffff;
+      --menubar-icon-color: #ffffff;
+      --menubar-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Pretendard", sans-serif;
+    }
+
+    [data-theme="light"] {
+      --bg-base: #f0f2f6;
+      --bg-surface: #ffffff;
+      --bg-surface-elevated: #e5e8ee;
+      --bg-card: rgba(255, 255, 255, 0.88);
+      --border-subtle: rgba(0, 0, 0, 0.08);
+      --border-active: rgba(0, 150, 225, 0.6);
+      --text-primary: #14171f;
+      --text-secondary: #586374;
+      --text-muted: #8e99a8;
+      --accent: #0077b6;
+      --accent-glow: rgba(0, 119, 182, 0.15);
+      --menubar-bg: rgba(245, 247, 250, 0.85);
+      --menubar-text: #1d1d1f;
+      --menubar-icon-color: #1d1d1f;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top macOS Menubar Simulator */
+    .mac-desktop-preview {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: linear-gradient(135deg, #1b263b 0%, #0d1b2a 100%);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+      transition: background 0.3s ease;
+    }
+
+    [data-theme="light"] .mac-desktop-preview {
+      background: linear-gradient(135deg, #a0c4e2 0%, #d8e2dc 100%);
+    }
+
+    .mac-menubar {
+      height: 32px;
+      background: var(--menubar-bg);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      font-family: var(--menubar-font);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--menubar-text);
+      border-bottom: 1px solid var(--border-subtle);
+      user-select: none;
+    }
+
+    .menubar-left, .menubar-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .apple-logo {
+      font-size: 15px;
+      opacity: 0.95;
+    }
+
+    .menubar-item {
+      cursor: pointer;
+      opacity: 0.9;
+      transition: opacity 0.15s;
+    }
+    .menubar-item:hover {
+      opacity: 1;
+    }
+    .menubar-item.bold {
+      font-weight: 700;
+    }
+
+    /* Live Wattly Menubar Slot */
+    .wattly-menubar-slot {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 7px;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    [data-theme="light"] .wattly-menubar-slot {
+      background: rgba(0, 0, 0, 0.06);
+      border-color: rgba(0, 0, 0, 0.08);
+    }
+    .wattly-menubar-slot:hover {
+      background: rgba(0, 180, 216, 0.2);
+      border-color: var(--accent);
+    }
+
+    .menubar-icon-wrapper {
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--menubar-icon-color);
+    }
+
+    .menubar-text-metric {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+    }
+
+    .menubar-sys-icons {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      opacity: 0.85;
+      font-size: 12px;
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1280px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 32px 24px 80px 24px;
+      flex: 1;
+    }
+
+    /* Header Section */
+    .header {
+      margin-bottom: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .header-title-group h1 {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge-runcat {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      background: rgba(0, 180, 216, 0.15);
+      color: var(--accent);
+      border-radius: 999px;
+      border: 1px solid var(--accent-glow);
+    }
+
+    .header-title-group p {
+      margin-top: 6px;
+      font-size: 14.5px;
+      color: var(--text-secondary);
+      max-width: 680px;
+      line-height: 1.5;
+    }
+
+    .theme-toggle-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: var(--bg-surface-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .theme-toggle-btn:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    /* Dashboard Control Panel */
+    .control-panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 36px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr;
+      gap: 24px;
+      align-items: center;
+    }
+
+    @media (max-width: 900px) {
+      .control-panel {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .control-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .control-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .load-display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+      transition: color 0.2s;
+    }
+
+    .load-slider-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: var(--bg-surface-elevated);
+      outline: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent-glow);
+      cursor: pointer;
+      border: 2px solid #ffffff;
+      transition: transform 0.15s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+
+    .slider-ticks {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      margin-top: 4px;
+    }
+
+    /* Mode Toggles */
+    .button-segmented {
+      display: flex;
+      background: var(--bg-surface-elevated);
+      padding: 3px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      gap: 3px;
+    }
+
+    .seg-btn {
+      flex: 1;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 12.5px;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .seg-btn.active {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    .quick-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 8px 12px;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .action-btn:hover {
+      border-color: var(--accent);
+      background: var(--accent-glow);
+    }
+
+    .action-btn.active-sim {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+
+    /* Grid of Icons */
+    .icon-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 22px;
+    }
+
+    /* Icon Card */
+    .icon-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .icon-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--border-active);
+      box-shadow: 0 12px 30px rgba(0, 180, 216, 0.08);
+    }
+
+    .icon-card.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent), 0 12px 32px var(--accent-glow);
+    }
+
+    .card-badge-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .category-tag {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: var(--bg-surface-elevated);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .fps-counter {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      color: var(--accent);
+      background: var(--bg-surface-elevated);
+      padding: 2px 7px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    /* Dual Display: Large Preview + 1:1 Actual Menubar Scale Preview */
+    .preview-stage {
+      background: var(--bg-surface-elevated);
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      margin-bottom: 16px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .stage-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stage-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .large-preview-box {
+      width: 80px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .actual-preview-box {
+      width: 48px;
+      height: 28px;
+      background: var(--menubar-bg);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+    }
+
+    .actual-icon-inner {
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Card Details */
+    .card-content h3 {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-content p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.45;
+      margin-bottom: 16px;
+    }
+
+    .card-footer {
+      display: flex;
+      gap: 10px;
+      margin-top: auto;
+    }
+
+    .select-btn {
+      flex: 1;
+      padding: 9px 14px;
+      border-radius: 8px;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .select-btn:hover {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+
+    .icon-card.selected .select-btn {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+
+    /* SVG Base Styles */
+    svg {
+      overflow: visible;
+      shape-rendering: geometricPrecision;
+    }
+
+    /* Common Graphic Shapes */
+    .svg-stroke {
+      stroke: currentColor;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    
+    .svg-fill {
+      fill: currentColor;
+    }
+
+    /* Comparison Section */
+    .analysis-section {
+      margin-top: 56px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 32px;
+    }
+
+    .analysis-section h2 {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      margin-top: 16px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      text-align: left;
+    }
+
+    th, td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    th {
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-size: 11.5px;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      color: var(--text-secondary);
+    }
+
+    td strong {
+      color: var(--text-primary);
+    }
+
+    .tag-green {
+      color: var(--accent-green);
+      font-weight: 600;
+    }
+
+    .tag-blue {
+      color: var(--accent);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top macOS Menubar Simulation -->
+  <div class="mac-desktop-preview">
+    <div class="mac-menubar">
+      <div class="menubar-left">
+        <span class="apple-logo"></span>
+        <span class="menubar-item bold">Wattly</span>
+        <span class="menubar-item">File</span>
+        <span class="menubar-item">Edit</span>
+        <span class="menubar-item">View</span>
+        <span class="menubar-item">Window</span>
+        <span class="menubar-item">Help</span>
+      </div>
+      <div class="menubar-right">
+        <!-- Live Wattly Menubar Item -->
+        <div class="wattly-menubar-slot" id="liveMenubarItem" title="현재 선택된 Wattly 동적 메뉴바 아이콘">
+          <div class="menubar-icon-wrapper" id="menubarTargetIcon">
+            <!-- Injected by JS -->
+          </div>
+          <span class="menubar-text-metric" id="menubarMetricText">38.4 W</span>
+        </div>
+
+        <div class="menubar-sys-icons">
+          <span title="Wi-Fi">􀙇</span>
+          <span title="Battery">􀛨 87%</span>
+          <span title="Control Center">􀜊</span>
+          <span id="macClock">17:45</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-title-group">
+        <h1>
+          Wattly Dynamic MenuBar Icons
+          <span class="badge-runcat">RunCat Benchmark · Non-Creature</span>
+        </h1>
+        <p>
+          생명체 대신 <strong>기계 메커니즘, 전력/파형, 기하학, 열역학</strong> 모티프를 활용한 동적 메뉴바 아이콘 8종 프로토타입입니다. 부하 슬라이더를 조절하여 실제 macOS 메뉴바에서의 회전/애니메이션 속도 변화를 확인해보세요.
+        </p>
+      </div>
+      <button class="theme-toggle-btn" id="themeToggleBtn">
+        <span id="themeIcon">☀️</span> <span id="themeText">라이트 모드</span>
+      </button>
+    </div>
+
+    <!-- Control Panel -->
+    <div class="control-panel">
+      <div class="control-group">
+        <div class="control-label-row">
+          <span class="control-label">시스템 부하 시뮬레이션 (CPU / Power)</span>
+          <span class="load-display" id="loadValue">35%</span>
+        </div>
+        <div class="load-slider-wrapper">
+          <input type="range" id="loadSlider" min="0" max="100" value="35" step="1" />
+        </div>
+        <div class="slider-ticks">
+          <span>0% (Idle)</span>
+          <span>25%</span>
+          <span>50%</span>
+          <span>75%</span>
+          <span>100% (Max)</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <span class="control-label">반응 속도 프로필 (Speed Profile)</span>
+        <div class="button-segmented">
+          <button class="seg-btn" data-speed="eco">절전 (Eco)</button>
+          <button class="seg-btn active" data-speed="standard">표준 (Std)</button>
+          <button class="seg-btn" data-speed="responsive">민감 (Fast)</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <span class="control-label">모드 시뮬레이션</span>
+        <div class="quick-actions">
+          <button class="action-btn" id="autoWaveBtn">
+            <span>⚡</span> 부하 자동 스윙
+          </button>
+          <button class="action-btn" id="spikeBtn">
+            <span>🔥</span> 100% 풀로드
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Icons Showcase Grid -->
+    <div class="icon-grid" id="iconGrid">
+      <!-- Generated by JavaScript -->
+    </div>
+
+    <!-- Benchmark Analysis Table -->
+    <div class="analysis-section">
+      <h2>📊 디자인 컨셉별 RunCat 벤치마킹 분석</h2>
+      <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6;">
+        RunCat의 핵심 성공 요인인 <strong>'속도 변화의 높은 가독성(Recognizability)'</strong>과 <strong>'오래 봐도 질리지 않는 절제미(Calmness)'</strong>를 기준으로 각 아이콘의 특성을 비교했습니다.
+      </p>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>아이콘 컨셉</th>
+              <th>주요 모티프</th>
+              <th>Wattly 기능 부합도</th>
+              <th>메뉴바 시인성 (18pt)</th>
+              <th>추천 사용 시나리오</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>1. 터보 쿨링 팬</strong></td>
+              <td>블레이드 회전</td>
+              <td><span class="tag-green">최상 (팬 속도 제어 연계)</span></td>
+              <td><span class="tag-green">매우 우수</span></td>
+              <td>기본 추천 / 하드웨어 쿨링 모니터링 최적</td>
+            </tr>
+            <tr>
+              <td><strong>2. 듀얼 인터로킹 기어</strong></td>
+              <td>기계식 톱니바퀴</td>
+              <td><span class="tag-blue">우수 (연산 메커니즘)</span></td>
+              <td><span class="tag-green">우수</span></td>
+              <td>엔지니어링 & 정밀 도구 감성 선호 시</td>
+            </tr>
+            <tr>
+              <td><strong>3. 흐르는 펄스 웨이브</strong></td>
+              <td>오실로스코프 / W 파형</td>
+              <td><span class="tag-green">최상 (Wattly 브랜드 W)</span></td>
+              <td><span class="tag-green">매우 우수</span></td>
+              <td>Wattly 브랜드 통일성 및 전력(Watt) 모니터링</td>
+            </tr>
+            <tr>
+              <td><strong>4. 원자 궤도 루프</strong></td>
+              <td>전자 공전 (Orbit)</td>
+              <td><span class="tag-blue">우수 (에너지)</span></td>
+              <td><span class="tag-green">우수</span></td>
+              <td>미니멀 & SF 테크 감성</td>
+            </tr>
+            <tr>
+              <td><strong>5. 3D 와이어프레임 큐브</strong></td>
+              <td>입체 3축 회전</td>
+              <td>보통 (GPU/연산)</td>
+              <td>보통 (복잡도 중간)</td>
+              <td>세련된 맥 파워유저 커스텀 테마</td>
+            </tr>
+            <tr>
+              <td><strong>6. 뫼비우스 인피니티</strong></td>
+              <td>무한 순환 리본</td>
+              <td><span class="tag-blue">우수 (지속 전력)</span></td>
+              <td><span class="tag-green">우수</span></td>
+              <td>미려하고 부드러운 애니메이션 선호 시</td>
+            </tr>
+            <tr>
+              <td><strong>7. 레트로 테이프 릴</strong></td>
+              <td>메인프레임 스풀</td>
+              <td>보통 (I/O & 프로세싱)</td>
+              <td><span class="tag-green">우수</span></td>
+              <td>클래식 맥 / 레트로 감성 테마</td>
+            </tr>
+            <tr>
+              <td><strong>8. 열 대류 상승 버블</strong></td>
+              <td>열 방출 기포</td>
+              <td><span class="tag-green">최상 (온도 & 발열)</span></td>
+              <td><span class="tag-green">우수</span></td>
+              <td>온도 모니터링 중심 사용자</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // System State
+    const state = {
+      load: 35, // 0 - 100
+      speedProfile: 'standard', // 'eco', 'standard', 'responsive'
+      selectedIconId: 'turbine',
+      isDarkTheme: true,
+      autoWaveActive: false,
+      autoWaveAngle: 0,
+      timestamp: 0
+    };
+
+    // Speed config formulas (RunCat style: idle threshold + sqrt curve)
+    const speedConfigs = {
+      eco: { minFps: 0.8, maxFps: 3.5, idleSpeed: 0.15 },
+      standard: { minFps: 1.5, maxFps: 6.0, idleSpeed: 0.25 },
+      responsive: { minFps: 2.2, maxFps: 9.0, idleSpeed: 0.35 }
+    };
+
+    // Calculate current dynamic rotation speed / frequency
+    function calculateSpeed(load, profile) {
+      const cfg = speedConfigs[profile];
+      if (load <= 5) {
+        // RunCat idle behavior: very calm / near-idle
+        return {
+          fps: cfg.idleSpeed,
+          rotSpeed: 0.3, // rev/sec
+          phaseSpeed: 0.5,
+          isIdle: true
+        };
+      }
+      // Non-linear progress (sqrt curve makes low-medium load feel responsive)
+      const progress = Math.sqrt((load - 5) / 95);
+      const fps = cfg.minFps + (cfg.maxFps - cfg.minFps) * progress;
+      const rotSpeed = 0.5 + progress * 3.5; // rotations per second
+      const phaseSpeed = 1.0 + progress * 5.0;
+
+      return {
+        fps: parseFloat(fps.toFixed(2)),
+        rotSpeed: parseFloat(rotSpeed.toFixed(2)),
+        phaseSpeed: parseFloat(phaseSpeed.toFixed(2)),
+        isIdle: false
+      };
+    }
+
+    // Icon Definitions with Vector Render Functions
+    const iconDefinitions = [
+      {
+        id: 'turbine',
+        title: '1. 쿨링 터빈 (Cooling Turbine)',
+        category: 'Cooling / Fan',
+        desc: '맥북의 쿨링 팬 블레이드를 모티프로 한 4엽 터빈. 부하가 올라갈수록 팬이 역동적으로 고속 회전합니다.',
+        render: (size, rot, phase, load) => {
+          const s = size;
+          const center = s / 2;
+          const strokeW = Math.max(1.6, s * 0.09);
+          return `
+            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+              <!-- Outer ring -->
+              <circle cx="${center}" cy="${center}" r="${s * 0.46}" class="svg-stroke" stroke-width="${Math.max(1.6, strokeW * 0.9)}" opacity="0.70" />
+              <g transform="rotate(${rot * 360} ${center} ${center})">
+                <!-- 4 Curved Turbine Blades -->
+                ${[0, 90, 180, 270].map(angle => `
+                  <g transform="rotate(${angle} ${center} ${center})">
+                    <path d="M ${center} ${center - s * 0.12} 
+                             C ${center + s * 0.23} ${center - s * 0.33}, 
+                               ${center + s * 0.40} ${center - s * 0.20}, 
+                               ${center + s * 0.28} ${center - s * 0.05} 
+                             Z" 
+                          fill="currentColor" opacity="0.95" />
+                  </g>
+                `).join('')}
+                <!-- Center Donut Hub (r=0.125s outer, r=0.05s inner) -->
+                <path d="M ${center - s * 0.125} ${center}
+                         A ${s * 0.125} ${s * 0.125} 0 1 0 ${center + s * 0.125} ${center}
+                         A ${s * 0.125} ${s * 0.125} 0 1 0 ${center - s * 0.125} ${center} Z
+                         M ${center - s * 0.05} ${center}
+                         A ${s * 0.05} ${s * 0.05} 0 1 1 ${center + s * 0.05} ${center}
+                         A ${s * 0.05} ${s * 0.05} 0 1 1 ${center - s * 0.05} ${center} Z"
+                      fill="currentColor" fill-rule="evenodd" />
+              </g>
+            </svg>
+          `;
+        }
+      },
+      {
+        id: 'pulseWave',
+        title: '2. 흐르는 펄스 웨이브 (Pulse W)',
+        category: 'Power & Signal',
+        desc: 'Wattly의 시그니처 W 파형이 끊임없이 좌에서 우로 전파되며, 전력량과 부하에 따라 흐름 속도가 가속됩니다.',
+        render: (size, rot, phase, load) => {
+          const s = size;
+          const strokeW = Math.max(1.8, s * 0.09);
+          const points = [];
+          const numSteps = 24;
+          const amp = s * (0.18 + (load / 100) * 0.14);
+          const centerY = s * 0.52;
+
+          for (let i = 0; i <= numSteps; i++) {
+            const x = (i / numSteps) * s;
+            const wave = Math.sin((i / numSteps) * Math.PI * 2.5 - phase * 4) * 
+                         Math.sin((i / numSteps) * Math.PI);
+            const y = centerY - wave * amp;
+            points.push(`${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`);
+          }
+
+          return `
+            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+              <line x1="${s * 0.08}" y1="${centerY}" x2="${s * 0.92}" y2="${centerY}" 
+                    stroke="currentColor" stroke-width="${strokeW * 0.5}" opacity="0.25" stroke-dasharray="2,2" />
+              <path d="${points.join(' ')}" class="svg-stroke" stroke-width="${strokeW}" />
+              <circle cx="${s * 0.5 + Math.sin(phase * 4) * s * 0.35}" 
+                      cy="${centerY - Math.cos(phase * 4) * amp * 0.8}" 
+                      r="${strokeW * 1.1}" fill="var(--accent)" />
+            </svg>
+          `;
+        }
+      },
+      {
+        id: 'vuMeter',
+        title: '3. VU 파워 미터 (VU Power Meter)',
+        category: 'Precision Meter',
+        desc: '아날로그 전력 계측기 바늘 게이지. 실시간 전력 소비량 변화에 따라 정밀 바늘이 기민하게 틱(Tick) 스윙합니다.',
+        render: (size, rot, phase, load) => {
+          const s = size;
+          const c = s / 2;
+          const strokeW = Math.max(1.5, s * 0.08);
+          const baseAngle = -42 + (load / 100) * 84;
+          const jitter = Math.sin(phase * 6) * (2.5 + (load / 100) * 5.5);
+          const angle = Math.max(-48, Math.min(48, baseAngle + jitter));
+
+          return `
+            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+              <!-- Meter Scale Arc -->
+              <path d="M ${s * 0.16} ${s * 0.62} A ${s * 0.44} ${s * 0.44} 0 0 1 ${s * 0.84} ${s * 0.62}" 
+                    class="svg-stroke" stroke-width="${strokeW * 0.8}" opacity="0.35" />
+              <!-- Scale Ticks -->
+              ${[-36, -18, 0, 18, 36].map(a => {
+                const rad = (a - 90) * Math.PI / 180;
+                const x1 = c + Math.cos(rad) * s * 0.38;
+                const y1 = s * 0.78 + Math.sin(rad) * s * 0.38;
+                const x2 = c + Math.cos(rad) * s * 0.46;
+                const y2 = s * 0.78 + Math.sin(rad) * s * 0.46;
+                const isWarn = a > 15;
+                return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${isWarn ? 'var(--accent-warm)' : 'currentColor'}" stroke-width="${strokeW * 0.7}" opacity="0.75" />`;
+              }).join('')}
+              <!-- Swinging Indicator Needle -->
+              <g transform="rotate(${angle.toFixed(1)} ${c} ${s * 0.78})">
+                <line x1="${c}" y1="${s * 0.78}" x2="${c}" y2="${s * 0.28}" stroke="var(--accent)" stroke-width="${strokeW * 1.15}" stroke-linecap="round" />
+              </g>
+              <!-- Pivot Base -->
+              <circle cx="${c}" cy="${s * 0.78}" r="${s * 0.11}" fill="currentColor" />
+            </svg>
+          `;
+        }
+      },
+      {
+        id: 'cube3D',
+        title: '4. 아이소메트릭 큐브 (Rotating 3D Cube)',
+        category: '3D Geometric',
+        desc: '3차원 대각선 축을 기준으로 와이어프레임 큐브가 자전하여 현대적이고 테크니컬한 감성을 연출합니다.',
+        render: (size, rot, phase, load) => {
+          const s = size;
+          const c = s / 2;
+          const r = s * 0.32;
+          const strokeW = Math.max(1.4, s * 0.075);
+          const angle = rot * Math.PI * 2;
+
+          const vertices = [
+            [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
+            [-1, -1, 1],  [1, -1, 1],  [1, 1, 1],  [-1, 1, 1]
+          ];
+
+          const projected = vertices.map(([x, y, z]) => {
+            const x1 = x * Math.cos(angle) + z * Math.sin(angle);
+            const z1 = -x * Math.sin(angle) + z * Math.cos(angle);
+            const pitch = 0.45;
+            const y2 = y * Math.cos(pitch) - z1 * Math.sin(pitch);
+            return {
+              x: c + x1 * r * 0.8,
+              y: c + y2 * r * 0.8
+            };
+          });
+
+          const edges = [
+            [0,1],[1,2],[2,3],[3,0],
+            [4,5],[5,6],[6,7],[7,4],
+            [0,4],[1,5],[2,6],[3,7]
+          ];
+
+          return `
+            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+              ${edges.map(([i, j]) => `
+                <line x1="${projected[i].x.toFixed(1)}" y1="${projected[i].y.toFixed(1)}" 
+                      x2="${projected[j].x.toFixed(1)}" y2="${projected[j].y.toFixed(1)}" 
+                      class="svg-stroke" stroke-width="${strokeW}" opacity="0.85" />
+              `).join('')}
+              ${projected.map(p => `
+                <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${strokeW * 0.7}" fill="currentColor" />
+              `).join('')}
+            </svg>
+          `;
+        }
+      },
+      {
+        id: 'thermalBubble',
+        title: '5. 열 대류 버블 (Thermal Convection)',
+        category: 'Thermodynamics',
+        desc: '발열과 쿨링에 따라 하단에서 상단으로 빠르게 솟아오르는 기포 파티클. 온도 변화에 직관적입니다.',
+        render: (size, rot, phase, load) => {
+          const s = size;
+          const strokeW = Math.max(1.6, s * 0.09);
+          const bubbles = [
+            { x: 0.32, speed: 1.0, offset: 0.0, r: 0.12 },
+            { x: 0.68, speed: 1.3, offset: 0.35, r: 0.10 },
+            { x: 0.48, speed: 0.8, offset: 0.65, r: 0.14 },
+            { x: 0.22, speed: 1.1, offset: 0.85, r: 0.08 }
+          ];
+
+          return `
+            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+              <path d="M ${s * 0.15} ${s * 0.85} 
+                       L ${s * 0.15} ${s * 0.22} 
+                       C ${s * 0.15} ${s * 0.12}, ${s * 0.85} ${s * 0.12}, ${s * 0.85} ${s * 0.22} 
+                       L ${s * 0.85} ${s * 0.85} Z" 
+                    class="svg-stroke" stroke-width="${Math.max(1.5, strokeW * 0.95).toFixed(1)}" opacity="0.70" />
+              ${bubbles.map(b => {
+                const progress = (phase * b.speed + b.offset) % 1.0;
+                const by = s * 0.82 - progress * (s * 0.62);
+                const opacity = Math.sin(progress * Math.PI);
+                const bx = s * b.x + Math.sin(progress * Math.PI * 2) * (s * 0.04);
+                return `
+                  <circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="${(s * b.r).toFixed(1)}" 
+                          fill="var(--accent)" opacity="${(opacity * 0.95).toFixed(2)}" />
+                `;
+              }).join('')}
+            </svg>
+          `;
+        }
+      },
+      {
+        id: 'equalizer',
+        title: '6. 디지털 이퀄라이저 (Logic Equalizer) [NEW]',
+        category: 'Digital Spectrum',
+        desc: '4개의 수직 디지털 바가 시스템 연산과 전력 부하에 맞춰 비트를 타듯 실시간으로 상하 바운스합니다.',
+        render: (size, rot, phase, load) => {
+          const s = size;
+          const barWidth = Math.max(2.0, s * 0.14);
+          const gap = Math.max(1.5, s * 0.08);
+          const totalW = barWidth * 4 + gap * 3;
+          const startX = (s - totalW) / 2;
+          const maxH = s * 0.72;
+          const baseY = s * 0.86;
+          const normLoad = load / 100;
+
+          const freqs = [3.2, 4.8, 2.5, 5.5];
+          const offsets = [0.0, 0.4, 0.8, 0.2];
+
+          const bars = freqs.map((f, i) => {
+            const x = startX + i * (barWidth + gap);
+            const wave = Math.abs(Math.sin(phase * f + offsets[i]));
+            const hFactor = Math.min(1.0, 0.2 + normLoad * 0.45 + wave * (0.35 + normLoad * 0.45));
+            const h = Math.max(barWidth, maxH * hFactor);
+            const y = baseY - h;
+            return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barWidth.toFixed(1)}" height="${h.toFixed(1)}" rx="${(barWidth / 2).toFixed(1)}" fill="${i === 2 || (i === 3 && normLoad > 0.6) ? 'var(--accent)' : 'currentColor'}" />`;
+          });
+
+          return `
+            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+              <line x1="${(startX - gap * 0.5).toFixed(1)}" y1="${(baseY + 1.5).toFixed(1)}" 
+                    x2="${(startX + totalW + gap * 0.5).toFixed(1)}" y2="${(baseY + 1.5).toFixed(1)}" 
+                    stroke="currentColor" stroke-width="1.2" opacity="0.3" stroke-linecap="round" />
+              ${bars.join('')}
+            </svg>
+          `;
+        }
+      }
+    ];
+
+    // Initialize Grid UI
+    function buildGrid() {
+      const grid = document.getElementById('iconGrid');
+      grid.innerHTML = iconDefinitions.map(icon => `
+        <div class="icon-card ${icon.id === state.selectedIconId ? 'selected' : ''}" id="card-${icon.id}">
+          <div>
+            <div class="card-badge-top">
+              <span class="category-tag">${icon.category}</span>
+              <span class="fps-counter" id="fps-${icon.id}">-- fps</span>
+            </div>
+
+            <div class="preview-stage">
+              <div class="stage-column">
+                <span class="stage-label">확대 미리보기 (4x)</span>
+                <div class="large-preview-box" id="large-${icon.id}"></div>
+              </div>
+              <div class="stage-column">
+                <span class="stage-label">메뉴바 실물 (1x)</span>
+                <div class="actual-preview-box">
+                  <div class="actual-icon-inner" id="actual-${icon.id}"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-content">
+              <h3>${icon.title}</h3>
+              <p>${icon.desc}</p>
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <button class="select-btn" onclick="selectIcon('${icon.id}')">
+              <span>✓</span> 메뉴바에 적용
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Select icon to apply to top macOS simulator
+    function selectIcon(id) {
+      state.selectedIconId = id;
+      document.querySelectorAll('.icon-card').forEach(c => c.classList.remove('selected'));
+      const activeCard = document.getElementById(`card-${id}`);
+      if (activeCard) activeCard.classList.add('selected');
+    }
+
+    // Main Animation Loop
+    let lastTime = performance.now();
+    let currentRot = 0;
+    let currentPhase = 0;
+
+    function animate(currentTime) {
+      const dt = Math.min((currentTime - lastTime) / 1000, 0.1);
+      lastTime = currentTime;
+      state.timestamp += dt;
+
+      // Handle Auto Wave Sim
+      if (state.autoWaveActive) {
+        state.autoWaveAngle += dt * 1.2;
+        const waveLoad = Math.round(50 + 45 * Math.sin(state.autoWaveAngle));
+        state.load = waveLoad;
+        document.getElementById('loadSlider').value = waveLoad;
+        document.getElementById('loadValue').textContent = `${waveLoad}%`;
+      }
+
+      // Calculate speed dynamics
+      const speed = calculateSpeed(state.load, state.speedProfile);
+      currentRot += speed.rotSpeed * dt;
+      currentPhase += speed.phaseSpeed * dt;
+
+      // Update Live Menubar Metric Text
+      const simulatedWatts = (5.2 + (state.load / 100) * 42.8).toFixed(1);
+      document.getElementById('menubarMetricText').textContent = `${simulatedWatts} W`;
+
+      // Render each icon
+      iconDefinitions.forEach(def => {
+        // Large preview (72px)
+        const largeContainer = document.getElementById(`large-${def.id}`);
+        if (largeContainer) {
+          largeContainer.innerHTML = def.render(64, currentRot, currentPhase, state.load);
+        }
+
+        // Actual 1:1 preview (18px)
+        const actualContainer = document.getElementById(`actual-${def.id}`);
+        if (actualContainer) {
+          actualContainer.innerHTML = def.render(18, currentRot, currentPhase, state.load);
+        }
+
+        // Update FPS badge
+        const fpsBadge = document.getElementById(`fps-${def.id}`);
+        if (fpsBadge) {
+          fpsBadge.textContent = `${speed.fps} fps · ${(speed.rotSpeed).toFixed(1)} r/s`;
+        }
+
+        // If this is currently selected icon, update top macOS menu bar
+        if (def.id === state.selectedIconId) {
+          const menubarTarget = document.getElementById('menubarTargetIcon');
+          if (menubarTarget) {
+            menubarTarget.innerHTML = def.render(18, currentRot, currentPhase, state.load);
+          }
+        }
+      });
+
+      requestAnimationFrame(animate);
+    }
+
+    // Setup Event Listeners
+    function setupControls() {
+      const loadSlider = document.getElementById('loadSlider');
+      const loadValue = document.getElementById('loadValue');
+
+      loadSlider.addEventListener('input', (e) => {
+        state.autoWaveActive = false;
+        document.getElementById('autoWaveBtn').classList.remove('active-sim');
+        state.load = parseInt(e.target.value, 10);
+        loadValue.textContent = `${state.load}%`;
+        
+        // Color transition for load
+        if (state.load > 80) {
+          loadValue.style.color = 'var(--accent-hot)';
+        } else if (state.load > 50) {
+          loadValue.style.color = 'var(--accent-warm)';
+        } else {
+          loadValue.style.color = 'var(--accent)';
+        }
+      });
+
+      // Speed profile segment buttons
+      document.querySelectorAll('.seg-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.speedProfile = btn.dataset.speed;
+        });
+      });
+
+      // Auto Wave Toggle
+      const autoWaveBtn = document.getElementById('autoWaveBtn');
+      autoWaveBtn.addEventListener('click', () => {
+        state.autoWaveActive = !state.autoWaveActive;
+        autoWaveBtn.classList.toggle('active-sim', state.autoWaveActive);
+      });
+
+      // 100% Spike Button
+      const spikeBtn = document.getElementById('spikeBtn');
+      spikeBtn.addEventListener('click', () => {
+        state.autoWaveActive = false;
+        autoWaveBtn.classList.remove('active-sim');
+        state.load = 100;
+        loadSlider.value = 100;
+        loadValue.textContent = '100%';
+        loadValue.style.color = 'var(--accent-hot)';
+      });
+
+      // Theme toggle
+      const themeToggleBtn = document.getElementById('themeToggleBtn');
+      themeToggleBtn.addEventListener('click', () => {
+        state.isDarkTheme = !state.isDarkTheme;
+        document.documentElement.setAttribute('data-theme', state.isDarkTheme ? 'dark' : 'light');
+        document.getElementById('themeIcon').textContent = state.isDarkTheme ? '☀️' : '🌙';
+        document.getElementById('themeText').textContent = state.isDarkTheme ? '라이트 모드' : '다크 모드';
+      });
+
+      // Clock update
+      function updateClock() {
+        const d = new Date();
+        const hrs = String(d.getHours()).padStart(2, '0');
+        const mins = String(d.getMinutes()).padStart(2, '0');
+        document.getElementById('macClock').textContent = `${hrs}:${mins}`;
+      }
+      updateClock();
+      setInterval(updateClock, 10000);
+    }
+
+    // Startup
+    buildGrid();
+    setupControls();
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>

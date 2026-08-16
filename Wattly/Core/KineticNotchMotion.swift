@@ -31,39 +31,62 @@ enum KineticNotchSpeed: String, CaseIterable, Identifiable, Sendable {
         switch self { case .eco: "절전"; case .standard: "표준"; case .responsive: "민감" }
     }
     var minimumFrameRate: Double {
-        switch self { case .eco: 0.75; case .standard: 1.25; case .responsive: 2 }
+        switch self { case .eco: 6.0; case .standard: 8.0; case .responsive: 12.0 }
     }
     var maximumFrameRate: Double {
-        switch self { case .eco: 3; case .standard: 5; case .responsive: 7 }
+        switch self { case .eco: 36.0; case .standard: 48.0; case .responsive: 60.0 }
     }
     var description: String {
         switch self {
-        case .eco: "낮은 전력으로 부하에 따라 0.75~3 fps로 움직입니다."
-        case .standard: "균형 잡힌 반응으로 부하에 따라 1.25~5 fps로 움직입니다."
-        case .responsive: "부하 변화에 민감하게 2~7 fps로 움직입니다."
+        case .eco: "낮은 전력으로 부하에 따라 6~36 fps로 부드럽게 움직입니다."
+        case .standard: "균형 잡힌 반응으로 부하에 따라 8~48 fps로 매끄럽게 움직입니다."
+        case .responsive: "부하 변화에 민감하게 12~60 fps의 고주사율로 움직입니다."
         }
     }
 }
 
-enum KineticNotchMotion {
-    static let frameCount = 7
+enum MenuBarIconMotion {
     static let idleThreshold = 5.0
-    static let staticFrame = 0
-    static let rightEdgePhase = 2
-    static let leftEdgePhase = 5
-    private static let phaseDelayMultipliers = [0.92, 0.78, 1.32, 0.96, 0.78, 1.32, 0.92]
 
-    static func displayedFrame(phase: Int, reduceMotion: Bool) -> Int {
-        guard !reduceMotion else { return staticFrame }
-        return ((phase % frameCount) + frameCount) % frameCount
+    static func displayedFrame(style: MenuBarIconStyle, phase: Int, load: Double? = nil, reduceMotion: Bool) -> Int {
+        guard !reduceMotion else { return style.staticFrame }
+        let count = style.frameCount
+
+        // Gauge-type meter styles (e.g. VU Meter) move needle from left to right as load increases
+        if style == .vuMeter, let load {
+            let clampedLoad = min(max(load, 0), 100)
+            let baseIndex = (clampedLoad / 100.0) * Double(count - 1)
+            let jitter = sin(Double(phase) * 0.8) * (0.5 + (clampedLoad / 100.0) * 1.5)
+            let target = Int(round(baseIndex + jitter))
+            return min(max(target, 0), count - 1)
+        }
+
+        // Digital Equalizer dynamically scales bar heights based on workload tier (4 tiers x 6 subphases)
+        if style == .equalizer, let load {
+            let clampedLoad = min(max(load, 0), 100)
+            let tier = min(Int(clampedLoad / 25.0), 3) // Tier 0 (low) ~ Tier 3 (max load)
+            let subPhase = ((phase % 6) + 6) % 6
+            return tier * 6 + subPhase
+        }
+
+        return ((phase % count) + count) % count
     }
 
-    static func phaseDelayMultiplier(phase: Int) -> Double {
-        phaseDelayMultipliers[((phase % frameCount) + frameCount) % frameCount]
+    static func displayedFrame(style: MenuBarIconStyle, phase: Int, reduceMotion: Bool) -> Int {
+        displayedFrame(style: style, phase: phase, load: nil, reduceMotion: reduceMotion)
     }
 
-    static func frameDelay(phase: Int, frameRate: Double) -> TimeInterval {
-        phaseDelayMultiplier(phase: phase) / frameRate
+    static func phaseDelayMultiplier(style: MenuBarIconStyle, phase: Int) -> Double {
+        switch style {
+        case .equalizer:
+            return 1.8 // Smooth, eye-pleasing spectrum cadence without rapid flashing
+        default:
+            return 1.0
+        }
+    }
+
+    static func frameDelay(style: MenuBarIconStyle, phase: Int, frameRate: Double) -> TimeInterval {
+        (1.0 / frameRate) * phaseDelayMultiplier(style: style, phase: phase)
     }
 
     static func frameRate(load: Double, speed: KineticNotchSpeed) -> Double? {

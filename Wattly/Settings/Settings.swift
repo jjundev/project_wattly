@@ -291,6 +291,7 @@ enum Defaults {
     static let kineticNotchMotionEnabled = true
     static let kineticNotchSource = KineticNotchSource.cpu
     static let kineticNotchSpeed = KineticNotchSpeed.standard
+    static let menubarIconStyle = MenuBarIconStyle.turbine
     static let powerSmoothed = true        // 프로세서 전력 + 배터리 카드: EMA-smoothed display (raw spikes mislead)
     /// Battery health can feel sensitive as it declines from 100%, so keep it opt-in.
     static let showBatteryEfficiency = false
@@ -348,6 +349,7 @@ enum StorageKey {
     static let kineticNotchMotionEnabled = "kineticNotchMotionEnabled"
     static let kineticNotchSource = "kineticNotchSource"
     static let kineticNotchSpeed = "kineticNotchSpeed"
+    static let menubarIconStyle = "menubarIconStyle"
     static let powerSmoothed = "powerSmoothed"
     static let showBatteryEfficiency = "showBatteryEfficiency"
     static let memoryProcessLimit = "memoryProcessLimit"
