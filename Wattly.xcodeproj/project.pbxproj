@@ -151,6 +151,7 @@
 		FBF99CF1E0F83E6CE911CD34 /* MenuBarGlyphTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 341AB84EA25E71EC8BED209D /* MenuBarGlyphTests.swift */; };
 		FCFFB2CEE33152456E33982A /* CardKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C28B12BD323D1E5FE11B646 /* CardKind.swift */; };
 		FE58DF7DBC6DA12ECB9CDB7B /* WattlyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9174C12241D59747340FB7CC /* WattlyApp.swift */; };
+		FF4BC82D2D9A5102589761B5 /* SnapshotGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FEC263D11C622505462AF34 /* SnapshotGeneratorTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -255,6 +256,7 @@
 		8C57CD51031CA86CBEF2930C /* CardExpandRegion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardExpandRegion.swift; sourceTree = "<group>"; };
 		8CA6F0813668973FD7B387F6 /* BatteryTelemetryPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryTelemetryPipeline.swift; sourceTree = "<group>"; };
 		8CB2A49DA4F828109BC87F53 /* PollPolicyBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollPolicyBridge.swift; sourceTree = "<group>"; };
+		8FEC263D11C622505462AF34 /* SnapshotGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotGeneratorTests.swift; sourceTree = "<group>"; };
 		9044978DE889FEBEC87F3486 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		9174C12241D59747340FB7CC /* WattlyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WattlyApp.swift; sourceTree = "<group>"; };
 		91C76F1ADD8A1D0EC7C3CCCC /* MetricCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricCardView.swift; sourceTree = "<group>"; };
@@ -488,6 +490,7 @@
 				DABD59B5D69709138741DA7F /* SettingsMenuBarIconSectionTests.swift */,
 				07C1BF327FACCDB9FAB5213C /* SettingsResetTests.swift */,
 				ADCD49E78A7446DE396FBE48 /* SmoothingOverlayTests.swift */,
+				8FEC263D11C622505462AF34 /* SnapshotGeneratorTests.swift */,
 				AEB8384534F32A983330C07B /* SparklineTests.swift */,
 				CE8B45929FB77AE51839080D /* SystemMonitorTests.swift */,
 				F1A07555B3221FE4D57FED44 /* TemperatureTests.swift */,
@@ -780,6 +783,7 @@
 				A69BDDADEECCD817F22E0380 /* SettingsMenuBarIconSectionTests.swift in Sources */,
 				ADD80CA70B5601FAC82CA262 /* SettingsResetTests.swift in Sources */,
 				D97CEF0FEFA4CF334E3DB6F1 /* SmoothingOverlayTests.swift in Sources */,
+				FF4BC82D2D9A5102589761B5 /* SnapshotGeneratorTests.swift in Sources */,
 				36349F6A02D7C184EADAAD51 /* SparklineTests.swift in Sources */,
 				3B88FC69C5E47ED84C95CAB3 /* SystemMonitorTests.swift in Sources */,
 				15DAB5064926E774708AA4A3 /* TemperatureTests.swift in Sources */,
