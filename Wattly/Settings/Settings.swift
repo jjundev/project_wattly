@@ -288,6 +288,9 @@ enum Defaults {
     static let heroMetric = CardKind.power   // mode C hero (plan 20); falls back to first visible when hidden
     static let loginItem = true            // F1: a MIRROR of SMAppService — NOT authoritative
     static let menubarTextEnabled = true   // default menubar metric = CPU only
+    static let kineticNotchMotionEnabled = true
+    static let kineticNotchSource = KineticNotchSource.cpu
+    static let kineticNotchSpeed = KineticNotchSpeed.standard
     static let powerSmoothed = true        // 프로세서 전력 + 배터리 카드: EMA-smoothed display (raw spikes mislead)
     /// Battery health can feel sensitive as it declines from 100%, so keep it opt-in.
     static let showBatteryEfficiency = false
@@ -342,6 +345,9 @@ enum StorageKey {
     static let heroMetric = "heroMetric"   // mode C hero metric (plan 20)
     static let loginItem = "loginItem"
     static let menubarTextEnabled = "menubarTextEnabled"
+    static let kineticNotchMotionEnabled = "kineticNotchMotionEnabled"
+    static let kineticNotchSource = "kineticNotchSource"
+    static let kineticNotchSpeed = "kineticNotchSpeed"
     static let powerSmoothed = "powerSmoothed"
     static let showBatteryEfficiency = "showBatteryEfficiency"
     static let memoryProcessLimit = "memoryProcessLimit"

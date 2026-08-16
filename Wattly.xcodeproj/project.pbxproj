@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		9A1B2C3D4E5F60718293A4B7 /* KineticNotchMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1B2C3D4E5F60718293A4B8 /* KineticNotchMotion.swift */; };
+		9A1B2C3D4E5F60718293A4B5 /* KineticNotchMotionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1B2C3D4E5F60718293A4B6 /* KineticNotchMotionTests.swift */; };
 		00A20B4C0894C6BEAB66BC13 /* FanCurveEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D946C27E4FCBE51115DBA82 /* FanCurveEditor.swift */; };
 		00A74CF529FE67DA3E141D39 /* FanControlEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E92DBEAC072A56D8DCF1D665 /* FanControlEngine.swift */; };
 		03C1B6D30296659A3095B84D /* FanCurveGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBB7155B2535718E387DA449 /* FanCurveGeometryTests.swift */; };
@@ -171,6 +173,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		9A1B2C3D4E5F60718293A4B8 /* KineticNotchMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KineticNotchMotion.swift; sourceTree = "<group>"; };
+		9A1B2C3D4E5F60718293A4B6 /* KineticNotchMotionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KineticNotchMotionTests.swift; sourceTree = "<group>"; };
 		00082133CD88B0F35342BB85 /* SparklineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparklineView.swift; sourceTree = "<group>"; };
 		0721DEAA1855EE4C25F48F35 /* Temperature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Temperature.swift; sourceTree = "<group>"; };
 		07C1BF327FACCDB9FAB5213C /* SettingsResetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsResetTests.swift; sourceTree = "<group>"; };
@@ -312,6 +316,7 @@
 		1B4DC2B8547C7A7C02CCEBE4 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				9A1B2C3D4E5F60718293A4B8 /* KineticNotchMotion.swift */,
 				1FB43BADD9D2756BBE8F6A7B /* Accessibility.swift */,
 				F0BB325E6C8D3C6B7207404B /* BatteryPower.swift */,
 				5B0B9C6EF5A318DFB992A8FF /* BatteryRuntimeProjection.swift */,
@@ -419,6 +424,7 @@
 		8722763ECF3B075B3EB9B9B6 /* WattlyTests */ = {
 			isa = PBXGroup;
 			children = (
+				9A1B2C3D4E5F60718293A4B6 /* KineticNotchMotionTests.swift */,
 				C59C21E293258105C63FB142 /* AccessibilityTests.swift */,
 				4B193EC77CC4F6135B8F3566 /* BatteryPowerTests.swift */,
 				6D813B4616751253BC3A7789 /* BatteryRuntimeProjectionTests.swift */,
@@ -664,6 +670,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9A1B2C3D4E5F60718293A4B5 /* KineticNotchMotionTests.swift in Sources */,
 				2F21C6921E2896512BD4FF55 /* AccessibilityTests.swift in Sources */,
 				E6D4F1BE411CB7202D52B89D /* BatteryPowerTests.swift in Sources */,
 				6CAE0BD5C90333E8DFC025E3 /* BatteryRuntimeProjectionTests.swift in Sources */,
@@ -725,6 +732,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9A1B2C3D4E5F60718293A4B7 /* KineticNotchMotion.swift in Sources */,
 				0CCE23A7B4FB7DEC009ECA18 /* Accessibility.swift in Sources */,
 				9164682B8D7954ADA22F3710 /* BatteryPower.swift in Sources */,
 				54CC1A4B35743BD034DC72F0 /* BatteryProvider.swift in Sources */,
