@@ -99,7 +99,7 @@ struct MenuBarLabel: View {
 
     private var kineticNotchFrame: Int {
         KineticNotchMotion.displayedFrame(load: kineticNotchLoad ?? 0, phase: kineticNotchPhase,
-                                          reduceMotion: reduceMotion || !kineticNotchMotionEnabled)
+                                          reduceMotion: reduceMotion || kineticNotchFrameRate == nil)
     }
 
     private var kineticNotchFrameRate: Double? {
