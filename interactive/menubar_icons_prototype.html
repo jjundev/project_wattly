@@ -1118,8 +1118,50 @@
           const u1 = (p / (Math.PI * 2) + 1.0) % 1.0;
           const u2 = (u1 + 0.5) % 1.0;
 
-          const bob = Math.abs(Math.sin(p * 2)) * s * (0.02 + t * 0.04);
-          const hipY = groundAtHip - s * (0.24 - t * 0.02) - bob;
+          // 2. Discrete 8-Keyframe Locomotion Pose Tables (Animator's Survival Kit standard)
+          const Poses = [
+            // Tier 0: Uphill Heavy Walk (0..7)
+            [
+              { bob: 0.00, ft: 0.40, fk: -0.05, bt: -0.35, bk: -0.15, fa: -0.45, fab: 0.20, ba: 0.35, bab: -1.20 },
+              { bob: 0.02, ft: 0.15, fk: -0.40, bt: -0.50, bk: -0.65, fa: -0.60, fab: 0.10, ba: 0.50, bab: -1.35 },
+              { bob: -0.01, ft: -0.05, fk: -0.10, bt: 0.25, bk: -0.90, fa: -0.15, fab: -0.30, ba: 0.10, bab: -0.70 },
+              { bob: -0.03, ft: -0.30, fk: -0.05, bt: 0.40, bk: -0.30, fa: 0.35, fab: -1.20, ba: -0.45, bab: 0.20 },
+              { bob: 0.00, ft: -0.35, fk: -0.15, bt: 0.40, bk: -0.05, fa: 0.35, fab: -1.20, ba: -0.45, bab: 0.20 },
+              { bob: 0.02, ft: -0.50, fk: -0.65, bt: 0.15, bk: -0.40, fa: 0.50, fab: -1.35, ba: -0.60, bab: 0.10 },
+              { bob: -0.01, ft: 0.25, fk: -0.90, bt: -0.05, bk: -0.10, fa: 0.10, fab: -0.70, ba: -0.15, bab: -0.30 },
+              { bob: -0.03, ft: 0.40, fk: -0.30, bt: -0.30, bk: -0.05, fa: -0.45, fab: 0.20, ba: 0.35, bab: -1.20 }
+            ],
+            // Tier 1: Flat Athletic Jog (0..7)
+            [
+              { bob: 0.00, ft: 0.65, fk: -0.20, bt: -0.60, bk: -0.35, fa: -0.80, fab: 0.15, ba: 0.65, bab: -1.50 },
+              { bob: 0.04, ft: 0.25, fk: -0.75, bt: -0.85, bk: -1.05, fa: -1.00, fab: 0.10, ba: 0.85, bab: -1.65 },
+              { bob: -0.02, ft: -0.15, fk: -0.15, bt: 0.50, bk: -1.45, fa: -0.20, fab: -0.50, ba: 0.15, bab: -1.10 },
+              { bob: -0.06, ft: -0.60, fk: -0.10, bt: 0.80, bk: -0.55, fa: 0.65, fab: -1.50, ba: -0.80, bab: 0.15 },
+              { bob: 0.00, ft: -0.60, fk: -0.35, bt: 0.65, bk: -0.20, fa: 0.65, fab: -1.50, ba: -0.80, bab: 0.15 },
+              { bob: 0.04, ft: -0.85, fk: -1.05, bt: 0.25, bk: -0.75, fa: 0.85, fab: -1.65, ba: -1.00, bab: 0.10 },
+              { bob: -0.02, ft: 0.50, fk: -1.45, bt: -0.15, bk: -0.15, fa: 0.15, fab: -1.10, ba: -0.20, bab: -0.50 },
+              { bob: -0.06, ft: 0.80, fk: -0.55, bt: -0.60, bk: -0.10, fa: -0.80, fab: 0.15, ba: 0.65, bab: -1.50 }
+            ],
+            // Tier 2: Downhill Frantic Sprint (0..7)
+            [
+              { bob: 0.00, ft: 0.95, fk: -0.30, bt: -0.90, bk: -0.55, fa: -1.20, fab: 0.20, ba: 0.95, bab: -1.65 },
+              { bob: 0.05, ft: 0.40, fk: -1.10, bt: -1.20, bk: -1.35, fa: -1.40, fab: 0.15, ba: 1.25, bab: -1.75 },
+              { bob: -0.04, ft: -0.30, fk: -0.30, bt: 0.80, bk: -1.85, fa: -0.35, fab: -0.60, ba: 0.25, bab: -1.30 },
+              { bob: -0.09, ft: -0.90, fk: -0.20, bt: 1.15, bk: -0.75, fa: 0.95, fab: -1.65, ba: -1.20, bab: 0.20 },
+              { bob: 0.00, ft: -0.90, fk: -0.55, bt: 0.95, bk: -0.30, fa: 0.95, fab: -1.65, ba: -1.20, bab: 0.20 },
+              { bob: 0.05, ft: -1.20, fk: -1.35, bt: 0.40, bk: -1.10, fa: 1.25, fab: -1.75, ba: -1.40, bab: 0.15 },
+              { bob: -0.04, ft: 0.80, fk: -1.85, bt: -0.30, bk: -0.30, fa: 0.25, fab: -1.30, ba: -0.35, bab: -1.10 },
+              { bob: -0.09, ft: 1.15, fk: -0.75, bt: -0.90, bk: -0.20, fa: -1.20, fab: 0.20, ba: 0.95, bab: -1.65 }
+            ]
+          ];
+
+          const rawFrameIdx = Math.floor(((phase * stepFreq) % (Math.PI * 2)) / (Math.PI * 2) * 8);
+          const frameIdx = (rawFrameIdx % 8 + 8) % 8;
+          const pose = Poses[tier][frameIdx];
+
+          // 2. Hip Position with Keyframe Bobbing
+          const hipX = s * 0.46;
+          const hipY = groundAtHip - s * (0.24 - t * 0.02) + s * pose.bob;
 
           // 3. Torso Spine & Head
           const leanAngle = (0.24 - (1 - Math.abs(t - 0.5) * 2) * 0.12 + (t > 0.5 ? (t - 0.5) * 0.38 : 0)) * Math.PI;
@@ -1131,99 +1173,46 @@
           const headX = neckX + Math.sin(headAngle) * (s * 0.09);
           const headY = neckY - Math.cos(headAngle) * (s * 0.09);
 
-          // 4. Leg Kinematics with 2-Link Constant Bone Length IK
-          const strideScale = s * (0.13 + t * 0.09);
-          const liftScale = s * (0.05 + t * 0.09);
-          const frenzy = Math.max(0, (t - 0.60) / 0.40); // High-speed windmill blend
+          // 4. Legs Forward Kinematics
+          const L1 = s * 0.13, L2 = s * 0.13;
+          // Front Leg
+          const fThighAngle = Math.PI * 0.5 - pose.ft;
+          const fKneeAngle = fThighAngle + pose.fk;
+          const fkX = hipX + Math.cos(fThighAngle) * L1;
+          const fkY = hipY + Math.sin(fThighAngle) * L1;
+          const ffX = fkX + Math.cos(fKneeAngle) * L2;
+          const ffY = fkY + Math.sin(fKneeAngle) * L2;
 
-          function calcFoot(u, phaseOffset) {
-            let fx, fy;
-            if (u < 0.45) {
-              const xi = u / 0.45;
-              fx = hipX + strideScale * (1 - 2 * xi);
-              fy = getGroundY(fx);
-            } else {
-              const eta = (u - 0.45) / 0.55;
-              fx = hipX - strideScale * Math.cos(Math.PI * eta);
-              fy = getGroundY(fx) - liftScale * Math.sin(Math.PI * eta);
-            }
+          // Back Leg
+          const bThighAngle = Math.PI * 0.5 - pose.bt;
+          const bKneeAngle = bThighAngle + pose.bk;
+          const bkX = hipX + Math.cos(bThighAngle) * L1;
+          const bkY = hipY + Math.sin(bThighAngle) * L1;
+          const bfX = bkX + Math.cos(bKneeAngle) * L2;
+          const bfY = bkY + Math.sin(bKneeAngle) * L2;
 
-            if (frenzy > 0) {
-              const circX = hipX + Math.cos(p + phaseOffset) * (s * 0.20);
-              const circY = hipY + Math.sin(p + phaseOffset) * (s * 0.20) + s * 0.06;
-              fx = fx * (1 - frenzy) + circX * frenzy;
-              fy = fy * (1 - frenzy) + circY * frenzy;
-            }
-            return { x: fx, y: fy };
-          }
+          // 5. Arms Forward Kinematics
+          const A1 = s * 0.13, A2 = s * 0.12;
+          // Front Arm
+          const fArmUpperAngle = Math.PI * 0.5 - pose.fa;
+          const fArmLowerAngle = fArmUpperAngle + pose.fab;
+          const fshX = neckX + s * 0.02, fshY = neckY + s * 0.02;
+          const feX = fshX + Math.cos(fArmUpperAngle) * A1;
+          const feY = fshY + Math.sin(fArmUpperAngle) * A1;
+          const fhX = feX + Math.cos(fArmLowerAngle) * A2;
+          const fhY = feY + Math.sin(fArmLowerAngle) * A2;
 
-          const foot1 = calcFoot(u1, 0.6);
-          const foot2 = calcFoot(u2, Math.PI + 0.6);
-
-          const L1 = s * 0.13; // Thigh length
-          const L2 = s * 0.13; // Shin length
-
-          function solveLegIK(hx, hy, fx, fy) {
-            const dx = fx - hx;
-            const dy = fy - hy;
-            const dist = Math.min(Math.max(Math.sqrt(dx * dx + dy * dy), 0.01), (L1 + L2) * 0.999);
-            const baseAngle = Math.atan2(dy, dx);
-            const cosAlpha = (L1 * L1 + dist * dist - L2 * L2) / (2 * L1 * dist);
-            const alpha = Math.acos(Math.min(Math.max(cosAlpha, -1), 1));
-            const kneeAngle = baseAngle - alpha; // Knee bends forward
-            const kx = hx + Math.cos(kneeAngle) * L1;
-            const ky = hy + Math.sin(kneeAngle) * L1;
-            return { kx, ky, fx, fy };
-          }
-
-          const leg1 = solveLegIK(hipX, hipY, foot1.x, foot1.y);
-          const leg2 = solveLegIK(hipX, hipY, foot2.x, foot2.y);
-
-          // 5. True Front-to-Back Harmonic Arm Swing (Extreme Separation & True Back Extension)
-          const A1 = s * 0.14; // Upper arm length
-          const A2 = s * 0.13; // Forearm length
-
-          function calcArm(isFront, u) {
-            const shX = neckX + (isFront ? s * 0.02 : -s * 0.02);
-            const shY = neckY + (isFront ? s * 0.02 : 0.0);
-
-            // swing = +1: Arm reaches far forward in front of chin
-            // swing = -1: Arm reaches far backward behind the back and hips
-            const swing = Math.sin(u * Math.PI * 2);
-
-            const upperAngle = (1.45 - t * 0.10) - swing * (0.70 + t * 0.35);
-            const forearmAngle = (0.85 - t * 0.10) - swing * (1.20 + t * 0.50);
-
-            let ex = shX + Math.cos(upperAngle) * A1;
-            let ey = shY + Math.sin(upperAngle) * A1;
-            let hx = ex + Math.cos(forearmAngle) * A2;
-            let hy = ey + Math.sin(forearmAngle) * A2;
-
-            // High-speed Windmill Blend
-            if (frenzy > 0) {
-              const flailPhase = p + (isFront ? 0.0 : Math.PI); // Exactly 180° opposite
-              const flailUpperAngle = 0.4 - Math.cos(flailPhase) * 1.6;
-              const flailForearmAngle = flailUpperAngle - 1.1 + Math.sin(flailPhase) * 0.4;
-
-              const fex = shX + Math.cos(flailUpperAngle) * A1;
-              const fey = shY + Math.sin(flailUpperAngle) * A1;
-              const fhx = fex + Math.cos(flailForearmAngle) * A2;
-              const fhy = fey - Math.sin(flailForearmAngle) * A2;
-
-              ex = ex * (1 - frenzy) + fex * frenzy;
-              ey = ey * (1 - frenzy) + fey * frenzy;
-              hx = hx * (1 - frenzy) + fhx * frenzy;
-              hy = hy * (1 - frenzy) + fhy * frenzy;
-            }
-
-            return { shX, shY, ex, ey, hx, hy };
-          }
-
-          const arm1 = calcArm(true, u2);  // Front arm swings counter to front leg (u2)
-          const arm2 = calcArm(false, u1); // Back arm swings counter to back leg (u1)
+          // Back Arm
+          const bArmUpperAngle = Math.PI * 0.5 - pose.ba;
+          const bArmLowerAngle = bArmUpperAngle + pose.bab;
+          const bshX = neckX - s * 0.02, bshY = neckY;
+          const beX = bshX + Math.cos(bArmUpperAngle) * A1;
+          const beY = bshY + Math.sin(bArmUpperAngle) * A1;
+          const bhX = beX + Math.cos(bArmLowerAngle) * A2;
+          const bhY = beY + Math.sin(bArmLowerAngle) * A2;
 
           // 6. High-load Speed Lines & Styling
-          const speedLineOpacity = frenzy > 0.05 ? (frenzy * 0.9).toFixed(2) : 0;
+          const speedLineOpacity = tier === 2 ? 0.85 : 0;
           const sp1X1 = hipX - s * 0.28, sp1Y1 = hipY - s * 0.16;
           const sp1X2 = hipX - s * 0.08, sp1Y2 = hipY - s * 0.12;
           const sp2X1 = hipX - s * 0.24, sp2Y1 = hipY + s * 0.02;
@@ -1242,15 +1231,15 @@
                 <line x1="${sp1X1.toFixed(1)}" y1="${sp1Y1.toFixed(1)}" x2="${sp1X2.toFixed(1)}" y2="${sp1Y2.toFixed(1)}" 
                       stroke="var(--accent-hot)" stroke-width="${(strokeW * 0.7).toFixed(1)}" stroke-linecap="round" opacity="${speedLineOpacity}" />
                 <line x1="${sp2X1.toFixed(1)}" y1="${sp2Y1.toFixed(1)}" x2="${sp2X2.toFixed(1)}" y2="${sp2Y2.toFixed(1)}" 
-                      stroke="var(--accent-warm)" stroke-width="${(strokeW * 0.7).toFixed(1)}" stroke-linecap="round" opacity="${(speedLineOpacity * 0.85).toFixed(2)}" />
+                      stroke="var(--accent-warm)" stroke-width="${(strokeW * 0.7).toFixed(1)}" stroke-linecap="round" opacity="${speedLineOpacity}" />
               ` : ''}
 
               <!-- Back Arm (Shoulder -> Elbow -> Hand Polyline) -->
-              <polyline points="${arm2.shX.toFixed(1)},${arm2.shY.toFixed(1)} ${arm2.ex.toFixed(1)},${arm2.ey.toFixed(1)} ${arm2.hx.toFixed(1)},${arm2.hy.toFixed(1)}" 
+              <polyline points="${bshX.toFixed(1)},${bshY.toFixed(1)} ${beX.toFixed(1)},${beY.toFixed(1)} ${bhX.toFixed(1)},${bhY.toFixed(1)}" 
                         fill="none" stroke="currentColor" stroke-width="${(strokeW * 0.85).toFixed(1)}" opacity="0.5" stroke-linecap="round" stroke-linejoin="round" />
 
               <!-- Back Leg (Hip -> Knee -> Foot Polyline) -->
-              <polyline points="${hipX.toFixed(1)},${hipY.toFixed(1)} ${leg2.kx.toFixed(1)},${leg2.ky.toFixed(1)} ${leg2.fx.toFixed(1)},${leg2.fy.toFixed(1)}" 
+              <polyline points="${hipX.toFixed(1)},${hipY.toFixed(1)} ${bkX.toFixed(1)},${bkY.toFixed(1)} ${bfX.toFixed(1)},${bfY.toFixed(1)}" 
                         fill="none" stroke="currentColor" stroke-width="${(strokeW * 0.85).toFixed(1)}" opacity="0.5" stroke-linecap="round" stroke-linejoin="round" />
 
               <!-- Torso Spine -->
@@ -1261,11 +1250,11 @@
               <circle cx="${headX.toFixed(1)}" cy="${headY.toFixed(1)}" r="${headR.toFixed(1)}" fill="currentColor" />
 
               <!-- Front Leg (Hip -> Knee -> Foot Polyline) -->
-              <polyline points="${hipX.toFixed(1)},${hipY.toFixed(1)} ${leg1.kx.toFixed(1)},${leg1.ky.toFixed(1)} ${leg1.fx.toFixed(1)},${leg1.fy.toFixed(1)}" 
+              <polyline points="${hipX.toFixed(1)},${hipY.toFixed(1)} ${fkX.toFixed(1)},${fkY.toFixed(1)} ${ffX.toFixed(1)},${ffY.toFixed(1)}" 
                         fill="none" stroke="var(--accent)" stroke-width="${strokeW.toFixed(1)}" stroke-linecap="round" stroke-linejoin="round" />
 
               <!-- Front Arm (Shoulder -> Elbow -> Hand Polyline) -->
-              <polyline points="${arm1.shX.toFixed(1)},${arm1.shY.toFixed(1)} ${arm1.ex.toFixed(1)},${arm1.ey.toFixed(1)} ${arm1.hx.toFixed(1)},${arm1.hy.toFixed(1)}" 
+              <polyline points="${fshX.toFixed(1)},${fshY.toFixed(1)} ${feX.toFixed(1)},${feY.toFixed(1)} ${fhX.toFixed(1)},${fhY.toFixed(1)}" 
                         fill="none" stroke="${t > 0.7 ? 'var(--accent-hot)' : 'currentColor'}" stroke-width="${strokeW.toFixed(1)}" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           `;

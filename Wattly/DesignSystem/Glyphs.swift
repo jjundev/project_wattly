@@ -365,10 +365,54 @@ struct EqualizerMark: View {
     }
 }
 
-// 7. Dynamic Hill Runner Mark (2-Link IK Legs & Cheek-to-Pocket Arms)
+// 7. Dynamic Hill Runner Mark (Discrete 8-Keyframe Locomotion Pose Tables)
 struct HillRunnerMark: View {
     let frame: Int
     var markerColor: Color = Tokens.accent
+
+    private struct Pose {
+        let bob: CGFloat
+        let ft: Double; let fk: Double
+        let bt: Double; let bk: Double
+        let fa: Double; let fab: Double
+        let ba: Double; let bab: Double
+    }
+
+    private static let poses: [[Pose]] = [
+        // Tier 0: Uphill Heavy Walk (0..7)
+        [
+            Pose(bob: 0.00, ft: 0.40, fk: -0.05, bt: -0.35, bk: -0.15, fa: -0.45, fab: 0.20, ba: 0.35, bab: -1.20),
+            Pose(bob: 0.02, ft: 0.15, fk: -0.40, bt: -0.50, bk: -0.65, fa: -0.60, fab: 0.10, ba: 0.50, bab: -1.35),
+            Pose(bob: -0.01, ft: -0.05, fk: -0.10, bt: 0.25, bk: -0.90, fa: -0.15, fab: -0.30, ba: 0.10, bab: -0.70),
+            Pose(bob: -0.03, ft: -0.30, fk: -0.05, bt: 0.40, bk: -0.30, fa: 0.35, fab: -1.20, ba: -0.45, bab: 0.20),
+            Pose(bob: 0.00, ft: -0.35, fk: -0.15, bt: 0.40, bk: -0.05, fa: 0.35, fab: -1.20, ba: -0.45, bab: 0.20),
+            Pose(bob: 0.02, ft: -0.50, fk: -0.65, bt: 0.15, bk: -0.40, fa: 0.50, fab: -1.35, ba: -0.60, bab: 0.10),
+            Pose(bob: -0.01, ft: 0.25, fk: -0.90, bt: -0.05, bk: -0.10, fa: 0.10, fab: -0.70, ba: -0.15, bab: -0.30),
+            Pose(bob: -0.03, ft: 0.40, fk: -0.30, bt: -0.30, bk: -0.05, fa: -0.45, fab: 0.20, ba: 0.35, bab: -1.20)
+        ],
+        // Tier 1: Flat Athletic Jog (0..7)
+        [
+            Pose(bob: 0.00, ft: 0.65, fk: -0.20, bt: -0.60, bk: -0.35, fa: -0.80, fab: 0.15, ba: 0.65, bab: -1.50),
+            Pose(bob: 0.04, ft: 0.25, fk: -0.75, bt: -0.85, bk: -1.05, fa: -1.00, fab: 0.10, ba: 0.85, bab: -1.65),
+            Pose(bob: -0.02, ft: -0.15, fk: -0.15, bt: 0.50, bk: -1.45, fa: -0.20, fab: -0.50, ba: 0.15, bab: -1.10),
+            Pose(bob: -0.06, ft: -0.60, fk: -0.10, bt: 0.80, bk: -0.55, fa: 0.65, fab: -1.50, ba: -0.80, bab: 0.15),
+            Pose(bob: 0.00, ft: -0.60, fk: -0.35, bt: 0.65, bk: -0.20, fa: 0.65, fab: -1.50, ba: -0.80, bab: 0.15),
+            Pose(bob: 0.04, ft: -0.85, fk: -1.05, bt: 0.25, bk: -0.75, fa: 0.85, fab: -1.65, ba: -1.00, bab: 0.10),
+            Pose(bob: -0.02, ft: 0.50, fk: -1.45, bt: -0.15, bk: -0.15, fa: 0.15, fab: -1.10, ba: -0.20, bab: -0.50),
+            Pose(bob: -0.06, ft: 0.80, fk: -0.55, bt: -0.60, bk: -0.10, fa: -0.80, fab: 0.15, ba: 0.65, bab: -1.50)
+        ],
+        // Tier 2: Downhill Frantic Sprint (0..7)
+        [
+            Pose(bob: 0.00, ft: 0.95, fk: -0.30, bt: -0.90, bk: -0.55, fa: -1.20, fab: 0.20, ba: 0.95, bab: -1.65),
+            Pose(bob: 0.05, ft: 0.40, fk: -1.10, bt: -1.20, bk: -1.35, fa: -1.40, fab: 0.15, ba: 1.25, bab: -1.75),
+            Pose(bob: -0.04, ft: -0.30, fk: -0.30, bt: 0.80, bk: -1.85, fa: -0.35, fab: -0.60, ba: 0.25, bab: -1.30),
+            Pose(bob: -0.09, ft: -0.90, fk: -0.20, bt: 1.15, bk: -0.75, fa: 0.95, fab: -1.65, ba: -1.20, bab: 0.20),
+            Pose(bob: 0.00, ft: -0.90, fk: -0.55, bt: 0.95, bk: -0.30, fa: 0.95, fab: -1.65, ba: -1.20, bab: 0.20),
+            Pose(bob: 0.05, ft: -1.20, fk: -1.35, bt: 0.40, bk: -1.10, fa: 1.25, fab: -1.75, ba: -1.40, bab: 0.15),
+            Pose(bob: -0.04, ft: 0.80, fk: -1.85, bt: -0.30, bk: -0.30, fa: 0.25, fab: -1.30, ba: -0.35, bab: -0.60),
+            Pose(bob: -0.09, ft: 1.15, fk: -0.75, bt: -0.90, bk: -0.20, fa: -1.20, fab: 0.20, ba: 0.95, bab: -1.65)
+        ]
+    ]
 
     var body: some View {
         GeometryReader { proxy in
@@ -377,14 +421,14 @@ struct HillRunnerMark: View {
             let headR = s * 0.095
 
             let clampedFrame = min(max(frame, 0), 23)
-            let tier = clampedFrame / 8 // 0: Uphill, 1: Flat, 2: Downhill
-            let subPhase = Double(clampedFrame % 8) / 8.0
+            let tier = clampedFrame / 8
+            let frameIdx = clampedFrame % 8
+            let pose = Self.poses[tier][frameIdx]
 
-            // Tier parameters
             let t: Double = switch tier {
-            case 0: 0.10 // Uphill
-            case 1: 0.50 // Flat
-            default: 0.90 // Downhill
+            case 0: 0.10
+            case 1: 0.50
+            default: 0.90
             }
 
             // 1. Ground Slope
@@ -396,11 +440,7 @@ struct HillRunnerMark: View {
 
             // 2. Hip Position
             let hipX = s * 0.46
-            let p = subPhase * .pi * 2.0
-            let u1 = subPhase
-            let u2 = (subPhase + 0.5).truncatingRemainder(dividingBy: 1.0)
-            let bob = abs(sin(p * 2.0)) * s * (0.02 + t * 0.04)
-            let hipY = groundAtHip - s * (0.24 - t * 0.02) - bob
+            let hipY = groundAtHip - s * (0.24 - t * 0.02) + s * pose.bob
 
             // 3. Torso & Head
             let leanAngle = (0.24 - (1.0 - abs(t - 0.5) * 2.0) * 0.12 + (t > 0.5 ? (t - 0.5) * 0.38 : 0.0)) * .pi
@@ -412,22 +452,39 @@ struct HillRunnerMark: View {
             let headX = neckX + sin(headAngle) * (s * 0.09)
             let headY = neckY - cos(headAngle) * (s * 0.09)
 
-            // 4. Leg Kinematics (2-Link Constant Bone Length IK)
-            let strideScale = s * (0.13 + t * 0.09)
-            let liftScale = s * (0.05 + t * 0.09)
-            let frenzy = max(0.0, (t - 0.60) / 0.40)
-
-            let foot1 = calcFoot(u: u1, hipX: hipX, hipY: hipY, p: p, phaseOffset: 0.6, strideScale: strideScale, liftScale: liftScale, frenzy: frenzy, s: s, gX1: gX1, gY1: gY1, groundSlope: groundSlope)
-            let foot2 = calcFoot(u: u2, hipX: hipX, hipY: hipY, p: p, phaseOffset: .pi + 0.6, strideScale: strideScale, liftScale: liftScale, frenzy: frenzy, s: s, gX1: gX1, gY1: gY1, groundSlope: groundSlope)
-
+            // 4. Legs Forward Kinematics
             let L1 = s * 0.13, L2 = s * 0.13
-            let leg1 = solveLegIK(hx: hipX, hy: hipY, fx: foot1.x, fy: foot1.y, L1: L1, L2: L2)
-            let leg2 = solveLegIK(hx: hipX, hy: hipY, fx: foot2.x, fy: foot2.y, L1: L1, L2: L2)
+            let fThighAngle = .pi * 0.5 - pose.ft
+            let fKneeAngle = fThighAngle + pose.fk
+            let fkX = hipX + cos(fThighAngle) * L1
+            let fkY = hipY + sin(fThighAngle) * L1
+            let ffX = fkX + cos(fKneeAngle) * L2
+            let ffY = fkY + sin(fKneeAngle) * L2
 
-            // 5. Arm Kinematics (Cheek-to-Pocket Anti-Phase)
-            let A1 = s * 0.14, A2 = s * 0.13
-            let arm1 = calcArm(isFront: true, u: u2, neckX: neckX, neckY: neckY, t: t, p: p, frenzy: frenzy, A1: A1, A2: A2, s: s)
-            let arm2 = calcArm(isFront: false, u: u1, neckX: neckX, neckY: neckY, t: t, p: p, frenzy: frenzy, A1: A1, A2: A2, s: s)
+            let bThighAngle = .pi * 0.5 - pose.bt
+            let bKneeAngle = bThighAngle + pose.bk
+            let bkX = hipX + cos(bThighAngle) * L1
+            let bkY = hipY + sin(bThighAngle) * L1
+            let bfX = bkX + cos(bKneeAngle) * L2
+            let bfY = bkY + sin(bKneeAngle) * L2
+
+            // 5. Arms Forward Kinematics
+            let A1 = s * 0.13, A2 = s * 0.12
+            let fArmUpperAngle = .pi * 0.5 - pose.fa
+            let fArmLowerAngle = fArmUpperAngle + pose.fab
+            let fshX = neckX + s * 0.02, fshY = neckY + s * 0.02
+            let feX = fshX + cos(fArmUpperAngle) * A1
+            let feY = fshY + sin(fArmUpperAngle) * A1
+            let fhX = feX + cos(fArmLowerAngle) * A2
+            let fhY = feY + sin(fArmLowerAngle) * A2
+
+            let bArmUpperAngle = .pi * 0.5 - pose.ba
+            let bArmLowerAngle = bArmUpperAngle + pose.bab
+            let bshX = neckX - s * 0.02, bshY = neckY
+            let beX = bshX + cos(bArmUpperAngle) * A1
+            let beY = bshY + sin(bArmUpperAngle) * A1
+            let bhX = beX + cos(bArmLowerAngle) * A2
+            let bhY = beY + sin(bArmLowerAngle) * A2
 
             ZStack {
                 // Ground slope line
@@ -452,9 +509,9 @@ struct HillRunnerMark: View {
 
                 // Back Arm
                 Path { path in
-                    path.move(to: CGPoint(x: arm2.shX, y: arm2.shY))
-                    path.addLine(to: CGPoint(x: arm2.ex, y: arm2.ey))
-                    path.addLine(to: CGPoint(x: arm2.hx, y: arm2.hy))
+                    path.move(to: CGPoint(x: bshX, y: bshY))
+                    path.addLine(to: CGPoint(x: beX, y: beY))
+                    path.addLine(to: CGPoint(x: bhX, y: bhY))
                 }
                 .stroke(style: StrokeStyle(lineWidth: strokeW * 0.85, lineCap: .round, lineJoin: .round))
                 .opacity(0.50)
@@ -462,8 +519,8 @@ struct HillRunnerMark: View {
                 // Back Leg
                 Path { path in
                     path.move(to: CGPoint(x: hipX, y: hipY))
-                    path.addLine(to: CGPoint(x: leg2.kx, y: leg2.ky))
-                    path.addLine(to: CGPoint(x: leg2.fx, y: leg2.fy))
+                    path.addLine(to: CGPoint(x: bkX, y: bkY))
+                    path.addLine(to: CGPoint(x: bfX, y: bfY))
                 }
                 .stroke(style: StrokeStyle(lineWidth: strokeW * 0.85, lineCap: .round, lineJoin: .round))
                 .opacity(0.50)
@@ -483,86 +540,20 @@ struct HillRunnerMark: View {
                 // Front Leg
                 Path { path in
                     path.move(to: CGPoint(x: hipX, y: hipY))
-                    path.addLine(to: CGPoint(x: leg1.kx, y: leg1.ky))
-                    path.addLine(to: CGPoint(x: leg1.fx, y: leg1.fy))
+                    path.addLine(to: CGPoint(x: fkX, y: fkY))
+                    path.addLine(to: CGPoint(x: ffX, y: ffY))
                 }
                 .stroke(markerColor, style: StrokeStyle(lineWidth: strokeW, lineCap: .round, lineJoin: .round))
 
                 // Front Arm
                 Path { path in
-                    path.move(to: CGPoint(x: arm1.shX, y: arm1.shY))
-                    path.addLine(to: CGPoint(x: arm1.ex, y: arm1.ey))
-                    path.addLine(to: CGPoint(x: arm1.hx, y: arm1.hy))
+                    path.move(to: CGPoint(x: fshX, y: fshY))
+                    path.addLine(to: CGPoint(x: feX, y: feY))
+                    path.addLine(to: CGPoint(x: fhX, y: fhY))
                 }
                 .stroke(markerColor, style: StrokeStyle(lineWidth: strokeW, lineCap: .round, lineJoin: .round))
             }
         }
-    }
-
-    private func calcFoot(u: Double, hipX: CGFloat, hipY: CGFloat, p: Double, phaseOffset: Double, strideScale: CGFloat, liftScale: CGFloat, frenzy: Double, s: CGFloat, gX1: CGFloat, gY1: CGFloat, groundSlope: CGFloat) -> CGPoint {
-        var fx: CGFloat
-        var fy: CGFloat
-        if u < 0.45 {
-            let xi = u / 0.45
-            fx = hipX + strideScale * (1.0 - 2.0 * xi)
-            fy = gY1 + (fx - gX1) * groundSlope
-        } else {
-            let eta = (u - 0.45) / 0.55
-            fx = hipX - strideScale * cos(.pi * eta)
-            fy = (gY1 + (fx - gX1) * groundSlope) - liftScale * sin(.pi * eta)
-        }
-
-        if frenzy > 0 {
-            let circX = hipX + cos(p + phaseOffset) * (s * 0.20)
-            let circY = hipY + sin(p + phaseOffset) * (s * 0.20) + s * 0.06
-            fx = fx * (1.0 - frenzy) + circX * frenzy
-            fy = fy * (1.0 - frenzy) + circY * frenzy
-        }
-        return CGPoint(x: fx, y: fy)
-    }
-
-    private func solveLegIK(hx: CGFloat, hy: CGFloat, fx: CGFloat, fy: CGFloat, L1: CGFloat, L2: CGFloat) -> (kx: CGFloat, ky: CGFloat, fx: CGFloat, fy: CGFloat) {
-        let dx = fx - hx
-        let dy = fy - hy
-        let dist = min(max(sqrt(dx * dx + dy * dy), 0.01), (L1 + L2) * 0.999)
-        let baseAngle = atan2(dy, dx)
-        let cosAlpha = (L1 * L1 + dist * dist - L2 * L2) / (2 * L1 * dist)
-        let alpha = acos(min(max(cosAlpha, -1.0), 1.0))
-        let kneeAngle = baseAngle - alpha
-        let kx = hx + cos(kneeAngle) * L1
-        let ky = hy + sin(kneeAngle) * L1
-        return (kx, ky, fx, fy)
-    }
-
-    private func calcArm(isFront: Bool, u: Double, neckX: CGFloat, neckY: CGFloat, t: Double, p: Double, frenzy: Double, A1: CGFloat, A2: CGFloat, s: CGFloat) -> (shX: CGFloat, shY: CGFloat, ex: CGFloat, ey: CGFloat, hx: CGFloat, hy: CGFloat) {
-        let shX = neckX + (isFront ? s * 0.02 : -s * 0.02)
-        let shY = neckY + (isFront ? s * 0.02 : 0.0)
-        let swing = sin(u * .pi * 2.0)
-        let upperAngle = (1.45 - t * 0.10) - swing * (0.70 + t * 0.35)
-        let forearmAngle = (0.85 - t * 0.10) - swing * (1.20 + t * 0.50)
-
-        var ex = shX + cos(upperAngle) * A1
-        var ey = shY + sin(upperAngle) * A1
-        var hx = ex + cos(forearmAngle) * A2
-        var hy = ey + sin(forearmAngle) * A2
-
-        if frenzy > 0 {
-            let flailPhase = p + (isFront ? 0.0 : .pi)
-            let flailUpperAngle = 0.4 - cos(flailPhase) * 1.6
-            let flailForearmAngle = flailUpperAngle - 1.1 + sin(flailPhase) * 0.4
-
-            let fex = shX + cos(flailUpperAngle) * A1
-            let fey = shY + sin(flailUpperAngle) * A1
-            let fhx = fex + cos(flailForearmAngle) * A2
-            let fhy = fey - sin(flailForearmAngle) * A2
-
-            ex = ex * (1.0 - frenzy) + fex * frenzy
-            ey = ey * (1.0 - frenzy) + fey * frenzy
-            hx = hx * (1.0 - frenzy) + fhx * frenzy
-            hy = hy * (1.0 - frenzy) + fhy * frenzy
-        }
-
-        return (shX, shY, ex, ey, hx, hy)
     }
 }
 
