@@ -1,6 +1,8 @@
 import Testing
 import SwiftUI
 import AppKit
+import ImageIO
+import UniformTypeIdentifiers
 @testable import Wattly
 
 @MainActor
@@ -149,8 +151,8 @@ struct SnapshotGeneratorTests {
             }
             .padding(14)
             .frame(width: 320, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 16).fill(t.panelBg))
-            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(t.panelBorder, lineWidth: 1))
+            .background(RoundedRectangle(cornerRadius: 16).fill(Tokens.dark.panelBg))
+            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Tokens.dark.panelBorder, lineWidth: 1))
             .shadow(color: Tokens.shadowFar.color, radius: Tokens.shadowFar.radius, x: 0, y: Tokens.shadowFar.y)
             .shadow(color: Tokens.shadowNear.color, radius: Tokens.shadowNear.radius, x: 0, y: Tokens.shadowNear.y)
         }
@@ -417,6 +419,82 @@ struct SnapshotGeneratorTests {
         }
     }
 
+    /// Pure Swift & ImageIO Animated GIF Exporter using SwiftUI ImageRenderer
+    @MainActor
+    private func exportAnimatedGIFFromSwiftUI<V: View>(
+        viewGenerator: (Int) -> V,
+        frameCount: Int = 24,
+        frameDuration: Double = 0.065,
+        filename: String,
+        targetWidth: CGFloat = 500,
+        scale: CGFloat = 2.0
+    ) {
+        let outputDir = URL(fileURLWithPath: "/Users/hyunjun_macbook_pro/.gemini/antigravity/worktrees/project_wattly/draft_project_readme_docs/docs/assets")
+        try? FileManager.default.createDirectory(at: outputDir, withIntermediateDirectories: true)
+        let fileURL = outputDir.appendingPathComponent(filename)
+
+        var cgImages: [CGImage] = []
+
+        for f in 0..<frameCount {
+            let targetView = viewGenerator(f)
+                .frame(width: targetWidth)
+                .padding(14)
+                .background(Color.clear)
+
+            let hostingView = NSHostingView(rootView: targetView)
+            let size = CGSize(width: targetWidth + 28, height: 180)
+            hostingView.frame = NSRect(origin: .zero, size: size)
+            hostingView.layoutSubtreeIfNeeded()
+
+            if let rep = hostingView.bitmapImageRepForCachingDisplay(in: hostingView.bounds) {
+                rep.size = size
+                hostingView.cacheDisplay(in: hostingView.bounds, to: rep)
+                if let cgImage = rep.cgImage {
+                    cgImages.append(cgImage)
+                }
+            }
+        }
+
+        guard !cgImages.isEmpty else {
+            print("❌ No frames generated for \(filename)")
+            return
+        }
+
+        guard let destination = CGImageDestinationCreateWithURL(
+            fileURL as CFURL,
+            UTType.gif.identifier as CFString,
+            cgImages.count,
+            nil
+        ) else {
+            print("❌ Failed to create CGImageDestination for \(filename)")
+            return
+        }
+
+        let fileProperties: [CFString: Any] = [
+            kCGImagePropertyGIFDictionary: [
+                kCGImagePropertyGIFLoopCount: 0 // Infinite loop
+            ]
+        ]
+        CGImageDestinationSetProperties(destination, fileProperties as CFDictionary)
+
+        let frameProperties: [CFString: Any] = [
+            kCGImagePropertyGIFDictionary: [
+                kCGImagePropertyGIFDelayTime: frameDuration,
+                kCGImagePropertyGIFUnclampedDelayTime: frameDuration
+            ]
+        ]
+
+        for cgImage in cgImages {
+            CGImageDestinationAddImage(destination, cgImage, frameProperties as CFDictionary)
+        }
+
+        if CGImageDestinationFinalize(destination) {
+            print("✅ Successfully exported native Animated GIF via ImageIO: \(filename) (\(cgImages.count) frames)")
+        } else {
+            print("❌ Failed to finalize GIF destination for \(filename)")
+        }
+    }
+
     @Test func generateAllScreenshots() async {
         let (monitor, fanControl, sampleMap) = await setupRichMonitor()
 
@@ -569,29 +647,17 @@ struct SnapshotGeneratorTests {
         }
         saveSnapshot(view: menubarThemesView, filename: "menubar-styles-preview.png", targetWidth: 500)
 
-        // 15. Render 24 frames for Animated GIF into docs/assets/frames
-        let framesDir = URL(fileURLWithPath: "/Users/hyunjun_macbook_pro/.gemini/antigravity/worktrees/project_wattly/draft_project_readme_docs/docs/assets/frames")
-        try? FileManager.default.createDirectory(at: framesDir, withIntermediateDirectories: true)
-        for f in 0..<24 {
-            let frameView = ThemedRoot {
-                MenuBarThemesShowcaseView(frame: f)
-            }
-            let fileURL = framesDir.appendingPathComponent(String(format: "frame_%02d.png", f))
-            let hosting = NSHostingView(rootView: frameView.padding(14))
-            let size = CGSize(width: 528, height: 180)
-            hosting.frame = CGRect(origin: .zero, size: size)
-            hosting.layoutSubtreeIfNeeded()
-            if let rep = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) {
-                rep.size = size
-                hosting.cacheDisplay(in: hosting.bounds, to: rep)
-                let image = NSImage(size: size)
-                image.addRepresentation(rep)
-                if let tiff = image.tiffRepresentation,
-                   let bitmap = NSBitmapImageRep(data: tiff),
-                   let png = bitmap.representation(using: .png, properties: [:]) {
-                    try? png.write(to: fileURL)
+        // 15. Native Animated GIF via ImageIO from SwiftUI Views
+        exportAnimatedGIFFromSwiftUI(
+            viewGenerator: { frame in
+                ThemedRoot {
+                    MenuBarThemesShowcaseView(frame: frame)
                 }
-            }
-        }
+            },
+            frameCount: 24,
+            frameDuration: 0.065,
+            filename: "menubar-icon-motion.gif",
+            targetWidth: 500
+        )
     }
 }
