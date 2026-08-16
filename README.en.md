@@ -135,28 +135,9 @@ Wattly features a precision multi-point fan curve engine designed to keep your A
 
 Wattly implements a strict separation of concerns to guarantee maximum security, stability, and system performance.
 
-```
-┌────────────────────────────────────────────────────────┐
-│               Wattly.app (User Process)               │
-│                                                        │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │   IOReport   │  │   AppleSMC   │  │ Mach Kernel  │  │
-│  │ Energy Model │  │ (Read-Only)  │  │ & IOHIDEvent │  │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  │
-│         │                 │                 │          │
-│         └────────────► 100% UNPRIVILEGED ◄──┘          │
-│                       READ TELEMETRY                   │
-└─────────────────────────────┬──────────────────────────┘
-                              │ XPC (Audit Token & UID Auth)
-┌─────────────────────────────▼──────────────────────────┐
-│          WattlyFanDaemon (Optional Helper)             │
-│                                                        │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │ SMC Fan Target Write (F0Tg / F0md)               │  │
-│  │ Watchdog Heartbeat & 100°C Hardware Failsafe     │  │
-│  └──────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────┘
-```
+<p align="center">
+  <img src="docs/assets/en/architecture.png" alt="Wattly System Architecture Diagram" width="760" />
+</p>
 
 1. **Unprivileged Telemetry Pipeline (Reader)**:
    - Operates entirely within standard user permissions.

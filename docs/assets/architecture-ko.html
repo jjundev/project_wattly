@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #0d1117;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif;
+      color: #f0f6fc;
+      padding: 24px;
+      width: 820px;
+      margin: 0 auto;
+    }
+    .diagram-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: relative;
+    }
+    /* Main Boxes */
+    .layer-card {
+      background: linear-gradient(180deg, rgba(22, 27, 34, 0.95) 0%, rgba(13, 17, 23, 0.98) 100%);
+      border: 1px solid rgba(240, 246, 252, 0.12);
+      border-radius: 14px;
+      padding: 18px 20px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      position: relative;
+    }
+    .layer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(240, 246, 252, 0.08);
+    }
+    .layer-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .layer-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      color: #ffffff;
+    }
+    .layer-subtitle {
+      font-size: 11px;
+      color: #8b949e;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .badge {
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 100px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .badge-green {
+      background: rgba(46, 160, 67, 0.15);
+      color: #3fb950;
+      border: 1px solid rgba(46, 160, 67, 0.3);
+    }
+    .badge-purple {
+      background: rgba(163, 113, 247, 0.15);
+      color: #d2a8ff;
+      border: 1px solid rgba(163, 113, 247, 0.3);
+    }
+    /* Pillars Grid */
+    .pillars-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .pillar-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .pillar-header {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #58a6ff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pillar-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .pillar-list li {
+      font-size: 11px;
+      color: #c9d1d9;
+      line-height: 1.4;
+      display: flex;
+      align-items: flex-start;
+      gap: 5px;
+    }
+    .pillar-list li::before {
+      content: "•";
+      color: #8b949e;
+      font-weight: bold;
+    }
+    /* Stream convergence bar */
+    .stream-bar {
+      background: rgba(56, 139, 253, 0.1);
+      border: 1px solid rgba(56, 139, 253, 0.25);
+      border-radius: 8px;
+      padding: 9px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #79c0ff;
+    }
+    /* Connector */
+    .connector {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      position: relative;
+    }
+    .connector-line {
+      width: 2px;
+      height: 14px;
+      background: linear-gradient(180deg, rgba(56, 139, 253, 0.6) 0%, rgba(163, 113, 247, 0.6) 100%);
+    }
+    .connector-pill {
+      background: #161b22;
+      border: 1px solid rgba(240, 246, 252, 0.15);
+      border-radius: 100px;
+      padding: 4px 14px;
+      font-size: 10.5px;
+      font-family: ui-monospace, monospace;
+      color: #e6edf3;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    .connector-tag {
+      color: #a5d6ff;
+      font-weight: 600;
+    }
+    /* Daemon card */
+    .daemon-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 12px;
+    }
+    .daemon-feature {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+    .daemon-feature-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #d2a8ff;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="diagram-container">
+    
+    <!-- Top: Wattly.app (User Process) -->
+    <div class="layer-card">
+      <div class="layer-header">
+        <div class="layer-title-group">
+          <span style="font-size: 16px;"></span>
+          <span class="layer-title">Wattly.app</span>
+          <span class="layer-subtitle">(User Process)</span>
+        </div>
+        <span class="badge badge-green">🟢 100% 무권한(Unprivileged) 사용자 공간 (No Root / No sudo)</span>
+      </div>
+
+      <div class="pillars-grid">
+        <div class="pillar-card">
+          <div class="pillar-header">
+            <span>⚡️ IOReport Energy</span>
+          </div>
+          <ul class="pillar-list">
+            <li>비공개 채널 가입 구독</li>
+            <li>CPU / GPU / ANE mW 전력</li>
+            <li>4초 EMA 필터링 스무딩</li>
+          </ul>
+        </div>
+
+        <div class="pillar-card">
+          <div class="pillar-header">
+            <span>🌡️ AppleSMC (Read-Only)</span>
+          </div>
+          <ul class="pillar-list">
+            <li>읽기 키(B0AP, B0AV, B0AC)</li>
+            <li>실제 시스템 순방전(W) 측정</li>
+            <li>P/E 코어 및 GPU 발열 센서</li>
+          </ul>
+        </div>
+
+        <div class="pillar-card">
+          <div class="pillar-header">
+            <span>📊 Mach Kernel & IOHID</span>
+          </div>
+          <ul class="pillar-list">
+            <li>host_statistics64 메모리 압박</li>
+            <li>host_processor_info 코어별 틱</li>
+            <li>sysctl(hw.perflevel) 클러스터 GHz</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="stream-bar">
+        <span>⚡️ 통합 텔레메트리 파이프라인 · @Observable SystemMonitor (SwiftUI View 렌더링)</span>
+      </div>
+    </div>
+
+    <!-- Connector: XPC -->
+    <div class="connector">
+      <div class="connector-line"></div>
+      <div class="connector-pill">
+        <span class="connector-tag">Local XPC MachService</span>
+        <span>dev.jjundev.WattlyFanDaemon (Audit Token UID 검증 & 15초 하트비트 워치독)</span>
+      </div>
+      <div class="connector-line"></div>
+    </div>
+
+    <!-- Bottom: WattlyFanDaemon -->
+    <div class="layer-card" style="border-color: rgba(163, 113, 247, 0.25);">
+      <div class="layer-header">
+        <div class="layer-title-group">
+          <span style="font-size: 15px;">🛡️</span>
+          <span class="layer-title">WattlyFanDaemon</span>
+          <span class="layer-subtitle">(/Library/PrivilegedHelperTools)</span>
+        </div>
+        <span class="badge badge-purple">🔒 격리된 루트 헬퍼 (스마트 팬 제어 활성화 시에만 동작)</span>
+      </div>
+
+      <div class="daemon-grid">
+        <div class="daemon-feature">
+          <div class="daemon-feature-title">
+            <span>🎛️ SMC 목표 RPM 제어</span>
+          </div>
+          <ul class="pillar-list">
+            <li>F0Tg / F0md 레지스터 쓰기 전용 격리</li>
+            <li>48°C~55°C Zero-RPM Hysteresis 상태 유지</li>
+            <li>조용함 · 밸런스 · 고성능 스플라인 곡선 제어</li>
+          </ul>
+        </div>
+
+        <div class="daemon-feature">
+          <div class="daemon-feature-title">
+            <span>🚨 하드웨어 안전장치 (Failsafes)</span>
+          </div>
+          <ul class="pillar-list">
+            <li>100°C 도달 시 즉시 100% 최대 RPM 자동 강제</li>
+            <li>워치독 타임아웃/앱 종료 시 macOS 자동 제어로 복귀</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
