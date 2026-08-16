@@ -4,12 +4,14 @@ import Foundation
 
 struct KineticNotchMotionTests {
     @Test func sourceRequirementsAndLabels() {
-        #expect(KineticNotchSource.power.requiredCards == [.power])
+        #expect(KineticNotchSource.allCases == [.cpuClock, .power, .compute])
+
         #expect(KineticNotchSource.cpuClock.requiredCards == [.cpu])
+        #expect(KineticNotchSource.power.requiredCards == [.power])
         #expect(KineticNotchSource.compute.requiredCards == [.cpu, .gpu])
 
-        #expect(KineticNotchSource.power.label == "전력 소비")
         #expect(KineticNotchSource.cpuClock.label == "CPU 클럭")
+        #expect(KineticNotchSource.power.label == "전력 소비 (권장)")
         #expect(KineticNotchSource.compute.label == "CPU + GPU")
     }
 

@@ -22,24 +22,24 @@ enum HardwarePowerSource {
 }
 
 enum KineticNotchSource: String, CaseIterable, Identifiable, Sendable {
-    case power
     case cpuClock
+    case power
     case compute
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
-        case .power: "전력 소비"
         case .cpuClock: "CPU 클럭"
+        case .power: "전력 소비 (권장)"
         case .compute: "CPU + GPU"
         }
     }
 
     var requiredCards: Set<CardKind> {
         switch self {
-        case .power: [.power]
         case .cpuClock: [.cpu]
+        case .power: [.power]
         case .compute: [.cpu, .gpu]
         }
     }
