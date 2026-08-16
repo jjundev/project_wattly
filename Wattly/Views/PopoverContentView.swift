@@ -63,18 +63,9 @@ struct PopoverContentView: View {
     @State private var cardsNaturalHeight: CGFloat = 0
     @State private var maxCardsHeight: CGFloat = 600
 
-    // Per-card visibility (issue 13). Observed as `@AppStorage` (NOT read straight from
-    // `UserDefaults`) so a settings-toggle write re-renders `visibleCards` live while the
-    // popover is open — otherwise the panel would only pick up the change on its next open
-    // (grill F1). Mirrors `PollPolicyBridge`'s set; gating still flows through that bridge.
-    @AppStorage(StorageKey.show(.power))   private var showPower   = Defaults.show[.power]   ?? true
-    @AppStorage(StorageKey.show(.battery)) private var showBattery = Defaults.show[.battery] ?? true
-    @AppStorage(StorageKey.show(.cpu))     private var showCPU     = Defaults.show[.cpu]     ?? true
-    @AppStorage(StorageKey.show(.gpu))     private var showGPU     = Defaults.show[.gpu]     ?? true
-    @AppStorage(StorageKey.show(.mem))     private var showMem     = Defaults.show[.mem]     ?? true
-    @AppStorage(StorageKey.show(.cpuTemp)) private var showCpuTemp = Defaults.show[.cpuTemp] ?? true
-    @AppStorage(StorageKey.show(.gpuTemp)) private var showGpuTemp = Defaults.show[.gpuTemp] ?? true
-    @AppStorage(StorageKey.show(.fan))     private var showFan     = Defaults.show[.fan]     ?? true
+    // Per-card visibility observed via VisibilitySettings so a settings-toggle write
+    // re-renders `visibleCards` live while the popover is open.
+    @State private var visibilitySettings = VisibilitySettings.shared
 
     private var expanded: Set<CardKind> { CardPresentation.expandedCards(from: expandedRaw) }
 
@@ -420,16 +411,7 @@ struct PopoverContentView: View {
     }
 
     private func isShown(_ card: CardKind) -> Bool {
-        switch card {
-        case .power: showPower
-        case .battery: showBattery
-        case .cpu: showCPU
-        case .gpu: showGPU
-        case .mem: showMem
-        case .cpuTemp: showCpuTemp
-        case .gpuTemp: showGpuTemp
-        case .fan: showFan
-        }
+        visibilitySettings.isShown(card)
     }
 
     private func toggleExpand(_ card: CardKind) {

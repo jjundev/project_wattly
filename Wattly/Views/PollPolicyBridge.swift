@@ -1,81 +1,19 @@
 import SwiftUI
 
-/// Pushes the adaptive-poll policy (issue 09) from `@AppStorage` into the `SystemMonitor`.
+/// Pushes the adaptive-poll policy (issue 09) from preferences into the `SystemMonitor`.
 ///
 /// It lives on the **menubar label** (always rendered), NOT in the popover (which unmounts
 /// on close): card-visibility and the cadence setting must reach the monitor even while the
-/// panel is closed — that closed steady state is the whole point of the power saving. Being
-/// `@AppStorage`-backed, it observes external writes (the settings window today, issue 13's
-/// per-card toggles and issue 14's menubar metrics later) via KVO, so the gating activates
-/// automatically the moment those keys change — no extra wiring in 13/14.
+/// panel is closed — that closed steady state is the whole point of the power saving.
 ///
-/// Renders nothing (a zero-size clear view); it exists only to host the seeding `.task` and
-/// the live-update observers.
+/// Observed via `VisibilitySettings` to propagate card visibility and menubar selection changes.
 struct PollPolicyBridge: View {
     let monitor: SystemMonitor
 
+    @State private var visibilitySettings = VisibilitySettings.shared
     @AppStorage(StorageKey.pollInterval) private var pollInterval: PollInterval = Defaults.pollInterval
     @AppStorage(StorageKey.powerMode) private var powerMode: PowerMode = Defaults.powerMode
     @AppStorage(StorageKey.menubarTextEnabled) private var menubarTextEnabled = Defaults.menubarTextEnabled
-    @AppStorage(StorageKey.show(.power))   private var showPower   = Defaults.show[.power]   ?? true
-    @AppStorage(StorageKey.show(.battery)) private var showBattery = Defaults.show[.battery] ?? true
-    @AppStorage(StorageKey.show(.cpu))     private var showCPU     = Defaults.show[.cpu]     ?? true
-    @AppStorage(StorageKey.show(.gpu))     private var showGPU     = Defaults.show[.gpu]     ?? true
-    @AppStorage(StorageKey.show(.mem))     private var showMem     = Defaults.show[.mem]     ?? true
-    @AppStorage(StorageKey.show(.cpuTemp)) private var showCpuTemp = Defaults.show[.cpuTemp] ?? true
-    @AppStorage(StorageKey.show(.gpuTemp)) private var showGpuTemp = Defaults.show[.gpuTemp] ?? true
-    @AppStorage(StorageKey.show(.fan))     private var showFan     = Defaults.show[.fan]     ?? true
-
-    // The menubar metric chips (issue 14). Pushed alongside `shownCards` so a metric shown
-    // ONLY in the menubar keeps its provider polled even while its card is hidden.
-    @AppStorage(StorageKey.menu(.cpu))     private var menuCPU     = Defaults.menuMetrics[.cpu]     ?? false
-    @AppStorage(StorageKey.menu(.gpu))     private var menuGPU     = Defaults.menuMetrics[.gpu]     ?? false
-    @AppStorage(StorageKey.menuCoreClock("S")) private var menuSClock = Defaults.menuCoreClockEnabled["S"] ?? false
-    @AppStorage(StorageKey.menuCoreClock("P")) private var menuPClock = Defaults.menuCoreClockEnabled["P"] ?? false
-    @AppStorage(StorageKey.menuCoreClock("E")) private var menuEClock = Defaults.menuCoreClockEnabled["E"] ?? false
-    @AppStorage(StorageKey.menu(.power))   private var menuPower   = Defaults.menuMetrics[.power]   ?? false
-    @AppStorage(StorageKey.menu(.battery)) private var menuBattery = Defaults.menuMetrics[.battery] ?? false
-    @AppStorage(StorageKey.menuBatteryTemp) private var menuBatteryTemp = Defaults.menuBatteryTempEnabled
-    @AppStorage(StorageKey.menu(.mem))     private var menuMem     = Defaults.menuMetrics[.mem]     ?? false
-    @AppStorage(StorageKey.menuMemPressure) private var menuMemPressure = Defaults.menuMemPressureEnabled
-    @AppStorage(StorageKey.menu(.cpuTemp)) private var menuCpuTemp = Defaults.menuMetrics[.cpuTemp] ?? false
-    @AppStorage(StorageKey.menu(.gpuTemp)) private var menuGpuTemp = Defaults.menuMetrics[.gpuTemp] ?? false
-    @AppStorage(StorageKey.menu(.fan))     private var menuFan     = Defaults.menuMetrics[.fan]     ?? false
-
-    /// The shown set, assembled from the per-card flags (mirrors `PopoverContentView.isShown`).
-    private var shownCards: Set<CardKind> {
-        var s = Set<CardKind>()
-        if showPower   { s.insert(.power) }
-        if showBattery { s.insert(.battery) }
-        if showCPU     { s.insert(.cpu) }
-        if showGPU     { s.insert(.gpu) }
-        if showMem     { s.insert(.mem) }
-        if showCpuTemp { s.insert(.cpuTemp) }
-        if showGpuTemp { s.insert(.gpuTemp) }
-        if showFan     { s.insert(.fan) }
-        return s
-    }
-
-    /// The menubar-selected metrics, from the per-chip flags (mirrors `MenuBarLabel.selected`).
-    /// `menuMemPressure` and `menuBatteryTemp` ensure `.mem` and `.battery` stay polled,
-    /// and any of the S/P/E core-clock toggles also insert `.cpu` (menubar items update).
-    private var menubarMetrics: Set<CardKind> {
-        var s = Set<CardKind>()
-        if menuCPU         { s.insert(.cpu) }
-        if menuGPU         { s.insert(.gpu) }
-        if menuSClock      { s.insert(.cpu) }
-        if menuPClock      { s.insert(.cpu) }
-        if menuEClock      { s.insert(.cpu) }
-        if menuPower       { s.insert(.power) }
-        if menuBattery     { s.insert(.battery) }
-        if menuBatteryTemp { s.insert(.battery) }
-        if menuMem         { s.insert(.mem) }
-        if menuMemPressure  { s.insert(.mem) }
-        if menuCpuTemp     { s.insert(.cpuTemp) }
-        if menuGpuTemp     { s.insert(.gpuTemp) }
-        if menuFan         { s.insert(.fan) }
-        return s
-    }
 
     var body: some View {
         Color.clear
@@ -88,8 +26,8 @@ struct PollPolicyBridge: View {
                 monitor.setPowerMode(powerMode)
                 monitor.setPollInterval(pollInterval)
                 await monitor.setMenubarTextEnabled(menubarTextEnabled)
-                await monitor.setShownCards(shownCards)
-                await monitor.setMenubarMetrics(menubarMetrics)   // before start() (B5): first poll sees the persisted chips
+                await monitor.setShownCards(visibilitySettings.activeCards)
+                await monitor.setMenubarMetrics(visibilitySettings.requiredMenuCards)   // before start() (B5): first poll sees the persisted chips
                 monitor.start()
             }
             // Live updates only (`.onChange` doesn't fire on first appear, so no redundant
@@ -98,7 +36,7 @@ struct PollPolicyBridge: View {
             .onChange(of: powerMode) { _, v in monitor.setPowerMode(v) }
             .onChange(of: pollInterval) { _, v in monitor.setPollInterval(v) }
             .onChange(of: menubarTextEnabled) { _, v in Task { await monitor.setMenubarTextEnabled(v) } }
-            .onChange(of: shownCards) { _, v in Task { await monitor.setShownCards(v) } }
-            .onChange(of: menubarMetrics) { _, v in Task { await monitor.setMenubarMetrics(v) } }
+            .onChange(of: visibilitySettings.activeCards) { _, v in Task { await monitor.setShownCards(v) } }
+            .onChange(of: visibilitySettings.requiredMenuCards) { _, v in Task { await monitor.setMenubarMetrics(v) } }
     }
 }

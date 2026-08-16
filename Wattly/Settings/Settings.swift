@@ -314,6 +314,8 @@ enum Defaults {
     static let menuCoreClockEnabled: [String: Bool] = ["S": false, "P": false, "E": false]
 
     static let cardOrder = CardOrder([.power, .battery, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .fan])
+    static let cardVisibility = CardVisibility()
+    static let menuBarSelection = MenuBarSelection()
     static let thresholds = Thresholds(
         cpu: ThresholdPair(warn: 70, crit: 90),
         temp: ThresholdPair(warn: 70, crit: 90),

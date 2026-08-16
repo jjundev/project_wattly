@@ -12,21 +12,9 @@ import AppKit
 struct MenuBarLabel: View {
     let monitor: SystemMonitor
 
+    @State private var visibilitySettings = VisibilitySettings.shared
     @AppStorage(StorageKey.menubarTextEnabled) private var textEnabled = Defaults.menubarTextEnabled
     @AppStorage(StorageKey.powerSmoothed)      private var powerSmoothed = Defaults.powerSmoothed
-    @AppStorage(StorageKey.menu(.cpu))     private var menuCPU     = Defaults.menuMetrics[.cpu]     ?? false
-    @AppStorage(StorageKey.menu(.gpu))     private var menuGPU     = Defaults.menuMetrics[.gpu]     ?? false
-    @AppStorage(StorageKey.menuCoreClock("S")) private var menuSClock = Defaults.menuCoreClockEnabled["S"] ?? false
-    @AppStorage(StorageKey.menuCoreClock("P")) private var menuPClock = Defaults.menuCoreClockEnabled["P"] ?? false
-    @AppStorage(StorageKey.menuCoreClock("E")) private var menuEClock = Defaults.menuCoreClockEnabled["E"] ?? false
-    @AppStorage(StorageKey.menu(.power))   private var menuPower   = Defaults.menuMetrics[.power]   ?? false
-    @AppStorage(StorageKey.menu(.battery)) private var menuBattery = Defaults.menuMetrics[.battery] ?? false
-    @AppStorage(StorageKey.menu(.mem))     private var menuMem     = Defaults.menuMetrics[.mem]     ?? false
-    @AppStorage(StorageKey.menuMemPressure) private var menuMemPressure = Defaults.menuMemPressureEnabled
-    @AppStorage(StorageKey.menu(.cpuTemp)) private var menuCpuTemp = Defaults.menuMetrics[.cpuTemp] ?? false
-    @AppStorage(StorageKey.menu(.gpuTemp)) private var menuGpuTemp = Defaults.menuMetrics[.gpuTemp] ?? false
-    @AppStorage(StorageKey.menuBatteryTemp) private var menuBatteryTemp = Defaults.menuBatteryTempEnabled
-    @AppStorage(StorageKey.menu(.fan))     private var menuFan     = Defaults.menuMetrics[.fan]     ?? false
 
     var body: some View {
         let label = assembled
@@ -70,21 +58,7 @@ struct MenuBarLabel: View {
 
     /// Selected menubar items in canonical order.
     private var items: [MenuBarItem] {
-        var list: [MenuBarItem] = []
-        if menuCPU { list.append(.card(.cpu)) }
-        if menuSClock { list.append(.coreClock(prefix: "S")) }
-        if menuPClock { list.append(.coreClock(prefix: "P")) }
-        if menuEClock { list.append(.coreClock(prefix: "E")) }
-        if menuGPU { list.append(.card(.gpu)) }
-        if menuPower { list.append(.card(.power)) }
-        if menuBattery { list.append(.card(.battery)) }
-        if menuBatteryTemp { list.append(.batteryTemp) }
-        if menuMem { list.append(.card(.mem)) }
-        if menuMemPressure { list.append(.memPressure) }
-        if menuCpuTemp { list.append(.card(.cpuTemp)) }
-        if menuGpuTemp { list.append(.card(.gpuTemp)) }
-        if menuFan { list.append(.card(.fan)) }
-        return list
+        visibilitySettings.menuItems
     }
 
     private var activeStates: [CardKind: MetricState] {
