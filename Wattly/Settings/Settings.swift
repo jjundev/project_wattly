@@ -281,13 +281,13 @@ struct CardOrder: Equatable, Sendable, RawRepresentable {
 /// so they can never drift (L12). Values from prototype lines 405–417 + plan
 /// README §common tokens.
 enum Defaults {
-    static let theme = ThemeMode.dark
+    static let theme = ThemeMode.system
     static let pollInterval = PollInterval.auto
     static let powerMode = PowerMode.eco
     static let panelMode = PanelMode.c       // ship default: hero + list (mode C)
     static let heroMetric = CardKind.power   // mode C hero (plan 20); falls back to first visible when hidden
     static let loginItem = true            // F1: a MIRROR of SMAppService — NOT authoritative
-    static let menubarTextEnabled = true   // default menubar metric = CPU only
+    static let menubarTextEnabled = true   // default menubar metric = power only
     static let kineticNotchMotionEnabled = true
     static let kineticNotchSource = KineticNotchSource.power
     static let kineticNotchSpeed = KineticNotchSpeed.smart
@@ -295,15 +295,15 @@ enum Defaults {
     static let powerSmoothed = true        // 프로세서 전력 + 배터리 카드: EMA-smoothed display (raw spikes mislead)
     /// Battery health can feel sensitive as it declines from 100%, so keep it opt-in.
     static let showBatteryEfficiency = false
-    static let memoryProcessLimit = 3
-    static let powerProcessLimit = 3
+    static let memoryProcessLimit = 5
+    static let powerProcessLimit = 5
 
     static let show: [CardKind: Bool] = [
         .power: true, .battery: true, .cpu: true, .gpu: true, .mem: true,
         .cpuTemp: true, .gpuTemp: true, .fan: true,
     ]
     static let menuMetrics: [CardKind: Bool] = [
-        .cpu: true, .gpu: false, .power: false, .battery: false, .mem: false,
+        .cpu: false, .gpu: false, .power: true, .battery: false, .mem: false,
         .cpuTemp: false, .gpuTemp: false, .fan: false,
     ]
     /// Battery temperature menubar toggle. Default off.

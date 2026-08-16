@@ -180,7 +180,7 @@ struct MemoryUsageTests {
     }
 
     @Test func memoryProcessLimitClampsToSupportedRange() {
-        #expect(memoryProcessLimit(nil) == 3)
+        #expect(memoryProcessLimit(nil) == 5)
         #expect(memoryProcessLimit(1) == 3)
         #expect(memoryProcessLimit(3) == 3)
         #expect(memoryProcessLimit(5) == 5)

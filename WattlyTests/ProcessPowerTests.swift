@@ -59,7 +59,7 @@ struct ProcessPowerTests {
     }
 
     @Test func powerProcessLimitClampsToSupportedRange() {
-        #expect(powerProcessLimit(nil) == 3)
+        #expect(powerProcessLimit(nil) == 5)
         #expect(powerProcessLimit(1) == 3)
         #expect(powerProcessLimit(3) == 3)
         #expect(powerProcessLimit(5) == 5)

@@ -71,7 +71,7 @@ func memorySample(active: UInt64, wire: UInt64, compressor: UInt64,
 }
 
 func memoryProcessLimit(_ persisted: Int?) -> Int {
-    min(7, max(3, persisted ?? 3))
+    min(7, max(3, persisted ?? Defaults.memoryProcessLimit))
 }
 
 func topMemoryApps(perProcess: [(key: String, bytes: UInt64)], limit: Int) -> [ProcessUsage] {
