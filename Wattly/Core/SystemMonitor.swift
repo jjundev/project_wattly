@@ -20,13 +20,14 @@ final class SystemMonitor {
     /// `ingest`/`reset` is a tracked `@Observable` write (see `SmoothingOverlay`).
     private(set) var powerOverlay = SmoothingOverlay<PowerSample>()
     private(set) var batteryOverlay = SmoothingOverlay<BatterySample>()
+    private var batteryPipeline = BatteryTelemetryPipeline()
+    private var selfPowerTracker = SelfPowerTracker()
+
     /// Longer battery trend for comparison with slowly changing charge percentage.
     /// Kept separate from the 4 s headline EMA; reset on adapter regime changes.
-    private(set) var batteryOneMinuteAverage: Double?
-    private var batteryOneMinuteInstant: ContinuousClock.Instant?
-    /// Projects a whole-minute battery runtime between unchanged registry/fallback values.
-    /// It is reset with the battery regime so elapsed time never crosses an adapter change.
-    private var batteryRuntimeProjection = BatteryRuntimeProjection()
+    var batteryOneMinuteAverage: Double? {
+        batteryPipeline.oneMinuteAverage
+    }
 
     /// Wattly's own EMA-smoothed power draw in watts (issue 16), or nil until the first
     /// valid interval (the settings footer shows "—"). Doubles as the EMA's previous
@@ -59,11 +60,8 @@ final class SystemMonitor {
     private var lastProviderRead: [ProviderKind: ContinuousClock.Instant] = [:]
     private var lastSelfPowerSample: ContinuousClock.Instant?
 
-    /// Self-power measurement state (issue 16). The injected energy source plus the prior
-    /// nanojoule counter + its instant; `sampleSelfPower` diffs them into `selfPower`.
+    /// Self-power measurement state (issue 16).
     private let selfEnergy: any SelfEnergySampling
-    private var prevSelfNJ: UInt64?
-    private var prevSelfInstant: ContinuousClock.Instant?
 
     // MARK: Adaptive-poll policy (issue 09) — pushed in from the views, never read from
     // `UserDefaults` here, so the cadence and gating stay deterministically testable.
@@ -278,13 +276,7 @@ final class SystemMonitor {
     /// anomaly — gap / counter reset) it only re-baselines and leaves the displayed value
     /// untouched, so a transient never blanks a working footer.
     func sampleSelfPower(at instant: ContinuousClock.Instant) {
-        guard let curr = selfEnergy.energyNanojoules() else { return }   // unreadable → keep last
-        defer { prevSelfNJ = curr; prevSelfInstant = instant }          // re-baseline on every kept path
-        guard let prevNJ = prevSelfNJ, let prevInstant = prevSelfInstant else { return }  // first sample
-        let dt = seconds(from: prevInstant, to: instant)
-        guard let raw = SelfPower.watts(prevNanojoules: prevNJ, currNanojoules: curr, dt: dt) else { return }
-        // selfPower is its own EMA previous → cold start (nil) re-seeds to raw, then blends.
-        selfPower = PowerSmoothing.emaStep(previous: selfPower, raw: raw, dt: dt)
+        selfPower = selfPowerTracker.sample(using: selfEnergy, at: instant)
     }
 
     func sampleSelfPowerIfDue(at instant: ContinuousClock.Instant) {
@@ -325,7 +317,11 @@ final class SystemMonitor {
         case .unavailable(let reason):
             states[kind] = .unavailable(reason)
         case .value(.battery(let rawBattery)):
-            let battery = preparedBattery(rawBattery, at: instant)
+            let battery = batteryPipeline.ingest(rawBattery, at: instant)
+            if batteryPipeline.hasConnectionChanged {
+                history[.battery] = HistoryBuffer()
+                batteryOverlay.reset()
+            }
             let sample = MetricSample.battery(battery)
             states[kind] = .value(sample)
             recordHistory(for: kind, sample: sample, at: instant)
@@ -339,73 +335,18 @@ final class SystemMonitor {
         }
     }
 
-    /// Previous AC-adapter connection state. A plug/unplug (`ExternalConnected` change)
-    /// clears the battery sparkline at once, so the prior regime doesn't linger on the
-    /// graph: the current register lags a plug-in by 30–60 s, so we key the reset off the
-    /// connection flag (which flips instantly) rather than the current-derived direction
-    /// (issue 07 §2). Held here, not in the provider, so `BatteryProvider` stays stateless.
-    private var lastExternalConnected: Bool?
-    /// Last non-nil registry time observed while an adapter was connected. A matching value
-    /// immediately after unplug is the charging-era estimate, not a fresh discharge estimate.
-    private var lastConnectedTimeRemainingMinutes: Int?
-    /// The connected-era value to suppress until AppleSmartBattery publishes a different,
-    /// non-nil discharge estimate. nil means no stale value is being tracked.
-    private var staleTimeRemainingAfterDisconnect: Int?
-
-    private func suppressingStaleTimeAfterDisconnect(_ raw: BatterySample) -> BatterySample {
-        var sample = raw
-        let rawTime = raw.timeRemainingMinutes
-
-        if raw.externalConnected {
-            lastConnectedTimeRemainingMinutes = rawTime
-            staleTimeRemainingAfterDisconnect = nil
-        } else if lastExternalConnected == true {
-            staleTimeRemainingAfterDisconnect = lastConnectedTimeRemainingMinutes
-        } else if let stale = staleTimeRemainingAfterDisconnect,
-                  let rawTime,
-                  rawTime != stale {
-            staleTimeRemainingAfterDisconnect = nil
-        }
-
-        if rawTime == staleTimeRemainingAfterDisconnect {
-            sample.timeRemainingMinutes = nil
-        }
-        return sample
-    }
-
-    private func preparedBattery(_ raw: BatterySample, at instant: ContinuousClock.Instant) -> BatterySample {
-        let sample = suppressingStaleTimeAfterDisconnect(raw)
-        if let last = lastExternalConnected, last != sample.externalConnected {
-            history[.battery] = HistoryBuffer()
-            batteryOverlay.reset()
-            batteryOneMinuteAverage = nil
-            batteryOneMinuteInstant = nil
-            batteryRuntimeProjection.reset()
-        }
-        lastExternalConnected = sample.externalConnected
-
-        let averageDt = batteryOneMinuteInstant.map { seconds(from: $0, to: instant) } ?? 0
-        batteryOneMinuteAverage = PowerSmoothing.emaStep(
-            previous: batteryOneMinuteAverage, raw: sample.netW, dt: averageDt, tau: 60)
-        batteryOneMinuteInstant = instant
-
-        var presented = sample
-        presented.average1mW = batteryOneMinuteAverage
-        presented.projectedTimeRemainingMinutes = batteryRuntimeProjection.ingest(presented, at: instant)
-        batteryOverlay.ingest(at: instant,
-            smooth: { previous, dt in
-                let netW = PowerSmoothing.emaStep(previous: previous?.netW, raw: presented.netW, dt: dt)
-                return Self.batterySmoothed(from: presented, netW: netW)
-            },
-            series: \.netW)
-        return presented
-    }
-
     private func recordHistory(for kind: ProviderKind, sample: MetricSample, at instant: ContinuousClock.Instant) {
         if case .power(let s) = sample {
             powerOverlay.ingest(at: instant,
                 smooth: { previous, dt in PowerSmoothing.step(previous: previous, raw: s, dt: dt) },
                 series: \.totalW)
+        } else if case .battery(let s) = sample {
+            batteryOverlay.ingest(at: instant,
+                smooth: { previous, dt in
+                    let netW = PowerSmoothing.emaStep(previous: previous?.netW, raw: s.netW, dt: dt)
+                    return Self.batterySmoothed(from: s, netW: netW)
+                },
+                series: \.netW)
         }
         for card in CardKind.allCases where card.provider == kind {
             if let scalar = Self.scalar(of: card, from: sample) {
