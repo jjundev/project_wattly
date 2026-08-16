@@ -7,222 +7,180 @@
     body {
       background-color: #0d1117;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif;
-      color: #f0f6fc;
-      padding: 24px;
-      width: 820px;
+      color: #e6edf3;
+      padding: 32px;
+      width: 800px;
       margin: 0 auto;
     }
     .diagram-container {
       display: flex;
       flex-direction: column;
       gap: 16px;
-      position: relative;
     }
-    /* Main Boxes */
+    /* Main Layers */
     .layer-card {
-      background: linear-gradient(180deg, rgba(22, 27, 34, 0.95) 0%, rgba(13, 17, 23, 0.98) 100%);
-      border: 1px solid rgba(240, 246, 252, 0.12);
-      border-radius: 14px;
-      padding: 18px 20px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-      position: relative;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 20px 22px;
     }
     .layer-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 14px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid rgba(240, 246, 252, 0.08);
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #21262d;
     }
     .layer-title-group {
       display: flex;
-      align-items: center;
+      align-items: baseline;
       gap: 8px;
     }
     .layer-title {
       font-size: 15px;
-      font-weight: 700;
-      letter-spacing: -0.2px;
+      font-weight: 600;
       color: #ffffff;
+      letter-spacing: -0.2px;
     }
     .layer-subtitle {
-      font-size: 11px;
+      font-size: 12px;
       color: #8b949e;
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     }
-    .badge {
-      font-size: 10.5px;
-      font-weight: 600;
-      padding: 3px 9px;
-      border-radius: 100px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
+    .tag {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 6px;
+      border: 1px solid #30363d;
+      background: #0d1117;
+      color: #c9d1d9;
     }
-    .badge-green {
-      background: rgba(46, 160, 67, 0.15);
-      color: #3fb950;
-      border: 1px solid rgba(46, 160, 67, 0.3);
-    }
-    .badge-purple {
-      background: rgba(163, 113, 247, 0.15);
-      color: #d2a8ff;
-      border: 1px solid rgba(163, 113, 247, 0.3);
-    }
-    /* Pillars Grid */
-    .pillars-grid {
+    /* 3 Column Grid */
+    .grid-3 {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 12px;
       margin-bottom: 14px;
     }
-    .pillar-card {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.07);
-      border-radius: 10px;
+    .sub-card {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
       padding: 12px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
     }
-    .pillar-header {
+    .sub-card-title {
       font-size: 12.5px;
       font-weight: 600;
-      color: #58a6ff;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      color: #ffffff;
+      margin-bottom: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     }
-    .pillar-list {
+    .item-list {
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 6px;
     }
-    .pillar-list li {
+    .item-list li {
       font-size: 11px;
-      color: #c9d1d9;
+      color: #8b949e;
       line-height: 1.4;
       display: flex;
       align-items: flex-start;
-      gap: 5px;
+      gap: 6px;
     }
-    .pillar-list li::before {
-      content: "•";
-      color: #8b949e;
-      font-weight: bold;
+    .item-list li::before {
+      content: "–";
+      color: #6e7681;
     }
-    /* Stream convergence bar */
-    .stream-bar {
-      background: rgba(56, 139, 253, 0.1);
-      border: 1px solid rgba(56, 139, 253, 0.25);
-      border-radius: 8px;
-      padding: 9px 12px;
+    /* Convergence Bar */
+    .convergence-bar {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 10px 14px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      font-size: 11.5px;
-      font-weight: 600;
-      color: #79c0ff;
+      font-size: 12px;
+      font-weight: 500;
+      color: #c9d1d9;
     }
-    /* Connector */
-    .connector {
+    /* XPC Divider & Arrow */
+    .xpc-divider {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       gap: 4px;
-      position: relative;
+      padding: 2px 0;
     }
-    .connector-line {
-      width: 2px;
-      height: 14px;
-      background: linear-gradient(180deg, rgba(56, 139, 253, 0.6) 0%, rgba(163, 113, 247, 0.6) 100%);
+    .xpc-line {
+      width: 1px;
+      height: 12px;
+      background: #484f58;
     }
-    .connector-pill {
-      background: #161b22;
-      border: 1px solid rgba(240, 246, 252, 0.15);
-      border-radius: 100px;
+    .xpc-pill {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
       padding: 4px 14px;
-      font-size: 10.5px;
-      font-family: ui-monospace, monospace;
-      color: #e6edf3;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-    .connector-tag {
-      color: #a5d6ff;
-      font-weight: 600;
-    }
-    /* Daemon card */
-    .daemon-grid {
-      display: grid;
-      grid-template-columns: 1.2fr 1fr;
-      gap: 12px;
-    }
-    .daemon-feature {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.07);
-      border-radius: 10px;
-      padding: 12px 14px;
-    }
-    .daemon-feature-title {
-      font-size: 12px;
-      font-weight: 600;
-      color: #d2a8ff;
-      margin-bottom: 6px;
+      font-size: 11px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: #8b949e;
       display: flex;
       align-items: center;
       gap: 6px;
+    }
+    .xpc-pill strong {
+      color: #ffffff;
+      font-weight: 600;
+    }
+    /* 2 Column Grid for Daemon */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
     }
   </style>
 </head>
 <body>
   <div class="diagram-container">
     
-    <!-- Top: Wattly.app (User Process) -->
+    <!-- Top Layer: Wattly.app (User Space) -->
     <div class="layer-card">
       <div class="layer-header">
         <div class="layer-title-group">
-          <span style="font-size: 16px;"></span>
           <span class="layer-title">Wattly.app</span>
           <span class="layer-subtitle">(User Process)</span>
         </div>
-        <span class="badge badge-green">🟢 100% Unprivileged User-Space (No Root / No sudo)</span>
+        <span class="tag">100% Unprivileged User-Space (No Root / No sudo / SIP On)</span>
       </div>
 
-      <div class="pillars-grid">
-        <div class="pillar-card">
-          <div class="pillar-header">
-            <span>⚡️ IOReport Energy</span>
-          </div>
-          <ul class="pillar-list">
-            <li>Private channel subscription</li>
-            <li>CPU / GPU / ANE real-time mW</li>
+      <div class="grid-3">
+        <div class="sub-card">
+          <div class="sub-card-title">IOReport Energy</div>
+          <ul class="item-list">
+            <li>Private energy channel subscription</li>
+            <li>CPU · GPU · ANE real-time mW</li>
             <li>4-second EMA smoothing filter</li>
           </ul>
         </div>
 
-        <div class="pillar-card">
-          <div class="pillar-header">
-            <span>🌡️ AppleSMC (Read-Only)</span>
-          </div>
-          <ul class="pillar-list">
+        <div class="sub-card">
+          <div class="sub-card-title">AppleSMC (Read-Only)</div>
+          <ul class="item-list">
             <li>Read keys (B0AP, B0AV, B0AC)</li>
             <li>True system net discharge (W)</li>
             <li>P/E Core & GPU thermal sensors</li>
           </ul>
         </div>
 
-        <div class="pillar-card">
-          <div class="pillar-header">
-            <span>📊 Mach Kernel & IOHID</span>
-          </div>
-          <ul class="pillar-list">
+        <div class="sub-card">
+          <div class="sub-card-title">Mach Kernel & IOHID</div>
+          <ul class="item-list">
             <li>host_statistics64 memory pressure</li>
             <li>host_processor_info core ticks</li>
             <li>sysctl(hw.perflevel) cluster GHz</li>
@@ -230,49 +188,43 @@
         </div>
       </div>
 
-      <div class="stream-bar">
-        <span>⚡️ Unified Telemetry Pipeline · @Observable SystemMonitor (SwiftUI Rendering)</span>
+      <div class="convergence-bar">
+        Unified Telemetry Pipeline · SystemMonitor (@Observable & SwiftUI View)
       </div>
     </div>
 
-    <!-- Connector: XPC -->
-    <div class="connector">
-      <div class="connector-line"></div>
-      <div class="connector-pill">
-        <span class="connector-tag">Local XPC MachService</span>
-        <span>dev.jjundev.WattlyFanDaemon (Audit Token UID Auth & 15s Heartbeat Watchdog)</span>
+    <!-- Inter-Process Communication -->
+    <div class="xpc-divider">
+      <div class="xpc-line"></div>
+      <div class="xpc-pill">
+        <strong>Local XPC MachService</strong> · dev.jjundev.WattlyFanDaemon (Audit Token UID Auth & 15s Watchdog)
       </div>
-      <div class="connector-line"></div>
+      <div class="xpc-line"></div>
     </div>
 
-    <!-- Bottom: WattlyFanDaemon -->
-    <div class="layer-card" style="border-color: rgba(163, 113, 247, 0.25);">
+    <!-- Bottom Layer: WattlyFanDaemon (Privileged Helper) -->
+    <div class="layer-card">
       <div class="layer-header">
         <div class="layer-title-group">
-          <span style="font-size: 15px;">🛡️</span>
           <span class="layer-title">WattlyFanDaemon</span>
           <span class="layer-subtitle">(/Library/PrivilegedHelperTools)</span>
         </div>
-        <span class="badge badge-purple">🔒 Isolated Root Helper (Active Only When Fan Control is Enabled)</span>
+        <span class="tag">Isolated Root Helper (Active Only When Fan Control is Enabled)</span>
       </div>
 
-      <div class="daemon-grid">
-        <div class="daemon-feature">
-          <div class="daemon-feature-title">
-            <span>🎛️ Target Fan RPM Control</span>
-          </div>
-          <ul class="pillar-list">
+      <div class="grid-2">
+        <div class="sub-card">
+          <div class="sub-card-title">SMC Fan Target Write</div>
+          <ul class="item-list">
             <li>F0Tg / F0md register write isolation</li>
             <li>48°C–55°C Zero-RPM Hysteresis hold band</li>
             <li>Quiet · Balanced · Performance spline curves</li>
           </ul>
         </div>
 
-        <div class="daemon-feature">
-          <div class="daemon-feature-title">
-            <span>🚨 Hardware Failsafes</span>
-          </div>
-          <ul class="pillar-list">
+        <div class="sub-card">
+          <div class="sub-card-title">Hardware Failsafes</div>
+          <ul class="item-list">
             <li>Automatic 100% max RPM override at 100°C</li>
             <li>Auto-return to macOS kernel control on sleep/exit</li>
           </ul>

@@ -136,7 +136,7 @@ Wattly는 가벼운 작업 시에는 조용함을 유지하고 장시간의 고�
 Wattly는 최상의 보안, 시스템 안정성 및 성능을 보장하기 위해 관심사 분리(Separation of Concerns) 원칙을 엄격하게 구현합니다.
 
 <p align="center">
-  <img src="docs/assets/architecture.png" alt="Wattly 시스템 아키텍처 다이어그램" width="760" />
+  <img src="docs/assets/architecture-diagram.png" alt="Wattly 시스템 아키텍처 다이어그램" width="760" />
 </p>
 
 1. **무권한 텔레메트리 파이프라인 (Reader)**:

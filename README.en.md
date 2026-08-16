@@ -136,7 +136,7 @@ Wattly features a precision multi-point fan curve engine designed to keep your A
 Wattly implements a strict separation of concerns to guarantee maximum security, stability, and system performance.
 
 <p align="center">
-  <img src="docs/assets/en/architecture.png" alt="Wattly System Architecture Diagram" width="760" />
+  <img src="docs/assets/en/architecture-diagram.png" alt="Wattly System Architecture Diagram" width="760" />
 </p>
 
 1. **Unprivileged Telemetry Pipeline (Reader)**:
