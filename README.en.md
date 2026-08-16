@@ -121,7 +121,7 @@ Wattly features a precision multi-point fan curve engine designed to keep your A
 - **Interactive Control Points**: Drag or configure custom temperature-to-RPM thresholds across the full operating range.
 - **Zero-RPM Hysteresis Zone**: Built-in 48°C–55°C hold band prevents annoying fan start/stop oscillations during intermittent tasks.
 - **Optimized Tuning Presets**:
-  - **Quiet**: Maintains zero or minimum RPM up to 65°C for silent acoustic operation.
+  - **Silent**: Maintains zero RPM up to 55°C and low acoustic RPM up to 65°C for quiet operation.
   - **Balanced**: Standard linear curve maintaining optimal balance between acoustic comfort and component longevity.
   - **Performance**: Aggressive ramp-up keeping thermals below 75°C during intense compilation or gaming.
   - **Manual Override**: Direct RPM lock for specific testing or thermal profiling.
@@ -145,7 +145,7 @@ Wattly implements a strict separation of concerns to guarantee maximum security,
    - Requires zero helper tools, no `sudo`, and no system integrity compromises.
 
 2. **Isolated Fan Helper Daemon (`WattlyFanDaemon`)**:
-   - Optional, dedicated helper installed via `SMJobBless` / `launchd` only when fan control is explicitly enabled.
+   - Optional, dedicated helper installed via an administrator authorization prompt into `launchd` only when fan control is explicitly enabled.
    - Isolated exclusively to writing target RPM registers (`F0Tg`, `F0md`).
    - Communication is secured via local XPC with audit-token UID verification and automatic heartbeat watchdog release.
 
@@ -172,7 +172,7 @@ Wattly is built specifically for the Apple Silicon architecture, supporting all 
 Tailor the menu bar item to match your aesthetic and information density requirements:
 
 <p align="center">
-  <img src="docs/assets/menubar-themes.png" alt="Menu Bar Styles Preview" width="640" />
+  <img src="docs/assets/menubar-styles-preview.png" alt="Menu Bar Styles Preview" width="640" />
 </p>
 
 <p align="center">
@@ -229,7 +229,7 @@ brew install xcodegen
 xcodegen generate
 
 # 4. Build Release binary
-xcodebuild -project Wattly.xcodeproj -scheme Wattly -configuration Release build
+xcodebuild -project Wattly.xcodeproj -scheme Wattly -configuration Release SYMROOT=build build
 
 # 5. Locate built app bundle
 open build/Release

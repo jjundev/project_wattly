@@ -121,9 +121,9 @@ Wattly는 가벼운 작업 시에는 조용함을 유지하고 장시간의 고�
 - **인터랙티브 제어점**: 전체 동작 온도 범위에 걸쳐 마우스 드래그 또는 수치 입력을 통한 맞춤형 온도-RPM 임계값 구성.
 - **상태 유지 구간 (Zero-RPM Hysteresis Zone)**: 48°C~55°C 히스테리시스 밴드를 내장하여 가벼운 작업 시 팬이 켜졌다 꺼지기를 반복하는 소음 방지.
 - **최적화된 튜닝 프리셋**:
-  - **조용함 (Quiet)**: 최대 65°C까지 팬을 정지(0 RPM) 또는 최저 RPM으로 유지하여 무소음 환경 보장.
-  - **밸런스 (Balanced)**: 소음과 부품 수명 사이의 최적 균형을 유지하는 표준 리니어 커브.
-  - **고성능 (Performance)**: 고부하 컴파일이나 게이밍 환경에서 온도를 75°C 이하로 유지하는 공격적인 쿨링 커브.
+  - **저소음 (Silent)**: 최대 55°C까지 팬을 정지(0 RPM)하고 65°C 이하에서 최저 RPM으로 유지하여 무소음 환경 보장.
+  - **균형 (Balanced)**: 소음과 부품 수명 사이의 최적 균형을 유지하는 표준 리니어 커브.
+  - **성능 (Performance)**: 고부하 컴파일이나 게이밍 환경에서 온도를 75°C 이하로 유지하는 공격적인 쿨링 커브.
   - **수동 제어 (Manual Override)**: 특정 벤치마크나 발열 프로파일링을 위한 고정 RPM 수동 설정.
 - **하드웨어 레벨 안전장치**:
   - 실리콘 온도가 100°C를 초과할 경우 즉시 팬 속도를 100% 최대 RPM으로 강제 승격.
@@ -145,7 +145,7 @@ Wattly는 최상의 보안, 시스템 안정성 및 성능을 보장하기 위�
    - 별도의 헬퍼 도구 설치, `sudo` 권한, 시스템 무결성 보호(SIP) 비활성화가 일체 불필요합니다.
 
 2. **격리된 팬 도우미 데몬 (`WattlyFanDaemon`)**:
-   - 팬 제어 기능을 명시적으로 활성화할 때만 `SMJobBless` / `launchd`를 통해 설치되는 전용 헬퍼입니다.
+   - 팬 제어 기능을 명시적으로 활성화할 때만 안전한 관리자 인증 프롬프트를 통해 `launchd` 시스템 서비스로 등록되는 전용 헬퍼입니다.
    - 목표 팬 RPM 레지스터(`F0Tg`, `F0md`) 쓰기 작업만 수행하도록 엄격하게 격리되어 있습니다.
    - 통신은 로컬 XPC로 보호되며, Audit Token UID 검증 및 15초 하트비트 워치독을 통해 안전하게 동작합니다.
 
@@ -229,9 +229,9 @@ brew install xcodegen
 xcodegen generate
 
 # 4. Release 바이너리 빌드
-xcodebuild -project Wattly.xcodeproj -scheme Wattly -configuration Release build
+xcodebuild -project Wattly.xcodeproj -scheme Wattly -configuration Release SYMROOT=build build
 
-# 5. 빌드된 앱 번들 확인
+# 5. 빌드된 앱 실행 및 확인
 open build/Release
 ```
 
