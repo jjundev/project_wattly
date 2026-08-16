@@ -441,8 +441,8 @@ struct HillRunnerMark: View {
     var body: some View {
         GeometryReader { proxy in
             let s = min(proxy.size.width, proxy.size.height)
-            let strokeW = max(1.4, s * 0.08)
-            let headR = s * 0.095
+            let strokeW = max(2.0, s * 0.115)
+            let headR = s * 0.115
 
             let clampedFrame = min(max(frame, 0), 23)
             let tier = clampedFrame / 8
@@ -459,29 +459,29 @@ struct HillRunnerMark: View {
             let smoothT = t * t * (3.0 - 2.0 * t)
             let gX1 = s * 0.08, gX2 = s * 0.92
             let gMidX = s * 0.50
-            let gY1 = s * (0.82 - smoothT * 0.20)
-            let gMidY = s * (0.75 - sin(smoothT * .pi) * 0.08 + (smoothT > 0.5 ? (smoothT - 0.5) * 0.10 : 0.0))
-            let gY2 = s * (0.70 + smoothT * 0.16)
+            let gY1 = s * (0.84 - smoothT * 0.18)
+            let gMidY = s * (0.78 - sin(smoothT * .pi) * 0.08 + (smoothT > 0.5 ? (smoothT - 0.5) * 0.10 : 0.0))
+            let gY2 = s * (0.74 + smoothT * 0.14)
 
             let hipX = s * 0.48
             let u = (hipX - gX1) / (gX2 - gX1)
             let groundAtHip = (1.0 - u) * (1.0 - u) * gY1 + 2.0 * (1.0 - u) * u * gMidY + u * u * gY2
 
             // 2. Hip Position
-            let hipY = groundAtHip - s * (0.24 - t * 0.02) + s * pose.bob
+            let hipY = groundAtHip - s * (0.28 - t * 0.02) + s * pose.bob
 
             // 3. Torso & Head (Natural Upright Posture)
             let leanAngle = (0.045 + t * 0.055) * .pi
-            let torsoLen = s * 0.22
+            let torsoLen = s * 0.25
             let neckX = hipX + sin(leanAngle) * torsoLen
             let neckY = hipY - cos(leanAngle) * torsoLen
 
             let headAngle = leanAngle * 0.65
-            let headX = neckX + sin(headAngle) * (s * 0.09)
-            let headY = neckY - cos(headAngle) * (s * 0.09)
+            let headX = neckX + sin(headAngle) * (s * 0.10)
+            let headY = neckY - cos(headAngle) * (s * 0.10)
 
             // 4. Legs Forward Kinematics
-            let L1 = s * 0.13, L2 = s * 0.13
+            let L1 = s * 0.155, L2 = s * 0.155
             let fThighAngle = .pi * 0.5 - pose.ft
             let fKneeAngle = fThighAngle + pose.fk
             let fkX = hipX + cos(fThighAngle) * L1
@@ -497,10 +497,10 @@ struct HillRunnerMark: View {
             let bfY = bkY + sin(bKneeAngle) * L2
 
             // 5. Arms Forward Kinematics
-            let A1 = s * 0.13, A2 = s * 0.12
+            let A1 = s * 0.15, A2 = s * 0.14
             let fArmUpperAngle = .pi * 0.5 - pose.fa
             let fArmLowerAngle = fArmUpperAngle + pose.fab
-            let fshX = neckX + s * 0.02, fshY = neckY + s * 0.02
+            let fshX = neckX + s * 0.025, fshY = neckY + s * 0.02
             let feX = fshX + cos(fArmUpperAngle) * A1
             let feY = fshY + sin(fArmUpperAngle) * A1
             let fhX = feX + cos(fArmLowerAngle) * A2
@@ -508,7 +508,7 @@ struct HillRunnerMark: View {
 
             let bArmUpperAngle = .pi * 0.5 - pose.ba
             let bArmLowerAngle = bArmUpperAngle + pose.bab
-            let bshX = neckX - s * 0.02, bshY = neckY
+            let bshX = neckX - s * 0.025, bshY = neckY
             let beX = bshX + cos(bArmUpperAngle) * A1
             let beY = bshY + sin(bArmUpperAngle) * A1
             let bhX = beX + cos(bArmLowerAngle) * A2
@@ -520,19 +520,19 @@ struct HillRunnerMark: View {
                     path.move(to: CGPoint(x: gX1, y: gY1))
                     path.addQuadCurve(to: CGPoint(x: gX2, y: gY2), control: CGPoint(x: gMidX, y: gMidY))
                 }
-                .stroke(style: StrokeStyle(lineWidth: max(1.0, strokeW * 0.75), lineCap: .round))
-                .opacity(0.45)
+                .stroke(style: StrokeStyle(lineWidth: max(1.2, strokeW * 0.65), lineCap: .round))
+                .opacity(0.40)
 
                 // High speed dash lines (Tier 2 only)
                 if tier == 2 {
                     Path { path in
-                        path.move(to: CGPoint(x: hipX - s * 0.28, y: hipY - s * 0.16))
-                        path.addLine(to: CGPoint(x: hipX - s * 0.08, y: hipY - s * 0.12))
-                        path.move(to: CGPoint(x: hipX - s * 0.24, y: hipY + s * 0.02))
-                        path.addLine(to: CGPoint(x: hipX - s * 0.06, y: hipY + s * 0.05))
+                        path.move(to: CGPoint(x: hipX - s * 0.30, y: hipY - s * 0.16))
+                        path.addLine(to: CGPoint(x: hipX - s * 0.10, y: hipY - s * 0.12))
+                        path.move(to: CGPoint(x: hipX - s * 0.26, y: hipY + s * 0.02))
+                        path.addLine(to: CGPoint(x: hipX - s * 0.08, y: hipY + s * 0.05))
                     }
-                    .stroke(style: StrokeStyle(lineWidth: strokeW * 0.7, lineCap: .round))
-                    .opacity(0.80)
+                    .stroke(style: StrokeStyle(lineWidth: strokeW * 0.75, lineCap: .round))
+                    .opacity(0.85)
                 }
 
                 // Back Arm
@@ -541,8 +541,8 @@ struct HillRunnerMark: View {
                     path.addLine(to: CGPoint(x: beX, y: beY))
                     path.addLine(to: CGPoint(x: bhX, y: bhY))
                 }
-                .stroke(style: StrokeStyle(lineWidth: strokeW * 0.85, lineCap: .round, lineJoin: .round))
-                .opacity(0.50)
+                .stroke(style: StrokeStyle(lineWidth: strokeW * 0.90, lineCap: .round, lineJoin: .round))
+                .opacity(0.60)
 
                 // Back Leg
                 Path { path in
@@ -550,15 +550,15 @@ struct HillRunnerMark: View {
                     path.addLine(to: CGPoint(x: bkX, y: bkY))
                     path.addLine(to: CGPoint(x: bfX, y: bfY))
                 }
-                .stroke(style: StrokeStyle(lineWidth: strokeW * 0.85, lineCap: .round, lineJoin: .round))
-                .opacity(0.50)
+                .stroke(style: StrokeStyle(lineWidth: strokeW * 0.90, lineCap: .round, lineJoin: .round))
+                .opacity(0.60)
 
                 // Torso Spine
                 Path { path in
                     path.move(to: CGPoint(x: hipX, y: hipY))
                     path.addLine(to: CGPoint(x: neckX, y: neckY))
                 }
-                .stroke(style: StrokeStyle(lineWidth: strokeW, lineCap: .round))
+                .stroke(style: StrokeStyle(lineWidth: strokeW * 1.15, lineCap: .round))
 
                 // Head
                 Circle()
