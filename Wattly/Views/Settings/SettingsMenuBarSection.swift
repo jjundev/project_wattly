@@ -118,8 +118,19 @@ struct SettingsMenuBarSection: View {
                         HStack(spacing: 8) {
                             if let previewLoad {
                                 let rps = MenuBarIconMotion.revolutionsPerSecond(load: previewLoad)
-                                let fps = MenuBarIconMotion.effectiveFrameRate(load: previewLoad, speed: kineticNotchSpeed, frameCount: iconStyle.frameCount)
-                                Text("\(Int(previewLoad.rounded()))% · \(rps, specifier: "%.2f") rps (\(Int(fps.rounded())) fps)")
+                                let fps = MenuBarIconMotion.effectiveFrameRate(
+                                    load: previewLoad,
+                                    speed: kineticNotchSpeed,
+                                    isACConnected: isACConnected,
+                                    isLowPowerMode: isLowPowerMode,
+                                    frameCount: iconStyle.frameCount
+                                )
+                                let fpsText: String = if kineticNotchSpeed == .smart {
+                                    "\(Int(previewLoad.rounded()))% · \(String(format: "%.2f", rps)) rps (스마트 [\(powerStateTag)]: \(Int(fps.rounded())) fps)"
+                                } else {
+                                    "\(Int(previewLoad.rounded()))% · \(String(format: "%.2f", rps)) rps (\(Int(fps.rounded())) fps)"
+                                }
+                                Text(fpsText)
                                     .font(WattlyFont.at(11.5, weight: .medium))
                                     .foregroundStyle(t.faint)
                             } else {
@@ -141,7 +152,13 @@ struct SettingsMenuBarSection: View {
                 while !Task.isCancelled {
                     let load = previewLoad ?? 0.0
                     let rps = MenuBarIconMotion.revolutionsPerSecond(load: load)
-                    let activeFPS = MenuBarIconMotion.effectiveFrameRate(load: load, speed: kineticNotchSpeed, frameCount: iconStyle.frameCount)
+                    let activeFPS = MenuBarIconMotion.effectiveFrameRate(
+                        load: load,
+                        speed: kineticNotchSpeed,
+                        isACConnected: isACConnected,
+                        isLowPowerMode: isLowPowerMode,
+                        frameCount: iconStyle.frameCount
+                    )
                     let targetDelay = max(1.0 / activeFPS, 0.016)
 
                     try? await Task.sleep(for: .seconds(targetDelay))
@@ -210,6 +227,22 @@ struct SettingsMenuBarSection: View {
                 .foregroundStyle(t.faint)
             content()
         }
+    }
+
+    private var isACConnected: Bool {
+        if case .value(.battery(let sample)) = monitor.cardState(.battery) {
+            return sample.externalConnected
+        }
+        return true
+    }
+
+    private var isLowPowerMode: Bool {
+        ProcessInfo.processInfo.isLowPowerModeEnabled
+    }
+
+    private var powerStateTag: String {
+        if isLowPowerMode { return "저전력" }
+        return isACConnected ? "AC" : "배터리"
     }
 
     private var previewLoad: Double? {

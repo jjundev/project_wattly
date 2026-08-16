@@ -42,7 +42,13 @@ struct MenuBarLabel: View {
             while !Task.isCancelled {
                 let load = kineticNotchLoad ?? 0.0
                 let rps = MenuBarIconMotion.revolutionsPerSecond(load: load)
-                let activeFPS = MenuBarIconMotion.effectiveFrameRate(load: load, speed: kineticNotchSpeed, frameCount: iconStyle.frameCount)
+                let activeFPS = MenuBarIconMotion.effectiveFrameRate(
+                    load: load,
+                    speed: kineticNotchSpeed,
+                    isACConnected: isACConnected,
+                    isLowPowerMode: isLowPowerMode,
+                    frameCount: iconStyle.frameCount
+                )
                 let targetDelay = max(1.0 / activeFPS, 0.016)
 
                 try? await Task.sleep(for: .seconds(targetDelay))
@@ -74,6 +80,17 @@ struct MenuBarLabel: View {
         let kinds = Set(items.map(\.requiredCard))
         return Dictionary(uniqueKeysWithValues:
             kinds.map { ($0, monitor.cardState($0, smoothed: powerSmoothed)) })
+    }
+
+    private var isACConnected: Bool {
+        if case .value(.battery(let sample)) = monitor.cardState(.battery) {
+            return sample.externalConnected
+        }
+        return true // Desktop Macs (Mac mini, Mac Studio, Mac Pro, iMac) are always AC
+    }
+
+    private var isLowPowerMode: Bool {
+        ProcessInfo.processInfo.isLowPowerModeEnabled
     }
 
     private var kineticNotchLoad: Double? {
