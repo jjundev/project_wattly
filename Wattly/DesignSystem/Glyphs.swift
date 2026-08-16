@@ -336,8 +336,7 @@ struct EqualizerMark: View {
             let tierLoad = tierLoads[tier]
             let subPhase = Double(clampedFrame % 6) / 6.0
 
-            let freqs = [2.0, 3.0, 1.5, 2.5]
-            let offsets = [0.0, 0.4, 0.8, 0.2]
+            let offsets = [0.0, 0.25, 0.50, 0.75]
 
             ZStack {
                 // Baseline track
@@ -348,11 +347,11 @@ struct EqualizerMark: View {
                 .stroke(style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
                 .opacity(0.30)
 
-                // 4 Bouncing Bars (height scaled by workload tier)
+                // 4 Bouncing Bars (smooth wave oscillation scaled by workload tier)
                 ForEach(0..<4, id: \.self) { i in
                     let x = startX + CGFloat(i) * (barWidth + gap)
-                    let wave = abs(sin((subPhase * freqs[i] + offsets[i]) * .pi * 2.0))
-                    let hFactor = min(1.0, 0.16 + tierLoad * 0.42 + wave * (0.22 + tierLoad * 0.44))
+                    let wave = (sin((subPhase + offsets[i]) * .pi * 2.0) + 1.0) / 2.0
+                    let hFactor = min(1.0, 0.18 + tierLoad * 0.40 + wave * (0.20 + tierLoad * 0.42))
                     let h = max(barWidth, maxH * hFactor)
                     let y = baseY - h
 

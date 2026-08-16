@@ -77,11 +77,16 @@ enum MenuBarIconMotion {
     }
 
     static func phaseDelayMultiplier(style: MenuBarIconStyle, phase: Int) -> Double {
-        1.0
+        switch style {
+        case .equalizer:
+            return 1.8 // Smooth, eye-pleasing spectrum cadence without rapid flashing
+        default:
+            return 1.0
+        }
     }
 
     static func frameDelay(style: MenuBarIconStyle, phase: Int, frameRate: Double) -> TimeInterval {
-        1.0 / frameRate
+        (1.0 / frameRate) * phaseDelayMultiplier(style: style, phase: phase)
     }
 
     static func frameRate(load: Double, speed: KineticNotchSpeed) -> Double? {

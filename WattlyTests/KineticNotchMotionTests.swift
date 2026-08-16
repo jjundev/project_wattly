@@ -55,7 +55,8 @@ struct KineticNotchMotionTests {
                 MenuBarIconMotion.frameDelay(style: style, phase: $0, frameRate: 5.0)
             }
             let totalTime = delays.reduce(0, +)
-            let expectedTotalTime = Double(style.frameCount) / 5.0
+            let multiplier = MenuBarIconMotion.phaseDelayMultiplier(style: style, phase: 0)
+            let expectedTotalTime = (Double(style.frameCount) / 5.0) * multiplier
             #expect(abs(totalTime - expectedTotalTime) < 1e-9)
         }
     }
