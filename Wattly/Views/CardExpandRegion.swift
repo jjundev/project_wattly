@@ -88,14 +88,14 @@ struct CardExpandRegion: View {
                     .foregroundStyle(Tokens.accent)
             }
             
-            gpuEngineRow(label: "렌더러", usage: s.rendererUsage, accent: true)
-            gpuEngineRow(label: "타일러", usage: s.tilerUsage, accent: false)
+            gpuEngineRow(label: "렌더러", usage: s.rendererUsage)
+            gpuEngineRow(label: "타일러", usage: s.tilerUsage)
             gpuMemoryRow(label: "VRAM", inUse: s.inUseMemoryBytes, alloc: s.allocMemoryBytes)
         }
         .padding(.top, 8)
     }
 
-    private func gpuEngineRow(label: String, usage: Double, accent: Bool) -> some View {
+    private func gpuEngineRow(label: String, usage: Double) -> some View {
         HStack(spacing: 9) {
             Text(label)
                 .font(WattlyFont.at(10.5, weight: .semibold))
@@ -105,7 +105,7 @@ struct CardExpandRegion: View {
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 3).fill(t.sparkFill)
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(accent ? Tokens.accent : t.faint)
+                        .fill(t.faint)
                         .frame(width: geo.size.width * min(100, max(0, usage)) / 100)
                 }
             }
@@ -132,7 +132,7 @@ struct CardExpandRegion: View {
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 3).fill(t.sparkFill)
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(t.spark)
+                        .fill(t.faint)
                         .frame(width: geo.size.width * frac)
                 }
             }
