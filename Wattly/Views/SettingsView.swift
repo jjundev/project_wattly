@@ -23,6 +23,7 @@ struct SettingsView: View {
     @State private var updateChecker = UpdateChecker()
     @State private var autoUpdater = AutoUpdater()
     @State private var isResetConfirmationPresented = false
+    @State private var isUninstallConfirmationPresented = false
 
     var body: some View {
         ScrollView {
@@ -48,6 +49,17 @@ struct SettingsView: View {
             Button("취소", role: .cancel) {}
         } message: {
             Text("카드 표시, 메뉴바, 경고 기준, 팬 커브 및 자동 실행 설정이 초기화됩니다.")
+        }
+        .alert("Wattly 및 모든 데이터를 완전히 삭제할까요?",
+               isPresented: $isUninstallConfirmationPresented) {
+            Button("완전 삭제 및 앱 종료", role: .destructive) {
+                Task {
+                    try? await AppUninstaller.uninstall()
+                }
+            }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("모든 설정값, 캐시, 백그라운드 팬 제어 도우미 및 앱이 시스템에서 완전히 제거되고 앱이 종료됩니다.")
         }
     }
 
@@ -151,6 +163,23 @@ struct SettingsView: View {
                             .font(WattlyFont.at(12.5, weight: .semibold))
                     }
                     .foregroundStyle(t.text)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+
+                Rectangle().fill(t.line).frame(height: 1)
+
+                Button {
+                    isUninstallConfirmationPresented = true
+                } label: {
+                    HStack(spacing: 7) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text("Wattly 완전 삭제...")
+                            .font(WattlyFont.at(12.5, weight: .semibold))
+                    }
+                    .foregroundStyle(.red)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
                 }
