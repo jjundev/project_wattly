@@ -39,6 +39,16 @@ struct CardPresentationTests {
         }
     }
 
+    @Test func gpuCardPresentation() {
+        let sample = GPUSample(overall: 38.4, coreCount: 10, activeGHz: 1.28, cores: Array(repeating: 38.4, count: 10))
+        let state = MetricState.value(.gpu(sample))
+        #expect(CardPresentation.label(.gpu) == "GPU")
+        #expect(CardPresentation.unitText(.gpu, state) == "%")
+        #expect(CardPresentation.valueText(.gpu, state) == "38")
+        #expect(CardPresentation.compactRowText(.gpu, state) == "38%")
+        #expect(CardPresentation.subText(state) == "1.28 GHz")
+    }
+
     @Test func batterySignDropsAtZeroMagnitude() {
         #expect(CardPresentation.batterySign(netW: 12.0, charging: false) == minus)   // discharging
         #expect(CardPresentation.batterySign(netW: -30.0, charging: true) == "+")     // charging

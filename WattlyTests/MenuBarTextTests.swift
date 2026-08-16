@@ -24,6 +24,16 @@ struct MenuBarTextTests {
         #expect(MenuBarText.part(.cpu, cpu(42.6)) == "CPU 43%")
     }
 
+    @Test func gpuMenuBarText() {
+        let sample = GPUSample(overall: 38.4, coreCount: 10, activeGHz: 1.28, cores: [])
+        let text = MenuBarText.part(.gpu, .value(.gpu(sample)))
+        #expect(text == "GPU 38%")
+    }
+
+    @Test func menuBarOrderIncludesGPU() {
+        #expect(MenuBarText.order == [.cpu, .gpu, .power, .battery, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
+    }
+
     @Test func powerHasNoLabelAndOneDecimal() {
         #expect(MenuBarText.part(.power, power(8.42)) == "8.4 W")
     }
@@ -40,6 +50,7 @@ struct MenuBarTextTests {
 
     @Test func coldUsesLongLabelPlaceholder() {
         #expect(MenuBarText.part(.cpu, .loading) == "CPU —")
+        #expect(MenuBarText.part(.gpu, .loading) == "GPU —")
         #expect(MenuBarText.part(.power, .loading) == "전력 —")
         #expect(MenuBarText.part(.mem, .unavailable(.providerError("x"))) == "메모리 —")
         #expect(MenuBarText.part(.cpuTemp, .loading) == "CPU 온도 —")

@@ -15,7 +15,7 @@ enum MenuBarText {
     /// after `.power` (menubar items update — matches `Defaults.cardOrder`'s power/battery
     /// grouping). Memory-pressure % and self-power have no `CardKind` and are NOT in this
     /// list — they're appended as pre-formatted "extra parts" by the caller (`MenuBarLabel`).
-    static let order: [CardKind] = [.cpu, .power, .battery, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan]
+    static let order: [CardKind] = [.cpu, .gpu, .power, .battery, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan]
 
     /// The joined menubar string for the selected metrics in canonical order, or `nil`
     /// when none is selected (→ icon only, the prototype's `hasMenuMetric`). Parts join

@@ -52,6 +52,12 @@ struct AccessibilityTests {
         #expect(Accessibility.cardLabel(.cpu, cpu(42.4)) == "CPU, 42%, P 30% · E 12%")
     }
 
+    @Test func gpuUsesPercentSymbolAndClock() {
+        let sample = GPUSample(overall: 38.4, coreCount: 10, activeGHz: 1.28, cores: [])
+        let state = MetricState.value(.gpu(sample))
+        #expect(Accessibility.cardLabel(.gpu, state) == "GPU, 38%, 1.28 GHz")
+    }
+
     @Test func powerFoldsCpuGpuNpuBreakdown() {
         // The CPU/GPU/NPU split exists ONLY in subText — it must survive into the label.
         #expect(Accessibility.cardLabel(.power, power(8.42))
@@ -98,6 +104,16 @@ struct AccessibilityTests {
         #expect(Accessibility.stateWord(.cpu, cpu(95), th) == "위험")
         #expect(Accessibility.stateWord(.cpu, cpu(75), th) == "주의")
         #expect(Accessibility.stateWord(.cpu, cpu(40), th) == nil)
+    }
+
+    @Test func gpuStateWordCritWarnNormal() {
+        let th = Defaults.thresholds
+        let high = MetricState.value(.gpu(GPUSample(overall: 95, coreCount: 10, activeGHz: 1.5, cores: [])))
+        let mid = MetricState.value(.gpu(GPUSample(overall: 75, coreCount: 10, activeGHz: 1.5, cores: [])))
+        let low = MetricState.value(.gpu(GPUSample(overall: 40, coreCount: 10, activeGHz: 1.5, cores: [])))
+        #expect(Accessibility.stateWord(.gpu, high, th) == "위험")
+        #expect(Accessibility.stateWord(.gpu, mid, th) == "주의")
+        #expect(Accessibility.stateWord(.gpu, low, th) == nil)
     }
 
     @Test func powerCardHasNoStateWord() {
