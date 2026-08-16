@@ -1,48 +1,45 @@
 import SwiftUI
 
-/// The adopted Wattly Pulse W waveform. Its raised left endpoint and marker express
-/// a live measurement rather than the generic “power” lightning-bolt metaphor.
+/// The official Wattly calligraphic W logo glyph matching the app icon.
 struct PulseWGlyph: Shape {
     func path(in rect: CGRect) -> Path {
         var p = Path()
+        let minX: CGFloat = 115
+        let maxX: CGFloat = 400
+        let minY: CGFloat = 155
+        let maxY: CGFloat = 355
+        let w = maxX - minX
+        let h = maxY - minY
+
         func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
-            CGPoint(x: rect.minX + rect.width * (1 - x), y: rect.minY + rect.height * y)
+            CGPoint(
+                x: rect.minX + rect.width * ((x - minX) / w),
+                y: rect.minY + rect.height * ((y - minY) / h)
+            )
         }
 
-        p.move(to: point(0.07, 0.56))
-        p.addLine(to: point(0.20, 0.56))
-        p.addCurve(to: point(0.38, 0.80),
-                   control1: point(0.26, 0.56), control2: point(0.30, 0.80))
-        p.addCurve(to: point(0.52, 0.47),
-                   control1: point(0.43, 0.80), control2: point(0.46, 0.47))
-        p.addCurve(to: point(0.67, 0.80),
-                   control1: point(0.57, 0.47), control2: point(0.62, 0.80))
-        p.addCurve(to: point(0.86, 0.41),
-                   control1: point(0.73, 0.80), control2: point(0.79, 0.53))
+        p.move(to: point(120, 250))
+        p.addCurve(to: point(205, 350), control1: point(160, 250), control2: point(175, 350))
+        p.addCurve(to: point(270, 160), control1: point(235, 350), control2: point(240, 160))
+        p.addCurve(to: point(340, 350), control1: point(300, 160), control2: point(310, 350))
+        p.addCurve(to: point(395, 220), control1: point(365, 350), control2: point(375, 220))
         return p
     }
 }
 
-/// The full Pulse W logo, including its electric-blue live-measurement marker.
-/// A separate view keeps the waveform usable as a monochrome status-bar template.
+/// The official Wattly calligraphic W logo mark.
 struct PulseWMark: View {
-    var lineWidth: CGFloat
-    var markerColor: Color = Tokens.accent
+    var lineWidth: CGFloat = 1.8
+    var markerColor: Color? = nil
+
+    @Environment(\.tokens) private var t
 
     var body: some View {
-        GeometryReader { proxy in
-            let diameter = min(proxy.size.width, proxy.size.height) * 0.20
-            ZStack(alignment: .topLeading) {
-                PulseWGlyph()
-                    .stroke(style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
-                Circle()
-                    .fill(markerColor)
-                    .frame(width: diameter, height: diameter)
-                    .position(x: proxy.size.width * 0.11, y: proxy.size.height * 0.17)
-            }
-        }
+        PulseWGlyph()
+            .stroke(markerColor ?? t.text, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
     }
 }
+
 
 // MARK: - Dynamic MenuBar Icon Vector Marks
 

@@ -149,8 +149,8 @@ struct PopoverContentView: View {
 
     private var header: some View {
         HStack(spacing: 0) {
-            HStack(spacing: 7) {
-                PulseWMark(lineWidth: 2, markerColor: Tokens.accent).frame(width: 16, height: 14)
+            HStack(spacing: 6) {
+                PulseWMark(lineWidth: 1.4).frame(width: 13, height: 10)
                 Text("Wattly")
                     .font(WattlyFont.at(13, weight: .bold)).tracking(-0.13)
                     .foregroundStyle(t.text)

@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wattly App Icon Design Showcase — 15 Concepts</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #090b10;
+      --bg-surface: #12151f;
+      --bg-card: rgba(20, 24, 34, 0.7);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-active: #2dd4bf;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent: #2dd4bf;
+      --accent-glow: rgba(45, 212, 191, 0.3);
+      --accent-cyan: #00f0ff;
+      --accent-teal: #14b8a6;
+      --accent-blue: #0066ff;
+      --accent-amber: #fbbf24;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      padding: 40px 24px 100px;
+      line-height: 1.5;
+      background-image: 
+        radial-gradient(ellipse 70% 35% at 50% -5%, rgba(20, 184, 166, 0.16), transparent 70%),
+        radial-gradient(circle at 10% 25%, rgba(56, 189, 248, 0.06), transparent 40%),
+        radial-gradient(circle at 90% 50%, rgba(251, 191, 36, 0.04), transparent 40%);
+    }
+
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      border-radius: 999px;
+      background: rgba(20, 184, 166, 0.12);
+      border: 1px solid rgba(20, 184, 166, 0.3);
+      color: #2dd4bf;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .badge .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #2dd4bf;
+      box-shadow: 0 0 8px #2dd4bf;
+    }
+
+    h1 {
+      font-size: 38px;
+      font-weight: 800;
+      letter-spacing: -0.8px;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #ffffff 40%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 760px;
+      margin: 0 auto 24px;
+    }
+
+    /* Category Filter Navigation */
+    .filter-nav {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+
+    .filter-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      padding: 8px 18px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .filter-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+    }
+
+    .filter-btn.active {
+      background: linear-gradient(135deg, rgba(20, 184, 166, 0.25), rgba(0, 102, 255, 0.25));
+      border-color: #2dd4bf;
+      color: #ffffff;
+      box-shadow: 0 0 16px rgba(20, 184, 166, 0.25);
+    }
+
+    /* Global Toolbar */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 10px 18px;
+      max-width: 820px;
+      margin: 0 auto 36px;
+      backdrop-filter: blur(12px);
+    }
+
+    .toolbar-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .toolbar-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .toolbar-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #042f2e;
+      font-weight: 600;
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+
+    /* Dock Simulator Section */
+    .dock-section {
+      background: radial-gradient(circle at center, rgba(30, 41, 59, 0.5), rgba(15, 23, 42, 0.9));
+      border: 1px solid var(--border-subtle);
+      border-radius: 24px;
+      padding: 32px 20px 24px;
+      margin-bottom: 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+    }
+
+    .dock-canvas {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      min-height: 130px;
+      padding-bottom: 8px;
+      transition: background 0.4s ease;
+    }
+
+    .macos-dock {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 16px;
+      background: rgba(40, 45, 55, 0.35);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 20px;
+      box-shadow: 
+        0 10px 30px rgba(0, 0, 0, 0.45),
+        inset 0 1px 1px rgba(255, 255, 255, 0.3);
+    }
+
+    .dock-item {
+      width: 58px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .dock-item:hover {
+      transform: translateY(-8px) scale(1.15);
+    }
+
+    .dock-item.wattly-dock-item {
+      transform-origin: bottom center;
+    }
+
+    .dock-item.wattly-dock-item::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 0 4px #ffffff;
+    }
+
+    .dock-item svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.35));
+    }
+
+    .dock-divider {
+      width: 1px;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.15);
+      margin: 0 4px;
+    }
+
+    /* Concept Cards Grid */
+    .concepts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 28px;
+      margin-bottom: 60px;
+    }
+
+    .concept-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 22px;
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      backdrop-filter: blur(16px);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .concept-card:hover {
+      border-color: rgba(45, 212, 191, 0.4);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 36px -10px rgba(45, 212, 191, 0.12);
+    }
+
+    .concept-card.recommended {
+      border: 1.5px solid #14b8a6;
+      background: linear-gradient(180deg, rgba(20, 184, 166, 0.08) 0%, rgba(20, 24, 34, 0.8) 100%);
+    }
+
+    .card-badge {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .card-badge.rec {
+      background: #14b8a6;
+      color: #042f2e;
+      box-shadow: 0 0 12px rgba(20, 184, 166, 0.4);
+    }
+
+    .card-badge.theme-nature { background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3); }
+    .card-badge.theme-craft { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); }
+    .card-badge.theme-air { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .card-badge.theme-tech { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3); }
+
+    /* Icon Canvas Container */
+    .icon-preview-box {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px 0 20px;
+    }
+
+    .icon-wrapper {
+      width: 180px;
+      height: 180px;
+      position: relative;
+      transition: transform 0.3s ease;
+      cursor: pointer;
+    }
+
+    .icon-wrapper:hover {
+      transform: scale(1.06);
+    }
+
+    .icon-wrapper svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.4));
+    }
+
+    /* Card Details */
+    .concept-header {
+      margin-bottom: 12px;
+    }
+
+    .concept-num {
+      font-size: 11px;
+      font-weight: 700;
+      color: #2dd4bf;
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 3px;
+    }
+
+    .concept-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+
+    .concept-tagline {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      min-height: 38px;
+    }
+
+    .traits-list {
+      list-style: none;
+      margin-bottom: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      font-size: 12.5px;
+    }
+
+    .traits-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      color: #cbd5e1;
+    }
+
+    .traits-list li .trait-icon {
+      color: #2dd4bf;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* Card Footer & Actions */
+    .card-actions {
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-family: inherit;
+    }
+
+    .action-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .action-btn.primary {
+      background: rgba(20, 184, 166, 0.18);
+      border-color: rgba(20, 184, 166, 0.4);
+      color: #2dd4bf;
+    }
+
+    .action-btn.primary:hover {
+      background: #14b8a6;
+      color: #042f2e;
+    }
+
+    /* Multi-Scale Matrix Preview */
+    .scale-matrix-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 24px;
+      padding: 36px 32px;
+      margin-bottom: 60px;
+    }
+
+    .scale-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .scale-matrix-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 24px;
+      align-items: flex-end;
+      justify-items: center;
+      padding: 24px 0;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 16px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .scale-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .scale-box .icon-target {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .scale-box .icon-target svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+    }
+
+    .scale-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Soft Keyframe Animations */
+    @keyframes gentlePulse {
+      0%, 100% { opacity: 0.88; }
+      50% { opacity: 1; filter: drop-shadow(0 0 10px rgba(45, 212, 191, 0.5)); }
+    }
+
+    @keyframes auroraShift {
+      0%, 100% { filter: hue-rotate(0deg); }
+      50% { filter: hue-rotate(20deg); }
+    }
+
+    @keyframes gentleFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+
+    @keyframes fireflyTwinkle {
+      0%, 100% { opacity: 0.6; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.15); filter: drop-shadow(0 0 12px #facc15); }
+    }
+
+    .anim-pulse { animation: gentlePulse 3.5s infinite ease-in-out; }
+    .anim-aurora { animation: auroraShift 8s infinite ease-in-out; }
+    .anim-float { animation: gentleFloat 4.2s infinite ease-in-out; }
+    .anim-firefly { animation: fireflyTwinkle 2.8s infinite ease-in-out; }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #134e4a;
+      border: 1px solid #2dd4bf;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 10px 25px rgba(20, 184, 166, 0.3);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 1000;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="badge">
+        <span class="dot"></span> Wattly App Icon Showcase
+      </div>
+      <h1>Wattly App Icon Exploration</h1>
+      <p class="subtitle">
+        인공지능의 기계적 클리셰를 덜어내고, <strong>자연물(Nature), 따뜻한 공예(Craft), 공기와 빛(Air & Light), 친근한 상징(Companion)</strong>을 담은 총 15가지 디자인 프로토타입입니다.
+      </p>
+
+      <!-- Category Filter Tabs -->
+      <div class="filter-nav">
+        <button class="filter-btn active" onclick="filterCards('all', this)">✨ 전체 보기 (15)</button>
+        <button class="filter-btn" onclick="filterCards('nature', this)">🌿 자연 & 생명력 (5)</button>
+        <button class="filter-btn" onclick="filterCards('craft', this)">🪵 공예 & 물성 (5)</button>
+        <button class="filter-btn" onclick="filterCards('air', this)">☁️ 빛, 공기 & 상징 (5)</button>
+      </div>
+
+      <!-- Global Controls -->
+      <div class="toolbar">
+        <button class="toolbar-btn active" id="btn-toggle-anim" onclick="toggleAnimations()">
+          ✨ 부드러운 모션 <span id="anim-status-text">ON</span>
+        </button>
+        <button class="toolbar-btn" onclick="setWallpaper('dark')">🌌 다크 월페이퍼</button>
+        <button class="toolbar-btn" onclick="setWallpaper('light')">☀️ 라이트 월페이퍼</button>
+        <button class="toolbar-btn" onclick="setWallpaper('forest')">🍃 포레스트 톤</button>
+      </div>
+    </header>
+
+    <!-- macOS Dock Live Simulator -->
+    <section class="dock-section" id="dock-preview-container">
+      <h3 style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; letter-spacing: 0.5px; text-transform: uppercase;">
+        🖥️ macOS Dock Context Simulator
+      </h3>
+      <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 18px;">
+        원하는 아이콘의 <strong>[Dock에 미리보기]</strong>를 클릭하면 아래 Dock에서 실시간 밸런스를 확인할 수 있습니다.
+      </p>
+
+      <div class="dock-canvas">
+        <div class="macos-dock">
+          <!-- Finder -->
+          <div class="dock-item" title="Finder">
+            <svg viewBox="0 0 512 512">
+              <defs>
+                <linearGradient id="finderBg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#38bdf8"/>
+                  <stop offset="100%" stop-color="#0284c7"/>
+                </linearGradient>
+              </defs>
+              <rect x="32" y="32" width="448" height="448" rx="100" fill="url(#finderBg)"/>
+              <path d="M256 120 C 180 120, 160 200, 160 270 C 160 340, 200 380, 256 380 C 312 380, 352 340, 352 270 C 352 200, 332 120, 256 120 Z" fill="#ffffff" opacity="0.9"/>
+              <circle cx="215" cy="230" r="14" fill="#0f172a"/>
+              <circle cx="297" cy="230" r="14" fill="#0f172a"/>
+              <path d="M 210 300 Q 256 340 302 300" stroke="#0f172a" stroke-width="12" stroke-linecap="round" fill="none"/>
+            </svg>
+          </div>
+
+          <!-- Safari -->
+          <div class="dock-item" title="Safari">
+            <svg viewBox="0 0 512 512">
+              <rect x="32" y="32" width="448" height="448" rx="100" fill="#ffffff"/>
+              <circle cx="256" cy="256" r="170" fill="#0284c7"/>
+              <polygon points="256,120 286,256 256,392 226,256" fill="#ef4444"/>
+              <polygon points="256,120 226,256 256,392 286,256" fill="#ffffff"/>
+            </svg>
+          </div>
+
+          <!-- Notes -->
+          <div class="dock-item" title="Notes">
+            <svg viewBox="0 0 512 512">
+              <rect x="32" y="32" width="448" height="448" rx="100" fill="#fbbf24"/>
+              <rect x="52" y="110" width="408" height="350" rx="20" fill="#ffffff"/>
+              <line x1="100" y1="180" x2="380" y2="180" stroke="#e2e8f0" stroke-width="10" stroke-linecap="round"/>
+              <line x1="100" y1="240" x2="380" y2="240" stroke="#e2e8f0" stroke-width="10" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <!-- Active Wattly Icon in Dock -->
+          <div class="dock-item wattly-dock-item" id="dock-active-wattly" title="Wattly (Active Concept)">
+            <!-- Inserted by JS -->
+          </div>
+
+          <div class="dock-divider"></div>
+
+          <!-- Weather -->
+          <div class="dock-item" title="Weather">
+            <svg viewBox="0 0 512 512">
+              <defs>
+                <linearGradient id="weatherBg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#38bdf8"/>
+                  <stop offset="100%" stop-color="#1e40af"/>
+                </linearGradient>
+              </defs>
+              <rect x="32" y="32" width="448" height="448" rx="100" fill="url(#weatherBg)"/>
+              <circle cx="210" cy="220" r="70" fill="#fbbf24"/>
+              <path d="M 180 340 C 140 340, 140 280, 200 280 C 210 230, 290 230, 310 270 C 350 270, 360 340, 320 340 Z" fill="#ffffff" opacity="0.95"/>
+            </svg>
+          </div>
+
+          <!-- Settings -->
+          <div class="dock-item" title="Settings">
+            <svg viewBox="0 0 512 512">
+              <rect x="32" y="32" width="448" height="448" rx="100" fill="#64748b"/>
+              <circle cx="256" cy="256" r="130" fill="none" stroke="#e2e8f0" stroke-width="26" stroke-dasharray="40 20"/>
+              <circle cx="256" cy="256" r="60" fill="#e2e8f0"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 15 Concepts Grid -->
+    <div class="concepts-grid">
+
+      <!-- ================= THEME 1: NATURE & VITALITY ================= -->
+
+      <!-- CONCEPT 1: The Living Pulse -->
+      <div class="concept-card recommended" data-theme="nature" id="card-c1">
+        <span class="card-badge rec">Recommended ★</span>
+        <div class="icon-preview-box">
+          <div class="icon-wrapper" onclick="selectForDock('c1')">
+            <svg viewBox="0 0 512 512" id="svg-c1">
+              <defs>
+                <filter id="c1-shadow" x="-10%" y="-10%" width="120%" height="120%">
+                  <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#000000" flood-opacity="0.45"/>
+                  <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.3"/>
+                </filter>
+                <linearGradient id="c1-bg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#1f242e"/>
+                  <stop offset="50%" stop-color="#141720"/>
+                  <stop offset="100%" stop-color="#0c0e14"/>
+                </linearGradient>
+                <linearGradient id="c1-aurora" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#38bdf8"/>
+                  <stop offset="35%" stop-color="#2dd4bf"/>
+                  <stop offset="70%" stop-color="#0066ff"/>
+                  <stop offset="100%" stop-color="#818cf8"/>
+                </linearGradient>
+                <filter id="c1-soft-glow" x="-30%" y="-30%" width="160%" height="160%">
+                  <feGaussianBlur stdDeviation="16" result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+              <rect x="32" y="32" width="448" height="448" rx="100" fill="url(#c1-bg)" filter="url(#c1-shadow)"/>
+              <rect x="32" y="32" width="448" height="448" rx="100" stroke="rgba(255,255,255,0.22)" stroke-width="2" fill="none"/>
+              <circle cx="256" cy="256" r="140" fill="url(#c1-aurora)" opacity="0.12" filter="url(#c1-soft-glow)"/>
+              <path class="anim-aurora" d="M 120 250 C 160 250, 175 350, 205 350 C 235 350, 240 160, 270 160 C 300 160, 310 350, 340 350 C 365 350, 375 220, 395 220" 
+                    fill="none" stroke="url(#c1-aurora)" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" opacity="0.35" filter="url(#c1-soft-glow)"/>
+              <path class="anim-pulse" d="M 120 250 C 160 250, 175 350, 205 350 C 235 350, 240 160, 270 160 C 300 160, 310 350, 340 350 C 365 350, 375 220, 395 220" 
+                    fill="none" stroke="url(#c1-aurora)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M 120 250 C 160 250, 175 350, 205 350 C 235 350, 240 160, 270 160 C 300 160, 310 350, 340 350 C 365 350, 375 220, 395 220" 
+                    fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.65"/>
+              <circle cx="120" cy="250" r="14" fill="#2dd4bf" opacity="0.4" class="anim-pulse"/>
+              <circle cx="120" cy="250" r="8" fill="#ffffff"/>
+            </svg>
+          </div>
+        </div>
+        <div class="concept-header">
+          <div class="concept-num">CONCEPT 01</div>
+          <h2 class="concept-title">The Living Pulse (생체 리듬)</h2>
+          <p class="concept-tagline">맥의 심박수와 숨결을 닮은 유려한 한 획의 오로라 파동 곡선.</p>
+        </div>
+        <ul class="traits-list">
+          <li><span class="trait-icon">✦</span> <strong>인간적인 곡선미</strong>: 붓으로 부드럽게 이어지는 W 생체 곡선</li>
+          <li><span class="trait-icon">✦</span> <strong>오로라 그라디언트</strong>: 청량한 틸(Teal)에서 스카이블루로 번지는 빛</li>
+        </ul>
+        <div class="card-actions">
+          <button class="action-btn primary" onclick="selectForDock('c1')">Dock에 미리보기</button>
+          <button class="action-btn" onclick="copySvg('c1')">SVG 복사</button>
+        </div>
+      </div>
+
+      <!-- CONCEPT 2: Dewdrop on Leaf -->
+      <div class="concept-card" data-theme="nature" id="card-c2">
+        <span class="card-badge theme-nature">Nature & Dew</span>
+        <div class="icon-preview-box">
+          <div class="icon-wrapper" onclick="selectForDock('c2')">
+            <svg viewBox="0 0 512 512" id="svg-c2">
+              <defs>
+                <linearGradient id="c2-bg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#162320"/>
+                  <stop offset="60%" stop-color="#0f1917"/>
+                  <stop offset="100%" stop-color="#080e0c"/>
+                </linearGradient>
+                <radialGradient id="c2-droplet-grad" cx="40%" cy="35%" r="65%">
+                  <stop offset="0%" stop-color="#ffffff"/>
+                  <stop offset="25%" stop-color="#5eead4"/>
+                  <stop offset="60%" stop-color="#0d9488"/>
+                  <stop offset="100%" stop-color="#064e3b"/>
+                </radialGradient>
+              </defs>
+              <rect x="32" y="32" width="448" height="448" rx="100" fill="url(#c2-bg)" filter="url(#c1-shadow)"/>
+              <rect x="32" y="32" width="448" height="448" rx="100" stroke="rgba(94,234,212,0.22)" stroke-width="2" fill="none"/>
+              <!-- Leaf Veins W -->
+              <path d="M 120 280 Q 180 340 210 340 Q 235 220 256 160 Q 277 220 302 340 Q 332 340 392 280" 
+                    fill="none" stroke="rgba(94,234,212,0.2)" stroke-width="6" stroke-linecap="round"/>
+              <path d="M 256 160 L 256 380" stroke="rgba(94,234,212,0.15)" stroke-width="3" stroke-linecap="round"/>
+              <!-- Water Droplet (Surface Tension) -->
+              <g class="anim-float">
+                <ellipse cx="256" cy="350" rx="75" ry="16" fill="#000000" opacity="0.4"/>
+                <path d="M 256 170 C 310 230, 340 290, 320 330 C 300 360, 212 360, 192 330 C 172 290, 202 230, 256 170 Z" 
+                      fill="url(#c2-droplet-grad)" filter="drop-shadow(0 12px 20px rgba(13,148,136,0.35))"/>
+                <!-- Internal W Refraction -->
+                <path d="M 220 280 Q 240 320 256 320 Q 272 320 292 280" 
+                      fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity="0.8"/>
+                <!-- Specular Sun Glint -->
+                <ellipse cx="236" cy="225" rx="18" ry="9" fill="#ffffff" opacity="0.8" transform="rotate(-30 236 225)"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="concept-header">
+          <div class="concept-num">CONCEPT 02</div>
+          <h2 class="concept-title">Dewdrop on Leaf (잎새와 이슬)</h2>
+          <p class="concept-tagline">표면장력으로 맺힌 투명한 물방울 속 잎맥 W 굴절.</p>
+        </div>
+        <ul class="traits-list">
+          <li><span class="trait-icon">✦</span> <strong>청정 쿨링 상징</strong>: 발열과 소음 없이 맑고 시원한 숲의 이슬</li>
+          <li><span class="trait-icon">✦</span> <strong>투명한 굴절 디테일</strong>: 물방울 표면의 부드러운 하이라이트</li>
+        </ul>
+        <div class="card-actions">
+          <button class="action-btn primary" onclick="selectForDock('c2')">Dock에 미리보기</button>
+          <button class="action-btn" onclick="copySvg('c2')">SVG 복사</button>
+        </div>
+      </div>
+
+      <!-- CONCEPT 3: Aurora Curtain -->
+      <div class="concept-card" data-theme="nature" id="card-c3">
+        <span class="card-badge theme-nature">Aurora Flow</span>
+        <div class="icon-preview-box">
+          <div class="icon-wrapper" onclick="selectForDock('c3')">
+            <svg viewBox="0 0 512 512" id="svg-c3">
+              <defs>
+                <linearGradient id="c3-bg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#0c0e18"/>
+                  <stop offset="100%" stop-color="#14182a"/>
+                </linearGradient>
+                <linearGradient id="c3-aurora-curtain" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#2dd4bf"/>
+                  <stop offset="50%" stop-color="#38bdf8"/>
+                  <stop offset="100%" stop-color="#c084fc"/>
+                </linearGradient>
+              </defs>
+              <rect x="32" y="32" width="448" height="448" rx="100" fill="url(#c3-bg)" filter="url(#c1-shadow)"/>
+              <rect x="32" y="32" width="448" height="448" rx="100" stroke="rgba(255,255,255,0.18)" stroke-width="2" fill="none"/>
+              <!-- Stars -->
+              <circle cx="120" cy="140" r="1.5" fill="#ffffff" opacity="0.6"/>
+              <circle cx="380" cy="160" r="2" fill="#ffffff" opacity="0.8"/>
+              <circle cx="260" cy="100" r="1" fill="#ffffff" opacity="0.5"/>
+              <!-- Layered Aurora Vertical Curtains W -->
+              <g class="anim-aurora">
+                <path d="M 120 340 Q 170 360 200 240 Q 230 140 256 180 Q 282 140 312 240 Q 342 360 392 340 L 392 180 Q 342 200 312 120 Q 282 80 256 120 Q 230 80 200 120 Q 170 200 120 180 Z" 
+                      fill="url(#c3-aurora-curtain)" opacity="0.45" filter="blur(10px)"/>
+                <path d="M 130 330 C 170 330, 185 240, 210 240 C 235 240, 240 160, 256 160 C 272 160, 277 240, 302 240 C 327 240, 342 330, 382 330" 
+                      fill="none" stroke="url(#c3-aurora-curtain)" stroke-width="16" stroke-linecap="round" opacity="0.9"/>
+                <path d="M 130 330 C 170 330, 185 240, 210 240 C 235 240, 240 160, 256 160 C 272 160, 277 240, 302 240 C 327 240, 342 330, 382 330" 
+                      fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.75"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="concept-header">
+          <div class="concept-num">CONCEPT 03</div>
+          <h2 class="concept-title">Aurora Curtain (오로라 커튼)</h2>
+          <p class="concept-tagline">자연의 거대한 전자기 현상이 빚어내는 환상적인 빛의 장막.</p>
+        </div>
+        <ul class="traits-list">
+          <li><span class="trait-icon">✦</span> <strong>신비로운 밤하늘 톤</strong>: 에메랄드·시안·바이올렛의 부드러운 그라데이션</li>
+          <li><span class="trait-icon">✦</span> <strong>인공미 배제</strong>: 차가운 LED 대신 광활하고 우아한 자연광</li>
+        </ul>
+        <div class="card-actions">
+          <button class="action-btn primary" onclick="selectForDock('c3')">Dock에 미리보기</button>
+          <button class="action-btn" onclick="copySvg('c3')">SVG 복사</button>
+        </div>
+      </div>
+
+      <!-- CONCEPT 4: Firefly Light -->
+      <div class="concept-card" data-theme="nature" id="card-c4">
+        <span class="card-badge theme-nature">Warm Bioluminescence</span>
+        <div class="icon-preview-box">
+          <div class="icon-wrapper" onclick="selectForDock('c4')">
+            <svg viewBox="0 0 512 512" id="svg-c4">
+              <defs>
+                <linearGradient id="c4-bg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#191920"/>
+                  <stop offset="100%" stop-color="#0b0b0e"/>
+                </linearGradient>
+                <linearGradient id="c4-firefly-trail" x1="0" y1="1" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#84cc16"/>
+                  <stop offset="50%" stop-color="#facc15"/>
+                  <stop offset="100%" stop-color="#38bdf8"/>
+                </linearGradient>
+              </defs>
+              <rect x="32" y="32" width="448" height="448" rx="100" fill="url(#c4-bg)" filter="url(#c1-shadow)"/>
+              <rect x="32" y="32" width="448" height="448" rx="100" stroke="rgba(255,255,255,0.15)" stroke-width="2" fill="none"/>
+              <!-- Firefly Flight Path W -->
+              <path d="M 130 260 C 160 340, 185 350, 210 350 C 235 350, 240 180, 256 180 C 272 180, 277 350, 302 350 C 327 350, 350 330, 380 230" 
+                    fill="none" stroke="url(#c4-firefly-trail)" stroke-width="12" stroke-linecap="round" opacity="0.8" filter="drop-shadow(0 0 8px rgba(250,204,21,0.5))"/>
+              <path d="M 130 260 C 160 340, 185 350, 210 350 C 235 350, 240 180, 256 180 C 272 180, 277 350, 302 350 C 327 350, 350 330, 380 230" 
+                    fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+              <!-- Glowing Firefly Node -->
+              <g class="anim-firefly">
+                <circle cx="380" cy="230" r="18" fill="#facc15" opacity="0.35"/>
+                <circle cx="380" cy="230" r="10" fill="#fef08a"/>
+                <circle cx="380" cy="230" r="4" fill="#ffffff"/>
+              </g>
+              <!-- Ambient floating spores -->
+              <circle cx="180" cy="210" r="3" fill="#a3e635" opacity="0.4"/>
+              <circle cx="290" cy="190" r="2.5" fill="#facc15" opacity="0.5"/>
+            </svg>
+          </div>
+        </div>
+        <div class="concept-header">
+          <div class="concept-num">CONCEPT 04</div>
+          <h2 class="concept-title">The Firefly Light (반딧불이)</h2>
+          <p class="concept-tagline">조용히 밤숲을 밝히는 반딧불이가 수놓은 따뜻한 궤적.</p>
+        </div>
+        <ul class="traits-list">
+          <li><span class="trait-icon">✦</span> <strong>생체 에너지 모티프</strong>: 배터리 소모 없이 조용히 머무는 온기</li>
+          <li><span class="trait-icon">✦</span> <strong>라임·골드빛 잔상</strong>: 어두운 배경과 대비되는 포근한 빛점</li>
+        </ul>
+        <div class="card-actions">
+          <button class="action-btn primary" onclick="selectForDock('c4')">Dock에 미리보기</button>
+          <button class="action-btn" onclick="copySvg('c4')">SVG 복사</button>
+        </div>
+      </div>
+
+      <!-- CONCEPT 5: Gentle Breeze Pinwheel -->
+      <div class="concept-card" data-theme="nature" id="card-c5">
+        <span class="card-badge theme-nature">Cool Breeze</span>
+        <div class="icon-preview-box">
+          <div class="icon-wrapper" onclick="selectForDock('c5')">
+            <svg viewBox="0 0 512 512" id="svg-c5">
+              <defs>
+                <linearGradient id="c5-bg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#142125"/>
+                  <stop offset="100%" stop-color="#090f12"/>
+                </linearGradient>
+                <linearGradient id="c5-petal-1" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#5eead4"/>
+                  <stop offset="100%" stop-color="#0284c7"/>
+                </linearGradient>
+                <linearGradient id="c5-petal-2" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#38bdf8"/>
+                  <stop offset="100%" stop-color="#2563eb"/>
+                </linearGradient>
+                <linearGradient id="c5-petal-3" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#a7f3d0"/>
+                  <stop offset="100%" stop-color="#0d9488"/>
+                </linearGradient>
+              </defs>
+              <rect x="32" y="32" width="448" height="448" rx="100" fill="url(#c5-bg)" filter="url(#c1-shadow)"/>
+              <rect x="32" y="32" width="448" height="448" rx="100" stroke="rgba(94, 234, 212, 0.25)" stroke-width="2" fill="none"/>
+              <circle cx="256" cy="256" r="140" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1.5"/>
+              <g class="anim-float">
+                <path d="M 256 256 C 256 160, 340 130, 370 170 C 400 210, 320 280, 256 256 Z" fill="url(#c5-petal-1)" opacity="0.9" style="mix-blend-mode: screen;"/>
+                <path d="M 256 256 C 256 160, 340 130, 370 170 C 400 210, 320 280, 256 256 Z" fill="url(#c5-petal-2)" opacity="0.85" transform="rotate(120 256 256)" style="mix-blend-mode: screen;"/>
+                <path d="M 256 256 C 256 160, 340 130, 370 170 C 400 210, 320 280, 256 256 Z" fill="url(#c5-petal-3)" opacity="0.9" transform="rotate(240 256 256)" style="mix-blend-mode: screen;"/>
+                <circle cx="256" cy="256" r="24" fill="#11181c" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                <circle cx="256" cy="256" r="10" fill="#5eead4"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="concept-header">
+          <div class="concept-num">CONCEPT 05</div>
+          <h2 class="concept-title">Gentle Breeze (산들바람 핀휠)</h2>
+          <p class="concept-tagline">쇳덩이 터빈 대신 가볍고 부드러운 바람개비 쿨링.</p>
+        </div>
+        <ul class="traits-list">
+          <li><span class="trait-icon">✦</span> <strong>유선형 쿨링 상징</strong>: 종이 바람개비와 나뭇잎의 조화</li>
+          <li><span class="trait-icon">✦</span> <strong>조용한 감성</strong>: 무소음 & 저발열의 평온함</li>
+        </ul>
+        <div class="card-actions">
+          <button class="action-btn primary" onclick="selectForDock('c5')">Dock에 미리보기</button>
+          <button class="action-btn" onclick="copySvg('c5')">SVG 복사</button>
+        </div>
+      </div>
+
+      <!-- ================= THEME 2: CRAFT & MATERIALS ================= -->
+
+      <!-- CONCEPT 6: Matte Ceramic & Glaze -->
+      <div class="concept-card" data-theme="craft" id="card-c6">
+        <span class="card-badge theme-craft">Ceramic & Glaze</span>
+        <div class="icon-preview-box">
+          <div class="icon-wrapper" onclick="selectForDock('c6')">
+            <svg viewBox="0 0 512 512" id="svg-c6">
+              <defs>
+                <linearGradient id="c6-ceramic-bg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#fdfbf7"/>
+                  <stop offset="60%" stop-color="#f3efe6"/>
+                  <stop offset="100%" stop-color="#e5dfd3"/>
+                </linearGradient>
+                <linearGradient id="c6-glaze" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#38bdf8"/>
+                  <stop offset="100%" stop-color="#0284c7"/>
+                </linearGradient>
+              </defs>
+              <!-- Cream Ceramic Plate -->
+              <rect x="32" y="32" width="448" height="448" rx="100" fill="url(#c6-ceramic-bg)" filter="url(#c1-shadow)"/>
+              <rect x="32" y="32" width="448" height="448" rx="100" stroke="rgba(255,255,255,0.9)" stroke-width="2.5" fill="none"/>
+              <!-- Carved Inset Trench with Drop Shadow (Deboss) -->
+              <path d="M 130 250 C 160 340, 185 350, 210 350 C 235 350, 240 180, 256 180 C 272 180, 277 350, 302 350 C 327 350, 350 340, 380 230" 
+                    fill="none" stroke="rgba(180, 170, 155, 0.6)" stroke-width="24" stroke-linecap="round"/>
+              <!-- Sky Blue Celadon Glaze Pooled in Trench -->
+              <path d="M 130 250 C 160 340, 185 350, 210 350 C 235 350, 240 180, 256 180 C 272 180, 277 350, 302 350 C 327 350, 350 340, 380 230" 
+                    fill="none" stroke="url(#c6-glaze)" stroke-width="16" stroke-linecap="round"/>
+              <!-- Glaze Glossy Surface Specular -->
+              <path d="M 130 250 C 160 340, 185 350, 210 350 C 235 350, 240 180, 256 180 C 272 180, 277 350, 302 350 C 327 350, 350 340, 380 230" 
+                    fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+            </svg>
+          </div>
+        </div>
+        <div class="concept-header">
+          <div class="concept-num">CONCEPT 06</div>
+          <h2 class="concept-title">Matte Ceramic (도자기 & 청자 유약)</h2>
+          <p class="concept-tagline">핸드메이드 도자기 표면에 맑은 유약이 고인 듯한 감성.</p>
+        </div>
+        <ul class="traits-list">
+          <li><span class="trait-icon">✦</span> <strong>물리적 실체감</strong>: Things 3처럼 손에 잡힐 듯 따뜻한 세라믹 질감</li>
+          <li><span class="trait-icon">✦</span> <strong>음각 유약 디테일</strong>: 음각 홈에 고여 반짝이는 청명한 하늘빛</li>
+        </ul>
+        <div class="card-actions">
+          <button class="action-btn primary" onclick="selectForDock('c6')">Dock에 미리보기</button>
+          <button class="action-btn" onclick="copySvg('c6')">SVG 복사</button>
+        </div>
+      </div>
+
+      <!-- CONCEPT 7: Pressed Fine Paper -->
+      <div class="concept-card" data-theme="craft" id="card-c7">
+        <span class="card-badge theme-craft">Cotton Paper</span>
+        <div class="icon-preview-box">
+          <div class="icon-wrapper" onclick="selectForDock('c7')">
+            <svg viewBox="0 0 512 512" id="svg-c7">
+              <defs>
+                <linearGradient id="c7-paper-bg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#ffffff"/>
+                  <stop offset="100%" stop-color="#f1ece1"/>
+                </linearGradient>
+              </defs>
+              <rect x="32" y="32" width="448" height="448" rx="100" fill="url(#c7-paper-bg)" filter="url(#c1-shadow)"/>
+              <!-- Watercolor Drop Bleed in Background -->
+              <circle cx="320" cy="220" r="100" fill="#38bdf8" opacity="0.14" filter="blur(20px)"/>
+              <circle cx="210" cy="300" r="80" fill="#2dd4bf" opacity="0.12" filter="blur(16px)"/>
+              <!-- Debossed Pressed W (Shadow + Light bevel) -->
+              <path d="M 130 250 C 160 340, 185 350, 210 350 C 235 350, 240 180, 256 180 C 272 180, 277 350, 302 350 C 327 350, 350 340, 380 230" 
+                    fill="none" stroke="#d5cfc2" stroke-width="20" stroke-linecap="round" transform="translate(2, 3)"/>
+              <path d="M 130 250 C 160 340, 185 350, 210 350 C 235 350, 240 180, 256 180 C 272 180, 277 350, 302 350 C 327 350, 350 340, 380 230" 
+                    fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="round" transform="translate(-2, -2)"/>
+              <path d="M 130 250 C 160 340, 185 350, 210 350 C 235 350, 240 180, 256 180 C 272 180, 277 350, 302 350 C 327 350, 350 340, 380 230" 
+                    fill="none" stroke="#f6f3eb" stroke-width="16" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="concept-header">
+          <div class="concept-num">CONCEPT 07</div>
+          <h2 class="concept-title">Pressed Paper (파인아트 페이퍼)</h2>
+          <p class="concept-tagline">고급 코튼 판화지에 눌러 찍은 무잉크 엠보싱 미학.</p>
+        </div>
+        <ul class="traits-list">
+          <li><span class="trait-icon">✦</span> <strong>극도의 미니멀리즘</strong>: 잉크 없이 빛과 그림자만으로 드러나는 형태</li>
+          <li><span class="trait-icon">✦</span> <strong>수채화 물번짐</strong>: 배경에 살포시 번진 은은한 파스텔 톤</li>
+        </ul>
+        <div class="card-actions">
+          <button class="action-btn primary" onclick="selectForDock('c7')">Dock에 미리보기</button>
+          <button class="action-btn" onclick="copySvg('c7')">SVG 복사</button>
+        </div>
+      </div>
+
+      <!-- CONCEPT 8: Vintage Braun Knob -->
+      <div class="concept-card" data-theme="craft" id="card-c8">
+        <span class="card-badge theme-craft">Braun Functionalism</span>
+        <div class="icon-preview-box">
+          <div class="icon-wrapper" onclick="selectForDock('c8')">
+            <svg viewBox="0 0 512 512" id="svg-c8">
+              <defs>
+                <linearGradient id="c8-bg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#2a2b30"/>
+                  <stop offset="100%" stop-color="#16171a"/>
+                </linearGradient>
+                <radialGradient id="c8-knob-grad" cx="45%" cy="40%" r="60%">
+                  <stop offset="0%" stop-color="#3f414a"/>
+                  <stop offset="70%" stop-color="#222328"/>
+                  <stop offset="100%" stop-color="#141518"/>
+                </radialGradient>
+              </defs>
+              <rect x="32" y="32" width="448" height="448" rx="100" fill="url(#c8-bg)" filter="url(#c1-shadow)"/>
+              <rect x="32" y="32" width="448" height="448" rx="100" stroke="rgba(255,255,255,0.18)" stroke-width="2" fill="none"/>
+              <!-- Circular Instrument Dial -->
+              <circle cx="256" cy="256" r="160" fill="url(#c8-knob-grad)" stroke="rgba(255,255,255,0.08)" stroke-width="3" filter="drop-shadow(0 8px 16px rgba(0,0,0,0.5))"/>
+              <circle cx="256" cy="256" r="148" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1.5" stroke-dasharray="4 6"/>
+              <!-- Clean Minimal W Accent -->
+              <path d="M 180 230 L 210 290 L 256 200 L 302 290 L 332 230" fill="none" stroke="#f1f5f9" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- Single Iconic Orange Dial Dot -->
+              <circle cx="256" cy="135" r="8" fill="#f97316"/>
+            </svg>
+          </div>
+        </div>
+        <div class="concept-header">
+          <div class="concept-num">CONCEPT 08</div>
+          <h2 class="concept-title">Vintage Braun Knob (브라운 다이얼)</h2>
+          <p class="concept-tagline">디터 람스의 기능주의와 시대를 초월한 아날로그 노브.</p>
+        </div>
+        <ul class="traits-list">
+          <li><span class="trait-icon">✦</span> <strong>Less, but better</strong>: 군더더기를 모두 덜어낸 명쾌한 레이아웃</li>
+          <li><span class="trait-icon">✦</span> <strong>단 하나의 오렌지 포인트</strong>: 신뢰감 넘치는 산업 디자인의 정수</li>
+        </ul>
+        <div class="card-actions">
+          <button class="action-btn primary" onclick="selectForDock('c8')">Dock에 미리보기</button>
+          <button class="action-btn" onclick="copySvg('c8')">SVG 복사</button>
+        </div>
+      </div>
+
+      <!-- CONCEPT 9: Luminescent Pebble -->
+      <div class="concept-card" data-theme="craft" id="card-c9">
+        <span class="card-badge theme-craft">Sea Pebble</span>
+        <div class="icon-preview-box">
+          <div class="icon-wrapper" onclick="selectForDock('c9')">
+            <svg viewBox="0 0 512 512" id="svg-c9">
+              <defs>
+                <radialGradient id="c9-pebble-glow" cx="40%" cy="35%" r="65%">
+                  <stop offset="0%" stop-color="#a5f3fc"/>
+                  <stop offset="40%" stop-color="#38bdf8"/>
+                  <stop offset="80%" stop-color="#0369a1"/>
+                  <stop offset="100%" stop-color="#0c4a6e"/>
+                </radialGradient>
+              </defs>
+              <rect x="32" y="32" width="448" height="448" rx="100" fill="#181a22" filter="url(#c1-shadow)"/>
+              <rect x="32" y="32" width="448" height="448" rx="100" stroke="rgba(255,255,255,0.18)" stroke-width="2" fill="none"/>
+              <g class="anim-float">
+                <ellipse cx="256" cy="370" rx="130" ry="24" fill="#000000" opacity="0.45"/>
+                <path d="M 170 170 C 250 120, 330 140, 360 210 C 390 280, 350 350, 270 360 C 190 370, 130 310, 130 250 C 130 200, 140 180, 170 170 Z" 
+                      fill="url(#c9-pebble-glow)" filter="drop-shadow(0 12px 24px rgba(2, 132, 199, 0.35))"/>
+                <path d="M 180 250 Q 210 310 235 310 Q 255 310 268 210 Q 285 310 305 310 Q 325 310 340 240" 
+                      fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+                <ellipse cx="200" cy="180" rx="35" ry="18" fill="#ffffff" opacity="0.6" transform="rotate(-25 200 180)"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="concept-header">
+          <div class="concept-num">CONCEPT 09</div>
+          <h2 class="concept-title">Luminescent Pebble (바다 조약돌)</h2>
+          <p class="concept-tagline">자연의 둥근 조약돌 안에 스며든 은은한 에너지 물결 W.</p>
+        </div>
+        <ul class="traits-list">
+          <li><span class="trait-icon">✦</span> <strong>촉각적인 유기물 형태</strong>: 손에 쥐고 싶은 매끄러운 바다 유리 느낌</li>
+          <li><span class="trait-icon">✦</span> <strong>물결치는 리플</strong>: 잔잔한 수면 파동처럼 편안한 심볼</li>
+        </ul>
+        <div class="card-actions">
+          <button class="action-btn primary" onclick="selectForDock('c9')">Dock에 미리보기</button>
+          <button class="action-btn" onclick="copySvg('c9')">SVG 복사</button>
+        </div>
+      </div>
+
+      <!-- CONCEPT 10: Silk Ribbon Origami -->
+      <div class="concept-card" data-theme="craft" id="card-c10">
+        <span class="card-badge theme-craft">Crafted Silk</span>
+        <div class="icon-preview-box">
+          <div class="icon-wrapper" onclick="selectForDock('c10')">
+            <svg viewBox="0 0 512 512" id="svg-c10">
+              <defs>
+                <linearGradient id="c10-silk-1" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#38bdf8"/>
+                  <stop offset="100%" stop-color="#0284c7"/>
+                </linearGradient>
+                <linearGradient id="c10-silk-2" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#2dd4bf"/>
+                  <stop offset="100%" stop-color="#0f766e"/>
+                </linearGradient>
+              </defs>
+              <rect x="32" y="32" width="448" height="448" rx="100" fill="#181a20" filter="url(#c1-shadow)"/>
+              <rect x="32" y="32" width="448" height="448" rx="100" stroke="rgba(255,255,255,0.12)" stroke-width="2" fill="none"/>
+              <g class="anim-float">
+                <path d="M 130 180 C 130 280, 180 340, 210 340 C 230 340, 245 300, 256 250 C 235 220, 180 180, 130 180 Z" fill="url(#c10-silk-1)"/>
+                <path d="M 210 340 C 240 340, 265 220, 280 170 C 295 220, 320 340, 350 340 C 330 340, 280 270, 256 250 C 240 290, 225 340, 210 340 Z" fill="url(#c10-silk-2)"/>
+                <path d="M 280 170 C 330 170, 382 220, 382 180 C 382 280, 330 340, 302 340 C 315 300, 330 250, 280 170 Z" fill="url(#c10-silk-1)"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="concept-header">
+          <div class="concept-num">CONCEPT 10</div>
+          <h2 class="concept-title">Silk Ribbon (실크 리본)</h2>
+          <p class="concept-tagline">부드러운 한 가닥의 천이 유연하게 접히며 완성되는 W.</p>
+        </div>
+        <ul class="traits-list">
+          <li><span class="trait-icon">✦</span> <strong>유연한 직물 음영</strong>: 딱딱함 없는 유연하고 가벼운 인상</li>
+          <li><span class="trait-icon">✦</span> <strong>감각적인 디자인 룩</strong>: 최신 세련된 Mac 유틸리티 감성</li>
+        </ul>
+        <div class="card-actions">
+          <button class="action-btn primary" onclick="selectForDock('c10')">Dock에 미리보기</button>
+          <button class="action-btn" onclick="copySvg('c10')">SVG 복사</button>
+        </div>
+      </div>
+
+      <!-- ================= THEME 3: AIR, LIGHT & FRIENDLY ================= -->
+
+      <!-- CONCEPT 11: Breathing Cloud -->
+      <div class="concept-card" data-theme="air" id="card-c11">
+        <span class="card-badge theme-air">Air & Breath</span>
+        <div class="icon-preview-box">
+          <div class="icon-wrapper" onclick="selectForDock('c11')">
+            <svg viewBox="0 0 512 512" id="svg-c11">
+              <defs>
+                <linearGradient id="c11-bg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#1e293b"/>
+                  <stop offset="100%" stop-color="#0f172a"/>
+                </linearGradient>
+                <linearGradient id="c11-cloud-grad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#ffffff"/>
+                  <stop offset="60%" stop-color="#e0f2fe"/>
+                  <stop offset="100%" stop-color="#bae6fd"/>
+                </linearGradient>
+              </defs>
+              <rect x="32" y="32" width="448" height="448" rx="100" fill="url(#c11-bg)" filter="url(#c1-shadow)"/>
+              <rect x="32" y="32" width="448" height="448" rx="100" stroke="rgba(255,255,255,0.2)" stroke-width="2" fill="none"/>
+              <!-- 3-Puff Cloud W Rhythm -->
+              <g class="anim-float">
+                <ellipse cx="256" cy="360" rx="110" ry="18" fill="#000000" opacity="0.35"/>
+                <!-- Cloud Left Puff -->
+                <circle cx="180" cy="270" r="60" fill="url(#c11-cloud-grad)"/>
+                <!-- Cloud Right Puff -->
+                <circle cx="332" cy="270" r="60" fill="url(#c11-cloud-grad)"/>
+                <!-- Cloud Center Dip & Top Puffs (Forming W) -->
+                <circle cx="225" cy="220" r="50" fill="#ffffff"/>
+                <circle cx="287" cy="220" r="50" fill="#ffffff"/>
+                <circle cx="256" cy="250" r="42" fill="url(#c11-cloud-grad)"/>
+                <!-- Soft Warm Sun Tint Rim -->
+                <path d="M 135 285 Q 180 340 210 340 Q 235 260 256 220 Q 277 260 302 340 Q 332 340 377 285" 
+                      fill="none" stroke="#38bdf8" stroke-width="8" stroke-linecap="round" opacity="0.75"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="concept-header">
+          <div class="concept-num">CONCEPT 11</div>
+          <h2 class="concept-title">Breathing Cloud (뭉게구름)</h2>
+          <p class="concept-tagline">부드럽고 포근한 구름 덩어리가 빚어내는 경쾌한 W.</p>
+        </div>
+        <ul class="traits-list">
+          <li><span class="trait-icon">✦</span> <strong>가벼운 초경량성</strong>: 배터리 부담이 전혀 없는 깃털 같은 무게감</li>
+          <li><span class="trait-icon">✦</span> <strong>포근한 하늘 룩</strong>: 시스템의 열을 날려주는 시원한 숨결</li>
+        </ul>
+        <div class="card-actions">
+          <button class="action-btn primary" onclick="selectForDock('c11')">Dock에 미리보기</button>
+          <button class="action-btn" onclick="copySvg('c11')">SVG 복사</button>
+        </div>
+      </div>
+
+      <!-- CONCEPT 12: Prism Sunbeam -->
+      <div class="concept-card" data-theme="air" id="card-c12">
+        <span class="card-badge theme-air">Prism Sunlight</span>
+        <div class="icon-preview-box">
+          <div class="icon-wrapper" onclick="selectForDock('c12')">
+            <svg viewBox="0 0 512 512" id="svg-c12">
+              <defs>
+                <linearGradient id="c12-rainbow" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#fb7185"/>
+                  <stop offset="25%" stop-color="#facc15"/>
+                  <stop offset="50%" stop-color="#4ade80"/>
+                  <stop offset="75%" stop-color="#38bdf8"/>
+                  <stop offset="100%" stop-color="#c084fc"/>
+                </linearGradient>
+              </defs>
+              <rect x="32" y="32" width="448" height="448" rx="100" fill="#151720" filter="url(#c1-shadow)"/>
+              <rect x="32" y="32" width="448" height="448" rx="100" stroke="rgba(255,255,255,0.18)" stroke-width="2" fill="none"/>
+              <!-- Crystal Prism Top Facet -->
+              <polygon points="256,120 200,200 312,200" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>
+              <!-- Refracted Spectral Wave W -->
+              <path class="anim-pulse" d="M 130 260 C 160 340, 185 350, 210 350 C 235 350, 240 200, 256 200 C 272 200, 277 350, 302 350 C 327 350, 350 340, 380 260" 
+                    fill="none" stroke="url(#c12-rainbow)" stroke-width="18" stroke-linecap="round" opacity="0.85" filter="drop-shadow(0 0 10px rgba(56,189,248,0.4))"/>
+              <path d="M 130 260 C 160 340, 185 350, 210 350 C 235 350, 240 200, 256 200 C 272 200, 277 350, 302 350 C 327 350, 350 340, 380 260" 
+                    fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+            </svg>
+          </div>
+        </div>
+        <div class="concept-header">
+          <div class="concept-num">CONCEPT 012</div>
+          <h2 class="concept-title">Prism Sunbeam (프리즘 햇살)</h2>
+          <p class="concept-tagline">유리 프리즘을 통과한 자연스러운 무지개 햇살 스펙트럼.</p>
+        </div>
+        <ul class="traits-list">
+          <li><span class="trait-icon">✦</span> <strong>맑은 빛의 굴절</strong>: 파스텔 스펙트럼 띠가 그리는 부드러운 W</li>
+          <li><span class="trait-icon">✦</span> <strong>투명하고 생기 있는 무드</strong>: 눈이 피로하지 않은 채광의 온기</li>
+        </ul>
+        <div class="card-actions">
+          <button class="action-btn primary" onclick="selectForDock('c12')">Dock에 미리보기</button>
+          <button class="action-btn" onclick="copySvg('c12')">SVG 복사</button>
+        </div>
+      </div>
+
+      <!-- CONCEPT 13: The Little Volt Sprout -->
+      <div class="concept-card" data-theme="air" id="card-c13">
+        <span class="card-badge theme-air">Friendly Mascot</span>
+        <div class="icon-preview-box">
+          <div class="icon-wrapper" onclick="selectForDock('c13')">
+            <svg viewBox="0 0 512 512" id="svg-c13">
+              <defs>
+                <linearGradient id="c13-bg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#1c2333"/>
+                  <stop offset="100%" stop-color="#0e1320"/>
+                </linearGradient>
+                <linearGradient id="c13-sprout" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#4ade80"/>
+                  <stop offset="60%" stop-color="#22c55e"/>
+                  <stop offset="100%" stop-color="#0f766e"/>
+                </linearGradient>
+              </defs>
+              <rect x="32" y="32" width="448" height="448" rx="100" fill="url(#c13-bg)" filter="url(#c1-shadow)"/>
+              <rect x="32" y="32" width="448" height="448" rx="100" stroke="rgba(74,222,128,0.25)" stroke-width="2" fill="none"/>
+              <!-- Friendly Little Sprout Character Body -->
+              <g class="anim-float">
+                <ellipse cx="256" cy="370" rx="90" ry="18" fill="#000000" opacity="0.4"/>
+                <!-- Cute Round Body (Pebble/Seed) -->
+                <circle cx="256" cy="290" r="76" fill="#1e293b" stroke="#38bdf8" stroke-width="3"/>
+                <!-- Cute Eyes -->
+                <circle cx="230" cy="285" r="7" fill="#ffffff"/>
+                <circle cx="282" cy="285" r="7" fill="#ffffff"/>
+                <!-- 2 Energetic Sprout Leaves Forming 'W' with Body -->
+                <path d="M 256 220 C 230 150, 170 160, 170 190 C 170 230, 240 220, 256 220 Z" fill="url(#c13-sprout)"/>
+                <path d="M 256 220 C 282 150, 342 160, 342 190 C 342 230, 272 220, 256 220 Z" fill="url(#c13-sprout)"/>
+                <!-- Glowing Energy Sprout Aura -->
+                <circle cx="256" cy="180" r="12" fill="#4ade80" opacity="0.4" class="anim-pulse"/>
+                <circle cx="256" cy="180" r="6" fill="#ffffff"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="concept-header">
+          <div class="concept-num">CONCEPT 13</div>
+          <h2 class="concept-title">Volt Sprout (새싹 요정)</h2>
+          <p class="concept-tagline">딱딱한 도구가 아닌 내 맥북의 귀엽고 다정한 에너지 친구.</p>
+        </div>
+        <ul class="traits-list">
+          <li><span class="trait-icon">✦</span> <strong>친근한 마스코트 감성</strong>: 둥글둥글한 씨앗과 파릇파릇 돋아난 에너지 잎새</li>
+          <li><span class="trait-icon">✦</span> <strong>Wattly다운 사랑스러움</strong>: 매일 마주하고 싶은 따뜻한 캐릭터 룩</li>
+        </ul>
+        <div class="card-actions">
+          <button class="action-btn primary" onclick="selectForDock('c13')">Dock에 미리보기</button>
+          <button class="action-btn" onclick="copySvg('c13')">SVG 복사</button>
+        </div>
+      </div>
+
+      <!-- CONCEPT 14: Sunrise Filament -->
+      <div class="concept-card" data-theme="air" id="card-c14">
+        <span class="card-badge theme-air">Warm Filament</span>
+        <div class="icon-preview-box">
+          <div class="icon-wrapper" onclick="selectForDock('c14')">
+            <svg viewBox="0 0 512 512" id="svg-c14">
+              <defs>
+                <linearGradient id="c14-bg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#241b24"/>
+                  <stop offset="100%" stop-color="#0d0a12"/>
+                </linearGradient>
+                <linearGradient id="c14-filament-grad" x1="0" y1="1" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#f59e0b"/>
+                  <stop offset="40%" stop-color="#fb7185"/>
+                  <stop offset="75%" stop-color="#38bdf8"/>
+                  <stop offset="100%" stop-color="#a78bfa"/>
+                </linearGradient>
+              </defs>
+              <rect x="32" y="32" width="448" height="448" rx="100" fill="url(#c14-bg)" filter="url(#c1-shadow)"/>
+              <rect x="32" y="32" width="448" height="448" rx="100" stroke="rgba(251, 113, 133, 0.2)" stroke-width="2" fill="none"/>
+              <circle cx="256" cy="256" r="140" fill="#f59e0b" opacity="0.08" filter="blur(16px)"/>
+              <path class="anim-pulse" d="M 140 230 C 165 330, 185 350, 210 350 C 235 350, 240 180, 256 180 C 272 180, 277 350, 302 350 C 327 350, 347 330, 372 230" 
+                    fill="none" stroke="url(#c14-filament-grad)" stroke-width="16" stroke-linecap="round"/>
+              <path d="M 140 230 C 165 330, 185 350, 210 350 C 235 350, 240 180, 256 180 C 272 180, 277 350, 302 350 C 327 350, 347 330, 372 230" 
+                    fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+            </svg>
+          </div>
+        </div>
+        <div class="concept-header">
+          <div class="concept-num">CONCEPT 14</div>
+          <h2 class="concept-title">Sunrise Filament (온기 필라멘트)</h2>
+          <p class="concept-tagline">전력(Watt)의 순수한 기원인 따뜻한 유리관 필라멘트.</p>
+        </div>
+        <ul class="traits-list">
+          <li><span class="trait-icon">✦</span> <strong>일출빛 골든 앰버</strong>: 골드에서 스카이 바이올렛으로 번지는 온기</li>
+          <li><span class="trait-icon">✦</span> <strong>클래식 에디슨 무드</strong>: 전력의 본질을 아늑하게 시각화</li>
+        </ul>
+        <div class="card-actions">
+          <button class="action-btn primary" onclick="selectForDock('c14')">Dock에 미리보기</button>
+          <button class="action-btn" onclick="copySvg('c14')">SVG 복사</button>
+        </div>
+      </div>
+
+      <!-- CONCEPT 15: Zen Stone Balance -->
+      <div class="concept-card" data-theme="air" id="card-c15">
+        <span class="card-badge theme-air">Zen Balance</span>
+        <div class="icon-preview-box">
+          <div class="icon-wrapper" onclick="selectForDock('c15')">
+            <svg viewBox="0 0 512 512" id="svg-c15">
+              <rect x="32" y="32" width="448" height="448" rx="100" fill="#131418" filter="url(#c1-shadow)"/>
+              <rect x="32" y="32" width="448" height="448" rx="100" stroke="rgba(255,255,255,0.15)" stroke-width="2" fill="none"/>
+              <!-- Stack of 3 Harmonious River Stones (Forming Balanced W) -->
+              <g class="anim-float">
+                <ellipse cx="256" cy="380" rx="130" ry="20" fill="#000000" opacity="0.5"/>
+                <!-- Bottom Charcoal Stone -->
+                <ellipse cx="256" cy="335" rx="125" ry="42" fill="#26272e" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+                <!-- Middle Sage River Stone -->
+                <ellipse cx="235" cy="265" rx="90" ry="32" fill="#0f766e" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+                <!-- Top Smooth Cream Pebble -->
+                <ellipse cx="280" cy="210" rx="55" ry="24" fill="#f1ece1" stroke="rgba(0,0,0,0.1)" stroke-width="1.5"/>
+                <!-- Soothing Cyan Spark Point -->
+                <circle cx="280" cy="205" r="4" fill="#38bdf8"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="concept-header">
+          <div class="concept-num">CONCEPT 15</div>
+          <h2 class="concept-title">Zen Stone Balance (돌탑 밸런싱)</h2>
+          <p class="concept-tagline">전력·발열·성능의 완벽한 삼위일체 균형과 평온함.</p>
+        </div>
+        <ul class="traits-list">
+          <li><span class="trait-icon">✦</span> <strong>마음의 평온함</strong>: CPU/GPU/배터리가 이루는 이상적인 최적 밸런스</li>
+          <li><span class="trait-icon">✦</span> <strong>정갈한 조약돌 물성</strong>: 동양적인 선(Zen)의 고요한 미학</li>
+        </ul>
+        <div class="card-actions">
+          <button class="action-btn primary" onclick="selectForDock('c15')">Dock에 미리보기</button>
+          <button class="action-btn" onclick="copySvg('c15')">SVG 복사</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Multi-Scale Matrix Preview -->
+    <section class="scale-matrix-section">
+      <div class="scale-header">
+        <div>
+          <h3 style="font-size: 17px; font-weight: 700; color: #ffffff; margin-bottom: 4px;">
+            🔍 Multi-Scale Size Verification
+          </h3>
+          <p style="font-size: 13px; color: var(--text-secondary);">
+            Retina 512px부터 실제 Dock(128px), Spotlight(64px), 작은 목록(16px)까지의 해상도별 선명도 테스트.
+          </p>
+        </div>
+        <div style="font-size: 13px; color: #2dd4bf; font-family: 'JetBrains Mono', monospace;" id="current-scale-label">
+          선택된 아이콘: [CONCEPT 01]
+        </div>
+      </div>
+
+      <div class="scale-matrix-grid">
+        <!-- 256px -->
+        <div class="scale-box">
+          <div class="icon-target" style="width: 140px; height: 140px;" id="scale-256"></div>
+          <span class="scale-label">256px (Finder)</span>
+        </div>
+        <!-- 128px -->
+        <div class="scale-box">
+          <div class="icon-target" style="width: 90px; height: 90px;" id="scale-128"></div>
+          <span class="scale-label">128px (Dock)</span>
+        </div>
+        <!-- 64px -->
+        <div class="scale-box">
+          <div class="icon-target" style="width: 56px; height: 56px;" id="scale-64"></div>
+          <span class="scale-label">64px (Spotlight)</span>
+        </div>
+        <!-- 32px -->
+        <div class="scale-box">
+          <div class="icon-target" style="width: 32px; height: 32px;" id="scale-32"></div>
+          <span class="scale-label">32px (List)</span>
+        </div>
+        <!-- 16px -->
+        <div class="scale-box">
+          <div class="icon-target" style="width: 16px; height: 16px;" id="scale-16"></div>
+          <span class="scale-label">16px (Small)</span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">SVG 코드가 클립보드에 복사되었습니다!</div>
+
+  <script>
+    let currentAnim = true;
+    let selectedConcept = 'c1';
+
+    // Initialize
+    window.addEventListener('DOMContentLoaded', () => {
+      selectForDock('c1');
+    });
+
+    function filterCards(theme, btn) {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const cards = document.querySelectorAll('.concept-card');
+      cards.forEach(card => {
+        if (theme === 'all' || card.getAttribute('data-theme') === theme) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    function selectForDock(id) {
+      selectedConcept = id;
+      const svgSource = document.getElementById(`svg-${id}`);
+      if (!svgSource) return;
+
+      const dockSlot = document.getElementById('dock-active-wattly');
+      dockSlot.innerHTML = svgSource.outerHTML;
+      setScaleConcept(id);
+
+      const label = document.getElementById('current-scale-label');
+      if (label) {
+        label.innerText = `선택된 아이콘: [${id.toUpperCase()}]`;
+      }
+
+      showToast(`Dock 및 스케일 뷰가 [${id.toUpperCase()}]으로 전환되었습니다.`);
+    }
+
+    function setScaleConcept(id) {
+      const svgSource = document.getElementById(`svg-${id}`);
+      if (!svgSource) return;
+
+      ['scale-256', 'scale-128', 'scale-64', 'scale-32', 'scale-16'].forEach(containerId => {
+        const el = document.getElementById(containerId);
+        if (el) {
+          el.innerHTML = svgSource.outerHTML;
+        }
+      });
+    }
+
+    function toggleAnimations() {
+      currentAnim = !currentAnim;
+      const animClasses = ['anim-pulse', 'anim-aurora', 'anim-float', 'anim-firefly'];
+      
+      animClasses.forEach(cls => {
+        const elements = document.querySelectorAll('.' + cls);
+        elements.forEach(el => {
+          if (currentAnim) {
+            el.style.animationPlayState = 'running';
+          } else {
+            el.style.animationPlayState = 'paused';
+          }
+        });
+      });
+
+      const btn = document.getElementById('btn-toggle-anim');
+      const text = document.getElementById('anim-status-text');
+      if (currentAnim) {
+        btn.classList.add('active');
+        text.innerText = 'ON';
+      } else {
+        btn.classList.remove('active');
+        text.innerText = 'OFF';
+      }
+    }
+
+    function setWallpaper(type) {
+      const container = document.getElementById('dock-preview-container');
+      if (type === 'dark') {
+        container.style.background = 'radial-gradient(circle at center, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.95))';
+      } else if (type === 'light') {
+        container.style.background = 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #cbd5e1 100%)';
+      } else if (type === 'forest') {
+        container.style.background = 'linear-gradient(135deg, #064e3b 0%, #0f172a 50%, #1e1b4b 100%)';
+      }
+    }
+
+    function copySvg(id) {
+      const svg = document.getElementById(`svg-${id}`);
+      if (!svg) return;
+      
+      navigator.clipboard.writeText(svg.outerHTML).then(() => {
+        showToast(`[${id.toUpperCase()}] SVG 코드가 클립보드에 복사되었습니다!`);
+      }).catch(() => {
+        showToast('클립보드 접근 권한이 필요합니다.');
+      });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2600);
+    }
+  </script>
+</body>
+</html>
