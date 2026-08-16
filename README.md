@@ -10,6 +10,11 @@
   <em>Pure Swift Apple Silicon telemetry & smart thermal control designed exclusively for macOS.</em>
 </p>
 
+<p align="center">
+  <a href="#installation"><strong>Installation Guide</strong></a> &nbsp;&bull;&nbsp;
+  <a href="https://github.com/jjundev/project_wattly/releases"><strong>Download Releases (.dmg / .zip)</strong></a>
+</p>
+
 ---
 
 ## Overview

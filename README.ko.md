@@ -10,6 +10,11 @@
   <em>Apple Silicon Mac을 위해 순수 Swift로 설계된 초경량 시스템 텔레메트리 & 스마트 팬 제어 유틸리티</em>
 </p>
 
+<p align="center">
+  <a href="#설치-방법"><strong>설치 가이드</strong></a> &nbsp;&bull;&nbsp;
+  <a href="https://github.com/jjundev/project_wattly/releases"><strong>최신 릴리즈 다운로드 (.dmg / .zip)</strong></a>
+</p>
+
 ---
 
 ## 개요
