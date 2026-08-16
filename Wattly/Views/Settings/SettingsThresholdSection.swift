@@ -14,7 +14,7 @@ struct SettingsThresholdSection: View {
                     thresholdDivider
                     gpuThresholdBlock
                     thresholdDivider
-                    thresholdBlock(title: "온도 · CPU·GPU (°C)", keyPath: \.temp,
+                    thresholdBlock(title: "CPU · GPU 온도 (°C)", keyPath: \.temp,
                                    warnRange: 40...100, critRange: 50...110, suffix: "°")
                 }
             }

@@ -35,9 +35,7 @@ struct SettingsDisplaySection: View {
     private var themeSection: some View {
         SettingsSection(title: "테마") {
             SettingsCard(padding: Tokens.cardPadding) {
-                WattlySegment(selection: $theme, options: [
-                    (.light, "라이트"), (.dark, "다크"), (.system, "시스템 설정"),
-                ])
+                WattlySegment(selection: $theme, options: ThemeMode.allCases.map { ($0, $0.label) })
             }
         }
     }

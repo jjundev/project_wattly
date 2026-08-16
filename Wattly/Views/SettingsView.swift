@@ -141,7 +141,7 @@ struct SettingsView: View {
     }
 
     private static let supportedLanguages: [LanguageOption] = [
-        LanguageOption(id: "system", displayName: "시스템 기본값"),
+        LanguageOption(id: "system", displayName: "시스템"),
         LanguageOption(id: "ko", displayName: "한국어"),
         LanguageOption(id: "en", displayName: "English"),
         LanguageOption(id: "ja", displayName: "日本語"),

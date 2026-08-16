@@ -247,4 +247,8 @@ struct SettingsResetTests {
         #expect(PanelMode.allCases == [.a, .c, .b])
         #expect(PanelMode.allCases.map(\.label) == ["스택 행", "히어로 + 리스트", "카드 그리드"])
     }
+
+    @Test func systemOptionCopyConsistency() {
+        #expect(ThemeMode.allCases.map(\.label) == ["라이트", "다크", "시스템"])
+    }
 }
