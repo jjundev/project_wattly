@@ -446,9 +446,76 @@ struct SettingsView: View {
                     thresholdBlock(title: "CPU 사용률 (%)", keyPath: \.cpu,
                                    warnRange: 10...95, critRange: 20...100, suffix: "%")
                     thresholdDivider
+                    gpuThresholdBlock
+                    thresholdDivider
                     thresholdBlock(title: "온도 · CPU·GPU·배터리 (°C)", keyPath: \.temp,
                                    warnRange: 40...100, critRange: 50...110, suffix: "°")
                 }
+            }
+        }
+    }
+
+    private var gpuThresholdBlock: some View {
+        let isEnabled = thresholds.gpu != nil
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("GPU 사용률 (%)")
+                        .font(WattlyFont.at(12.5, weight: .semibold))
+                        .foregroundStyle(t.text)
+                    Text("그래픽 렌더링 및 연산 시 사용률이 높아지는 것은 정상 동작입니다. 알림이 필요할 때만 켜세요.")
+                        .font(WattlyFont.at(10.5, weight: .regular))
+                        .foregroundStyle(t.faint)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 12)
+                Toggle("", isOn: Binding(
+                    get: { thresholds.gpu != nil },
+                    set: { on in
+                        if on {
+                            thresholds.gpu = ThresholdPair(warn: 85, crit: 95)
+                        } else {
+                            thresholds.gpu = nil
+                        }
+                    }
+                ))
+                .toggleStyle(.switch)
+                .labelsHidden()
+                .accessibilityLabel("GPU 사용률 상태 경고")
+            }
+
+            if isEnabled {
+                VStack(spacing: 8) {
+                    thresholdRow(
+                        dot: Tokens.statusOrange,
+                        label: "주의",
+                        binding: Binding(
+                            get: { thresholds.gpu?.warn ?? 85 },
+                            set: { v in
+                                if let pair = thresholds.gpu {
+                                    thresholds.gpu = pair.setting(.warn, to: v)
+                                }
+                            }
+                        ),
+                        range: 10...95,
+                        suffix: "%"
+                    )
+                    thresholdRow(
+                        dot: Tokens.statusRed,
+                        label: "위험",
+                        binding: Binding(
+                            get: { thresholds.gpu?.crit ?? 95 },
+                            set: { v in
+                                if let pair = thresholds.gpu {
+                                    thresholds.gpu = pair.setting(.crit, to: v)
+                                }
+                            }
+                        ),
+                        range: 20...100,
+                        suffix: "%"
+                    )
+                }
+                .padding(.top, 4)
             }
         }
     }
