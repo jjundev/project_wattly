@@ -863,76 +863,44 @@
         render: (size, rot, phase, load) => {
           const s = size;
           const center = s / 2;
-          const strokeW = Math.max(1.5, s * 0.08);
+          const strokeW = Math.max(1.6, s * 0.09);
           return `
             <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
-              <circle cx="${center}" cy="${center}" r="${s * 0.44}" class="svg-stroke" stroke-width="${strokeW * 0.75}" opacity="0.4" />
+              <!-- Outer ring -->
+              <circle cx="${center}" cy="${center}" r="${s * 0.46}" class="svg-stroke" stroke-width="${Math.max(1.6, strokeW * 0.9)}" opacity="0.70" />
               <g transform="rotate(${rot * 360} ${center} ${center})">
                 <!-- 4 Curved Turbine Blades -->
                 ${[0, 90, 180, 270].map(angle => `
                   <g transform="rotate(${angle} ${center} ${center})">
                     <path d="M ${center} ${center - s * 0.12} 
-                             C ${center + s * 0.22} ${center - s * 0.32}, 
-                               ${center + s * 0.38} ${center - s * 0.20}, 
-                               ${center + s * 0.26} ${center - s * 0.05} 
+                             C ${center + s * 0.23} ${center - s * 0.33}, 
+                               ${center + s * 0.40} ${center - s * 0.20}, 
+                               ${center + s * 0.28} ${center - s * 0.05} 
                              Z" 
-                          fill="currentColor" opacity="0.9" />
+                          fill="currentColor" opacity="0.95" />
                   </g>
                 `).join('')}
-                <!-- Center Hub -->
-                <circle cx="${center}" cy="${center}" r="${s * 0.12}" fill="currentColor" />
-                <circle cx="${center}" cy="${center}" r="${s * 0.05}" fill="var(--bg-surface)" />
+                <!-- Center Donut Hub (r=0.125s outer, r=0.05s inner) -->
+                <path d="M ${center - s * 0.125} ${center}
+                         A ${s * 0.125} ${s * 0.125} 0 1 0 ${center + s * 0.125} ${center}
+                         A ${s * 0.125} ${s * 0.125} 0 1 0 ${center - s * 0.125} ${center} Z
+                         M ${center - s * 0.05} ${center}
+                         A ${s * 0.05} ${s * 0.05} 0 1 1 ${center + s * 0.05} ${center}
+                         A ${s * 0.05} ${s * 0.05} 0 1 1 ${center - s * 0.05} ${center} Z"
+                      fill="currentColor" fill-rule="evenodd" />
               </g>
             </svg>
           `;
         }
       },
       {
-        id: 'gears',
-        title: '2. 듀얼 인터로킹 기어 (Dual Gears)',
-        category: 'Mechanical',
-        desc: '큰 기어와 작은 기어가 정밀하게 맞물려 반대로 회전하며 시스템의 연산 작업을 시각화합니다.',
-        render: (size, rot, phase, load) => {
-          const s = size;
-          const r1 = s * 0.26; // Main Gear
-          const r2 = s * 0.16; // Sub Gear
-          const c1 = { x: s * 0.38, y: s * 0.42 };
-          const c2 = { x: s * 0.74, y: s * 0.68 };
-          const strokeW = Math.max(1.2, s * 0.06);
-
-          return `
-            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
-              <!-- Gear 1 (Clockwise) -->
-              <g transform="rotate(${rot * 360} ${c1.x} ${c1.y})">
-                <circle cx="${c1.x}" cy="${c1.y}" r="${r1 * 0.72}" class="svg-stroke" stroke-width="${strokeW}" />
-                <circle cx="${c1.x}" cy="${c1.y}" r="${r1 * 0.25}" fill="currentColor" />
-                ${[0, 45, 90, 135, 180, 225, 270, 315].map(a => `
-                  <rect x="${c1.x - strokeW}" y="${c1.y - r1}" width="${strokeW * 2}" height="${r1 * 0.35}" 
-                        rx="1" fill="currentColor" transform="rotate(${a} ${c1.x} ${c1.y})" />
-                `).join('')}
-              </g>
-              <!-- Gear 2 (Counter-Clockwise, Gear Ratio 1.6x) -->
-              <g transform="rotate(${-rot * 360 * 1.6 + 15} ${c2.x} ${c2.y})">
-                <circle cx="${c2.x}" cy="${c2.y}" r="${r2 * 0.7}" class="svg-stroke" stroke-width="${strokeW}" />
-                <circle cx="${c2.x}" cy="${c2.y}" r="${r2 * 0.25}" fill="currentColor" />
-                ${[0, 60, 120, 180, 240, 300].map(a => `
-                  <rect x="${c2.x - strokeW * 0.8}" y="${c2.y - r2}" width="${strokeW * 1.6}" height="${r2 * 0.35}" 
-                        rx="1" fill="currentColor" transform="rotate(${a} ${c2.x} ${c2.y})" />
-                `).join('')}
-              </g>
-            </svg>
-          `;
-        }
-      },
-      {
-        id: 'pulse_wave',
-        title: '3. 흐르는 펄스 웨이브 (Pulse W)',
+        id: 'pulseWave',
+        title: '2. 흐르는 펄스 웨이브 (Pulse W)',
         category: 'Power & Signal',
         desc: 'Wattly의 시그니처 W 파형이 끊임없이 좌에서 우로 전파되며, 전력량과 부하에 따라 흐름 속도가 가속됩니다.',
         render: (size, rot, phase, load) => {
           const s = size;
           const strokeW = Math.max(1.8, s * 0.09);
-          // Wave generator
           const points = [];
           const numSteps = 24;
           const amp = s * (0.18 + (load / 100) * 0.14);
@@ -940,21 +908,17 @@
 
           for (let i = 0; i <= numSteps; i++) {
             const x = (i / numSteps) * s;
-            // Wave equation with dynamic phase
             const wave = Math.sin((i / numSteps) * Math.PI * 2.5 - phase * 4) * 
-                         Math.sin((i / numSteps) * Math.PI); // envelope
+                         Math.sin((i / numSteps) * Math.PI);
             const y = centerY - wave * amp;
             points.push(`${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`);
           }
 
           return `
             <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
-              <!-- Horizontal baseline faint track -->
               <line x1="${s * 0.08}" y1="${centerY}" x2="${s * 0.92}" y2="${centerY}" 
                     stroke="currentColor" stroke-width="${strokeW * 0.5}" opacity="0.25" stroke-dasharray="2,2" />
-              <!-- Dynamic Scrolling Pulse Path -->
               <path d="${points.join(' ')}" class="svg-stroke" stroke-width="${strokeW}" />
-              <!-- Leading Charge Dot -->
               <circle cx="${s * 0.5 + Math.sin(phase * 4) * s * 0.35}" 
                       cy="${centerY - Math.cos(phase * 4) * amp * 0.8}" 
                       r="${strokeW * 1.1}" fill="var(--accent)" />
@@ -963,48 +927,163 @@
         }
       },
       {
-        id: 'atomic_orbit',
-        title: '4. 원자 궤도 (Atomic Orbit)',
-        category: 'Energy Physics',
-        desc: '중앙 핵 주위로 2개의 타원 궤도를 따라 전자가 에너지를 머금고 고속 순환하는 물리학 모티프.',
+        id: 'plasmaVolt',
+        title: '3. 플라즈마 W 볼트 (Plasma Volt)',
+        category: 'Wattly Identity',
+        desc: 'Wattly의 시그니처 "W" 형상을 띈 고전압 번개/스파크 에너지. 전력 소비가 증가할수록 전류가 초고속으로 방전됩니다.',
         render: (size, rot, phase, load) => {
           const s = size;
           const c = s / 2;
-          const rx = s * 0.42;
-          const ry = s * 0.17;
-          const strokeW = Math.max(1.4, s * 0.07);
-
-          // Electron 1 position
-          const angle1 = rot * Math.PI * 2;
-          const e1x = Math.cos(angle1) * rx;
-          const e1y = Math.sin(angle1) * ry;
-
-          // Electron 2 position (opposite phase & angle)
-          const angle2 = -rot * Math.PI * 2 * 1.3 + Math.PI;
-          const e2x = Math.cos(angle2) * rx;
-          const e2y = Math.sin(angle2) * ry;
+          const strokeW = Math.max(1.7, s * 0.085);
+          const p1 = { x: s * 0.16, y: s * 0.28 };
+          const p2 = { x: s * 0.36, y: s * 0.74 };
+          const p3 = { x: s * 0.50, y: s * 0.38 };
+          const p4 = { x: s * 0.64, y: s * 0.74 };
+          const p5 = { x: s * 0.84, y: s * 0.28 };
 
           return `
             <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
-              <!-- Orbit 1 (Tilted +30 deg) -->
-              <g transform="translate(${c} ${c}) rotate(35)">
-                <ellipse cx="0" cy="0" rx="${rx}" ry="${ry}" class="svg-stroke" stroke-width="${strokeW * 0.75}" opacity="0.4" />
-                <circle cx="${e1x}" cy="${e1y}" r="${strokeW * 1.2}" fill="var(--accent)" />
-              </g>
-              <!-- Orbit 2 (Tilted -35 deg) -->
-              <g transform="translate(${c} ${c}) rotate(-35)">
-                <ellipse cx="0" cy="0" rx="${rx}" ry="${ry}" class="svg-stroke" stroke-width="${strokeW * 0.75}" opacity="0.4" />
-                <circle cx="${e2x}" cy="${e2y}" r="${strokeW * 1.2}" fill="currentColor" />
-              </g>
-              <!-- Center Nucleus Core -->
-              <circle cx="${c}" cy="${c}" r="${s * 0.09}" fill="currentColor" />
+              <!-- Faint Energy Ring -->
+              <circle cx="${c}" cy="${c}" r="${s * 0.44}" class="svg-stroke" stroke-width="${strokeW * 0.6}" opacity="0.25" stroke-dasharray="2,3" />
+              <!-- W Lightning Bolt -->
+              <path d="M ${p1.x} ${p1.y} L ${p2.x} ${p2.y} L ${p3.x} ${p3.y} L ${p4.x} ${p4.y} L ${p5.x} ${p5.y}" 
+                    class="svg-stroke" stroke-width="${strokeW}" stroke-linejoin="miter" stroke-linecap="round" />
+              <!-- Orbiting Plasma Spark -->
+              <circle cx="${c + Math.cos(phase * 4.5) * s * 0.32}" 
+                      cy="${c + Math.sin(phase * 4.5) * s * 0.32}" 
+                      r="${strokeW * 1.1}" fill="var(--accent)" />
             </svg>
           `;
         }
       },
       {
-        id: 'cube_3d',
-        title: '5. 아이소메트릭 큐브 (Rotating 3D Cube)',
+        id: 'wattDisc',
+        title: '4. 와트미터 디스크 (Watt-Hour Disc)',
+        category: 'Precision Meter',
+        desc: '전력량계(전기 계량기)의 회전 알루미늄 디스크 모티프. 전력 소비량(Watt)에 비례하여 인덱스 노치가 정밀 회전합니다.',
+        render: (size, rot, phase, load) => {
+          const s = size;
+          const c = s / 2;
+          const strokeW = Math.max(1.5, s * 0.08);
+          const r = s * 0.44;
+          return `
+            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+              <!-- Meter Frame Outer Housing -->
+              <circle cx="${c}" cy="${c}" r="${r}" class="svg-stroke" stroke-width="${strokeW * 0.8}" opacity="0.35" />
+              <!-- Rotating Watt Disc -->
+              <g transform="rotate(${rot * 360} ${c} ${c})">
+                <circle cx="${c}" cy="${c}" r="${r * 0.85}" class="svg-stroke" stroke-width="${strokeW * 0.5}" opacity="0.5" stroke-dasharray="2,3" />
+                <!-- Signature Black Meter Notch -->
+                <rect x="${c - strokeW * 0.9}" y="${c - r * 0.98}" width="${strokeW * 1.8}" height="${s * 0.22}" rx="1" fill="var(--accent)" />
+                <!-- Sub Index Marks -->
+                ${[90, 180, 270].map(a => `
+                  <rect x="${c - strokeW * 0.5}" y="${c - r * 0.98}" width="${strokeW}" height="${s * 0.12}" rx="0.5" fill="currentColor" opacity="0.7" transform="rotate(${a} ${c} ${c})" />
+                `).join('')}
+                <!-- Center Spindle Hub -->
+                <circle cx="${c}" cy="${c}" r="${s * 0.11}" fill="currentColor" />
+                <circle cx="${c}" cy="${c}" r="${s * 0.045}" fill="var(--bg-surface)" />
+              </g>
+            </svg>
+          `;
+        }
+      },
+      {
+        id: 'teslaVortex',
+        title: '5. 테슬라 볼텍스 (Tesla Vortex)',
+        category: 'Electromagnetics',
+        desc: '전자기 유도 코일 주변으로 4가닥의 자력선(Flux Field)이 소용돌이치며 에너지를 중심 코어로 집속합니다.',
+        render: (size, rot, phase, load) => {
+          const s = size;
+          const c = s / 2;
+          const strokeW = Math.max(1.5, s * 0.08);
+          return `
+            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+              <g transform="rotate(${rot * 360} ${c} ${c})">
+                ${[0, 90, 180, 270].map(a => `
+                  <g transform="rotate(${a} ${c} ${c})">
+                    <path d="M ${c} ${c - s * 0.09} 
+                             C ${c + s * 0.18} ${c - s * 0.14}, 
+                               ${c + s * 0.38} ${c - s * 0.30}, 
+                               ${c + s * 0.22} ${c - s * 0.44}" 
+                          class="svg-stroke" stroke-width="${strokeW}" stroke-linecap="round" />
+                  </g>
+                `).join('')}
+                <circle cx="${c}" cy="${c}" r="${s * 0.13}" fill="currentColor" />
+                <circle cx="${c}" cy="${c}" r="${s * 0.055}" fill="var(--accent)" />
+              </g>
+            </svg>
+          `;
+        }
+      },
+      {
+        id: 'vuMeter',
+        title: '6. VU 파워 미터 (VU Power Meter)',
+        category: 'Precision Meter',
+        desc: '아날로그 전력 계측기 바늘 게이지. 실시간 전력 소비량 변화에 따라 정밀 바늘이 기민하게 틱(Tick) 스윙합니다.',
+        render: (size, rot, phase, load) => {
+          const s = size;
+          const c = s / 2;
+          const strokeW = Math.max(1.5, s * 0.08);
+          const baseAngle = -42 + (load / 100) * 84;
+          const jitter = Math.sin(phase * 6) * (2.5 + (load / 100) * 5.5);
+          const angle = Math.max(-48, Math.min(48, baseAngle + jitter));
+
+          return `
+            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+              <!-- Meter Scale Arc -->
+              <path d="M ${s * 0.16} ${s * 0.62} A ${s * 0.44} ${s * 0.44} 0 0 1 ${s * 0.84} ${s * 0.62}" 
+                    class="svg-stroke" stroke-width="${strokeW * 0.8}" opacity="0.35" />
+              <!-- Scale Ticks -->
+              ${[-36, -18, 0, 18, 36].map(a => {
+                const rad = (a - 90) * Math.PI / 180;
+                const x1 = c + Math.cos(rad) * s * 0.38;
+                const y1 = s * 0.78 + Math.sin(rad) * s * 0.38;
+                const x2 = c + Math.cos(rad) * s * 0.46;
+                const y2 = s * 0.78 + Math.sin(rad) * s * 0.46;
+                const isWarn = a > 15;
+                return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${isWarn ? 'var(--accent-warm)' : 'currentColor'}" stroke-width="${strokeW * 0.7}" opacity="0.75" />`;
+              }).join('')}
+              <!-- Swinging Indicator Needle -->
+              <g transform="rotate(${angle.toFixed(1)} ${c} ${s * 0.78})">
+                <line x1="${c}" y1="${s * 0.78}" x2="${c}" y2="${s * 0.28}" stroke="var(--accent)" stroke-width="${strokeW * 1.15}" stroke-linecap="round" />
+              </g>
+              <!-- Pivot Base -->
+              <circle cx="${c}" cy="${s * 0.78}" r="${s * 0.11}" fill="currentColor" />
+            </svg>
+          `;
+        }
+      },
+      {
+        id: 'chargeArc',
+        title: '7. 차지 아크 링 (Charge Arc)',
+        category: 'Futuristic Energy',
+        desc: '다중 세그먼트 전력 아크가 상호 반대 방향으로 회전하며 스마트하고 미래지향적인 전력 관리를 표현합니다.',
+        render: (size, rot, phase, load) => {
+          const s = size;
+          const c = s / 2;
+          const strokeW = Math.max(1.6, s * 0.085);
+          const r = s * 0.40;
+          return `
+            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+              <!-- Outer Orbit (Clockwise) -->
+              <g transform="rotate(${rot * 360} ${c} ${c})">
+                <circle cx="${c}" cy="${c}" r="${r}" class="svg-stroke" stroke-width="${strokeW}" 
+                        stroke-dasharray="${r * 1.3}, ${r * 0.8}" stroke-linecap="round" />
+              </g>
+              <!-- Inner Counter Orbit (Counter-Clockwise) -->
+              <g transform="rotate(${-rot * 360 * 1.4} ${c} ${c})">
+                <circle cx="${c}" cy="${c}" r="${r * 0.65}" stroke="var(--accent)" fill="none" stroke-width="${strokeW * 0.9}" 
+                        stroke-dasharray="${r * 0.8}, ${r * 0.5}" stroke-linecap="round" />
+              </g>
+              <!-- Center Energy Hub -->
+              <circle cx="${c}" cy="${c}" r="${s * 0.10}" fill="currentColor" />
+            </svg>
+          `;
+        }
+      },
+      {
+        id: 'cube3D',
+        title: '8. 아이소메트릭 큐브 (Rotating 3D Cube)',
         category: '3D Geometric',
         desc: '3차원 대각선 축을 기준으로 와이어프레임 큐브가 자전하여 현대적이고 테크니컬한 감성을 연출합니다.',
         render: (size, rot, phase, load) => {
@@ -1014,18 +1093,14 @@
           const strokeW = Math.max(1.4, s * 0.075);
           const angle = rot * Math.PI * 2;
 
-          // 8 Vertices of a cube
           const vertices = [
             [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
             [-1, -1, 1],  [1, -1, 1],  [1, 1, 1],  [-1, 1, 1]
           ];
 
-          // Rotate around Y and X
           const projected = vertices.map(([x, y, z]) => {
-            // Yaw (Y-axis)
             const x1 = x * Math.cos(angle) + z * Math.sin(angle);
             const z1 = -x * Math.sin(angle) + z * Math.cos(angle);
-            // Pitch (Fixed 25 deg tilt)
             const pitch = 0.45;
             const y2 = y * Math.cos(pitch) - z1 * Math.sin(pitch);
             return {
@@ -1034,7 +1109,6 @@
             };
           });
 
-          // 12 Edges
           const edges = [
             [0,1],[1,2],[2,3],[3,0],
             [4,5],[5,6],[6,7],[7,4],
@@ -1056,89 +1130,13 @@
         }
       },
       {
-        id: 'infinity_loop',
-        title: '6. 뫼비우스 인피니티 (Infinity Ribbon)',
-        category: 'Fluid Motion',
-        desc: '무한대(∞) 기호 형상의 궤도를 따라 에너지가 끊김 없이 순환하며, 높은 부하에서 더욱 매끄럽게 흐릅니다.',
-        render: (size, rot, phase, load) => {
-          const s = size;
-          const c = s / 2;
-          const strokeW = Math.max(1.6, s * 0.08);
-
-          // Lemniscate of Bernoulli path for charge
-          const t = rot * Math.PI * 2;
-          const scale = s * 0.42;
-          const denom = 1 + Math.sin(t) * Math.sin(t);
-          const px = c + (scale * Math.cos(t)) / denom;
-          const py = c + (scale * Math.sin(t) * Math.cos(t)) / denom;
-
-          return `
-            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
-              <!-- Base Infinity Track -->
-              <path d="M ${c - s * 0.35} ${c}
-                       C ${c - s * 0.35} ${c - s * 0.25}, ${c} ${c - s * 0.25}, ${c} ${c}
-                       C ${c} ${c + s * 0.25}, ${c + s * 0.35} ${c + s * 0.25}, ${c + s * 0.35} ${c}
-                       C ${c + s * 0.35} ${c - s * 0.25}, ${c} ${c - s * 0.25}, ${c} ${c}
-                       C ${c} ${c + s * 0.25}, ${c - s * 0.35} ${c + s * 0.25}, ${c - s * 0.35} ${c} Z"
-                    class="svg-stroke" stroke-width="${strokeW}" opacity="0.4" />
-              <!-- Orbiting Active Energy Particle -->
-              <circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${strokeW * 1.3}" fill="var(--accent)" />
-            </svg>
-          `;
-        }
-      },
-      {
-        id: 'tape_reel',
-        title: '7. 레트로 테이프 릴 (Mainframe Reel)',
-        category: 'Retro Computing',
-        desc: '클래식 메인프레임의 마그네틱 테이프 릴이 연동 회전하는 레트로 테크 오마주.',
-        render: (size, rot, phase, load) => {
-          const s = size;
-          const r = s * 0.2;
-          const strokeW = Math.max(1.3, s * 0.065);
-          const c1 = { x: s * 0.3, y: s * 0.5 };
-          const c2 = { x: s * 0.7, y: s * 0.5 };
-
-          return `
-            <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
-              <!-- Outer Case Box outline -->
-              <rect x="${s * 0.08}" y="${s * 0.2}" width="${s * 0.84}" height="${s * 0.6}" rx="${s * 0.08}" 
-                    class="svg-stroke" stroke-width="${strokeW * 0.75}" opacity="0.3" />
-              <!-- Left Reel -->
-              <g transform="rotate(${rot * 360} ${c1.x} ${c1.y})">
-                <circle cx="${c1.x}" cy="${c1.y}" r="${r}" class="svg-stroke" stroke-width="${strokeW}" />
-                <circle cx="${c1.x}" cy="${c1.y}" r="${r * 0.3}" fill="currentColor" />
-                ${[0, 120, 240].map(a => `
-                  <line x1="${c1.x}" y1="${c1.y - r}" x2="${c1.x}" y2="${c1.y + r}" 
-                        class="svg-stroke" stroke-width="${strokeW * 0.75}" transform="rotate(${a} ${c1.x} ${c1.y})" />
-                `).join('')}
-              </g>
-              <!-- Right Reel (Inverted / synced) -->
-              <g transform="rotate(${rot * 360} ${c2.x} ${c2.y})">
-                <circle cx="${c2.x}" cy="${c2.y}" r="${r}" class="svg-stroke" stroke-width="${strokeW}" />
-                <circle cx="${c2.x}" cy="${c2.y}" r="${r * 0.3}" fill="currentColor" />
-                ${[0, 120, 240].map(a => `
-                  <line x1="${c2.x}" y1="${c2.y - r}" x2="${c2.x}" y2="${c2.y + r}" 
-                        class="svg-stroke" stroke-width="${strokeW * 0.75}" transform="rotate(${a} ${c2.x} ${c2.y})" />
-                `).join('')}
-              </g>
-              <!-- Bottom Tape Path -->
-              <path d="M ${c1.x} ${c1.y + r} Q ${s * 0.5} ${s * 0.72} ${c2.x} ${c2.y + r}" 
-                    class="svg-stroke" stroke-width="${strokeW}" />
-            </svg>
-          `;
-        }
-      },
-      {
-        id: 'thermal_bubble',
-        title: '8. 열 대류 버블 (Thermal Convection)',
+        id: 'thermalBubble',
+        title: '9. 열 대류 버블 (Thermal Convection)',
         category: 'Thermodynamics',
         desc: '발열과 쿨링에 따라 하단에서 상단으로 빠르게 솟아오르는 기포 파티클. 온도 변화에 직관적입니다.',
         render: (size, rot, phase, load) => {
           const s = size;
           const strokeW = Math.max(1.3, s * 0.065);
-          
-          // 4 rising bubbles with different offsets
           const bubbles = [
             { x: 0.32, speed: 1.0, offset: 0.0, r: 0.12 },
             { x: 0.68, speed: 1.3, offset: 0.35, r: 0.10 },
@@ -1148,13 +1146,11 @@
 
           return `
             <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
-              <!-- Glass Tube / Chamber outline -->
               <path d="M ${s * 0.15} ${s * 0.85} 
                        L ${s * 0.15} ${s * 0.22} 
                        C ${s * 0.15} ${s * 0.12}, ${s * 0.85} ${s * 0.12}, ${s * 0.85} ${s * 0.22} 
                        L ${s * 0.85} ${s * 0.85} Z" 
                     class="svg-stroke" stroke-width="${strokeW * 0.8}" opacity="0.35" />
-              <!-- Rising Bubbles -->
               ${bubbles.map(b => {
                 const progress = (phase * b.speed + b.offset) % 1.0;
                 const by = s * 0.82 - progress * (s * 0.62);
