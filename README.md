@@ -43,7 +43,7 @@ Wattly adapts to your workflow with three carefully designed popover presentatio
 
 | Mode A: Stacked Cards | Mode B: Compact Grid | Mode C: Hero + List |
 | :---: | :---: | :---: |
-| <img src="docs/assets/popover-mode-a-stacked.png" alt="Mode A: Stacked Cards" width="260" /> | <img src="docs/assets/popover-mode-b-grid.png" alt="Mode B: Compact 2-Column Grid" width="260" /> | <img src="docs/assets/popover-mode-c-hero.png" alt="Mode C: Hero + List" width="260" /> |
+| <img src="docs/assets/en/popover-mode-a-stacked.png" alt="Mode A: Stacked Cards" width="260" /> | <img src="docs/assets/en/popover-mode-b-grid.png" alt="Mode B: Compact 2-Column Grid" width="260" /> | <img src="docs/assets/en/popover-mode-c-hero.png" alt="Mode C: Hero + List" width="260" /> |
 | **Deep-Dive Overview**<br/>Expandable cards with 60-second telemetry sparklines and process rankings. | **High-Density Dashboard**<br/>2-column compact metric tiles for immediate at-a-glance status. | **Focus Telemetry**<br/>Prominent hero metric (e.g. SoC Total Watts) with detailed sub-metrics. |
 
 ---
@@ -54,7 +54,7 @@ Each telemetry domain in Wattly expands into a dedicated diagnostic card with re
 
 ### 1. Processor Power Breakdown
 <p align="center">
-  <img src="docs/assets/expand-power.png" alt="Processor Power Telemetry" width="640" />
+  <img src="docs/assets/en/expand-power.png" alt="Processor Power Telemetry" width="640" />
 </p>
 
 - **Real-Time Engine Watts**: Continuous power tracking for CPU, GPU, and Apple Neural Engine (ANE) via private `IOReport` Energy Model subscriptions.
@@ -63,7 +63,7 @@ Each telemetry domain in Wattly expands into a dedicated diagnostic card with re
 
 ### 2. CPU Cluster Architecture & Frequency
 <p align="center">
-  <img src="docs/assets/expand-cpu.png" alt="CPU Architecture & Gauges" width="640" />
+  <img src="docs/assets/en/expand-cpu.png" alt="CPU Architecture & Gauges" width="640" />
 </p>
 
 - **Topology-Aware Core Gauges**: Dynamic runtime core mapping using `sysctl` (`hw.perflevel`) supporting Super, Performance (P), and Efficiency (E) clusters.
@@ -72,7 +72,7 @@ Each telemetry domain in Wattly expands into a dedicated diagnostic card with re
 
 ### 3. GPU Pipeline & Unified VRAM
 <p align="center">
-  <img src="docs/assets/expand-gpu.png" alt="GPU Pipeline Telemetry" width="640" />
+  <img src="docs/assets/en/expand-gpu.png" alt="GPU Pipeline Telemetry" width="640" />
 </p>
 
 - **3D Renderer & Tiler Utilization**: Dual-pipeline activity tracking reflecting true graphics and compute workloads.
@@ -81,7 +81,7 @@ Each telemetry domain in Wattly expands into a dedicated diagnostic card with re
 
 ### 4. Unified Memory & Pressure
 <p align="center">
-  <img src="docs/assets/expand-memory.png" alt="Unified Memory Telemetry" width="640" />
+  <img src="docs/assets/en/expand-memory.png" alt="Unified Memory Telemetry" width="640" />
 </p>
 
 - **Kernel Virtual Memory Breakdown**: Precise distribution of Active, Wired, Compressed, and Swap pages via `host_statistics64(HOST_VM_INFO64)`.
@@ -90,7 +90,7 @@ Each telemetry domain in Wattly expands into a dedicated diagnostic card with re
 
 ### 5. Battery & Power Telemetry
 <p align="center">
-  <img src="docs/assets/expand-battery.png" alt="Battery Telemetry" width="640" />
+  <img src="docs/assets/en/expand-battery.png" alt="Battery Telemetry" width="640" />
 </p>
 
 - **System Net Discharge (W)**: Derived from AppleSMC `B0AP` / `B0AV` × `B0AC` registers with signed 64-bit two's complement decoding—capturing total system draw including display backlight, SSD, Wi-Fi, and audio subsystem.
@@ -99,7 +99,7 @@ Each telemetry domain in Wattly expands into a dedicated diagnostic card with re
 
 ### 6. Cluster Thermals & Hotspots
 <p align="center">
-  <img src="docs/assets/expand-thermals.png" alt="Cluster Thermals Telemetry" width="640" />
+  <img src="docs/assets/en/expand-thermals.png" alt="Cluster Thermals Telemetry" width="640" />
 </p>
 
 - **Multi-Sensor Thermal Aggregation**: Direct hardware readings across P-Core clusters, E-Core clusters, and GPU silicon.
@@ -113,7 +113,7 @@ Each telemetry domain in Wattly expands into a dedicated diagnostic card with re
 Wattly features a precision multi-point fan curve engine designed to keep your Apple Silicon Mac quiet during light workflows and cool under sustained heavy loads.
 
 <p align="center">
-  <img src="docs/assets/settings-fan-curve.png" alt="Smart Fan Curve Editor" width="640" />
+  <img src="docs/assets/en/settings-fan-curve.png" alt="Smart Fan Curve Editor" width="640" />
 </p>
 
 ### Key Capabilities
@@ -191,11 +191,11 @@ Wattly is built specifically for the Apple Silicon architecture, supporting all 
 Tailor the menu bar item to match your aesthetic and information density requirements:
 
 <p align="center">
-  <img src="docs/assets/menubar-styles-preview.png" alt="Menu Bar Styles Preview" width="640" />
+  <img src="docs/assets/menubar-themes.png" alt="Menu Bar Styles Preview" width="640" />
 </p>
 
 <p align="center">
-  <img src="docs/assets/settings-menubar.png" alt="Menu Bar Settings" width="640" />
+  <img src="docs/assets/en/settings-menubar.png" alt="Menu Bar Settings" width="640" />
 </p>
 
 - **Display Formats**: Choose between Icon Only, Live Wattage (W), CPU Percentage (%), Peak Thermals (°C), or custom multi-metric combinations.
@@ -203,7 +203,7 @@ Tailor the menu bar item to match your aesthetic and information density require
 
 ### Dynamic Alert Thresholds
 <p align="center">
-  <img src="docs/assets/settings-thresholds.png" alt="Dynamic Alert Thresholds" width="640" />
+  <img src="docs/assets/en/settings-thresholds.png" alt="Dynamic Alert Thresholds" width="640" />
 </p>
 
 - Configure custom warning and critical thresholds for SoC Power (W), CPU Load (%), Memory Pressure, and Hotspot Temperatures (°C).
@@ -211,7 +211,7 @@ Tailor the menu bar item to match your aesthetic and information density require
 
 ### Display & Behavior
 <p align="center">
-  <img src="docs/assets/settings-display.png" alt="Display Preferences" width="640" />
+  <img src="docs/assets/en/settings-display.png" alt="Display Preferences" width="640" />
 </p>
 
 - **Adaptive Polling Rates**: Configurable active (1–2s) and background (2–5s) refresh intervals.

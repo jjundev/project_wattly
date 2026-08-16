@@ -130,34 +130,6 @@ struct SnapshotGeneratorTests {
         }
     }
 
-    struct ExpandedThermalsWrapper: View {
-        let monitor: SystemMonitor
-        @Environment(\.tokens) private var t
-
-        var body: some View {
-            VStack(spacing: 8) {
-                MetricCardView(
-                    card: .cpuTemp,
-                    state: monitor.cardState(.cpuTemp),
-                    historyValues: monitor.historyValues(for: .cpuTemp, smoothed: false),
-                    isExpanded: true
-                )
-                MetricCardView(
-                    card: .gpuTemp,
-                    state: monitor.cardState(.gpuTemp),
-                    historyValues: monitor.historyValues(for: .gpuTemp, smoothed: false),
-                    isExpanded: true
-                )
-            }
-            .padding(14)
-            .frame(width: 320, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Tokens.dark.panelBg))
-            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Tokens.dark.panelBorder, lineWidth: 1))
-            .shadow(color: Tokens.shadowFar.color, radius: Tokens.shadowFar.radius, x: 0, y: Tokens.shadowFar.y)
-            .shadow(color: Tokens.shadowNear.color, radius: Tokens.shadowNear.radius, x: 0, y: Tokens.shadowNear.y)
-        }
-    }
-
     /// Authentic macOS Menu Bar Simulation Strip & Balanced Theme Showcase
     struct MacOSMenuBarSimulationView: View {
         let frame: Int
@@ -283,7 +255,7 @@ struct SnapshotGeneratorTests {
     }
 
     @MainActor
-    private func setupRichMonitor() async -> (SystemMonitor, FanControlClient, [CardKind: MetricSample]) {
+    private func setupRichMonitor(isEnglish: Bool) async -> (SystemMonitor, FanControlClient, [CardKind: MetricSample]) {
         FontRegistration.register()
 
         // 16-step dynamic wave sequences for realistic sparklines
@@ -317,6 +289,9 @@ struct SnapshotGeneratorTests {
         var batSamples: [MetricSample] = []
         var tempSamples: [MetricSample] = []
         var fanSamples: [MetricSample] = []
+
+        let pCoreName = isEnglish ? "P-Cores" : "P-코어"
+        let eCoreName = isEnglish ? "E-Cores" : "E-코어"
 
         for i in 0..<16 {
             let cw = cpuWattsSequence[i]
@@ -394,8 +369,8 @@ struct SnapshotGeneratorTests {
                 cpu: .reading(TemperatureReading(
                     celsius: ct,
                     groups: [
-                        TemperatureGroup(name: "P-코어", average: ct + 3.2, hottest: ct + 6.0),
-                        TemperatureGroup(name: "E-코어", average: ct - 3.2, hottest: ct - 1.4)
+                        TemperatureGroup(name: pCoreName, average: ct + 3.2, hottest: ct + 6.0),
+                        TemperatureGroup(name: eCoreName, average: ct - 3.2, hottest: ct - 1.4)
                     ]
                 )),
                 gpu: .reading(TemperatureReading(
@@ -442,10 +417,11 @@ struct SnapshotGeneratorTests {
             .fan: fanSamples.last!
         ]
 
+        let statusDetail = isEnglish ? "Smart Curve Active" : "적용 중 · 사용자 지정 곡선으로 제어"
         let mockHandler: FanControlRequestHandler = { request in
             .success(FanControlServiceStatus(
                 mode: .controlling,
-                detail: "Smart Curve 활성",
+                detail: statusDetail,
                 updatedAt: Date().timeIntervalSince1970
             ))
         }
@@ -459,10 +435,14 @@ struct SnapshotGeneratorTests {
     private func saveSnapshot<V: View>(
         view: V,
         filename: String,
+        subfolder: String? = nil,
         targetWidth: CGFloat = 320,
         scale: CGFloat = 2.0
     ) {
-        let outputDir = URL(fileURLWithPath: "/Users/hyunjun_macbook_pro/.gemini/antigravity/worktrees/project_wattly/draft_project_readme_docs/docs/assets")
+        var outputDir = URL(fileURLWithPath: "/Users/hyunjun_macbook_pro/.gemini/antigravity/worktrees/project_wattly/draft_project_readme_docs/docs/assets")
+        if let subfolder = subfolder {
+            outputDir = outputDir.appendingPathComponent(subfolder)
+        }
         try? FileManager.default.createDirectory(at: outputDir, withIntermediateDirectories: true)
         let fileURL = outputDir.appendingPathComponent(filename)
 
@@ -490,7 +470,7 @@ struct SnapshotGeneratorTests {
            let png = bitmap.representation(using: .png, properties: [:]) {
             do {
                 try png.write(to: fileURL)
-                print("✅ Generated: \(filename) (\(Int(finalSize.width))x\(Int(finalSize.height)))")
+                print("✅ Generated [\(subfolder ?? "root")]: \(filename) (\(Int(finalSize.width))x\(Int(finalSize.height)))")
             } catch {
                 print("Write error for \(filename): \(error)")
             }
@@ -574,22 +554,25 @@ struct SnapshotGeneratorTests {
         }
     }
 
-    @Test func generateAllScreenshots() async {
-        let (monitor, fanControl, sampleMap) = await setupRichMonitor()
-
-        // 1. Popover Mode A: Full Stacked Cards (All 8 cards visible)
+    private func generateLanguageScreenshots(language: String, subfolder: String?) async {
+        UserDefaults.standard.set(language, forKey: StorageKey.appLanguage)
         UserDefaults.standard.set(ThemeMode.dark.rawValue, forKey: StorageKey.theme)
+        let isEnglish = (language == "en")
+
+        let (monitor, fanControl, sampleMap) = await setupRichMonitor(isEnglish: isEnglish)
+
+        // 1. Popover Mode A: Full Stacked Cards
         let modeAView = ThemedRoot {
             FullStackedPopoverView(monitor: monitor, fanControl: fanControl)
         }
-        saveSnapshot(view: modeAView, filename: "popover-mode-a-stacked.png", targetWidth: 320)
+        saveSnapshot(view: modeAView, filename: "popover-mode-a-stacked.png", subfolder: subfolder, targetWidth: 320)
 
         // 2. Popover Mode B: Compact Grid
         UserDefaults.standard.set(PanelMode.b.rawValue, forKey: StorageKey.panelMode)
         let modeBView = ThemedRoot {
             PopoverContentView(monitor: monitor, fanControl: fanControl)
         }
-        saveSnapshot(view: modeBView, filename: "popover-mode-b-grid.png", targetWidth: 320)
+        saveSnapshot(view: modeBView, filename: "popover-mode-b-grid.png", subfolder: subfolder, targetWidth: 320)
 
         // 3. Popover Mode C: Hero (Processor Power)
         UserDefaults.standard.set(PanelMode.c.rawValue, forKey: StorageKey.panelMode)
@@ -597,7 +580,7 @@ struct SnapshotGeneratorTests {
         let modeCView = ThemedRoot {
             PopoverContentView(monitor: monitor, fanControl: fanControl)
         }
-        saveSnapshot(view: modeCView, filename: "popover-mode-c-hero.png", targetWidth: 320)
+        saveSnapshot(view: modeCView, filename: "popover-mode-c-hero.png", subfolder: subfolder, targetWidth: 320)
 
         // 4. Expand Power
         let expandPowerView = ThemedRoot {
@@ -607,7 +590,7 @@ struct SnapshotGeneratorTests {
                 history: monitor.historyValues(for: .power, smoothed: false)
             )
         }
-        saveSnapshot(view: expandPowerView, filename: "expand-power.png", targetWidth: 320)
+        saveSnapshot(view: expandPowerView, filename: "expand-power.png", subfolder: subfolder, targetWidth: 320)
 
         // 5. Expand CPU
         let expandCpuView = ThemedRoot {
@@ -617,7 +600,7 @@ struct SnapshotGeneratorTests {
                 history: monitor.historyValues(for: .cpu, smoothed: false)
             )
         }
-        saveSnapshot(view: expandCpuView, filename: "expand-cpu.png", targetWidth: 320)
+        saveSnapshot(view: expandCpuView, filename: "expand-cpu.png", subfolder: subfolder, targetWidth: 320)
 
         // 6. Expand GPU
         let expandGpuView = ThemedRoot {
@@ -627,7 +610,7 @@ struct SnapshotGeneratorTests {
                 history: monitor.historyValues(for: .gpu, smoothed: false)
             )
         }
-        saveSnapshot(view: expandGpuView, filename: "expand-gpu.png", targetWidth: 320)
+        saveSnapshot(view: expandGpuView, filename: "expand-gpu.png", subfolder: subfolder, targetWidth: 320)
 
         // 7. Expand Memory
         let expandMemView = ThemedRoot {
@@ -637,7 +620,7 @@ struct SnapshotGeneratorTests {
                 history: monitor.historyValues(for: .mem, smoothed: false)
             )
         }
-        saveSnapshot(view: expandMemView, filename: "expand-memory.png", targetWidth: 320)
+        saveSnapshot(view: expandMemView, filename: "expand-memory.png", subfolder: subfolder, targetWidth: 320)
 
         // 8. Expand Battery
         let expandBatView = ThemedRoot {
@@ -647,7 +630,7 @@ struct SnapshotGeneratorTests {
                 history: monitor.historyValues(for: .battery, smoothed: false)
             )
         }
-        saveSnapshot(view: expandBatView, filename: "expand-battery.png", targetWidth: 320)
+        saveSnapshot(view: expandBatView, filename: "expand-battery.png", subfolder: subfolder, targetWidth: 320)
 
         // 9. Expand Thermals (CPU & GPU)
         let expandThermalsView = ThemedRoot {
@@ -671,9 +654,9 @@ struct SnapshotGeneratorTests {
             .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Tokens.dark.panelBorder, lineWidth: 1))
             .shadow(color: Tokens.shadowFar.color, radius: Tokens.shadowFar.radius, x: 0, y: Tokens.shadowFar.y)
         }
-        saveSnapshot(view: expandThermalsView, filename: "expand-thermals.png", targetWidth: 320)
+        saveSnapshot(view: expandThermalsView, filename: "expand-thermals.png", subfolder: subfolder, targetWidth: 320)
 
-        // 10. Settings: Fan Curve Section (With Active Controlling Status)
+        // 10. Settings: Fan Curve Section
         UserDefaults.standard.set(true, forKey: StorageKey.fanControlEnabled)
         await fanControl.refreshStatus()
         let fanSectionView = ThemedRoot {
@@ -684,7 +667,7 @@ struct SnapshotGeneratorTests {
             .frame(width: 440)
             .background(RoundedRectangle(cornerRadius: 12).fill(Color(nsColor: .windowBackgroundColor)))
         }
-        saveSnapshot(view: fanSectionView, filename: "settings-fan-curve.png", targetWidth: 440)
+        saveSnapshot(view: fanSectionView, filename: "settings-fan-curve.png", subfolder: subfolder, targetWidth: 440)
 
         // 11. Settings: Menu Bar Section
         let menubarSectionView = ThemedRoot {
@@ -695,7 +678,7 @@ struct SnapshotGeneratorTests {
             .frame(width: 440)
             .background(RoundedRectangle(cornerRadius: 12).fill(Color(nsColor: .windowBackgroundColor)))
         }
-        saveSnapshot(view: menubarSectionView, filename: "settings-menubar.png", targetWidth: 440)
+        saveSnapshot(view: menubarSectionView, filename: "settings-menubar.png", subfolder: subfolder, targetWidth: 440)
 
         // 12. Settings: Thresholds Section
         let thresholdSectionView = ThemedRoot {
@@ -706,7 +689,7 @@ struct SnapshotGeneratorTests {
             .frame(width: 440)
             .background(RoundedRectangle(cornerRadius: 12).fill(Color(nsColor: .windowBackgroundColor)))
         }
-        saveSnapshot(view: thresholdSectionView, filename: "settings-thresholds.png", targetWidth: 440)
+        saveSnapshot(view: thresholdSectionView, filename: "settings-thresholds.png", subfolder: subfolder, targetWidth: 440)
 
         // 13. Settings: Display Section
         let displaySectionView = ThemedRoot {
@@ -717,15 +700,37 @@ struct SnapshotGeneratorTests {
             .frame(width: 440)
             .background(RoundedRectangle(cornerRadius: 12).fill(Color(nsColor: .windowBackgroundColor)))
         }
-        saveSnapshot(view: displaySectionView, filename: "settings-display.png", targetWidth: 440)
+        saveSnapshot(view: displaySectionView, filename: "settings-display.png", subfolder: subfolder, targetWidth: 440)
+    }
 
-        // 14. macOS Menu Bar Simulation (Static Snapshot)
+    @Test func generateAllScreenshots() async {
+        // 1. Korean Screenshots (into docs/assets/ and docs/assets/ko/)
+        await generateLanguageScreenshots(language: "ko", subfolder: nil)
+        await generateLanguageScreenshots(language: "ko", subfolder: "ko")
+
+        // 2. English Screenshots (into docs/assets/en/)
+        await generateLanguageScreenshots(language: "en", subfolder: "en")
+
+        // 3. Menu Bar Themes Showcase (Static Snapshot)
+        UserDefaults.standard.set("en", forKey: StorageKey.appLanguage)
         let menubarThemesView = ThemedRoot {
             MacOSMenuBarSimulationView(frame: 10)
         }
-        saveSnapshot(view: menubarThemesView, filename: "menubar-styles-preview.png", targetWidth: 720)
+        saveSnapshot(view: menubarThemesView, filename: "menubar-styles-preview.png", subfolder: nil, targetWidth: 720)
+        saveSnapshot(view: menubarThemesView, filename: "menubar-themes.png", subfolder: nil, targetWidth: 720)
 
-        // 15. Native Animated GIF of macOS Menu Bar Simulation
+        // 4. Native Animated GIF of macOS Menu Bar Simulation
+        exportAnimatedGIFFromSwiftUI(
+            viewGenerator: { frame in
+                ThemedRoot {
+                    MacOSMenuBarSimulationView(frame: frame)
+                }
+            },
+            frameCount: 24,
+            frameDuration: 0.065,
+            filename: "menubar-live.gif",
+            targetWidth: 720
+        )
         exportAnimatedGIFFromSwiftUI(
             viewGenerator: { frame in
                 ThemedRoot {
