@@ -33,14 +33,12 @@ struct PanelPresentationTests {
         #expect(CardPresentation.compactRowText(.mem, s) == "9.2 / 16 GB")
     }
 
-    @Test func batteryTemperatureRowIsCelsius() {
-        // The prototype rowOf rendered batTemp as "W" (fall-through bug); reusing unitText → "°C".
+    @Test func cpuTemperatureRowIsCelsius() {
         let snap = TemperatureSnapshot(
-            cpu: .notPresent("x"),
-            gpu: .notPresent("x"),
-            battery: .reading(TemperatureReading(celsius: 31.5)))
+            cpu: .reading(TemperatureReading(celsius: 48.5)),
+            gpu: .notPresent("x"))
         let s = MetricState.value(.temperature(snap))
-        #expect(CardPresentation.compactRowText(.batTemp, s) == "31.5 °C")
+        #expect(CardPresentation.compactRowText(.cpuTemp, s) == "48.5 °C")
     }
 
     @Test func loadingRowIsDash() {

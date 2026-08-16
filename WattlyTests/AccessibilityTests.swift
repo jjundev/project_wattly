@@ -27,7 +27,7 @@ struct AccessibilityTests {
     }
     private func temp(cpu: Double) -> MetricState {
         .value(.temperature(TemperatureSnapshot(
-            cpu: .reading(TemperatureReading(celsius: cpu)), gpu: .notPresent("x"), battery: .notPresent("x"))))
+            cpu: .reading(TemperatureReading(celsius: cpu)), gpu: .notPresent("x"))))
     }
 
     // MARK: Cold / unavailable

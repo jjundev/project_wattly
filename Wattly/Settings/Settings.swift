@@ -214,10 +214,14 @@ struct CardOrder: Equatable, Sendable, RawRepresentable {
     init?(rawValue: String) {
         let parts = rawValue.split(separator: ",").map(String.init)
         let parsed = parts.compactMap { CardKind(rawValue: $0) }
-        guard parsed.count == parts.count, !parsed.isEmpty else { return nil }
+        guard !parsed.isEmpty else { return nil }
 
-        var arr = parsed
-        let missing = CardKind.allCases.filter { !parsed.contains($0) }
+        var arr: [CardKind] = []
+        var seen = Set<CardKind>()
+        for card in parsed where seen.insert(card).inserted {
+            arr.append(card)
+        }
+        let missing = CardKind.allCases.filter { !seen.contains($0) }
 
         // When migrating newly added cards:
         // .gpu belongs immediately after .cpu, others (e.g. .fan) go at the end.
@@ -263,7 +267,7 @@ struct CardOrder: Equatable, Sendable, RawRepresentable {
     }
 
     /// The cards that should render, in this order: present (provider/category not `.notPresent`,
-    /// so desktop battery/batTemp drop out) AND shown (user toggle). The popover and the settings
+    /// so desktop battery drops out) AND shown (user toggle). The popover and the settings
     /// hero picker (plan 20) both compute their visible set through here, so the two can't drift.
     /// Pure given the two predicates (the caller passes `monitor.isPresent` + its show flags).
     func visible(present: (CardKind) -> Bool, shown: (CardKind) -> Bool) -> [CardKind] {
@@ -292,12 +296,14 @@ enum Defaults {
 
     static let show: [CardKind: Bool] = [
         .power: true, .battery: true, .cpu: true, .gpu: true, .mem: true,
-        .cpuTemp: true, .gpuTemp: true, .batTemp: true, .fan: true,
+        .cpuTemp: true, .gpuTemp: true, .fan: true,
     ]
     static let menuMetrics: [CardKind: Bool] = [
         .cpu: true, .gpu: false, .power: false, .battery: false, .mem: false,
-        .cpuTemp: false, .gpuTemp: false, .batTemp: false, .fan: false,
+        .cpuTemp: false, .gpuTemp: false, .fan: false,
     ]
+    /// Battery temperature menubar toggle. Default off.
+    static let menuBatteryTempEnabled = false
     /// Memory pressure % is a menubar-only figure with no `CardKind` of its own — a distinct
     /// figure from the `.mem` GB chip (independently toggleable — user decision). Default off,
     /// matching every non-CPU menubar chip.
@@ -307,7 +313,7 @@ enum Defaults {
     /// Mac's actual clusters ever show a live reading once enabled.
     static let menuCoreClockEnabled: [String: Bool] = ["S": false, "P": false, "E": false]
 
-    static let cardOrder = CardOrder([.power, .battery, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
+    static let cardOrder = CardOrder([.power, .battery, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .fan])
     static let thresholds = Thresholds(
         cpu: ThresholdPair(warn: 70, crit: 90),
         temp: ThresholdPair(warn: 70, crit: 90),
@@ -342,6 +348,7 @@ enum StorageKey {
     static let thresholds = "thresholds"
     static let fanCurve = "fanCurve"
     static let fanControlEnabled = "fanControlEnabled"
+    static let menuBatteryTemp = "menu.batteryTemp"
     static let menuMemPressure = "menu.memPressure"
     static let expandedCards = "expandedCards"   // CSV of expanded card raw values (issue 04)
 }

@@ -25,7 +25,7 @@ struct MenuBarLabel: View {
     @AppStorage(StorageKey.menuMemPressure) private var menuMemPressure = Defaults.menuMemPressureEnabled
     @AppStorage(StorageKey.menu(.cpuTemp)) private var menuCpuTemp = Defaults.menuMetrics[.cpuTemp] ?? false
     @AppStorage(StorageKey.menu(.gpuTemp)) private var menuGpuTemp = Defaults.menuMetrics[.gpuTemp] ?? false
-    @AppStorage(StorageKey.menu(.batTemp)) private var menuBatTemp = Defaults.menuMetrics[.batTemp] ?? false
+    @AppStorage(StorageKey.menuBatteryTemp) private var menuBatteryTemp = Defaults.menuBatteryTempEnabled
     @AppStorage(StorageKey.menu(.fan))     private var menuFan     = Defaults.menuMetrics[.fan]     ?? false
 
     var body: some View {
@@ -85,15 +85,14 @@ struct MenuBarLabel: View {
         if menuMem     { s.insert(.mem) }
         if menuCpuTemp { s.insert(.cpuTemp) }
         if menuGpuTemp { s.insert(.gpuTemp) }
-        if menuBatTemp { s.insert(.batTemp) }
         if menuFan     { s.insert(.fan) }
         return s
     }
 
     /// Pre-formatted parts for the menubar-only figures that have no `CardKind` (memory
     /// pressure % is independent of the `.mem` GB chip; the S/P/E cluster clocks are
-    /// independent of the `.cpu` % chip — menubar items update). Read directly off the
-    /// monitor, independent of `selected`.
+    /// independent of the `.cpu` % chip; battery temperature is independent of the `.battery` W chip — menubar items update).
+    /// Read directly off the monitor, independent of `selected`.
     private var extraParts: [String] {
         var parts: [String] = []
         if menuMemPressure { parts.append(MenuBarText.memPressurePart(monitor.cardState(.mem))) }
@@ -101,6 +100,9 @@ struct MenuBarLabel: View {
         if menuSClock { parts.append(MenuBarText.coreClockPart("S", cpuState)) }
         if menuPClock { parts.append(MenuBarText.coreClockPart("P", cpuState)) }
         if menuEClock { parts.append(MenuBarText.coreClockPart("E", cpuState)) }
+        if menuBatteryTemp {
+            parts.append(MenuBarText.batteryTempPart(monitor.cardState(.battery, smoothed: powerSmoothed)))
+        }
         return parts
     }
 }

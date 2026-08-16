@@ -102,7 +102,6 @@ struct SettingsView: View {
     @AppStorage(StorageKey.show(.mem))     private var showMem     = Defaults.show[.mem]     ?? true
     @AppStorage(StorageKey.show(.cpuTemp)) private var showCpuTemp = Defaults.show[.cpuTemp] ?? true
     @AppStorage(StorageKey.show(.gpuTemp)) private var showGpuTemp = Defaults.show[.gpuTemp] ?? true
-    @AppStorage(StorageKey.show(.batTemp)) private var showBatTemp = Defaults.show[.batTemp] ?? true
     @AppStorage(StorageKey.show(.fan))     private var showFan     = Defaults.show[.fan]     ?? true
 
     // 메뉴바 칩 (multi-select). Persisted now; the visible menubar effect lands with issue 14.
@@ -113,11 +112,11 @@ struct SettingsView: View {
     @AppStorage(StorageKey.menuCoreClock("E")) private var menuEClock = Defaults.menuCoreClockEnabled["E"] ?? false
     @AppStorage(StorageKey.menu(.power))   private var menuPower   = Defaults.menuMetrics[.power]   ?? false
     @AppStorage(StorageKey.menu(.battery)) private var menuBattery = Defaults.menuMetrics[.battery] ?? false
+    @AppStorage(StorageKey.menuBatteryTemp) private var menuBatteryTemp = Defaults.menuBatteryTempEnabled
     @AppStorage(StorageKey.menu(.mem))     private var menuMem     = Defaults.menuMetrics[.mem]     ?? false
     @AppStorage(StorageKey.menuMemPressure) private var menuMemPressure = Defaults.menuMemPressureEnabled
     @AppStorage(StorageKey.menu(.cpuTemp)) private var menuCpuTemp = Defaults.menuMetrics[.cpuTemp] ?? false
     @AppStorage(StorageKey.menu(.gpuTemp)) private var menuGpuTemp = Defaults.menuMetrics[.gpuTemp] ?? false
-    @AppStorage(StorageKey.menu(.batTemp)) private var menuBatTemp = Defaults.menuMetrics[.batTemp] ?? false
     @AppStorage(StorageKey.menu(.fan))     private var menuFan     = Defaults.menuMetrics[.fan]     ?? false
 
     // Login item: @AppStorage is the display MIRROR; `loginItem` (SMAppService) is authoritative.
@@ -145,7 +144,7 @@ struct SettingsView: View {
     @State private var isAdvancedMenuMetricsExpanded = false
 
     private var hasActiveAdvancedMetrics: Bool {
-        menuSClock || menuPClock || menuEClock || menuMemPressure || menuBatTemp
+        menuSClock || menuPClock || menuEClock || menuMemPressure || menuBatteryTemp
     }
 
     var body: some View {
@@ -315,7 +314,6 @@ struct SettingsView: View {
                 metricToggle(.mem, isOn: $showMem, divider: true, title: "메모리")
                 metricToggle(.cpuTemp, isOn: $showCpuTemp, divider: true, title: "CPU 온도")
                 metricToggle(.gpuTemp, isOn: $showGpuTemp, divider: true, title: "GPU 온도")
-                metricToggle(.batTemp, isOn: $showBatTemp, divider: true, title: "배터리 온도")
                 metricToggle(.fan, isOn: $showFan, divider: false, title: "팬 속도")
             }
         }
@@ -397,7 +395,7 @@ struct SettingsView: View {
                     thresholdDivider
                     gpuThresholdBlock
                     thresholdDivider
-                    thresholdBlock(title: "온도 · CPU·GPU·배터리 (°C)", keyPath: \.temp,
+                    thresholdBlock(title: "온도 · CPU·GPU (°C)", keyPath: \.temp,
                                    warnRange: 40...100, critRange: 50...110, suffix: "°")
                 }
             }
@@ -871,7 +869,15 @@ struct SettingsView: View {
                     }
                     GridRow {
                         menuMetricChip(.mem, label: "메모리 압력 (%)", isOn: menuMemPressure) { menuMemPressure.toggle() }
-                        menuMetricChip(.batTemp, label: "배터리 온도 (°C)", isOn: menuBatTemp) { menuBatTemp.toggle() }
+                        WattlyChip(
+                            label: "배터리 온도 (°C)",
+                            isOn: menuBatteryTemp,
+                            isEnabled: menubarText && monitor.isPresent(.battery),
+                            disabledReason: !menubarText
+                                ? "텍스트 표시를 켜면 선택한 지표가 아이콘 옆에 표시됩니다."
+                                : (!monitor.isPresent(.battery) ? "이 Mac에서는 사용할 수 없습니다" : nil),
+                            action: { menuBatteryTemp.toggle() }
+                        )
                     }
                 }
                 .padding(3)

@@ -35,6 +35,7 @@ actor BatteryProvider: MetricProvider {
         var rawMaxCapacityMilliampHours: Int?
         var designCapacityMilliampHours: Int?
         var cycleCount: Int?
+        var temperatureCelsius: Double?
     }
 
     func read(at instant: ContinuousClock.Instant) async -> ProviderReading {
@@ -70,7 +71,8 @@ actor BatteryProvider: MetricProvider {
             efficiencyPercent: batteryEfficiencyPercent(
                 maxCapacityMilliampHours: registry?.rawMaxCapacityMilliampHours ?? 0,
                 designCapacityMilliampHours: registry?.designCapacityMilliampHours ?? 0),
-            cycleCount: validatedBatteryCycleCount(registry?.cycleCount))
+            cycleCount: validatedBatteryCycleCount(registry?.cycleCount),
+            temperatureCelsius: registry?.temperatureCelsius)
     }
 
     private func appleSmartBatterySnapshot() -> AppleSmartBatterySnapshot? {
@@ -89,6 +91,10 @@ actor BatteryProvider: MetricProvider {
         } else {
             batteryMilliwatts = nil
         }
+
+        let tempCenti = number(service, "Temperature")?.intValue
+        let tempC = tempCenti.flatMap { batteryCelsius(rawCentiCelsius: $0, in: 0.0...80.0) }
+
         return AppleSmartBatterySnapshot(
             volts: volts,
             externalConnected: externalConnected,
@@ -97,7 +103,8 @@ actor BatteryProvider: MetricProvider {
             timeRemainingMinutes: number(service, "TimeRemaining")?.intValue ?? number(service, "AvgTimeToFull")?.intValue ?? number(service, "TimeToFull")?.intValue,
             rawMaxCapacityMilliampHours: number(service, "AppleRawMaxCapacity")?.intValue,
             designCapacityMilliampHours: number(service, "DesignCapacity")?.intValue,
-            cycleCount: number(service, "CycleCount")?.intValue)
+            cycleCount: number(service, "CycleCount")?.intValue,
+            temperatureCelsius: tempC)
     }
 
     /// Fallback: AppleSmartBattery `PowerTelemetryData.BatteryPower` (mW, signed) — coarse but
@@ -121,7 +128,8 @@ actor BatteryProvider: MetricProvider {
             efficiencyPercent: batteryEfficiencyPercent(
                 maxCapacityMilliampHours: registry.rawMaxCapacityMilliampHours ?? 0,
                 designCapacityMilliampHours: registry.designCapacityMilliampHours ?? 0),
-            cycleCount: validatedBatteryCycleCount(registry.cycleCount))))
+            cycleCount: validatedBatteryCycleCount(registry.cycleCount),
+            temperatureCelsius: registry.temperatureCelsius)))
     }
 
     private func number(_ service: io_service_t, _ key: String) -> NSNumber? {

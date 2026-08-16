@@ -8,7 +8,7 @@ import Foundation
 /// `CardOrder` had zero coverage before this.
 struct CardReorderTests {
 
-    // Default order indices: power 0, battery 1, cpu 2, gpu 3, mem 4, cpuTemp 5, gpuTemp 6, batTemp 7, fan 8.
+    // Default order indices: power 0, battery 1, cpu 2, gpu 3, mem 4, cpuTemp 5, gpuTemp 6, fan 7.
     private let order = Defaults.cardOrder
 
     // MARK: dragging downward drops `from` AFTER `target`
@@ -16,37 +16,37 @@ struct CardReorderTests {
     @Test func dragDownLandsAfterTarget() {
         // power (0) onto cpu (2) → power sits right after cpu
         let r = order.reordering(.power, onto: .cpu)
-        #expect(r.cards == [.battery, .cpu, .power, .gpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
+        #expect(r.cards == [.battery, .cpu, .power, .gpu, .mem, .cpuTemp, .gpuTemp, .fan])
     }
 
     @Test func dragDownAdjacentSwaps() {
         // power (0) onto battery (1) → simple swap
         let r = order.reordering(.power, onto: .battery)
-        #expect(r.cards == [.battery, .power, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
+        #expect(r.cards == [.battery, .power, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .fan])
     }
 
     @Test func dragFirstToLast() {
-        let r = order.reordering(.power, onto: .batTemp)
-        #expect(r.cards == [.battery, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .power, .fan])
+        let r = order.reordering(.power, onto: .fan)
+        #expect(r.cards == [.battery, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .fan, .power])
     }
 
     // MARK: dragging upward drops `from` BEFORE `target`
 
     @Test func dragUpLandsBeforeTarget() {
-        // batTemp (7) onto cpu (2) → batTemp sits right before cpu
-        let r = order.reordering(.batTemp, onto: .cpu)
-        #expect(r.cards == [.power, .battery, .batTemp, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .fan])
+        // gpuTemp (6) onto cpu (2) → gpuTemp sits right before cpu
+        let r = order.reordering(.gpuTemp, onto: .cpu)
+        #expect(r.cards == [.power, .battery, .gpuTemp, .cpu, .gpu, .mem, .cpuTemp, .fan])
     }
 
     @Test func dragUpAdjacentSwaps() {
         // gpu (3) onto cpu (2) → swap
         let r = order.reordering(.gpu, onto: .cpu)
-        #expect(r.cards == [.power, .battery, .gpu, .cpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
+        #expect(r.cards == [.power, .battery, .gpu, .cpu, .mem, .cpuTemp, .gpuTemp, .fan])
     }
 
     @Test func dragLastToFirst() {
-        let r = order.reordering(.batTemp, onto: .power)
-        #expect(r.cards == [.batTemp, .power, .battery, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .fan])
+        let r = order.reordering(.fan, onto: .power)
+        #expect(r.cards == [.fan, .power, .battery, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp])
     }
 
     // MARK: no-ops & invariants
@@ -84,9 +84,8 @@ struct CardReorderTests {
         #expect(CardOrder(rawValue: "") == nil)
     }
 
-    @Test func unknownTokenIsRejected() {
-        // "foo" isn't a CardKind → count mismatch vs parts → nil (per init? guard).
-        #expect(CardOrder(rawValue: "power,foo,cpu") == nil)
+    @Test func allUnknownTokensRejected() {
+        #expect(CardOrder(rawValue: "foo,bar,baz") == nil)
     }
 
     @Test func cardOrderAppendsNewlyAddedCards() {
@@ -97,8 +96,8 @@ struct CardReorderTests {
         #expect(order?.cards.contains(.fan) == true)               // migrated in
         #expect(order?.cards.contains(.gpu) == true)               // migrated in
         #expect(Set(order?.cards ?? []) == Set(CardKind.allCases))  // every card present
-        // .gpu is inserted directly after .cpu, .fan is appended at the end
-        #expect(order?.cards == [.power, .battery, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
+        // .gpu is inserted directly after .cpu, .fan is appended at the end, legacy .batTemp is dropped
+        #expect(order?.cards == [.power, .battery, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .fan])
     }
 
     @Test func cardOrderNormalizesLegacyTrailingGpuAfterCpu() {
@@ -106,6 +105,6 @@ struct CardReorderTests {
         let legacyTrailingGpu = "power,battery,cpu,mem,cpuTemp,gpuTemp,batTemp,fan,gpu"
         let order = CardOrder(rawValue: legacyTrailingGpu)
         #expect(order != nil)
-        #expect(order?.cards == [.power, .battery, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
+        #expect(order?.cards == [.power, .battery, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .fan])
     }
 }

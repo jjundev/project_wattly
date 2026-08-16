@@ -13,9 +13,9 @@ import Foundation
 enum MenuBarText {
     /// Canonical menubar order = the prototype's source order, with `.battery` inserted right
     /// after `.power` (menubar items update — matches `Defaults.cardOrder`'s power/battery
-    /// grouping). Memory-pressure % and self-power have no `CardKind` and are NOT in this
+    /// grouping). Memory-pressure % and battery temperature have no `CardKind` of their own and are NOT in this
     /// list — they're appended as pre-formatted "extra parts" by the caller (`MenuBarLabel`).
-    static let order: [CardKind] = [.cpu, .gpu, .power, .battery, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan]
+    static let order: [CardKind] = [.cpu, .gpu, .power, .battery, .mem, .cpuTemp, .gpuTemp, .fan]
 
     /// The joined menubar string for the selected metrics in canonical order, or `nil`
     /// when none is selected (→ icon only, the prototype's `hasMenuMetric`). Parts join
@@ -27,8 +27,7 @@ enum MenuBarText {
     }
 
     /// One metric's compact part. A live value formats per metric; loading/unavailable
-    /// (incl. desktop battery temp, which fans out to `.unavailable(.notPresent)`) yields
-    /// the long-label placeholder "<label> —". **Total** over `MetricState`, so callers
+    /// yields the long-label placeholder "<label> —". **Total** over `MetricState`, so callers
     /// are always safe.
     static func part(_ card: CardKind, _ state: MetricState) -> String {
         guard case .value(let sample) = state else { return "\(longLabel(card)) —" }
@@ -41,7 +40,6 @@ enum MenuBarText {
         case (.mem, .memory(let s)):          return "\(CardPresentation.f1(s.usedGB)) GB"
         case (.cpuTemp, .temperature(let s)): return tempPart("CPU", longLabel(card), s.cpu)
         case (.gpuTemp, .temperature(let s)): return tempPart("GPU", longLabel(card), s.gpu)
-        case (.batTemp, .temperature(let s)): return tempPart("배터리", longLabel(card), s.battery)
         case (.fan, .fan(let s)):
             return averageRPM(s.fans).map { "팬 \(Int($0.rounded())) RPM" } ?? "\(longLabel(card)) —"
         default:                              return "\(longLabel(card)) —"   // state/sample mismatch
@@ -49,7 +47,7 @@ enum MenuBarText {
     }
 
     /// Cold/unavailable prefix — the LONG form (prototype 663–668). Distinct from the
-    /// warm temperature labels (short "CPU"/"GPU"/"배터리"), which is exactly why this
+    /// warm temperature labels (short "CPU"/"GPU"), which is exactly why this
     /// cannot reuse `CardPresentation.label` (whose power label is "프로세서 전력").
     private static func longLabel(_ card: CardKind) -> String {
         switch card {
@@ -59,7 +57,6 @@ enum MenuBarText {
         case .mem: "메모리"
         case .cpuTemp: "CPU 온도"
         case .gpuTemp: "GPU 온도"
-        case .batTemp: "배터리 온도"
         case .fan: "팬"
         case .battery: "배터리"
         }
@@ -71,6 +68,12 @@ enum MenuBarText {
     private static func tempPart(_ shortLabel: String, _ longLabel: String, _ category: CategoryReading) -> String {
         if case .reading(let r) = category { return "\(shortLabel) \(Int(r.celsius.rounded()))°C" }
         return "\(longLabel) —"
+    }
+
+    /// The battery temperature chip's compact part (menubar items update).
+    static func batteryTempPart(_ state: MetricState) -> String {
+        guard case .value(.battery(let s)) = state, let c = s.temperatureCelsius else { return "배터리 온도 —" }
+        return "배터리 \(Int(c.rounded()))°C"
     }
 
     /// The memory-pressure-percent chip's compact part (menubar items update) — independent

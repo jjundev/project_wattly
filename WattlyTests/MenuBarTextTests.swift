@@ -9,14 +9,15 @@ struct MenuBarTextTests {
     private func cpu(_ v: Double) -> MetricState { .value(.cpu(CPUSample(overall: v, perfLevels: []))) }
     private func power(_ w: Double) -> MetricState { .value(.power(PowerSample(totalW: w, cpuW: 0, gpuW: 0, npuW: 0))) }
     private func mem(_ g: Double) -> MetricState { .value(.memory(MemorySample(usedGB: g, totalGB: 16, wiredGB: 0, compressedGB: 0))) }
-    private func temp(cpu: Double? = nil, gpu: Double? = nil, bat: Double? = nil) -> MetricState {
+    private func temp(cpu: Double? = nil, gpu: Double? = nil) -> MetricState {
         func cat(_ v: Double?) -> CategoryReading { v.map { .reading(TemperatureReading(celsius: $0)) } ?? .notPresent("x") }
-        return .value(.temperature(TemperatureSnapshot(cpu: cat(cpu), gpu: cat(gpu), battery: cat(bat))))
+        return .value(.temperature(TemperatureSnapshot(cpu: cat(cpu), gpu: cat(gpu))))
     }
 
-    private func battery(netW: Double, charging: Bool) -> MetricState {
+    private func battery(netW: Double, charging: Bool, temp: Double? = nil) -> MetricState {
         .value(.battery(BatterySample(netW: netW, milliamps: 1000, volts: 11.5,
-                                      charging: charging, externalConnected: charging)))
+                                      charging: charging, externalConnected: charging,
+                                      temperatureCelsius: temp)))
     }
 
     @Test func cpuRoundsToInteger() {
@@ -30,8 +31,8 @@ struct MenuBarTextTests {
         #expect(text == "GPU 38%")
     }
 
-    @Test func menuBarOrderIncludesGPU() {
-        #expect(MenuBarText.order == [.cpu, .gpu, .power, .battery, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
+    @Test func menuBarOrder() {
+        #expect(MenuBarText.order == [.cpu, .gpu, .power, .battery, .mem, .cpuTemp, .gpuTemp, .fan])
     }
 
     @Test func powerHasNoLabelAndOneDecimal() {
@@ -45,7 +46,18 @@ struct MenuBarTextTests {
     @Test func temperaturesUseShortWarmLabelAndInteger() {
         #expect(MenuBarText.part(.cpuTemp, temp(cpu: 54.3)) == "CPU 54°C")
         #expect(MenuBarText.part(.gpuTemp, temp(gpu: 48.7)) == "GPU 49°C")
-        #expect(MenuBarText.part(.batTemp, temp(bat: 31.2)) == "배터리 31°C")
+    }
+
+    @Test func batteryTempMenuBarText() {
+        let sample = BatterySample(netW: -5.0, milliamps: 450, volts: 11.2, charging: false, externalConnected: false, temperatureCelsius: 31.4)
+        let part = MenuBarText.batteryTempPart(.value(.battery(sample)))
+        #expect(part == "배터리 31°C")
+
+        let cold = MenuBarText.batteryTempPart(.loading)
+        #expect(cold == "배터리 온도 —")
+
+        let noTemp = BatterySample(netW: -5.0, milliamps: 450, volts: 11.2, charging: false, externalConnected: false, temperatureCelsius: nil)
+        #expect(MenuBarText.batteryTempPart(.value(.battery(noTemp))) == "배터리 온도 —")
     }
 
     @Test func coldUsesLongLabelPlaceholder() {
@@ -55,19 +67,13 @@ struct MenuBarTextTests {
         #expect(MenuBarText.part(.mem, .unavailable(.providerError("x"))) == "메모리 —")
         #expect(MenuBarText.part(.cpuTemp, .loading) == "CPU 온도 —")
         #expect(MenuBarText.part(.gpuTemp, .loading) == "GPU 온도 —")
-        #expect(MenuBarText.part(.batTemp, .loading) == "배터리 온도 —")
-    }
-
-    @Test func desktopBatteryTempIsUnavailablePlaceholder() {
-        // batTemp fans out to `.unavailable(.notPresent)` on a desktop → "배터리 온도 —".
-        #expect(MenuBarText.part(.batTemp, .unavailable(.notPresent("배터리 없음"))) == "배터리 온도 —")
     }
 
     @Test func assembleJoinsInCanonicalOrderWithMiddleDot() {
-        let states: [CardKind: MetricState] = [.cpu: cpu(42), .power: power(8.4), .batTemp: temp(bat: 31)]
-        // Selection given out of order; output follows the canonical order cpu·power·…·batTemp.
-        let s = MenuBarText.assemble(selected: [.batTemp, .cpu, .power], states: states)
-        #expect(s == "CPU 42%  ·  8.4 W  ·  배터리 31°C")
+        let states: [CardKind: MetricState] = [.cpu: cpu(42), .power: power(8.4), .cpuTemp: temp(cpu: 54)]
+        // Selection given out of order; output follows the canonical order cpu·power·…·cpuTemp.
+        let s = MenuBarText.assemble(selected: [.cpuTemp, .cpu, .power], states: states)
+        #expect(s == "CPU 42%  ·  8.4 W  ·  CPU 54°C")
     }
 
     @Test func assembleEmptySelectionIsNil() {

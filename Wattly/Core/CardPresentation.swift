@@ -103,7 +103,6 @@ enum CardPresentation {
             return sample.pressure?.thresholdLevel
         case (.cpuTemp, .temperature(let s)): return tempLevel(s.cpu, thresholds.temp)
         case (.gpuTemp, .temperature(let s)): return tempLevel(s.gpu, thresholds.temp)
-        case (.batTemp, .temperature(let s)): return tempLevel(s.battery, thresholds.temp)
         default: return nil   // power/battery (fixed) + any state/sample mismatch
         }
     }
@@ -125,7 +124,6 @@ enum CardPresentation {
         case .mem: "메모리"
         case .cpuTemp: "CPU 온도"
         case .gpuTemp: "GPU 온도"
-        case .batTemp: "배터리 온도"
         case .fan: "팬 속도"
         }
     }
@@ -139,7 +137,7 @@ enum CardPresentation {
         case .mem:
             if case .value(.memory(let s)) = state { return "/ \(Int(s.totalGB)) GB" }
             return "GB"
-        case .cpuTemp, .gpuTemp, .batTemp: return "°C"
+        case .cpuTemp, .gpuTemp: return "°C"
         case .fan: return "RPM"
         }
     }
@@ -158,7 +156,6 @@ enum CardPresentation {
         case (.mem, .memory(let s)): return f1(s.usedGB)
         case (.cpuTemp, .temperature(let s)): return tempText(s.cpu)
         case (.gpuTemp, .temperature(let s)): return tempText(s.gpu)
-        case (.batTemp, .temperature(let s)): return tempText(s.battery)
         case (.fan, .fan(let s)):
             return averageRPM(s.fans).map { String(Int($0.rounded())) } ?? "—"
         default: return "—"
@@ -228,6 +225,7 @@ enum CardPresentation {
     static let batteryRemainingCapacityLabel = "남은 용량"
     static let batteryEfficiencyLabel = "배터리 효율"
     static let batteryCycleLabel = "사이클"
+    static let batteryTemperatureLabel = "배터리 온도"
     static let batteryTimeToFullLabel = "완충까지 남은 시간"
 
     static func batteryAverage1mText(_ s: BatterySample) -> String? {
@@ -281,6 +279,11 @@ enum CardPresentation {
     static func batteryCycleText(_ s: BatterySample) -> String? {
         guard let count = s.cycleCount, (0...10_000).contains(count) else { return nil }
         return "\(count)"
+    }
+
+    static func batteryTemperatureText(_ s: BatterySample) -> String? {
+        guard let c = s.temperatureCelsius, c.isFinite else { return nil }
+        return "\(f1(c))°C"
     }
 
     /// Runtime perf-level name → single-letter label prefix ("Performance" → "P").

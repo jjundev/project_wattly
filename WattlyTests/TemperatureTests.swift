@@ -68,13 +68,12 @@ struct TemperatureTests {
 
     // MARK: Provider: happy path on a verified chip
 
-    @Test func verifiedChipReadsCpuGpuAndBattery() async {
-        let tx = FakeTempTransport(); tx.cpuCelsius = 85; tx.gpuCelsius = 70; tx.battery = .centiCelsius(3000)
+    @Test func verifiedChipReadsCpuAndGpu() async {
+        let tx = FakeTempTransport(); tx.cpuCelsius = 85; tx.gpuCelsius = 70
         let p = TemperatureProvider(transport: tx, model: "Mac17,2")
         let snap = await readSnapshot(p, at: base)
         #expect(snap.cpu.celsius == 85)   // uniform sensors → average == 85
         #expect(snap.gpu.celsius == 70)
-        #expect(snap.battery == .reading(TemperatureReading(celsius: 30)))   // single sensor, no groups
         #expect(tx.openCalls == 1)
     }
 
@@ -122,26 +121,15 @@ struct TemperatureTests {
     // MARK: Provider: unverified chip → terminal noVerifiedProfile, ZERO SMC I/O
 
     @Test func unverifiedChipIsTerminalAndDoesNoSMCIO() async {
-        let tx = FakeTempTransport(); tx.cpuCelsius = 99; tx.battery = .centiCelsius(3100)
+        let tx = FakeTempTransport(); tx.cpuCelsius = 99
         let p = TemperatureProvider(transport: tx, model: "Mac99,9")
         for i in 0..<3 {
             let snap = await readSnapshot(p, at: base.advanced(by: .seconds(Double(i * 2))))
             #expect(snap.cpu == .unavailable(.noVerifiedProfile))
             #expect(snap.gpu == .unavailable(.noVerifiedProfile))
-            #expect(snap.battery == .reading(TemperatureReading(celsius: 31)))   // battery still works
         }
         #expect(tx.openCalls == 0)            // terminal → never touches the SMC
         #expect(tx.readCalls == 0)
-        #expect(tx.batteryCalls == 3)         // battery is independent
-    }
-
-    // MARK: Provider: desktop battery temp hidden
-
-    @Test func desktopBatteryTempNotPresent() async {
-        let tx = FakeTempTransport(); tx.cpuCelsius = 50; tx.gpuCelsius = 48; tx.battery = .notPresent
-        let p = TemperatureProvider(transport: tx, model: "Mac17,2")
-        let snap = await readSnapshot(p, at: base)
-        if case .notPresent = snap.battery {} else { Issue.record("battery temp should be notPresent on desktop") }
     }
 
     // MARK: Provider: reconnect backoff — immediate retry, then window skips I/O
@@ -180,13 +168,12 @@ struct TemperatureTests {
 
     // MARK: Provider: gating — disabled does no SMC I/O, re-enable reconnects
 
-    @Test func disabledSkipsSMCButKeepsBattery() async {
-        let tx = FakeTempTransport(); tx.cpuCelsius = 80; tx.gpuCelsius = 70; tx.battery = .centiCelsius(3000)
+    @Test func disabledSkipsSMC() async {
+        let tx = FakeTempTransport(); tx.cpuCelsius = 80; tx.gpuCelsius = 70
         let p = TemperatureProvider(transport: tx, model: "Mac17,2")
         await p.setEnabled(false)
         let snap = await readSnapshot(p, at: base)
         #expect(snap.cpu == .unavailable(.connectionFailed))
-        #expect(snap.battery == .reading(TemperatureReading(celsius: 30)))   // battery independent of the gate
         #expect(tx.openCalls == 0)
         #expect(tx.readCalls == 0)
 
@@ -203,7 +190,7 @@ struct TemperatureTests {
     private func readSnapshot(_ p: TemperatureProvider, at instant: ContinuousClock.Instant) async -> TemperatureSnapshot {
         guard case .value(.temperature(let snap)) = await p.read(at: instant) else {
             Issue.record("expected a temperature snapshot"); return TemperatureSnapshot(
-                cpu: .unavailable(.readFailed), gpu: .unavailable(.readFailed), battery: .unavailable(.readFailed))
+                cpu: .unavailable(.readFailed), gpu: .unavailable(.readFailed))
         }
         return snap
     }
@@ -226,11 +213,9 @@ final class FakeTempTransport: TemperatureTransport, @unchecked Sendable {
     private var _cpu: Double? = nil
     private var _gpu: Double? = nil
     private var _keyValues: [String: Double] = [:]
-    private var _battery: BatterySource = .centiCelsius(3000)
     private var _allUnreadable = false
     private(set) var openCalls = 0
     private(set) var readCalls = 0
-    private(set) var batteryCalls = 0
     private(set) var closeCalls = 0
 
     var openDefault: Bool {
@@ -255,10 +240,6 @@ final class FakeTempTransport: TemperatureTransport, @unchecked Sendable {
         get { lock.lock(); defer { lock.unlock() }; return _keyValues }
         set { lock.lock(); _keyValues = newValue; lock.unlock() }
     }
-    var battery: BatterySource {
-        get { lock.lock(); defer { lock.unlock() }; return _battery }
-        set { lock.lock(); _battery = newValue; lock.unlock() }
-    }
     var allUnreadable: Bool {
         get { lock.lock(); defer { lock.unlock() }; return _allUnreadable }
         set { lock.lock(); _allUnreadable = newValue; lock.unlock() }
@@ -277,11 +258,6 @@ final class FakeTempTransport: TemperatureTransport, @unchecked Sendable {
         if key.hasPrefix("Tg") { return _gpu }
         if key.hasPrefix("Tp") || key.hasPrefix("Te") { return _cpu }
         return nil
-    }
-    func batteryTemperature() -> BatterySource {
-        lock.lock(); defer { lock.unlock() }
-        batteryCalls += 1
-        return _battery
     }
     func close() {
         lock.lock(); defer { lock.unlock() }

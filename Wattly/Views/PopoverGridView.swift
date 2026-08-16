@@ -7,7 +7,7 @@ import SwiftUI
 /// text and colors track mode A automatically — only the layout differs.
 ///
 /// The visible set + order are resolved by `PopoverContentView` (`cardOrder ∩ isPresent ∩
-/// isShown`) and passed in, so desktop hiding (battery/batTemp) and live show-toggle
+/// isShown`) and passed in, so desktop hiding (battery) and live show-toggle
 /// updates come for free without duplicating the `@AppStorage` show flags here.
 struct PopoverGridView: View {
     let cards: [CardKind]

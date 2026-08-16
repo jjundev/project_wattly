@@ -46,10 +46,9 @@ struct PollPolicyTests {
     }
 
     @Test func temperatureProviderActiveIfAnyTempCardShown() {
-        // Only battery-temp shown → the temperature provider is still polled (for batTemp),
-        // even though cpuTemp/gpuTemp are hidden. (The CPU/GPU SMC sub-path is gated
-        // separately by the provider's setEnabled.)
-        #expect(activeProviders(shown: [.batTemp], menubarNeeds: []) == [.temperature])
+        // Only CPU-temp shown → the temperature provider is still polled,
+        // even though other cards are hidden.
+        #expect(activeProviders(shown: [.cpuTemp], menubarNeeds: []) == [.temperature])
     }
 
     @Test func nothingShownYieldsNoProviders() {

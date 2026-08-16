@@ -1,14 +1,12 @@
 import Foundation
 
-/// The seven cards the popover can show, in the prototype's default order
-/// (`cardOrder`, prototype line 413).
+/// The eight cards the popover can show, in the default order.
 enum CardKind: String, CaseIterable, Codable, Sendable, Identifiable, Hashable {
-    case power, battery, cpu, gpu, mem, cpuTemp, gpuTemp, batTemp, fan
+    case power, battery, cpu, gpu, mem, cpuTemp, gpuTemp, fan
 
     var id: String { rawValue }
 
-    /// Which provider feeds this card. The three temperature cards share one
-    /// provider — a single snapshot fans out to all three (L4 / PRD line 74).
+    /// Which provider feeds this card.
     var provider: ProviderKind {
         switch self {
         case .power: .power
@@ -16,39 +14,28 @@ enum CardKind: String, CaseIterable, Codable, Sendable, Identifiable, Hashable {
         case .cpu: .cpu
         case .gpu: .gpu
         case .mem: .memory
-        case .cpuTemp, .gpuTemp, .batTemp: .temperature
+        case .cpuTemp, .gpuTemp: .temperature
         case .fan: .fan
         }
     }
 
     // MARK: Structural facts (state-independent) — the card's layout shape.
-    // The single home for the card-family booleans the views previously hardcoded
-    // (they were copy-pasted across MetricCardView / PopoverContentView). The card's
-    // *content* (label, value, unit) lives in `CardPresentation`; these are pure shape.
 
-    /// Cards with an expand region + chevron (processor-power per-app Top-3, battery
-    /// voltage/current, CPU per-core, memory Top-3, CPU/GPU-temp clusters, fan
-    /// actual/target). Drives both the chevron and whether a tap toggles.
-    var isExpandable: Bool {
-        self == .power || self == .battery || self == .cpu || self == .gpu || self == .mem || self == .cpuTemp || self == .gpuTemp || self == .fan
-    }
+    /// All 8 cards have an expand region + chevron.
+    var isExpandable: Bool { true }
 
     /// The battery card draws a polyline only; every other card fills the sparkline
-    /// area beneath the line (prototype line 100).
+    /// area beneath the line.
     var hasSparkArea: Bool { self != .battery }
 
-    /// The processor-power card is the single accented (brand-blue) card; every other
-    /// card uses the neutral theme tokens.
+    /// The processor-power card is the single accented (brand-blue) card.
     var isAccented: Bool { self == .power }
 
-    /// The processor-power and battery cards apply display smoothing (the shared
-    /// `powerSmoothed` toggle); every other card shows its raw series. The single home
-    /// for "which cards smooth", consumed by `SystemMonitor`'s state/history routing.
+    /// The processor-power and battery cards apply display smoothing.
     var isSmoothable: Bool { self == .power || self == .battery }
 }
 
-/// The five providers that cross the actor boundary (PRD line 73). Distinct from
-/// `CardKind` because the temperature provider yields three cards.
+/// The seven providers that cross the actor boundary.
 enum ProviderKind: String, CaseIterable, Sendable, Hashable {
     case cpu, gpu, memory, power, battery, temperature, fan
 }
