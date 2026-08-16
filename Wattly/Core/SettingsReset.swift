@@ -12,7 +12,8 @@ import Foundation
 /// service untouched (verifiable only in a signed build, 가정 B).
 enum SettingsReset {
     static func applyDefaults(into defaults: UserDefaults = .standard,
-                              login: LoginItemControlling? = nil) {
+                              login: LoginItemControlling? = nil,
+                              maxFanRPM: Double? = nil) {
         defaults.set(Defaults.theme.rawValue, forKey: StorageKey.theme)
         defaults.set(Defaults.appLanguage, forKey: StorageKey.appLanguage)
         defaults.set(Defaults.pollInterval.rawValue, forKey: StorageKey.pollInterval)
@@ -30,7 +31,9 @@ enum SettingsReset {
         defaults.set(Defaults.powerProcessLimit, forKey: StorageKey.powerProcessLimit)
         defaults.set(Defaults.cardOrder.rawValue, forKey: StorageKey.cardOrder)
         defaults.set(Defaults.thresholds.rawValue, forKey: StorageKey.thresholds)
-        defaults.set(Defaults.fanCurve.rawValue, forKey: StorageKey.fanCurve)
+
+        let targetFanCurve = maxFanRPM.map { FanCurvePreset.balanced.curve(forMaxRPM: $0) } ?? Defaults.fanCurve
+        defaults.set(targetFanCurve.rawValue, forKey: StorageKey.fanCurve)
         defaults.set(Defaults.fanControlEnabled, forKey: StorageKey.fanControlEnabled)
         defaults.set("", forKey: StorageKey.expandedCards)        // collapse all cards (가정 C)
         defaults.set(Defaults.loginItem, forKey: StorageKey.loginItem)

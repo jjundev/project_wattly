@@ -144,6 +144,21 @@ struct SettingsResetTests {
         #expect(FanCurve(rawValue: raw ?? "")?.rpms == Defaults.fanCurve.rpms)
     }
 
+    @Test func resetWritesHardwareAdaptiveFanCurveWhenMaxRPMProvided() {
+        let defaults = makeDefaults(#function)
+        let hardwareMaxRPM = 5400.0
+        let expectedBalancedCurve = FanCurvePreset.balanced.curve(forMaxRPM: hardwareMaxRPM)
+
+        defaults.set(FanCurve(rpms: Array(repeating: 3000, count: 15)).rawValue, forKey: StorageKey.fanCurve)
+
+        SettingsReset.applyDefaults(into: defaults, maxFanRPM: hardwareMaxRPM)
+
+        let raw = defaults.string(forKey: StorageKey.fanCurve)
+        let parsed = FanCurve(rawValue: raw ?? "")
+        #expect(parsed == expectedBalancedCurve)
+        #expect(FanCurvePreset.matchingPreset(for: parsed ?? Defaults.fanCurve, maxRPM: hardwareMaxRPM) == .balanced)
+    }
+
     @Test func resetDisablesFanControl() {
         let defaults = makeDefaults(#function)
         defaults.set(true, forKey: StorageKey.fanControlEnabled)
