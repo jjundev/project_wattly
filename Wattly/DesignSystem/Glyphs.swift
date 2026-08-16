@@ -274,7 +274,7 @@ struct ThermalBubbleMark: View {
     var body: some View {
         GeometryReader { proxy in
             let s = min(proxy.size.width, proxy.size.height)
-            let strokeW = max(1.3, s * 0.065)
+            let strokeW = max(1.6, s * 0.09)
             let phase = Double(frame) / 24.0
 
             let bubbles: [(x: CGFloat, speed: Double, offset: Double, r: CGFloat)] = [
@@ -294,8 +294,8 @@ struct ThermalBubbleMark: View {
                     p.addLine(to: CGPoint(x: s * 0.85, y: s * 0.85))
                     p.closeSubpath()
                 }
-                .stroke(style: StrokeStyle(lineWidth: strokeW * 0.8, lineCap: .round))
-                .opacity(0.35)
+                .stroke(style: StrokeStyle(lineWidth: max(1.5, strokeW * 0.95), lineCap: .round, lineJoin: .round))
+                .opacity(0.70)
 
                 ForEach(0..<bubbles.count, id: \.self) { idx in
                     let b = bubbles[idx]

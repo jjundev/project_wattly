@@ -1019,7 +1019,7 @@
         desc: '발열과 쿨링에 따라 하단에서 상단으로 빠르게 솟아오르는 기포 파티클. 온도 변화에 직관적입니다.',
         render: (size, rot, phase, load) => {
           const s = size;
-          const strokeW = Math.max(1.3, s * 0.065);
+          const strokeW = Math.max(1.6, s * 0.09);
           const bubbles = [
             { x: 0.32, speed: 1.0, offset: 0.0, r: 0.12 },
             { x: 0.68, speed: 1.3, offset: 0.35, r: 0.10 },
@@ -1033,7 +1033,7 @@
                        L ${s * 0.15} ${s * 0.22} 
                        C ${s * 0.15} ${s * 0.12}, ${s * 0.85} ${s * 0.12}, ${s * 0.85} ${s * 0.22} 
                        L ${s * 0.85} ${s * 0.85} Z" 
-                    class="svg-stroke" stroke-width="${strokeW * 0.8}" opacity="0.35" />
+                    class="svg-stroke" stroke-width="${Math.max(1.5, strokeW * 0.95).toFixed(1)}" opacity="0.70" />
               ${bubbles.map(b => {
                 const progress = (phase * b.speed + b.offset) % 1.0;
                 const by = s * 0.82 - progress * (s * 0.62);
