@@ -11,6 +11,7 @@
 		00A74CF529FE67DA3E141D39 /* FanControlEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E92DBEAC072A56D8DCF1D665 /* FanControlEngine.swift */; };
 		03C1B6D30296659A3095B84D /* FanCurveGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBB7155B2535718E387DA449 /* FanCurveGeometryTests.swift */; };
 		05A74F528E537DFEA675834F /* WattlyFanDaemon in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = C48EFA903806186E968B2D77 /* WattlyFanDaemon */; settings = {ATTRIBUTES = (); }; };
+		06A4E2EC1F8085EB8A90BE32 /* GPUTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 630ABF3D16423E3CBC855D3B /* GPUTransport.swift */; };
 		0B15660FC42EBB6A706855A7 /* SelfEnergy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 990E14E2DD88DEDA9CE98146 /* SelfEnergy.swift */; };
 		0B545B279B2A4B89D8325660 /* LoginItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0BC034680A8F9989B9D773 /* LoginItem.swift */; };
 		0B7B21D60A125A31A2D729F0 /* BatteryPower.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0BB325E6C8D3C6B7207404B /* BatteryPower.swift */; };
@@ -205,6 +206,7 @@
 		5FADA80FC02FE00A50BB9B45 /* CardPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardPresentation.swift; sourceTree = "<group>"; };
 		5FC4B0A6E07A2BA0DBE34A4F /* PanelPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelPresentationTests.swift; sourceTree = "<group>"; };
 		6051380AC611753A6A76C553 /* GPUClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUClock.swift; sourceTree = "<group>"; };
+		630ABF3D16423E3CBC855D3B /* GPUTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUTransport.swift; sourceTree = "<group>"; };
 		63A603117030042BF767DFF5 /* GPUProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUProvider.swift; sourceTree = "<group>"; };
 		67FE518CDA8ED1E9E6BAB874 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6C28B12BD323D1E5FE11B646 /* CardKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardKind.swift; sourceTree = "<group>"; };
@@ -504,6 +506,7 @@
 				EEC258F1D9F66D5F05AF9385 /* FanProvider.swift */,
 				6051380AC611753A6A76C553 /* GPUClock.swift */,
 				63A603117030042BF767DFF5 /* GPUProvider.swift */,
+				630ABF3D16423E3CBC855D3B /* GPUTransport.swift */,
 				EBCFA8BD7953C7F1E6ED403C /* MemoryProvider.swift */,
 				A3BF59076BCF45AF5DFB2F47 /* PowerProvider.swift */,
 				419C0BB5C63DC6C6DCEE8BBF /* TemperatureProvider.swift */,
@@ -728,6 +731,7 @@
 				1A2C69151BFE413F8609A063 /* FontRegistration.swift in Sources */,
 				DDF88EC3E7D5CF9FE7AE3AE0 /* GPUClock.swift in Sources */,
 				4008F7B4281DBE89FA852633 /* GPUProvider.swift in Sources */,
+				06A4E2EC1F8085EB8A90BE32 /* GPUTransport.swift in Sources */,
 				3FBFEC2F4475DCB65D4DB34C /* GPUUsage.swift in Sources */,
 				24E614EA3299409018DD6491 /* Glyphs.swift in Sources */,
 				509F33FACE47668FBB3B3535 /* HardwareModel.swift in Sources */,
