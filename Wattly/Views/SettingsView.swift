@@ -16,11 +16,11 @@ struct SettingsView: View {
     }
 
     @AppStorage(StorageKey.theme) private var theme = Defaults.theme
+    @AppStorage(StorageKey.appLanguage) private var selectedLanguage = Defaults.appLanguage
     @AppStorage(StorageKey.loginItem) private var loginMirror = Defaults.loginItem
     private let loginItem: LoginItemControlling = LoginItem()
 
     @State private var isResetConfirmationPresented = false
-    @State private var selectedLanguage: String = "ko"
 
     var body: some View {
         ScrollView {
@@ -96,7 +96,7 @@ struct SettingsView: View {
 
     private var languageMenu: some View {
         Menu {
-            ForEach(Self.supportedLanguages) { lang in
+            ForEach(AppLanguage.supportedLanguages) { lang in
                 Button {
                     selectedLanguage = lang.id
                 } label: {
@@ -109,7 +109,7 @@ struct SettingsView: View {
             }
         } label: {
             HStack(spacing: 6) {
-                Text(currentLanguageDisplayName)
+                Text(AppLanguage.displayName(for: selectedLanguage))
                     .font(WattlyFont.at(12, weight: .medium))
                     .foregroundStyle(t.text)
                 Image(systemName: "chevron.up.chevron.down")
@@ -130,49 +130,6 @@ struct SettingsView: View {
         .menuStyle(.borderlessButton)
         .fixedSize()
     }
-
-    private var currentLanguageDisplayName: String {
-        Self.supportedLanguages.first(where: { $0.id == selectedLanguage })?.displayName ?? "한국어"
-    }
-
-    private struct LanguageOption: Identifiable {
-        let id: String
-        let displayName: String
-    }
-
-    private static let supportedLanguages: [LanguageOption] = [
-        LanguageOption(id: "system", displayName: "시스템"),
-        LanguageOption(id: "ko", displayName: "한국어"),
-        LanguageOption(id: "en", displayName: "English"),
-        LanguageOption(id: "ja", displayName: "日本語"),
-        LanguageOption(id: "zh-Hans", displayName: "简体中文"),
-        LanguageOption(id: "zh-Hant", displayName: "繁體中文"),
-        LanguageOption(id: "de", displayName: "Deutsch"),
-        LanguageOption(id: "fr", displayName: "Français"),
-        LanguageOption(id: "es", displayName: "Español"),
-        LanguageOption(id: "it", displayName: "Italiano"),
-        LanguageOption(id: "pt-BR", displayName: "Português (Brasil)"),
-        LanguageOption(id: "pt-PT", displayName: "Português (Portugal)"),
-        LanguageOption(id: "ru", displayName: "Русский"),
-        LanguageOption(id: "pl", displayName: "Polski"),
-        LanguageOption(id: "nl", displayName: "Nederlands"),
-        LanguageOption(id: "sv", displayName: "Svenska"),
-        LanguageOption(id: "tr", displayName: "Türkçe"),
-        LanguageOption(id: "ar", displayName: "العربية"),
-        LanguageOption(id: "th", displayName: "ไทย"),
-        LanguageOption(id: "vi", displayName: "Tiếng Việt"),
-        LanguageOption(id: "id", displayName: "Bahasa Indonesia"),
-        LanguageOption(id: "hi", displayName: "हिन्दी"),
-        LanguageOption(id: "uk", displayName: "Українська"),
-        LanguageOption(id: "cs", displayName: "Čeština"),
-        LanguageOption(id: "da", displayName: "Dansk"),
-        LanguageOption(id: "fi", displayName: "Suomi"),
-        LanguageOption(id: "nb", displayName: "Norsk Bokmål"),
-        LanguageOption(id: "el", displayName: "Ελληνικά"),
-        LanguageOption(id: "he", displayName: "עברית"),
-        LanguageOption(id: "ro", displayName: "Română"),
-        LanguageOption(id: "hu", displayName: "Magyar"),
-    ]
 
     private var loginBinding: Binding<Bool> {
         Binding(

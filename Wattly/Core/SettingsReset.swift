@@ -14,6 +14,7 @@ enum SettingsReset {
     static func applyDefaults(into defaults: UserDefaults = .standard,
                               login: LoginItemControlling? = nil) {
         defaults.set(Defaults.theme.rawValue, forKey: StorageKey.theme)
+        defaults.set(Defaults.appLanguage, forKey: StorageKey.appLanguage)
         defaults.set(Defaults.pollInterval.rawValue, forKey: StorageKey.pollInterval)
         defaults.set(Defaults.powerMode.rawValue, forKey: StorageKey.powerMode)
         defaults.set(Defaults.panelMode.rawValue, forKey: StorageKey.panelMode)

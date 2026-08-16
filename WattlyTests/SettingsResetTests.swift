@@ -37,6 +37,7 @@ struct SettingsResetTests {
         let d = makeDefaults(#function)
         // Dirty every key with a non-default value.
         d.set(ThemeMode.light.rawValue, forKey: StorageKey.theme)
+        d.set("ja", forKey: StorageKey.appLanguage)
         d.set(PollInterval.s5.rawValue, forKey: StorageKey.pollInterval)
         d.set(PowerMode.performance.rawValue, forKey: StorageKey.powerMode)
         d.set(PanelMode.b.rawValue, forKey: StorageKey.panelMode)
@@ -53,6 +54,7 @@ struct SettingsResetTests {
         SettingsReset.applyDefaults(into: d, login: nil)
 
         #expect(d.string(forKey: StorageKey.theme) == Defaults.theme.rawValue)
+        #expect(d.string(forKey: StorageKey.appLanguage) == Defaults.appLanguage)
         #expect(d.string(forKey: StorageKey.pollInterval) == Defaults.pollInterval.rawValue)
         #expect(d.string(forKey: StorageKey.powerMode) == PowerMode.eco.rawValue)
         #expect(Defaults.panelMode == .c)

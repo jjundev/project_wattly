@@ -275,6 +275,65 @@ struct CardOrder: Equatable, Sendable, RawRepresentable {
     }
 }
 
+// MARK: - Language (i18n)
+
+public struct AppLanguageOption: Identifiable, Hashable, Sendable {
+    public let id: String
+    public let displayName: String
+
+    public init(id: String, displayName: String) {
+        self.id = id
+        self.displayName = displayName
+    }
+}
+
+public enum AppLanguage: Sendable {
+    public static let supportedLanguages: [AppLanguageOption] = [
+        AppLanguageOption(id: "system", displayName: "시스템"),
+        AppLanguageOption(id: "ko", displayName: "한국어"),
+        AppLanguageOption(id: "en", displayName: "English"),
+        AppLanguageOption(id: "ja", displayName: "日本語"),
+        AppLanguageOption(id: "zh-Hans", displayName: "简体中文"),
+        AppLanguageOption(id: "zh-Hant", displayName: "繁體中文"),
+        AppLanguageOption(id: "de", displayName: "Deutsch"),
+        AppLanguageOption(id: "fr", displayName: "Français"),
+        AppLanguageOption(id: "es", displayName: "Español"),
+        AppLanguageOption(id: "it", displayName: "Italiano"),
+        AppLanguageOption(id: "pt-BR", displayName: "Português (Brasil)"),
+        AppLanguageOption(id: "pt-PT", displayName: "Português (Portugal)"),
+        AppLanguageOption(id: "ru", displayName: "Русский"),
+        AppLanguageOption(id: "pl", displayName: "Polski"),
+        AppLanguageOption(id: "nl", displayName: "Nederlands"),
+        AppLanguageOption(id: "sv", displayName: "Svenska"),
+        AppLanguageOption(id: "tr", displayName: "Türkçe"),
+        AppLanguageOption(id: "ar", displayName: "العربية"),
+        AppLanguageOption(id: "th", displayName: "ไทย"),
+        AppLanguageOption(id: "vi", displayName: "Tiếng Việt"),
+        AppLanguageOption(id: "id", displayName: "Bahasa Indonesia"),
+        AppLanguageOption(id: "hi", displayName: "हिन्दी"),
+        AppLanguageOption(id: "uk", displayName: "Українська"),
+        AppLanguageOption(id: "cs", displayName: "Čeština"),
+        AppLanguageOption(id: "da", displayName: "Dansk"),
+        AppLanguageOption(id: "fi", displayName: "Suomi"),
+        AppLanguageOption(id: "nb", displayName: "Norsk Bokmål"),
+        AppLanguageOption(id: "el", displayName: "Ελληνικά"),
+        AppLanguageOption(id: "he", displayName: "עברית"),
+        AppLanguageOption(id: "ro", displayName: "Română"),
+        AppLanguageOption(id: "hu", displayName: "Magyar"),
+    ]
+
+    public static func locale(for identifier: String) -> Locale {
+        if identifier == "system" {
+            return Locale.autoupdatingCurrent
+        }
+        return Locale(identifier: identifier)
+    }
+
+    public static func displayName(for identifier: String) -> String {
+        supportedLanguages.first(where: { $0.id == identifier })?.displayName ?? "한국어"
+    }
+}
+
 // MARK: - Single source of defaults
 
 /// One place that both `@AppStorage` initial values and "reset to defaults" read,
@@ -282,6 +341,7 @@ struct CardOrder: Equatable, Sendable, RawRepresentable {
 /// README §common tokens.
 enum Defaults {
     static let theme = ThemeMode.system
+    static let appLanguage = "system"
     static let pollInterval = PollInterval.auto
     static let powerMode = PowerMode.eco
     static let panelMode = PanelMode.c       // ship default: hero + list (mode C)
@@ -340,6 +400,7 @@ enum StorageKey {
     static func menu(_ c: CardKind) -> String { "menu.\(c.rawValue)" }
     static func menuCoreClock(_ prefix: String) -> String { "menu.coreClock.\(prefix)" }
     static let theme = "theme"
+    static let appLanguage = "appLanguage"
     static let pollInterval = "pollInterval"
     static let powerMode = "powerMode"
     static let panelMode = "panelMode"
