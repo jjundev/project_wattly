@@ -1,4 +1,5 @@
 import Testing
+import Foundation
 @testable import Wattly
 
 struct KineticNotchMotionTests {
@@ -60,6 +61,25 @@ struct KineticNotchMotionTests {
         #expect(MenuBarIconMotion.revolutionsPerSecond(load: 100.0) == 2.50)
         // 25% load -> sqrt(0.25) = 0.5 progression -> midpoint = 0.25 + 2.25 * 0.5 = 1.375
         #expect(abs(MenuBarIconMotion.revolutionsPerSecond(load: 25.0) - 1.375) < 1e-9)
+    }
+
+    @Test func smoothedRPS_physicalInertiaSmoothing() {
+        #expect(abs(MenuBarIconMotion.smoothedRPS(current: 0.25, target: 2.50, dt: 0.25) - (0.25 + 2.25 * (1.0 - exp(-1.0)))) < 1e-9)
+        #expect(MenuBarIconMotion.smoothedRPS(current: 0.25, target: 2.50, dt: 0) == 2.50)
+    }
+
+    @Test func interFramePrecisionScheduler() {
+        // At 0.25 RPS, 24 frames -> natural interval is 1.0 / (0.25 * 24) = 1.0 / 6.0 = 0.166667s (166.7ms)
+        let idleDelay = MenuBarIconMotion.interFrameDelay(rps: 0.25, speed: .smart, isACConnected: true, frameCount: 24, style: .turbine)
+        #expect(abs(idleDelay - (1.0 / 6.0)) < 1e-9)
+
+        // At 2.50 RPS, 24 frames on AC 60fps -> interval is 1.0 / 60.0 = 0.016667s (16.7ms)
+        let maxACDelay = MenuBarIconMotion.interFrameDelay(rps: 2.50, speed: .smart, isACConnected: true, frameCount: 24, style: .turbine)
+        #expect(abs(maxACDelay - (1.0 / 60.0)) < 1e-9)
+
+        // At 2.50 RPS, 24 frames on Battery 24fps -> interval is 1.0 / 24.0 = 0.041667s (41.7ms)
+        let maxBatDelay = MenuBarIconMotion.interFrameDelay(rps: 2.50, speed: .smart, isACConnected: false, isLowPowerMode: false, frameCount: 24, style: .turbine)
+        #expect(abs(maxBatDelay - (1.0 / 24.0)) < 1e-9)
     }
 
     @Test func presetTargetFPSAndEffectiveRates() {

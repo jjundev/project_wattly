@@ -126,6 +126,34 @@ enum MenuBarIconMotion {
         return rpsMin + (rpsMax - rpsMin) * progress
     }
 
+    /// Smooths RPS transitions using a 1st-order exponential lag filter (tau = 0.25s), giving physical inertia.
+    static func smoothedRPS(current: Double, target: Double, dt: TimeInterval, tau: Double = 0.25) -> Double {
+        guard dt > 0, tau > 0 else { return target }
+        let alpha = 1.0 - exp(-dt / tau)
+        return current + (target - current) * alpha
+    }
+
+    /// Computes exact uniform inter-frame delay for the next discrete sprite transition.
+    /// Eliminates 33ms beat artifacts / micro-stuttering by sleeping precisely the duration needed for 1 sprite advance.
+    static func interFrameDelay(rps: Double,
+                               speed: KineticNotchSpeed,
+                               isACConnected: Bool = true,
+                               isLowPowerMode: Bool = false,
+                               frameCount: Int = 24,
+                               style: MenuBarIconStyle = .turbine) -> TimeInterval {
+        let targetFPS = KineticNotchSpeed.resolveTargetFPS(speed: speed, isACConnected: isACConnected, isLowPowerMode: isLowPowerMode)
+        let maxFPSDelay = 1.0 / targetFPS
+
+        // Natural duration for 1 sprite advance at current RPS
+        let naturalFPS = max(rps * Double(frameCount), 1.0)
+        let naturalDelay = 1.0 / naturalFPS
+
+        // Floor at targetFPS limit (e.g. at high load, never exceed 60fps / 16.7ms)
+        let baseDelay = max(naturalDelay, maxFPSDelay)
+        let multiplier = phaseDelayMultiplier(style: style, phase: 0)
+        return baseDelay * multiplier
+    }
+
     /// Dynamic rendering frame rate: visual necessity capped by the preset's target FPS.
     static func effectiveFrameRate(load: Double,
                                    speed: KineticNotchSpeed,
