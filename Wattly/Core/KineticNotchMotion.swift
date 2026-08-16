@@ -126,10 +126,11 @@ enum MenuBarIconMotion {
         guard !reduceMotion else { return style.staticFrame }
         let count = style.frameCount
         let safePhase = max(phase, 0.0).truncatingRemainder(dividingBy: 1.0)
+        let activeLoad = (load?.isFinite == true) ? load! : 0.0
 
         // Gauge-type meter styles (e.g. VU Meter) move needle from left to right as load increases
-        if style == .vuMeter, let load {
-            let clampedLoad = min(max(load, 0), 100)
+        if style == .vuMeter {
+            let clampedLoad = min(max(activeLoad, 0), 100)
             let baseIndex = (clampedLoad / 100.0) * Double(count - 1)
             let jitter = sin(safePhase * 2.0 * .pi * 3.0) * (0.5 + (clampedLoad / 100.0) * 1.5)
             let target = Int(round(baseIndex + jitter))
@@ -137,8 +138,8 @@ enum MenuBarIconMotion {
         }
 
         // Digital Equalizer dynamically scales bar heights based on workload tier (4 tiers x 6 subphases)
-        if style == .equalizer, let load {
-            let clampedLoad = min(max(load, 0), 100)
+        if style == .equalizer {
+            let clampedLoad = min(max(activeLoad, 0), 100)
             let tier = min(Int(clampedLoad / 25.0), 3) // Tier 0 (low) ~ Tier 3 (max load)
             let subPhase = Int(safePhase * 6.0) % 6
             return tier * 6 + subPhase

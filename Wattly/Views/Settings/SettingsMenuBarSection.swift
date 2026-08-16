@@ -162,6 +162,7 @@ struct SettingsMenuBarSection: View {
         let previewFrame = MenuBarIconMotion.displayedFrame(
             style: style,
             phase: continuousPreviewPhase,
+            load: previewLoad,
             reduceMotion: !kineticNotchMotionEnabled || reduceMotion
         )
         let fgColor = isSelected ? Tokens.accent : t.text

@@ -89,10 +89,14 @@ struct KineticNotchMotionTests {
     }
 
     @Test func motionCalculatesDisplayedFrameForContinuousPhase() {
-        for style in MenuBarIconStyle.allCases {
+        let rotationalStyles: [MenuBarIconStyle] = [.turbine, .pulseWave, .cube3D, .thermalBubble]
+        for style in rotationalStyles {
             #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 0.0, reduceMotion: false) == 0)
             #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 0.999, reduceMotion: false) == style.frameCount - 1)
             #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 1.0, reduceMotion: false) == 0)
+        }
+
+        for style in MenuBarIconStyle.allCases {
             #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 0.5, reduceMotion: true) == style.staticFrame)
         }
     }
@@ -120,5 +124,21 @@ struct KineticNotchMotionTests {
 
         let highFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 0.3, load: 95.0, reduceMotion: false)
         #expect(highFrame >= 18 && highFrame <= 23)
+    }
+
+    @Test func vuMeterAndEqualizerHandleNilAndNaNSafely() {
+        // nil load safely falls back to 0% idle state, not arbitrary full-range spinning
+        let vuNil = MenuBarIconMotion.displayedFrame(style: .vuMeter, phase: 0.5, load: nil, reduceMotion: false)
+        #expect(vuNil >= 0 && vuNil <= 3)
+
+        let eqNil = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 0.5, load: nil, reduceMotion: false)
+        #expect(eqNil >= 0 && eqNil <= 5) // Tier 0
+
+        // NaN load safely falls back to 0% idle state without crashing
+        let vuNaN = MenuBarIconMotion.displayedFrame(style: .vuMeter, phase: 0.5, load: .nan, reduceMotion: false)
+        #expect(vuNaN >= 0 && vuNaN <= 3)
+
+        let eqNaN = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 0.5, load: .nan, reduceMotion: false)
+        #expect(eqNaN >= 0 && eqNaN <= 5)
     }
 }
