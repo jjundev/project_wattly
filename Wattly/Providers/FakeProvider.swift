@@ -148,7 +148,15 @@ actor FakeProvider: MetricProvider {
             ]))
         case .gpu:
             let g = v("gpu")
-            return .gpu(makeGPUSample(overall: g, coreCount: 10, activeGHz: 1.28))
+            return .gpu(makeGPUSample(
+                overall: g,
+                rendererUsage: g * 0.9,
+                tilerUsage: g * 0.35,
+                inUseMemoryBytes: 858 * 1024 * 1024,
+                allocMemoryBytes: 2048 * 1024 * 1024,
+                coreCount: 10,
+                activeGHz: 1.28
+            ))
         }
     }
 
