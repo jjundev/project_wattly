@@ -177,7 +177,7 @@ struct SettingsView: View {
     }
 
     private func applyDefaults() {
-        SettingsReset.applyDefaults(login: loginItem)
+        SettingsReset.applyDefaults(login: loginItem, maxFanRPM: monitor.hardwareMaxFanRPM)
         loginMirror = loginItem.isEnabled
     }
 }

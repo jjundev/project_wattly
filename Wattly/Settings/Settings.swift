@@ -402,9 +402,10 @@ enum Defaults {
         temp: ThresholdPair(warn: 70, crit: 90),
         gpu: nil
     )
-    /// Fan curve: target RPMs at the fixed 30…100 °C anchors (5° steps). A gentle ramp — quiet
-    /// at idle, spinning up toward the fan's top end under sustained heat.
-    static let fanCurve = FanCurve(rpms: [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6000, 6300, 6500])
+    /// Fan curve: the balanced preset at the canonical 6 500 RPM ceiling.
+    /// Using `FanCurvePreset.balanced.curve` keeps this value in sync with the
+    /// preset definition — no parallel hardcoded array to drift.
+    static let fanCurve = FanCurvePreset.balanced.curve
     /// Opt-in only: without an explicit user choice the helper is never asked to take over.
     static let fanControlEnabled = false
 }
