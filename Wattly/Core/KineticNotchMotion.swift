@@ -116,7 +116,7 @@ enum KineticNotchSpeed: String, CaseIterable, Identifiable, Sendable {
 }
 
 enum MenuBarIconMotion {
-    static let rpsMin = 0.25 // 1 rev per 4.0s at 0% idle load
+    static let rpsMin = 0.50 // 1 rev per 2.0s at 0% idle load (upgraded from 0.25 for smooth 12fps baseline under ProMotion throttling)
     static let rpsMax = 2.50 // 1 rev per 0.4s at 100% full load
 
     /// Physical rotation speed in revolutions per second (RPS), solely determined by workload.
