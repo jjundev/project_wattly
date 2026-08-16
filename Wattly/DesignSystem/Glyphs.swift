@@ -543,12 +543,12 @@ struct HillRunnerMark: View {
         var forearmAngle: Double
         if swing >= 0 {
             let prog = swing
-            upperAngle = 1.30 - prog * 0.90 // Reaches forward-down
-            forearmAngle = upperAngle - (1.10 + prog * 0.40) // Thrusts forward-up into the air
+            upperAngle = 1.25 - prog * 0.85 // Reaches forward-down
+            forearmAngle = upperAngle - (1.10 + prog * 0.40) // Hand thrusts up-forward to chin
         } else {
             let prog = -swing
-            upperAngle = 1.30 + prog * 1.55 // Reaches straight back
-            forearmAngle = upperAngle + 0.35 + prog * 0.25 // Extends completely behind the back
+            upperAngle = 1.25 + prog * 1.55 // Elbow drives high up-back
+            forearmAngle = upperAngle - (0.60 + prog * 0.35) // Forearm trails down-back behind hips
         }
 
         var ex = shX + cos(upperAngle) * A1
