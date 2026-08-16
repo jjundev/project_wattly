@@ -6,19 +6,19 @@ import Foundation
 
 /// The poll interval for one cycle. Only `.auto` adapts to runtime state: an open panel
 /// means the user is watching (1 s live view — `Task.sleep` `tolerance` coalesces toward
-/// the prototype's "1–2초"), while a closed panel drops to 2 s when the menubar still
-/// shows a number and 5 s when it doesn't (issue 09 §1 + prototype hint copy). The fixed
+/// the prototype's "1–2초"), while a closed panel drops to 2 s when the menubar has live
+/// content (text or Kinetic Notch motion) and 5 s when it doesn't (issue 09 §1 + prototype hint copy). The fixed
 /// 1/2/5 settings are constant: the user pinned a cadence, so it doesn't idle down.
 func resolvePollInterval(setting: PollInterval,
                          panelVisible: Bool,
-                         menubarTextEnabled: Bool) -> Duration {
+                         menubarLiveContentEnabled: Bool) -> Duration {
     switch setting {
     case .s1: return .seconds(1)
     case .s2: return .seconds(2)
     case .s5: return .seconds(5)
     case .auto:
         if panelVisible { return .seconds(1) }
-        return menubarTextEnabled ? .seconds(2) : .seconds(5)
+        return menubarLiveContentEnabled ? .seconds(2) : .seconds(5)
     }
 }
 
@@ -35,7 +35,7 @@ func activeProviders(shown: Set<CardKind>, menubarNeeds: Set<CardKind>) -> Set<P
 func providerIntervals(mode: PowerMode,
                        setting: PollInterval,
                        panelVisible: Bool,
-                       menubarTextEnabled: Bool,
+                       menubarLiveContentEnabled: Bool,
                        active: Set<ProviderKind>,
                        menubarNeeds: Set<CardKind>,
                        isACConnected: Bool = false) -> [ProviderKind: Duration] {
@@ -58,12 +58,12 @@ func providerIntervals(mode: PowerMode,
             return open.filter { active.contains($0.key) }
         }
 
-        let fastInterval: Duration = if menubarTextEnabled {
+        let fastInterval: Duration = if menubarLiveContentEnabled {
             isACConnected ? .seconds(2) : .seconds(3)
         } else {
             isACConnected ? .seconds(3) : .seconds(5)
         }
-        let slowInterval: Duration = if menubarTextEnabled {
+        let slowInterval: Duration = if menubarLiveContentEnabled {
             isACConnected ? .seconds(5) : .seconds(10)
         } else {
             .seconds(10)
@@ -89,7 +89,7 @@ func providerIntervals(mode: PowerMode,
         return open.filter { active.contains($0.key) }
     }
 
-    guard menubarTextEnabled else { return [:] }
+    guard menubarLiveContentEnabled else { return [:] }
     let menuProviders = Set(menubarNeeds.map(\.provider)).intersection(active)
     var result: [ProviderKind: Duration] = [:]
     for kind in menuProviders {

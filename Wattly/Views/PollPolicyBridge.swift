@@ -10,10 +10,18 @@ import SwiftUI
 struct PollPolicyBridge: View {
     let monitor: SystemMonitor
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var visibilitySettings = VisibilitySettings.shared
     @AppStorage(StorageKey.pollInterval) private var pollInterval: PollInterval = Defaults.pollInterval
     @AppStorage(StorageKey.powerMode) private var powerMode: PowerMode = Defaults.powerMode
     @AppStorage(StorageKey.menubarTextEnabled) private var menubarTextEnabled = Defaults.menubarTextEnabled
+    @AppStorage(StorageKey.kineticNotchMotionEnabled) private var kineticNotchMotionEnabled = Defaults.kineticNotchMotionEnabled
+    @AppStorage(StorageKey.kineticNotchSource) private var kineticNotchSource = Defaults.kineticNotchSource
+
+    private var motionMetrics: Set<CardKind> {
+        guard kineticNotchMotionEnabled, !reduceMotion else { return [] }
+        return kineticNotchSource.requiredCards
+    }
 
     var body: some View {
         Color.clear
@@ -28,6 +36,7 @@ struct PollPolicyBridge: View {
                 await monitor.setMenubarTextEnabled(menubarTextEnabled)
                 await monitor.setShownCards(visibilitySettings.activeCards)
                 await monitor.setMenubarMetrics(visibilitySettings.requiredMenuCards)   // before start() (B5): first poll sees the persisted chips
+                await monitor.setMenubarMotionMetrics(motionMetrics)
                 monitor.start()
             }
             // Live updates only (`.onChange` doesn't fire on first appear, so no redundant
@@ -38,5 +47,8 @@ struct PollPolicyBridge: View {
             .onChange(of: menubarTextEnabled) { _, v in Task { await monitor.setMenubarTextEnabled(v) } }
             .onChange(of: visibilitySettings.activeCards) { _, v in Task { await monitor.setShownCards(v) } }
             .onChange(of: visibilitySettings.requiredMenuCards) { _, v in Task { await monitor.setMenubarMetrics(v) } }
+            .onChange(of: kineticNotchMotionEnabled) { _, _ in Task { await monitor.setMenubarMotionMetrics(motionMetrics) } }
+            .onChange(of: kineticNotchSource) { _, _ in Task { await monitor.setMenubarMotionMetrics(motionMetrics) } }
+            .onChange(of: reduceMotion) { _, _ in Task { await monitor.setMenubarMotionMetrics(motionMetrics) } }
     }
 }

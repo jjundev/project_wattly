@@ -64,7 +64,7 @@ func pollingDescription(for setting: PollInterval, mode: PowerMode) -> String {
     case .auto:
         switch mode {
         case .eco:
-            "패널을 열면 CPU·전력은 1초(오픈 즉시 표시), 온도는 2초, 메모리·배터리는 5초마다 갱신합니다. 패널을 닫으면 메뉴바에 표시한 지표만 2~5초마다 갱신하며, 메뉴바 텍스트를 끄면 지표 갱신을 멈춥니다."
+            "패널을 열면 CPU·전력은 1초(오픈 즉시 표시), 온도는 2초, 메모리·배터리는 5초마다 갱신합니다. 패널을 닫으면 메뉴바 텍스트 또는 Kinetic Notch 모션에 필요한 지표만 2~5초마다 갱신합니다."
         case .performance:
             "패널을 열면 CPU·전력·온도는 1초, 메모리·팬은 3초마다 갱신합니다. 패널을 닫으면 지표 특성과 전원 상태(배터리/충전)에 맞춰 최적화하여 갱신합니다."
         }
@@ -288,6 +288,9 @@ enum Defaults {
     static let heroMetric = CardKind.power   // mode C hero (plan 20); falls back to first visible when hidden
     static let loginItem = true            // F1: a MIRROR of SMAppService — NOT authoritative
     static let menubarTextEnabled = true   // default menubar metric = CPU only
+    static let kineticNotchMotionEnabled = true
+    static let kineticNotchSource = KineticNotchSource.cpu
+    static let kineticNotchSpeed = KineticNotchSpeed.standard
     static let powerSmoothed = true        // 프로세서 전력 + 배터리 카드: EMA-smoothed display (raw spikes mislead)
     /// Battery health can feel sensitive as it declines from 100%, so keep it opt-in.
     static let showBatteryEfficiency = false
@@ -342,6 +345,9 @@ enum StorageKey {
     static let heroMetric = "heroMetric"   // mode C hero metric (plan 20)
     static let loginItem = "loginItem"
     static let menubarTextEnabled = "menubarTextEnabled"
+    static let kineticNotchMotionEnabled = "kineticNotchMotionEnabled"
+    static let kineticNotchSource = "kineticNotchSource"
+    static let kineticNotchSpeed = "kineticNotchSpeed"
     static let powerSmoothed = "powerSmoothed"
     static let showBatteryEfficiency = "showBatteryEfficiency"
     static let memoryProcessLimit = "memoryProcessLimit"

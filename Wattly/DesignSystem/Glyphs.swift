@@ -1,21 +1,107 @@
 import SwiftUI
 
-/// The Wattly lightning mark — the exact prototype polygon
-/// (`points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"`, 24×24 viewBox, line 67),
-/// so the brand glyph is pixel-faithful rather than an SF Symbol approximation.
-struct LightningGlyph: Shape {
+/// The adopted Wattly Pulse W waveform. Its raised left endpoint and marker express
+/// a live measurement rather than the generic “power” lightning-bolt metaphor.
+struct PulseWGlyph: Shape {
     func path(in rect: CGRect) -> Path {
-        let pts: [(CGFloat, CGFloat)] = [
-            (13, 2), (3, 14), (12, 14), (11, 22), (21, 10), (12, 10), (13, 2),
-        ]
-        let s = min(rect.width, rect.height) / 24
         var p = Path()
-        for (i, pt) in pts.enumerated() {
-            let cg = CGPoint(x: rect.minX + pt.0 * s, y: rect.minY + pt.1 * s)
-            if i == 0 { p.move(to: cg) } else { p.addLine(to: cg) }
+        func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            CGPoint(x: rect.minX + rect.width * (1 - x), y: rect.minY + rect.height * y)
         }
-        p.closeSubpath()
+
+        p.move(to: point(0.07, 0.56))
+        p.addLine(to: point(0.20, 0.56))
+        p.addCurve(to: point(0.38, 0.80),
+                   control1: point(0.26, 0.56), control2: point(0.30, 0.80))
+        p.addCurve(to: point(0.52, 0.47),
+                   control1: point(0.43, 0.80), control2: point(0.46, 0.47))
+        p.addCurve(to: point(0.67, 0.80),
+                   control1: point(0.57, 0.47), control2: point(0.62, 0.80))
+        p.addCurve(to: point(0.86, 0.41),
+                   control1: point(0.73, 0.80), control2: point(0.79, 0.53))
         return p
+    }
+}
+
+/// The full Pulse W logo, including its electric-blue live-measurement marker.
+/// A separate view keeps the waveform usable as a monochrome status-bar template.
+struct PulseWMark: View {
+    var lineWidth: CGFloat
+    var markerColor: Color = Tokens.accent
+
+    var body: some View {
+        GeometryReader { proxy in
+            let diameter = min(proxy.size.width, proxy.size.height) * 0.20
+            ZStack(alignment: .topLeading) {
+                PulseWGlyph()
+                    .stroke(style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
+                Circle()
+                    .fill(markerColor)
+                    .frame(width: diameter, height: diameter)
+                    .position(x: proxy.size.width * 0.11, y: proxy.size.height * 0.17)
+            }
+        }
+    }
+}
+
+struct FluxLoopOutline: Shape {
+    func path(in rect: CGRect) -> Path {
+        let inset = min(rect.width, rect.height) * 0.10
+        let track = rect.insetBy(dx: inset, dy: inset)
+        return Path(roundedRect: track, cornerRadius: track.height * 0.36)
+    }
+}
+
+struct FluxLoopCore: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            CGPoint(x: rect.minX + rect.width * x, y: rect.minY + rect.height * y)
+        }
+        path.move(to: point(0.27, 0.31))
+        path.addLine(to: point(0.41, 0.71))
+        path.addLine(to: point(0.50, 0.47))
+        path.addLine(to: point(0.59, 0.71))
+        path.addLine(to: point(0.73, 0.31))
+        return path
+    }
+}
+
+/// A seven-frame energy loop. The active charge pauses at the lateral extremes
+/// through KineticNotchMotion's phase delays; this view itself is a static frame.
+struct FluxLoopMark: View {
+    let frame: Int
+    var markerColor: Color = Tokens.accent
+
+    private static let chargePositions = [
+        CGPoint(x: 0.50, y: 0.10), CGPoint(x: 0.79, y: 0.20),
+        // Phase 2 is KineticNotchMotion.rightEdgePhase.
+        CGPoint(x: 0.90, y: 0.50), CGPoint(x: 0.70, y: 0.84),
+        CGPoint(x: 0.30, y: 0.84),
+        // Phase 5 is KineticNotchMotion.leftEdgePhase.
+        CGPoint(x: 0.10, y: 0.50),
+        CGPoint(x: 0.21, y: 0.20)
+    ]
+
+    private var chargePosition: CGPoint {
+        Self.chargePositions[min(max(frame, 0), Self.chargePositions.count - 1)]
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            let diameter = min(proxy.size.width, proxy.size.height) * 0.22
+            ZStack {
+                FluxLoopOutline()
+                    .stroke(style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                FluxLoopCore()
+                    .stroke(style: StrokeStyle(lineWidth: 1.65, lineCap: .round, lineJoin: .round))
+                Circle()
+                    .fill(markerColor)
+                    .frame(width: diameter, height: diameter)
+                    .position(x: proxy.size.width * chargePosition.x,
+                              y: proxy.size.height * chargePosition.y)
+            }
+        }
     }
 }
 

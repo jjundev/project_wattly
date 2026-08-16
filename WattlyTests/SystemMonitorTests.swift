@@ -335,11 +335,12 @@ struct SystemMonitorTests {
         #expect(await cpu.reads == 2)
     }
 
-    @Test func textOffPerformsNoMetricReads() async {
+    @Test func textAndMotionOffPerformNoMetricReads() async {
         let cpu = CountingProvider(kind: .cpu)
         let monitor = SystemMonitor(providers: [cpu], clock: ManualClock())
 
         await monitor.setMenubarTextEnabled(false)
+        await monitor.setMenubarMotionMetrics([])
         monitor.stop()
         await monitor.pollScheduled(force: false)
 
@@ -536,7 +537,7 @@ struct SystemMonitorTests {
         monitor.setPollInterval(.auto)
         monitor.start()
 
-        #expect(await power.reads == 0) // Closed panel in eco mode without menubar text skips power
+        #expect(await power.reads == 0) // Closed eco mode: power is absent from current closed-menu demands.
         monitor.setPanelVisible(true)
         // t = 0 immediate poll triggered by reschedule
         for _ in 0..<50 where (await power.reads < 1) { await Task.yield() }
@@ -562,4 +563,3 @@ struct SystemMonitorTests {
         monitor.stop()
     }
 }
-

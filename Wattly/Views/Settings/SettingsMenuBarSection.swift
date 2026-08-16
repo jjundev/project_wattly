@@ -1,11 +1,15 @@
 import SwiftUI
 
-/// Menu bar settings section: Menu bar icon text toggle and metric chip multi-select grid.
+/// Menu bar settings: a group containing icon-motion and text-metric sections.
 struct SettingsMenuBarSection: View {
     let monitor: SystemMonitor
     @Environment(\.tokens) private var t
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @AppStorage(StorageKey.menubarTextEnabled) private var menubarText = Defaults.menubarTextEnabled
+    @AppStorage(StorageKey.kineticNotchMotionEnabled) private var kineticNotchMotionEnabled = Defaults.kineticNotchMotionEnabled
+    @AppStorage(StorageKey.kineticNotchSource) private var kineticNotchSource = Defaults.kineticNotchSource
+    @AppStorage(StorageKey.kineticNotchSpeed) private var kineticNotchSpeed = Defaults.kineticNotchSpeed
 
     // 메뉴바 칩 (multi-select).
     @AppStorage(StorageKey.menu(.cpu))     private var menuCPU     = Defaults.menuMetrics[.cpu]     ?? false
@@ -23,40 +27,158 @@ struct SettingsMenuBarSection: View {
     @AppStorage(StorageKey.menu(.fan))     private var menuFan     = Defaults.menuMetrics[.fan]     ?? false
 
     @State private var isAdvancedMenuMetricsExpanded = false
+    @State private var fluxLoopPreviewPhase = KineticNotchMotion.staticFrame
 
     private var hasActiveAdvancedMetrics: Bool {
         menuSClock || menuPClock || menuEClock || menuMemPressure || menuBatteryTemp
     }
 
     var body: some View {
-        SettingsSection(title: "메뉴바") {
-            SettingsCard {
-                SettingsToggleRow(isOn: $menubarText, divider: true) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        SettingsRowTitle("텍스트 표시")
-                        Text("메뉴바 아이콘 옆에 선택한 지표를 함께 표시합니다.")
+        VStack(alignment: .leading, spacing: 18) {
+            SettingsGroupHeader(title: "메뉴바")
+
+            SettingsSection(title: "아이콘") {
+                SettingsCard {
+                    kineticNotchControls
+                }
+            }
+
+            SettingsSection(title: "텍스트") {
+                SettingsCard {
+                    SettingsToggleRow(isOn: $menubarText, divider: true) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            SettingsRowTitle("텍스트 표시")
+                            Text("메뉴바 아이콘 옆에 선택한 지표를 함께 표시합니다.")
+                                .font(WattlyFont.at(11.5, weight: .regular))
+                                .foregroundStyle(t.faint)
+                        }
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("표시할 지표 (복수 선택)")
                             .font(WattlyFont.at(11.5, weight: .regular))
                             .foregroundStyle(t.faint)
+                        if !menubarText {
+                            Text("텍스트 표시를 켜면 선택한 지표가 아이콘 옆에 표시됩니다.")
+                                .font(WattlyFont.at(11.5, weight: .regular))
+                                .foregroundStyle(t.faint)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        menuChipGrid
                     }
+                    .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
                 }
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("표시할 지표 (복수 선택)")
-                        .font(WattlyFont.at(11.5, weight: .regular))
-                        .foregroundStyle(t.faint)
-                    if !menubarText {
-                        Text("텍스트 표시를 켜면 선택한 지표가 아이콘 옆에 표시됩니다.")
-                            .font(WattlyFont.at(11.5, weight: .regular))
-                            .foregroundStyle(t.faint)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    menuChipGrid
-                }
-                .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
             }
         }
         .task {
             if hasActiveAdvancedMetrics { isAdvancedMenuMetricsExpanded = true }
         }
+    }
+
+    private var kineticNotchControls: some View {
+        VStack(spacing: 0) {
+            SettingsToggleRow(isOn: $kineticNotchMotionEnabled, divider: kineticNotchMotionEnabled) {
+                VStack(alignment: .leading, spacing: 2) {
+                    SettingsRowTitle("부하에 맞춰 전류 흐름 보이기")
+                    Text("선택한 부하가 높을수록 메뉴바 Flux Loop 전류가 더 빠르게 순환합니다. 양 가장자리에서는 잠시 느려집니다.")
+                        .font(WattlyFont.at(11.5, weight: .regular))
+                        .foregroundStyle(t.faint)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            if kineticNotchMotionEnabled {
+                VStack(alignment: .leading, spacing: 10) {
+                    kineticNotchField(title: "부하 원본") {
+                        WattlySegment(selection: $kineticNotchSource,
+                                      options: KineticNotchSource.allCases.map { ($0, $0.label) },
+                                      fontSize: 11.5, pillVPadding: 6)
+                    }
+                    kineticNotchField(title: "움직임 속도") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            WattlySegment(selection: $kineticNotchSpeed,
+                                          options: KineticNotchSpeed.allCases.map { ($0, $0.label) },
+                                          fontSize: 11.5, pillVPadding: 6)
+                            Text(kineticNotchSpeed.description)
+                                .font(WattlyFont.at(11.5, weight: .regular))
+                                .foregroundStyle(t.faint)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    kineticNotchField(title: "미리보기") {
+                        HStack(spacing: 10) {
+                            FluxLoopMark(frame: previewFrame)
+                                .frame(width: 34, height: 28)
+                                .foregroundStyle(t.text)
+                                .task(id: "\(kineticNotchMotionEnabled)-\(kineticNotchSpeed.rawValue)-\(previewFrameRate ?? 0)-\(reduceMotion)") {
+                                    guard let frameRate = previewFrameRate,
+                                          kineticNotchMotionEnabled,
+                                          !reduceMotion else {
+                                        fluxLoopPreviewPhase = KineticNotchMotion.staticFrame
+                                        return
+                                    }
+                                    while !Task.isCancelled {
+                                        let phase = fluxLoopPreviewPhase
+                                        let delay = KineticNotchMotion.frameDelay(phase: phase, frameRate: frameRate)
+                                        try? await Task.sleep(for: .seconds(delay))
+                                        guard !Task.isCancelled else { return }
+                                        fluxLoopPreviewPhase = (phase + 1) % KineticNotchMotion.frameCount
+                                    }
+                                }
+                            if let previewLoad {
+                                let frameRate = KineticNotchMotion.frameRate(load: previewLoad, speed: kineticNotchSpeed) ?? 0
+                                Text("\(Int(previewLoad.rounded()))% · \(frameRate, specifier: "%.1f") fps")
+                                    .font(WattlyFont.at(11.5, weight: .medium))
+                                    .foregroundStyle(t.faint)
+                            } else {
+                                Text("선택한 부하를 읽는 동안 전류는 정지합니다.")
+                                    .font(WattlyFont.at(11.5, weight: .regular))
+                                    .foregroundStyle(t.faint)
+                            }
+                        }
+                    }
+                }
+                .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
+            }
+        }
+    }
+
+    private func kineticNotchField<Content: View>(title: String,
+                                                   @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(WattlyFont.at(11.5, weight: .regular))
+                .foregroundStyle(t.faint)
+            content()
+        }
+    }
+
+    private var previewFrameRate: Double? {
+        guard kineticNotchMotionEnabled, !reduceMotion, let previewLoad else { return nil }
+        return KineticNotchMotion.frameRate(load: previewLoad, speed: kineticNotchSpeed)
+    }
+
+    private var previewFrame: Int {
+        KineticNotchMotion.displayedFrame(
+            phase: fluxLoopPreviewPhase,
+            reduceMotion: previewFrameRate == nil
+        )
+    }
+
+    private var previewLoad: Double? {
+        let cpu: Double?
+        if case .value(.cpu(let sample)) = monitor.cardState(.cpu) {
+            cpu = sample.overall
+        } else {
+            cpu = nil
+        }
+
+        let gpu: Double?
+        if case .value(.gpu(let sample)) = monitor.cardState(.gpu) {
+            gpu = sample.overall
+        } else {
+            gpu = nil
+        }
+        return kineticNotchSource.load(cpu: cpu, gpu: gpu)
     }
 
     private var menuChipGrid: some View {
