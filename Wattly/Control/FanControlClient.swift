@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import AppKit
 
 /// The app-side endpoint for the privileged fan-control helper. It transports only a curve
 /// configuration and heartbeats; all SMC writes remain exclusively in the helper process.
@@ -12,6 +13,9 @@ import Observation
         detail: "도우미에 연결되지 않음",
         updatedAt: 0
     )
+    // True while the privileged helper install (admin auth prompt) is running.
+    private(set) var isInstallingHelper = false
+
     // Seed above the previous app process's sequence if its helper is still running. Microseconds
     // leave ample room for local increments while avoiding a persisted client-side counter.
     private var commandGeneration = UInt64(Date().timeIntervalSince1970 * 1_000_000)
@@ -72,6 +76,74 @@ import Observation
             return
         }
         await send(.release(data))
+    }
+
+    /// Installs the privileged helper via one admin-auth prompt, then applies the specified curve to
+    /// engage control. If the user cancels the prompt (or it fails), returns false.
+    ///
+    /// Window-survival: this is an accessory (LSUIElement) app, and the admin-auth dialog
+    /// deactivates it long enough (on the success path, while the root script runs) for macOS to
+    /// destroy the Settings window — reopening it afterward proved unreliable. So instead we hold a
+    /// **regular activation policy for the duration of the install**: a regular app keeps its windows
+    /// when deactivated, so the Settings window is never torn down. The menubar-only policy (and its
+    /// absent Dock icon) is restored once the window is back up front.
+    @discardableResult
+    func installAndEngage(curve: FanCurve, window: NSWindow?) async -> Bool {
+        isInstallingHelper = true
+        defer { isInstallingHelper = false }
+
+        // Hold a regular activation policy across the whole flow: it keeps the Settings window
+        // alive through the auth-dialog deactivation AND lets it layer like a normal app's window
+        // while we re-raise it (an accessory app's window sinks behind the active app).
+        let priorPolicy = NSApp.activationPolicy()
+        let raised = priorPolicy != .regular
+        if raised { NSApp.setActivationPolicy(.regular) }
+
+        // Keep the Settings window visible UNDER the auth panel for the whole prompt + script run
+        // (~seconds): order it front every 0.4s so it doesn't sink behind other apps. Crucially this
+        // uses `orderFrontRegardless` only — NOT `activate`, which would steal keyboard focus from the
+        // password field. `install()` runs its `osascript` on a background thread, so the main actor
+        // is free to run this loop while we await it.
+        let keepVisible = Task { @MainActor in
+            while !Task.isCancelled {
+                window?.orderFrontRegardless()
+                try? await Task.sleep(for: .milliseconds(400))
+            }
+        }
+
+        var installed = true
+        do {
+            try await FanHelperInstaller.install()
+        } catch {
+            installed = false
+        }
+        keepVisible.cancel()
+
+        // Re-raise Settings the INSTANT the auth dialog is gone — before the XPC `apply` below.
+        // `apply` connects to the just-started daemon and can stall for several seconds; doing it
+        // first was what left the window sunk for ~10s. `activate` only raises the app, so drive the
+        // captured window itself with `orderFrontRegardless`.
+        raiseFront(window)
+
+        if installed {
+            await apply(enabled: true, curve: curve)
+        }
+
+        // Drop the transient Dock icon, then re-front once more (restoring `.accessory` while another
+        // app is active can sink the window), with a couple of retries to win any late focus steal.
+        if raised { NSApp.setActivationPolicy(priorPolicy) }
+        for _ in 0..<3 {
+            raiseFront(window)
+            try? await Task.sleep(for: .milliseconds(300))
+        }
+
+        return installed
+    }
+
+    private func raiseFront(_ window: NSWindow?) {
+        NSApp.activate(ignoringOtherApps: true)
+        window?.makeKeyAndOrderFront(nil)
+        window?.orderFrontRegardless()
     }
 
     @discardableResult
