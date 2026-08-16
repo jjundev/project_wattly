@@ -277,7 +277,7 @@ struct SettingsView: View {
     private var layoutDescription: String {
         switch panelMode {
         case .a:
-            "모든 지표를 카드 형태로 세로 배치합니다. 세부 정보 펼침과 순서 변경을 지원합니다."
+            "모든 지표를 카드로 세로 배치하며 세부 펼침과 순서 변경을 지원합니다."
         case .b:
             "2열 그리드로 지표를 콤팩트하게 배치하여 한눈에 확인하기 좋습니다."
         case .c:
