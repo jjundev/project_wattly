@@ -22016,6 +22016,746 @@
           }
         }
       }
+    },
+    "전력 소비": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "전력 소비"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Power"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "消費電力"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "功耗"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "功耗"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stromverbrauch"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consommation"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consumo de energía"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consumo di energia"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consumo de energia"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consumo de energia"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stroomverbruik"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Strömförbrukning"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Strømforbrug"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Virrankulutus"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Strømforbruk"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pobór mocy"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spotřeba energie"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Energiafogyasztás"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consum de energie"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Κατανάλωση ισχύος"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Потребление"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Споживання"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Güç Tüketimi"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استهلاك الطاقة"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "צריכת חשמל"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "การใช้พลังงาน"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tiêu thụ điện"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konsumsi Daya"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बिजली की खपत"
+          }
+        }
+      }
+    },
+    "스마트": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "스마트"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smart"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スマート"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "智能"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "智慧"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smart"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intelligent"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inteligente"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smart"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inteligente"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inteligente"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smart"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smart"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smart"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Älykäs"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smart"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smart"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inteligentní"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intelligens"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inteligent"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Έξυπνο"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Умный"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Розумний"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Akıllı"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ذكي"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "חכם"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "สมาร์ท"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thông minh"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pintar"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स्मार्ट"
+          }
+        }
+      }
+    },
+    "(권장) SoC 전체 전력 소비량(W)에 비례하여 움직입니다. 시스템의 실제 작업 부하를 가장 정확하게 반영합니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(권장) SoC 전체 전력 소비량(W)에 비례하여 움직입니다. 시스템의 실제 작업 부하를 가장 정확하게 반영합니다."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Recommended) Animates proportionally to total SoC power (W). Most accurately reflects true system workload."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(推奨) SoC全体の消費電力（W）に比例して動作します。システムの実際のワークロードを最も正確に反映します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(推荐) 与SoC总功耗（W）成比例动态变化。能最准确地反映系统的实际工作负载。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(建議) 與SoC總功耗（W）成比例動態變化。能最準確地反映系統的實際工作負載。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Empfohlen) Animiert proportional zum gesamten SoC-Stromverbrauch (W). Spiegelt die tatsächliche Systemlast am genauesten wider."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Recommandé) S'anime proportionnellement à la puissance totale du SoC (W). Reflète fidèlement la charge de travail réelle du système."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Recomendado) Se anima proporcionalmente a la potencia total del SoC (W). Refleja con mayor precisión la carga de trabajo real del sistema."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Consigliato) Si anima proporzionalmente al consumo energetico totale del SoC (W). Riflette con la massima precisione il carico effettivo del sistema."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Recomendado) Anima proporcionalmente ao consumo total do SoC (W). Reflete com mais precisão a verdadeira carga de trabalho do sistema."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Recomendado) Anima proporcionalmente ao consumo total do SoC (W). Reflete com maior precisão a carga real do sistema."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Aanbevolen) Animeert evenredig met het totale SoC-stroomverbruik (W). Geeft de werkelijke systeembelasting het meest nauwkeurig weer."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Rekommenderas) Animeras proportionellt mot SoC:ns totala strömförbrukning (W). Återspeglar systemets faktiska arbetsbelastning mest exakt."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Anbefales) Animeres proportionalt med SoC'ens samlede strømforbrug (W). Afspejler systemets reelle arbejdsbelastning mest præcist."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Suositus) Liikkuu suhteessa järjestelmäpiirin (SoC) kokonaisvirrankulutukseen (W). Heijastaa järjestelmän todellista kuormitusta tarkimmin."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Anbefales) Animeres proporsjonalt med SoC-ens totale strømforbruk (W). Gjenspeiler systemets faktiske arbeidsbelastning mest nøyaktig."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Zalecane) Animuje się proporcjonalnie do całkowitego poboru mocy układu SoC (W). Najdokładniej odzwierciedla rzeczywiste obciążenie systemu."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Doporučeno) Animuje se úměrně k celkové spotřebě SoC (W). Nejpřesněji odráží skutečné pracovní zatížení systému."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Ajánlott) A teljes SoC energiafogyasztásával (W) arányosan animálódik. A legpontosabban tükrözi a rendszer valós terhelését."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Recomandat) Se animează proporțional cu consumul total de energie SoC (W). Reflectă cel mai precis volumul real de lucru al sistemului."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Συνιστάται) Κινείται αναλογικά με τη συνολική κατανάλωση ισχύος του SoC (W). Αντικατοπτρίζει με τη μεγαλύτερη ακρίβεια τον πραγματικό φόρτο εργασίας του συστήματος."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Рекомендуется) Анимируется пропорционально общему энергопотреблению SoC (Вт). Наиболее точно отражает реальную рабочую нагрузку системы."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Рекомендовано) Анімується пропорційно загальному споживанню енергії SoC (Вт). Найточніше відображає реальне робоче навантаження системи."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Önerilen) Toplam SoC güç tüketimiyle (W) orantılı olarak hareket eder. Gerçek sistem iş yükünü en doğru şekilde yansıtır."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(موصى به) يتحرك بما يتناسب مع إجمالي طاقة SoC (بالواط). يعكس بدقة أعلى عبء العمل الحقيقي للنظام."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(מומלץ) מונפש ביחס לצריכת החשמל הכוללת של ה-SoC (ב-W). משקף בצורה המדויקת ביותר את עומס המערכת בפועל."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(แนะนำ) เคลื่อนไหวตามสัดส่วนการใช้พลังงาน SoC ทั้งหมด (W) สะท้อนภาระงานจริงของระบบได้อย่างแม่นยำที่สุด"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Khuyến nghị) Chuyển động tỷ lệ thuận với tổng mức tiêu thụ điện của SoC (W). Phản ánh chính xác nhất tải công việc thực tế của hệ thống."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Disarankan) Beranimasi secara proporsional dengan total daya SoC (W). Mencerminkan beban kerja sistem yang sebenarnya secara paling akurat."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(अनुशंसित) कुल SoC बिजली खपत (W) के अनुपात में एनिमेट होता है। वास्तविक सिस्टम वर्कलोड को सबसे सटीक रूप से दर्शाता है।"
+          }
+        }
+      }
+    },
+    "(권장) 메뉴바 상주 시에는 ProMotion 절전을 위해 24 fps로 고정되며, 팝오버를 열거나 설정창을 볼 때는 전원 상태(AC 60 fps / 배터리 24 fps)에 따라 부드럽게 동작합니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(권장) 메뉴바 상주 시에는 ProMotion 절전을 위해 24 fps로 고정되며, 팝오버를 열거나 설정창을 볼 때는 전원 상태(AC 60 fps / 배터리 24 fps)에 따라 부드럽게 동작합니다."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Recommended) Locks to 24 fps in the menu bar to save ProMotion battery; adapts smoothly (AC 60 fps / Battery 24 fps) when opening the popover or settings."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(推奨) メニューバー常駐時はProMotionの節電のため24 fpsに固定され、ポップオーバーや設定画面を開く際は電源状態（電源アダプタ接続時 60 fps / バッテリー駆動時 24 fps）に応じて滑らかに動作します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(推荐) 常驻菜单栏时固定为24 fps以节省ProMotion电量；打开弹窗或设置窗口时，会根据电源状态（连接电源 60 fps / 电池 24 fps）流畅运行。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(建議) 常駐選單列時固定為24 fps以節省ProMotion電量；開啟彈出視窗或設定時，會依電源狀態（連接電源 60 fps / 電池 24 fps）順暢運作。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Empfohlen) In der Menüleiste auf 24 fps fixiert, um ProMotion-Batterie zu sparen; passt sich beim Öffnen des Popovers oder der Einstellungen flüssig an (Netzteil 60 fps / Batterie 24 fps)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Recommandé) Fixé à 24 ips dans la barre des menus pour économiser la batterie ProMotion ; s'adapte de manière fluide (Secteur 60 ips / Batterie 24 ips) à l'ouverture du menu contextuel ou des réglages."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Recomendado) Se bloquea a 24 fps en la barra de menús para ahorrar batería ProMotion; se adapta suavemente (Adaptador 60 fps / Batería 24 fps) al abrir la ventana emergente o los ajustes."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Consigliato) Fissato a 24 fps nella barra dei menu per risparmiare la batteria ProMotion; si adatta in modo fluido (Alimentazione 60 fps / Batteria 24 fps) all'apertura del pannello o delle impostazioni."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Recomendado) Fixado em 24 fps na barra de menus para economizar bateria do ProMotion; adapta-se suavemente (Alimentação 60 fps / Bateria 24 fps) ao abrir o popover ou as configurações."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Recomendado) Bloqueado a 24 fps na barra de menus para poupar bateria ProMotion; adapta-se de forma suave (Corrente 60 fps / Bateria 24 fps) ao abrir o popover ou as definições."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Aanbevolen) Vastgezet op 24 fps in de menubalk om ProMotion-batterij te besparen; past zich vloeiend aan (Netstroom 60 fps / Batterij 24 fps) bij het openen van de pop-over of instellingen."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Rekommenderas) Låst till 24 bps i menyraden för att spara ProMotion-batteri; anpassas smidigt (strömadapter 60 bps / batteri 24 bps) när popover-menyn eller inställningarna öppnas."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Anbefales) Låst til 24 bps i menulinjen for at spare ProMotion-batteri; tilpasser sig jævnt (strømforsyning 60 bps / batteri 24 bps), når popover eller indstillinger åbnes."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Suositus) Lukittu 24 fps:ään valikkorivillä ProMotion-akun säästämiseksi; mukautuu sulavasti (verkkovirta 60 fps / akku 24 fps), kun ponnahdusikkuna tai asetukset avataan."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Anbefales) Låst til 24 bps i menylinjen for å spare ProMotion-batteri; tilpasser seg jevnt (strømforsyning 60 bps / batteri 24 bps) når lokalmenyen eller innstillinger åpnes."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Zalecane) Blokuje 24 kl./s na pasku menu w celu oszczędzania baterii przy ProMotion; płynnie dostosowuje klatkaż (zasilacz 60 kl./s / bateria 24 kl./s) po otwarciu okna podręcznego lub ustawień."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Doporučeno) V řádku nabídek je uzamčeno na 24 fps pro úsporu baterie s ProMotion; při otevření vyskakovacího okna nebo nastavení se plynule přizpůsobí (napájení ze sítě 60 fps / baterie 24 fps)."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Ajánlott) A menüsorban 24 fps-re van zárolva a ProMotion akkumulátorkímélés érdekében; a felugró ablak vagy beállítások megnyitásakor zökkenőmentesen alkalmazkodik (hálózat 60 fps / akkumulátor 24 fps)."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Recomandat) Blocat la 24 fps în bara de meniuri pentru a economisi bateria ProMotion; se adaptează lin (alimentare la priză 60 fps / baterie 24 fps) la deschiderea panoului popover sau a configurărilor."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Συνιστάται) Κλειδώνει στα 24 fps στη γραμμή μενού για εξοικονόμηση μπαταρίας ProMotion· προσαρμόζεται ομαλά (τροφοδοσία AC 60 fps / μπαταρία 24 fps) κατά το άνοιγμα του αναδυόμενου παραθύρου ή των ρυθμίσεων."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Рекомендуется) В строке меню фиксируется на 24 кадр/с для экономии энергии ProMotion; при открытии всплывающего окна или настроек плавно адаптируется (сеть 60 кадр/с / аккумулятор 24 кадр/с)."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Рекомендовано) У смузі меню фіксується на 24 кадр/с для економії заряду ProMotion; при відкритті спливаючого вікна чи параметрів плавно адаптується (мережа 60 кадр/с / акумулятор 24 кадр/с)."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Önerilen) Menü çubuğundayken ProMotion pil tasarrufu için 24 fps'ye sabitlenir; açılır pencere veya ayarlar açıldığında güç durumuna göre (AC 60 fps / Pil 24 fps) sorunsuz uyum sağlar."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(موصى به) يتم التثبيت على 24 إطارًا/ثانية في شريط القوائم لتوفير طاقة ProMotion؛ ويتكيف بسلاسة (تيار متردد 60 إطارًا/ثانية / بطارية 24 إطارًا/ثانية) عند فتح النافذة المنبثقة أو الإعدادات."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(מומלץ) ננעל על 24 fps בשורת התפריטים לחיסכון בסוללת ProMotion; מסתגל בצורה חלקה (חיבור לחשמל 60 fps / סוללה 24 fps) בעת פתיחת החלונית או ההגדרות."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(แนะนำ) ล็อกที่ 24 fps ในแถบเมนูเพื่อประหยัดพลังงาน ProMotion ปรับตัวอย่างราบรื่น (เสียบปลั๊ก 60 fps / แบตเตอรี่ 24 fps) เมื่อเปิดป๊อปโอเวอร์หรือการตั้งค่า"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Khuyến nghị) Khóa ở mức 24 fps trên thanh menu để tiết kiệm pin ProMotion; điều chỉnh mượt mà (Nguồn AC 60 fps / Pin 24 fps) khi mở cửa sổ bật lên hoặc cài đặt."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Disarankan) Dikunci pada 24 fps di bar menu untuk menghemat baterai ProMotion; beradaptasi dengan mulus (Daya AC 60 fps / Baterai 24 fps) saat membuka jendela popover atau pengaturan."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(अनुशंसित) ProMotion बैटरी बचाने के लिए मेनू बार में 24 fps पर लॉक रहता है; पॉपओवर या सेटिंग्स खोलते समय पावर स्थिति (AC 60 fps / बैटरी 24 fps) के अनुसार सुचारू रूप से अनुकूलित होता है।"
+          }
+        }
+      }
     }
   }
 }

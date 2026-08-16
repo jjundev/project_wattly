@@ -11,7 +11,7 @@ struct KineticNotchMotionTests {
         #expect(KineticNotchSource.compute.requiredCards == [.cpu, .gpu])
 
         #expect(KineticNotchSource.cpuClock.label == "CPU 클럭")
-        #expect(KineticNotchSource.power.label == "전력 소비 (권장)")
+        #expect(KineticNotchSource.power.label == "전력 소비")
         #expect(KineticNotchSource.compute.label == "CPU + GPU")
 
         #expect(!KineticNotchSource.cpuClock.description.isEmpty)
@@ -22,7 +22,7 @@ struct KineticNotchMotionTests {
     @Test func speedOrderingAndLabels() {
         #expect(KineticNotchSpeed.allCases == [.eco, .smart, .standard, .responsive])
         #expect(KineticNotchSpeed.eco.label == "절전")
-        #expect(KineticNotchSpeed.smart.label == "스마트 (권장)")
+        #expect(KineticNotchSpeed.smart.label == "스마트")
         #expect(KineticNotchSpeed.standard.label == "표준")
         #expect(KineticNotchSpeed.responsive.label == "민감")
     }

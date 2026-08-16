@@ -26,8 +26,20 @@ struct LocalizationTests {
         #expect(String(localized: "기본값으로 되돌리기", locale: Locale(identifier: "en")) == "Reset to Defaults")
         #expect(String(localized: "기본값으로 되돌리기", locale: Locale(identifier: "ja")) == "デフォルトに戻す")
 
-        #expect(String(localized: "전력 소비 (권장)", locale: Locale(identifier: "en")) == "Power Consumption (Recommended)")
-        #expect(String(localized: "스마트 (권장)", locale: Locale(identifier: "en")) == "Smart (Recommended)")
+        #expect(String(localized: "전력 소비", locale: Locale(identifier: "en")) == "Power")
+        #expect(String(localized: "전력 소비", locale: Locale(identifier: "ja")) == "消費電力")
+        #expect(String(localized: "전력 소비", locale: Locale(identifier: "de")) == "Stromverbrauch")
+        #expect(String(localized: "전력 소비", locale: Locale(identifier: "fr")) == "Consommation")
+        #expect(String(localized: "전력 소비", locale: Locale(identifier: "zh-Hans")) == "功耗")
+
+        #expect(String(localized: "스마트", locale: Locale(identifier: "en")) == "Smart")
+        #expect(String(localized: "스마트", locale: Locale(identifier: "ja")) == "スマート")
+        #expect(String(localized: "스마트", locale: Locale(identifier: "de")) == "Smart")
+        #expect(String(localized: "스마트", locale: Locale(identifier: "fr")) == "Intelligent")
+        #expect(String(localized: "스마트", locale: Locale(identifier: "zh-Hans")) == "智能")
+
+        #expect(String(localized: "(권장) SoC 전체 전력 소비량(W)에 비례하여 움직입니다. 시스템의 실제 작업 부하를 가장 정확하게 반영합니다.", locale: Locale(identifier: "en")).hasPrefix("(Recommended)"))
+        #expect(String(localized: "(권장) 메뉴바 상주 시에는 ProMotion 절전을 위해 24 fps로 고정되며, 팝오버를 열거나 설정창을 볼 때는 전원 상태(AC 60 fps / 배터리 24 fps)에 따라 부드럽게 동작합니다.", locale: Locale(identifier: "en")).hasPrefix("(Recommended)"))
     }
 
     @Test func iconDesignThemeTranslations() {
