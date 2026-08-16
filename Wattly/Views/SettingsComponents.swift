@@ -67,7 +67,11 @@ struct WattlyToggle: View {
         }
         .frame(width: 38, height: 22)
         .contentShape(Rectangle())
-        .onTapGesture { guard isEnabled else { return }; toggle() }
+        .onTapGesture {
+            guard isEnabled else { return }
+            toggle()
+            focused = false
+        }
         .focusable(isEnabled)
         .focused($focused)
         .onKeyPress(.space) { guard isEnabled else { return .ignored }; toggle(); return .handled }
@@ -116,7 +120,10 @@ struct WattlySegment<T: Hashable>: View {
                     .shadow(color: active ? scheme.segActiveShadow : .clear, radius: 1, x: 0, y: 1)
             )
             .contentShape(Rectangle())
-            .onTapGesture { selection = value }
+            .onTapGesture {
+                selection = value
+                focusedValue = nil
+            }
             .focusable()
             .focused($focusedValue, equals: value)
             .onKeyPress(.space) { selection = value; return .handled }
@@ -159,7 +166,11 @@ struct WattlyChip: View {
                     .shadow(color: isOn ? scheme.segActiveShadow : .clear, radius: 1, x: 0, y: 1)
             )
             .contentShape(Rectangle())
-            .onTapGesture { guard isEnabled else { return }; action() }
+            .onTapGesture {
+                guard isEnabled else { return }
+                action()
+                focused = false
+            }
             .focusable(isEnabled)
             .focused($focused)
             .onKeyPress(.space) { guard isEnabled else { return .ignored }; action(); return .handled }
