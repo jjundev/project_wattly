@@ -88,7 +88,7 @@ struct MenuBarSelection: Sendable, Equatable {
         self.cardSelections = cards
 
         var clocks: [String: Bool] = [:]
-        for prefix in ["S", "P", "E"] {
+        for prefix in Defaults.menuCoreClockEnabled.keys {
             if let obj = userDefaults.object(forKey: StorageKey.menuCoreClock(prefix)) as? Bool {
                 clocks[prefix] = obj
             } else {
@@ -180,7 +180,7 @@ struct MenuBarSelection: Sendable, Equatable {
         for card in CardKind.allCases {
             defaults.set(isSelected(card), forKey: StorageKey.menu(card))
         }
-        for prefix in ["S", "P", "E"] {
+        for prefix in Defaults.menuCoreClockEnabled.keys {
             defaults.set(isCoreClockSelected(prefix), forKey: StorageKey.menuCoreClock(prefix))
         }
         defaults.set(isBatteryTempSelected, forKey: StorageKey.menuBatteryTemp)
