@@ -235,4 +235,9 @@ struct SettingsResetTests {
         #expect(loaded.isMemPressureSelected)
         #expect(!loaded.isBatteryTempSelected)
     }
+
+    @Test func layoutSegmentOptionOrdering() {
+        #expect(PanelMode.allCases == [.a, .c, .b])
+        #expect(PanelMode.allCases.map(\.label) == ["스택 행", "히어로 + 리스트", "카드 그리드"])
+    }
 }

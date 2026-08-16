@@ -49,7 +49,7 @@ struct SettingsDisplaySection: View {
             SettingsCard(padding: Tokens.cardPadding) {
                 VStack(alignment: .leading, spacing: 10) {
                     WattlySegment(selection: $panelMode, options: [
-                        (.a, PanelMode.a.label), (.b, PanelMode.b.label), (.c, PanelMode.c.label),
+                        (.a, PanelMode.a.label), (.c, PanelMode.c.label), (.b, PanelMode.b.label),
                     ])
                     Text(layoutDescription)
                         .font(WattlyFont.at(11.5, weight: .regular))

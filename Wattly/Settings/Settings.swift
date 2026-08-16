@@ -80,16 +80,16 @@ func pollingDescription(for setting: PollInterval, mode: PowerMode) -> String {
 /// String-raw enum, exactly like `ThemeMode`/`PollInterval`.
 enum PanelMode: String, CaseIterable, Identifiable, Sendable {
     case a = "A"   // 스택 행 — full-width cards (mode A, the default)
-    case b = "B"   // 카드 그리드 — 2-column compact tiles
     case c = "C"   // 히어로 + 리스트 (plan 20)
+    case b = "B"   // 카드 그리드 — 2-column compact tiles
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
         case .a: "스택 행"
-        case .b: "카드 그리드"
         case .c: "히어로 + 리스트"
+        case .b: "카드 그리드"
         }
     }
 }
