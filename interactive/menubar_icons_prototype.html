@@ -1179,30 +1179,23 @@
           const leg1 = solveLegIK(hipX, hipY, foot1.x, foot1.y);
           const leg2 = solveLegIK(hipX, hipY, foot2.x, foot2.y);
 
-          // 5. Powerful Athletic Runner Arm Kinematics (Crisp Locked Elbow Joint ~85°-95°)
-          const A1 = s * 0.14; // Upper arm length (solid bone)
-          const A2 = s * 0.13; // Forearm length (solid bone)
+          // 5. True Front-to-Back Harmonic Arm Swing (Extreme Separation & True Back Extension)
+          const A1 = s * 0.14; // Upper arm length
+          const A2 = s * 0.13; // Forearm length
 
           function calcArm(isFront, u) {
             const shX = neckX + (isFront ? s * 0.02 : -s * 0.02);
             const shY = neckY + (isFront ? s * 0.02 : 0.0);
 
-            // swing = +1: High forward punch (reaching forward-up)
-            // swing = -1: Powerful backward thrust (driving elbow high back)
+            // swing = +1: Arm reaches far forward in front of chin
+            // swing = -1: Arm reaches far backward behind the back and hips
             const swing = Math.sin(u * Math.PI * 2);
 
-            // 1. Shoulder Joint Driven Pendulum (muscular power)
-            const baseShoulder = 1.38 - t * 0.15; // 79° down to 70° forward lean
-            const swingAmp = 0.70 + t * 0.45;  // Powerful angular swing
-            const shoulderAngle = baseShoulder - swing * swingAmp;
+            const upperAngle = (1.45 - t * 0.10) - swing * (0.70 + t * 0.35);
+            const forearmAngle = (0.85 - t * 0.10) - swing * (1.20 + t * 0.50);
 
-            // 2. Rigid Athletic Elbow Lock (~82° to 96° across full cycle)
-            // Maintains a crisp, snappy, bone-like hinge without rubbery bending
-            const elbowBend = 1.55 - swing * 0.12;
-            const forearmAngle = shoulderAngle - elbowBend;
-
-            let ex = shX + Math.cos(shoulderAngle) * A1;
-            let ey = shY + Math.sin(shoulderAngle) * A1;
+            let ex = shX + Math.cos(upperAngle) * A1;
+            let ey = shY + Math.sin(upperAngle) * A1;
             let hx = ex + Math.cos(forearmAngle) * A2;
             let hy = ey + Math.sin(forearmAngle) * A2;
 

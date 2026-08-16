@@ -538,16 +538,11 @@ struct HillRunnerMark: View {
         let shX = neckX + (isFront ? s * 0.02 : -s * 0.02)
         let shY = neckY + (isFront ? s * 0.02 : 0.0)
         let swing = sin(u * .pi * 2.0)
-        let baseShoulder = 1.38 - t * 0.15 // Forward lean
-        let swingAmp = 0.70 + t * 0.45      // Angular drive
-        let shoulderAngle = baseShoulder - swing * swingAmp
+        let upperAngle = (1.45 - t * 0.10) - swing * (0.70 + t * 0.35)
+        let forearmAngle = (0.85 - t * 0.10) - swing * (1.20 + t * 0.50)
 
-        // Rigid athletic elbow lock (~82° to 96°)
-        let elbowBend = 1.55 - swing * 0.12
-        let forearmAngle = shoulderAngle - elbowBend
-
-        var ex = shX + cos(shoulderAngle) * A1
-        var ey = shY + sin(shoulderAngle) * A1
+        var ex = shX + cos(upperAngle) * A1
+        var ey = shY + sin(upperAngle) * A1
         var hx = ex + cos(forearmAngle) * A2
         var hy = ey + sin(forearmAngle) * A2
 
