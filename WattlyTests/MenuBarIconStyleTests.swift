@@ -5,19 +5,29 @@ import Foundation
 struct MenuBarIconStyleTests {
     @Test func allIconStylesHaveValidMetadataAndFrameCounts() {
         let styles = MenuBarIconStyle.allCases
-        #expect(styles.count == 6)
+        #expect(styles.count == 7)
         for style in styles {
             #expect(!style.id.isEmpty)
             #expect(!style.label.isEmpty)
             #expect(!style.category.isEmpty)
             #expect(!style.summary.isEmpty)
             #expect(style.frameCount >= 4)
-            #expect(style.staticFrame == 0)
+            #expect(style.staticFrame >= 0 && style.staticFrame < style.frameCount)
         }
     }
 
-    @Test func defaultIconStyleIsCoolingTurbine() {
-        #expect(Defaults.menubarIconStyle == .turbine)
+    @Test func hillRunnerHasSpecificMetadata() {
+        let runner = MenuBarIconStyle.hillRunner
+        #expect(runner.rawValue == "hillRunner")
+        #expect(runner.label == "러너 (경사로 질주)")
+        #expect(runner.category == "캐릭터 / 라이프")
+        #expect(!runner.summary.isEmpty)
+        #expect(runner.frameCount == 24)
+        #expect(runner.staticFrame == 8)
+    }
+
+    @Test func defaultIconStyleIsHillRunner() {
+        #expect(Defaults.menubarIconStyle == .hillRunner)
         #expect(StorageKey.menubarIconStyle == "menubarIconStyle")
     }
 
@@ -30,3 +40,4 @@ struct MenuBarIconStyleTests {
         #expect(defaults.string(forKey: StorageKey.menubarIconStyle) == Defaults.menubarIconStyle.rawValue)
     }
 }
+

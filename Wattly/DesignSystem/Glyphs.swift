@@ -365,6 +365,226 @@ struct EqualizerMark: View {
     }
 }
 
+// 7. Dynamic Hill Runner Mark (Discrete 8-Keyframe Locomotion Pose Tables)
+struct HillRunnerMark: View {
+    let frame: Int
+    var markerColor: Color = Tokens.accent
+
+    private struct Pose {
+        let bob: CGFloat
+        let ft: Double; let fk: Double
+        let bt: Double; let bk: Double
+        let fa: Double; let fab: Double
+        let ba: Double; let bab: Double
+    }
+
+    private static let poses: [[Pose]] = [
+        // Tier 0: Uphill Heavy Walk (0..7) - Upright posture & deep rear arm swing
+        [
+            // Frame 0: Contact (Lead Heel Strike on Hill)
+            Pose(bob: -0.015, ft:  0.36, fk: 0.30, bt: -0.34, bk: 0.35, fa: -0.65, fab: -1.15, ba:  0.50, bab: -1.35),
+            // Frame 1: Recoil / Down (Weight Acceptance & Knee Cushion)
+            Pose(bob:  0.015, ft:  0.15, fk: 0.75, bt: -0.45, bk: 0.85, fa: -0.75, fab: -1.10, ba:  0.60, bab: -1.40),
+            // Frame 2: Passing (Single Support / Foot Clearance)
+            Pose(bob: -0.010, ft: -0.08, fk: 0.20, bt:  0.28, bk: 1.10, fa: -0.20, fab: -1.15, ba:  0.15, bab: -1.25),
+            // Frame 3: High Point / Up (Uphill Push-Off)
+            Pose(bob: -0.035, ft: -0.30, fk: 0.12, bt:  0.36, bk: 0.32, fa:  0.45, fab: -1.35, ba: -0.55, bab: -1.15),
+            // Frame 4: Contact Mirror
+            Pose(bob: -0.015, ft: -0.34, fk: 0.35, bt:  0.36, bk: 0.30, fa:  0.50, fab: -1.35, ba: -0.65, bab: -1.15),
+            // Frame 5: Recoil Mirror
+            Pose(bob:  0.015, ft: -0.45, fk: 0.85, bt:  0.15, bk: 0.75, fa:  0.60, fab: -1.40, ba: -0.75, bab: -1.10),
+            // Frame 6: Passing Mirror
+            Pose(bob: -0.010, ft:  0.28, fk: 1.10, bt: -0.08, bk: 0.20, fa:  0.15, fab: -1.25, ba: -0.20, bab: -1.15),
+            // Frame 7: High Point Mirror
+            Pose(bob: -0.035, ft:  0.36, fk: 0.32, bt: -0.30, bk: 0.12, fa: -0.55, fab: -1.15, ba:  0.45, bab: -1.35)
+        ],
+        // Tier 1: Flat Athletic Jog (8..15) - Athletic upright posture & rear elbow drive
+        [
+            // Frame 8 (0): Contact (Forward Foot Strike)
+            Pose(bob:  0.000, ft:  0.58, fk: 0.38, bt: -0.54, bk: 0.65, fa: -1.05, fab: -1.35, ba:  0.75, bab: -1.50),
+            // Frame 9 (1): Compression (Maximum Stance Knee Cushion)
+            Pose(bob:  0.030, ft:  0.18, fk: 1.05, bt: -0.70, bk: 1.35, fa: -1.20, fab: -1.30, ba:  0.90, bab: -1.60),
+            // Frame 10 (2): Drive / Passing (Explosive Takeoff)
+            Pose(bob: -0.020, ft: -0.25, fk: 0.25, bt:  0.52, bk: 1.45, fa: -0.30, fab: -1.35, ba:  0.25, bab: -1.45),
+            // Frame 11 (3): Air Apex (Flight Phase Suspension)
+            Pose(bob: -0.065, ft: -0.58, fk: 0.45, bt:  0.75, bk: 0.60, fa:  0.80, fab: -1.55, ba: -0.95, bab: -1.35),
+            // Frame 12 (4): Contact Mirror
+            Pose(bob:  0.000, ft: -0.54, fk: 0.65, bt:  0.58, bk: 0.38, fa:  0.75, fab: -1.50, ba: -1.05, bab: -1.35),
+            // Frame 13 (5): Compression Mirror
+            Pose(bob:  0.030, ft: -0.70, fk: 1.35, bt:  0.18, bk: 1.05, fa:  0.90, fab: -1.60, ba: -1.20, bab: -1.30),
+            // Frame 14 (6): Drive Mirror
+            Pose(bob: -0.020, ft:  0.52, fk: 1.45, bt: -0.25, bk: 0.25, fa:  0.25, fab: -1.45, ba: -0.30, bab: -1.35),
+            // Frame 15 (7): Air Apex Mirror
+            Pose(bob: -0.065, ft:  0.75, fk: 0.60, bt: -0.58, bk: 0.45, fa: -0.95, fab: -1.35, ba:  0.80, bab: -1.55)
+        ],
+        // Tier 2: Downhill Frantic Sprint (16..23) - Dynamic sprint & horizontal back reach
+        [
+            // Frame 16 (0): Wide Touchdown (Downhill Ground Reach)
+            Pose(bob:  0.000, ft:  0.82, fk: 0.52, bt: -0.78, bk: 0.85, fa: -1.45, fab: -1.40, ba:  1.05, bab: -1.65),
+            // Frame 17 (1): Hard Stomp (Deep Compression & Butt-Kick)
+            Pose(bob:  0.040, ft:  0.30, fk: 1.35, bt: -1.02, bk: 1.65, fa: -1.60, fab: -1.35, ba:  1.30, bab: -1.70),
+            // Frame 18 (2): Air Launch (High Knee Propulsion)
+            Pose(bob: -0.040, ft: -0.45, fk: 0.35, bt:  0.85, bk: 1.75, fa: -0.40, fab: -1.40, ba:  0.40, bab: -1.55),
+            // Frame 19 (3): Max Spread (Airborne Sprint Stride)
+            Pose(bob: -0.095, ft: -0.90, fk: 0.65, bt:  1.08, bk: 0.75, fa:  1.10, fab: -1.65, ba: -1.40, bab: -1.40),
+            // Frame 20 (4): Wide Touchdown Mirror
+            Pose(bob:  0.000, ft: -0.78, fk: 0.85, bt:  0.82, bk: 0.52, fa:  1.05, fab: -1.65, ba: -1.45, bab: -1.40),
+            // Frame 21 (5): Hard Stomp Mirror
+            Pose(bob:  0.040, ft: -1.02, fk: 1.65, bt:  0.30, bk: 1.35, fa:  1.30, fab: -1.70, ba: -1.60, bab: -1.35),
+            // Frame 22 (6): Air Launch Mirror
+            Pose(bob: -0.040, ft:  0.85, fk: 1.75, bt: -0.45, bk: 0.35, fa:  0.40, fab: -1.55, ba: -0.40, bab: -1.40),
+            // Frame 23 (7): Max Spread Mirror
+            Pose(bob: -0.095, ft:  1.08, fk: 0.75, bt: -0.90, bk: 0.65, fa: -1.40, fab: -1.40, ba:  1.10, bab: -1.65)
+        ]
+    ]
+
+    var body: some View {
+        GeometryReader { proxy in
+            let s = min(proxy.size.width, proxy.size.height)
+            let strokeW = max(2.0, s * 0.115)
+            let headR = s * 0.115
+
+            let clampedFrame = min(max(frame, 0), 23)
+            let tier = clampedFrame / 8
+            let frameIdx = clampedFrame % 8
+            let pose = Self.poses[tier][frameIdx]
+
+            let t: Double = switch tier {
+            case 0: 0.15
+            case 1: 0.50
+            default: 0.85
+            }
+
+            // 1. Smooth Rolling Hill Elevation
+            let smoothT = t * t * (3.0 - 2.0 * t)
+            let gX1 = s * 0.08, gX2 = s * 0.92
+            let gMidX = s * 0.50
+            let gY1 = s * (0.84 - smoothT * 0.18)
+            let gMidY = s * (0.78 - sin(smoothT * .pi) * 0.08 + (smoothT > 0.5 ? (smoothT - 0.5) * 0.10 : 0.0))
+            let gY2 = s * (0.74 + smoothT * 0.14)
+
+            let hipX = s * 0.48
+            let u = (hipX - gX1) / (gX2 - gX1)
+            let groundAtHip = (1.0 - u) * (1.0 - u) * gY1 + 2.0 * (1.0 - u) * u * gMidY + u * u * gY2
+
+            // 2. Hip Position
+            let hipY = groundAtHip - s * (0.28 - t * 0.02) + s * pose.bob
+
+            // 3. Torso & Head (Natural Upright Posture)
+            let leanAngle = (0.045 + t * 0.055) * .pi
+            let torsoLen = s * 0.25
+            let neckX = hipX + sin(leanAngle) * torsoLen
+            let neckY = hipY - cos(leanAngle) * torsoLen
+
+            let headAngle = leanAngle * 0.65
+            let headX = neckX + sin(headAngle) * (s * 0.10)
+            let headY = neckY - cos(headAngle) * (s * 0.10)
+
+            // 4. Legs Forward Kinematics
+            let L1 = s * 0.155, L2 = s * 0.155
+            let fThighAngle = .pi * 0.5 - pose.ft
+            let fKneeAngle = fThighAngle + pose.fk
+            let fkX = hipX + cos(fThighAngle) * L1
+            let fkY = hipY + sin(fThighAngle) * L1
+            let ffX = fkX + cos(fKneeAngle) * L2
+            let ffY = fkY + sin(fKneeAngle) * L2
+
+            let bThighAngle = .pi * 0.5 - pose.bt
+            let bKneeAngle = bThighAngle + pose.bk
+            let bkX = hipX + cos(bThighAngle) * L1
+            let bkY = hipY + sin(bThighAngle) * L1
+            let bfX = bkX + cos(bKneeAngle) * L2
+            let bfY = bkY + sin(bKneeAngle) * L2
+
+            // 5. Arms Forward Kinematics
+            let A1 = s * 0.15, A2 = s * 0.14
+            let fArmUpperAngle = .pi * 0.5 - pose.fa
+            let fArmLowerAngle = fArmUpperAngle + pose.fab
+            let fshX = neckX + s * 0.025, fshY = neckY + s * 0.02
+            let feX = fshX + cos(fArmUpperAngle) * A1
+            let feY = fshY + sin(fArmUpperAngle) * A1
+            let fhX = feX + cos(fArmLowerAngle) * A2
+            let fhY = feY + sin(fArmLowerAngle) * A2
+
+            let bArmUpperAngle = .pi * 0.5 - pose.ba
+            let bArmLowerAngle = bArmUpperAngle + pose.bab
+            let bshX = neckX - s * 0.025, bshY = neckY
+            let beX = bshX + cos(bArmUpperAngle) * A1
+            let beY = bshY + sin(bArmUpperAngle) * A1
+            let bhX = beX + cos(bArmLowerAngle) * A2
+            let bhY = beY + sin(bArmLowerAngle) * A2
+
+            ZStack {
+                // Smooth Rolling Hill Curve
+                Path { path in
+                    path.move(to: CGPoint(x: gX1, y: gY1))
+                    path.addQuadCurve(to: CGPoint(x: gX2, y: gY2), control: CGPoint(x: gMidX, y: gMidY))
+                }
+                .stroke(style: StrokeStyle(lineWidth: max(1.2, strokeW * 0.65), lineCap: .round))
+                .opacity(0.40)
+
+                // High speed dash lines (Tier 2 only)
+                if tier == 2 {
+                    Path { path in
+                        path.move(to: CGPoint(x: hipX - s * 0.30, y: hipY - s * 0.16))
+                        path.addLine(to: CGPoint(x: hipX - s * 0.10, y: hipY - s * 0.12))
+                        path.move(to: CGPoint(x: hipX - s * 0.26, y: hipY + s * 0.02))
+                        path.addLine(to: CGPoint(x: hipX - s * 0.08, y: hipY + s * 0.05))
+                    }
+                    .stroke(style: StrokeStyle(lineWidth: strokeW * 0.75, lineCap: .round))
+                    .opacity(0.85)
+                }
+
+                // Back Arm
+                Path { path in
+                    path.move(to: CGPoint(x: bshX, y: bshY))
+                    path.addLine(to: CGPoint(x: beX, y: beY))
+                    path.addLine(to: CGPoint(x: bhX, y: bhY))
+                }
+                .stroke(style: StrokeStyle(lineWidth: strokeW * 0.90, lineCap: .round, lineJoin: .round))
+                .opacity(0.60)
+
+                // Back Leg
+                Path { path in
+                    path.move(to: CGPoint(x: hipX, y: hipY))
+                    path.addLine(to: CGPoint(x: bkX, y: bkY))
+                    path.addLine(to: CGPoint(x: bfX, y: bfY))
+                }
+                .stroke(style: StrokeStyle(lineWidth: strokeW * 0.90, lineCap: .round, lineJoin: .round))
+                .opacity(0.60)
+
+                // Torso Spine
+                Path { path in
+                    path.move(to: CGPoint(x: hipX, y: hipY))
+                    path.addLine(to: CGPoint(x: neckX, y: neckY))
+                }
+                .stroke(style: StrokeStyle(lineWidth: strokeW * 1.15, lineCap: .round))
+
+                // Head
+                Circle()
+                    .frame(width: headR * 2, height: headR * 2)
+                    .position(x: headX, y: headY)
+
+                // Front Leg
+                Path { path in
+                    path.move(to: CGPoint(x: hipX, y: hipY))
+                    path.addLine(to: CGPoint(x: fkX, y: fkY))
+                    path.addLine(to: CGPoint(x: ffX, y: ffY))
+                }
+                .stroke(markerColor, style: StrokeStyle(lineWidth: strokeW, lineCap: .round, lineJoin: .round))
+
+                // Front Arm
+                Path { path in
+                    path.move(to: CGPoint(x: fshX, y: fshY))
+                    path.addLine(to: CGPoint(x: feX, y: feY))
+                    path.addLine(to: CGPoint(x: fhX, y: fhY))
+                }
+                .stroke(markerColor, style: StrokeStyle(lineWidth: strokeW, lineCap: .round, lineJoin: .round))
+            }
+        }
+    }
+}
+
 // Unified Dynamic MenuBar Icon Dispatcher
 struct DynamicMenuBarIconMark: View {
     let style: MenuBarIconStyle
@@ -385,6 +605,7 @@ struct DynamicMenuBarIconMark: View {
         case .cube3D: Cube3DMark(frame: frame, markerColor: markerColor)
         case .thermalBubble: ThermalBubbleMark(frame: frame, markerColor: markerColor)
         case .equalizer: EqualizerMark(frame: frame, markerColor: markerColor)
+        case .hillRunner: HillRunnerMark(frame: frame, markerColor: markerColor)
         }
     }
 }

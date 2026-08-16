@@ -12,4 +12,20 @@ struct GlyphsRenderingTests {
             }
         }
     }
+
+    @Test @MainActor func hillRunnerRendersAllFramesWithoutCrash() {
+        for frame in 0..<MenuBarIconStyle.hillRunner.frameCount {
+            let view = DynamicMenuBarIconMark(style: .hillRunner, frame: frame, markerColor: .black)
+            #expect(view.style == .hillRunner)
+            #expect(view.frame == frame)
+        }
+    }
+
+    @Test @MainActor func hillRunnerMarkRendersAcrossAllTiers() {
+        for frame in 0..<24 {
+            let mark = HillRunnerMark(frame: frame, markerColor: .black)
+            #expect(mark.frame == frame)
+        }
+    }
 }
+
