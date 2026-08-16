@@ -25,7 +25,7 @@ struct MenuBarLabel: View {
     var body: some View {
         let label = assembled
         let glyph = MenuBarGlyph.template(style: iconStyle, frame: currentFrame).map(Image.init(nsImage:)) ?? Image(systemName: "waveform.path")
-        return HStack(spacing: 4) {
+        return HStack(spacing: 7) {
             glyph
             if let label {
                 Text(label)
