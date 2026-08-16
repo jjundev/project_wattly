@@ -84,7 +84,7 @@ enum KineticNotchSpeed: String, CaseIterable, Identifiable, Sendable {
 
     var label: String {
         switch self {
-        case .smart: "스마트"
+        case .smart: "스마트 (권장)"
         case .eco: "절전"
         case .standard: "표준"
         case .responsive: "민감"
