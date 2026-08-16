@@ -100,7 +100,7 @@ struct MenuBarLabel: View {
 public enum MenuBarGlyph {
     private static var multiStyleCache: [MenuBarIconStyle: [Int: NSImage]] = [:]
 
-    public static func template(style: MenuBarIconStyle = .fluxLoop, frame: Int) -> NSImage? {
+    public static func template(style: MenuBarIconStyle = .turbine, frame: Int) -> NSImage? {
         let index = min(max(frame, 0), style.frameCount - 1)
         if let cached = multiStyleCache[style]?[index] { return cached }
 
@@ -122,6 +122,6 @@ public enum MenuBarGlyph {
     }
 
     public static func template(frame: Int) -> NSImage? {
-        template(style: .fluxLoop, frame: frame)
+        template(style: .turbine, frame: frame)
     }
 }

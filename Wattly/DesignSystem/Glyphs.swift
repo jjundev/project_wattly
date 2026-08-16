@@ -44,74 +44,6 @@ struct PulseWMark: View {
     }
 }
 
-struct FluxLoopOutline: Shape {
-    func path(in rect: CGRect) -> Path {
-        let inset = min(rect.width, rect.height) * 0.10
-        let track = rect.insetBy(dx: inset, dy: inset)
-        return Path(roundedRect: track, cornerRadius: track.height * 0.36)
-    }
-}
-
-struct FluxLoopCore: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
-            CGPoint(x: rect.minX + rect.width * x, y: rect.minY + rect.height * y)
-        }
-        path.move(to: point(0.27, 0.31))
-        path.addLine(to: point(0.41, 0.71))
-        path.addLine(to: point(0.50, 0.47))
-        path.addLine(to: point(0.59, 0.71))
-        path.addLine(to: point(0.73, 0.31))
-        return path
-    }
-}
-
-/// A fourteen-frame energy loop. The active charge pauses at the lateral extremes
-/// through KineticNotchMotion's phase delays; this view itself is a static frame.
-struct FluxLoopMark: View {
-    let frame: Int
-    var markerColor: Color = Tokens.accent
-
-    private static let chargePositions: [CGPoint] = {
-        let base = [
-            CGPoint(x: 0.50, y: 0.10), CGPoint(x: 0.79, y: 0.20),
-            CGPoint(x: 0.90, y: 0.50), CGPoint(x: 0.70, y: 0.84),
-            CGPoint(x: 0.30, y: 0.84), CGPoint(x: 0.10, y: 0.50),
-            CGPoint(x: 0.21, y: 0.20)
-        ]
-        var list: [CGPoint] = []
-        for i in 0..<base.count {
-            let p1 = base[i]
-            let p2 = base[(i + 1) % base.count]
-            list.append(p1)
-            list.append(CGPoint(x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2))
-        }
-        return list
-    }()
-
-    private var chargePosition: CGPoint {
-        Self.chargePositions[min(max(frame, 0), Self.chargePositions.count - 1)]
-    }
-
-    var body: some View {
-        GeometryReader { proxy in
-            let diameter = min(proxy.size.width, proxy.size.height) * 0.22
-            ZStack {
-                FluxLoopOutline()
-                    .stroke(style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-                FluxLoopCore()
-                    .stroke(style: StrokeStyle(lineWidth: 1.65, lineCap: .round, lineJoin: .round))
-                Circle()
-                    .fill(markerColor)
-                    .frame(width: diameter, height: diameter)
-                    .position(x: proxy.size.width * chargePosition.x,
-                              y: proxy.size.height * chargePosition.y)
-            }
-        }
-    }
-}
-
 // MARK: - Dynamic MenuBar Icon Vector Marks
 
 // 1. Cooling Turbine Mark
@@ -158,55 +90,7 @@ struct TurbineMark: View {
     }
 }
 
-// 2. Dual Interlocking Gears Mark
-struct GearsMark: View {
-    let frame: Int
-    var markerColor: Color = Tokens.accent
-
-    var body: some View {
-        GeometryReader { proxy in
-            let s = min(proxy.size.width, proxy.size.height)
-            let r1 = s * 0.26
-            let r2 = s * 0.16
-            let c1 = CGPoint(x: s * 0.38, y: s * 0.42)
-            let c2 = CGPoint(x: s * 0.74, y: s * 0.68)
-            let strokeW = max(1.2, s * 0.06)
-            let rot = Double(frame) / 24.0
-
-            ZStack {
-                // Gear 1
-                ZStack {
-                    Circle().stroke(lineWidth: strokeW).frame(width: r1 * 1.5, height: r1 * 1.5).position(c1)
-                    Circle().fill(markerColor).frame(width: r1 * 0.5, height: r1 * 0.5).position(c1)
-                    ForEach(0..<8, id: \.self) { i in
-                        Rectangle()
-                            .fill(markerColor)
-                            .frame(width: strokeW * 1.8, height: r1 * 0.35)
-                            .position(x: c1.x, y: c1.y - r1)
-                            .rotationEffect(.degrees(Double(i) * 45.0), anchor: .center)
-                    }
-                }
-                .rotationEffect(.degrees(rot * 360.0), anchor: UnitPoint(x: c1.x / proxy.size.width, y: c1.y / proxy.size.height))
-
-                // Gear 2
-                ZStack {
-                    Circle().stroke(lineWidth: strokeW).frame(width: r2 * 1.4, height: r2 * 1.4).position(c2)
-                    Circle().fill(markerColor).frame(width: r2 * 0.5, height: r2 * 0.5).position(c2)
-                    ForEach(0..<6, id: \.self) { i in
-                        Rectangle()
-                            .fill(markerColor)
-                            .frame(width: strokeW * 1.5, height: r2 * 0.35)
-                            .position(x: c2.x, y: c2.y - r2)
-                            .rotationEffect(.degrees(Double(i) * 60.0), anchor: .center)
-                    }
-                }
-                .rotationEffect(.degrees(-rot * 360.0 * 1.6 + 15.0), anchor: UnitPoint(x: c2.x / proxy.size.width, y: c2.y / proxy.size.height))
-            }
-        }
-    }
-}
-
-// 3. Flowing Pulse W Waveform Mark
+// 2. Flowing Pulse W Waveform Mark
 struct PulseWaveMark: View {
     let frame: Int
     var markerColor: Color = Tokens.accent
@@ -252,7 +136,7 @@ struct PulseWaveMark: View {
     }
 }
 
-// 4. Atomic Orbit Mark
+// 3. Atomic Orbit Mark
 struct AtomicOrbitMark: View {
     let frame: Int
     var markerColor: Color = Tokens.accent
@@ -304,7 +188,7 @@ struct AtomicOrbitMark: View {
     }
 }
 
-// 5. Isometric Rotating 3D Cube Mark
+// 4. Isometric Rotating 3D Cube Mark
 struct Cube3DMark: View {
     let frame: Int
     var markerColor: Color = Tokens.accent
@@ -356,110 +240,7 @@ struct Cube3DMark: View {
     }
 }
 
-// 6. Infinity Loop Mark
-struct InfinityLoopMark: View {
-    let frame: Int
-    var markerColor: Color = Tokens.accent
-
-    var body: some View {
-        GeometryReader { proxy in
-            let s = min(proxy.size.width, proxy.size.height)
-            let c = CGPoint(x: s / 2, y: s / 2)
-            let strokeW = max(1.4, s * 0.08)
-            let t = Double(frame) / 24.0 * .pi * 2.0
-            let scale = s * 0.40
-            let denom = 1.0 + sin(t) * sin(t)
-            let px = c.x + (scale * cos(t)) / denom
-            let py = c.y + (scale * sin(t) * cos(t)) / denom
-
-            ZStack {
-                Path { p in
-                    p.move(to: CGPoint(x: c.x - s * 0.35, y: c.y))
-                    p.addCurve(to: CGPoint(x: c.x, y: c.y),
-                               control1: CGPoint(x: c.x - s * 0.35, y: c.y - s * 0.25),
-                               control2: CGPoint(x: c.x, y: c.y - s * 0.25))
-                    p.addCurve(to: CGPoint(x: c.x + s * 0.35, y: c.y),
-                               control1: CGPoint(x: c.x + s * 0.25, y: c.y + s * 0.25),
-                               control2: CGPoint(x: c.x + s * 0.35, y: c.y + s * 0.25))
-                    p.addCurve(to: CGPoint(x: c.x + s * 0.35, y: c.y),
-                               control1: CGPoint(x: c.x + s * 0.35, y: c.y - s * 0.25),
-                               control2: CGPoint(x: c.x + s * 0.35, y: c.y - s * 0.25))
-                    p.addCurve(to: CGPoint(x: c.x - s * 0.35, y: c.y),
-                               control1: CGPoint(x: c.x + s * 0.25, y: c.y + s * 0.25),
-                               control2: CGPoint(x: c.x - s * 0.35, y: c.y + s * 0.25))
-                }
-                .stroke(style: StrokeStyle(lineWidth: strokeW, lineCap: .round, lineJoin: .round))
-                .opacity(0.35)
-
-                Circle()
-                    .fill(markerColor)
-                    .frame(width: strokeW * 2.2, height: strokeW * 2.2)
-                    .position(x: px, y: py)
-            }
-        }
-    }
-}
-
-// 7. Mainframe Tape Reel Mark
-struct TapeReelMark: View {
-    let frame: Int
-    var markerColor: Color = Tokens.accent
-
-    var body: some View {
-        GeometryReader { proxy in
-            let s = min(proxy.size.width, proxy.size.height)
-            let r = s * 0.20
-            let strokeW = max(1.2, s * 0.065)
-            let c1 = CGPoint(x: s * 0.30, y: s * 0.50)
-            let c2 = CGPoint(x: s * 0.70, y: s * 0.50)
-            let rot = (Double(frame) / 24.0) * 360.0
-
-            ZStack {
-                RoundedRectangle(cornerRadius: s * 0.08)
-                    .stroke(lineWidth: strokeW * 0.75)
-                    .opacity(0.3)
-                    .frame(width: s * 0.84, height: s * 0.60)
-                    .position(x: s * 0.5, y: s * 0.5)
-
-                // Reel 1
-                ZStack {
-                    Circle().stroke(lineWidth: strokeW).frame(width: r * 2, height: r * 2).position(c1)
-                    Circle().fill(markerColor).frame(width: r * 0.6, height: r * 0.6).position(c1)
-                    ForEach([0.0, 120.0, 240.0], id: \.self) { a in
-                        Rectangle()
-                            .fill(markerColor)
-                            .frame(width: strokeW * 0.8, height: r * 2)
-                            .position(c1)
-                            .rotationEffect(.degrees(a))
-                    }
-                }
-                .rotationEffect(.degrees(rot), anchor: UnitPoint(x: c1.x / proxy.size.width, y: c1.y / proxy.size.height))
-
-                // Reel 2
-                ZStack {
-                    Circle().stroke(lineWidth: strokeW).frame(width: r * 2, height: r * 2).position(c2)
-                    Circle().fill(markerColor).frame(width: r * 0.6, height: r * 0.6).position(c2)
-                    ForEach([0.0, 120.0, 240.0], id: \.self) { a in
-                        Rectangle()
-                            .fill(markerColor)
-                            .frame(width: strokeW * 0.8, height: r * 2)
-                            .position(c2)
-                            .rotationEffect(.degrees(a))
-                    }
-                }
-                .rotationEffect(.degrees(rot), anchor: UnitPoint(x: c2.x / proxy.size.width, y: c2.y / proxy.size.height))
-
-                Path { p in
-                    p.move(to: CGPoint(x: c1.x, y: c1.y + r))
-                    p.addQuadCurve(to: CGPoint(x: c2.x, y: c2.y + r), control: CGPoint(x: s * 0.5, y: s * 0.72))
-                }
-                .stroke(style: StrokeStyle(lineWidth: strokeW, lineCap: .round))
-            }
-        }
-    }
-}
-
-// 8. Thermal Convection Bubble Mark
+// 5. Thermal Convection Bubble Mark
 struct ThermalBubbleMark: View {
     let frame: Int
     var markerColor: Color = Tokens.accent
@@ -523,14 +304,10 @@ struct DynamicMenuBarIconMark: View {
     var body: some View {
         switch style {
         case .turbine: TurbineMark(frame: frame, markerColor: markerColor)
-        case .gears: GearsMark(frame: frame, markerColor: markerColor)
         case .pulseWave: PulseWaveMark(frame: frame, markerColor: markerColor)
         case .atomicOrbit: AtomicOrbitMark(frame: frame, markerColor: markerColor)
         case .cube3D: Cube3DMark(frame: frame, markerColor: markerColor)
-        case .infinityLoop: InfinityLoopMark(frame: frame, markerColor: markerColor)
-        case .tapeReel: TapeReelMark(frame: frame, markerColor: markerColor)
         case .thermalBubble: ThermalBubbleMark(frame: frame, markerColor: markerColor)
-        case .fluxLoop: FluxLoopMark(frame: frame, markerColor: markerColor)
         }
     }
 }

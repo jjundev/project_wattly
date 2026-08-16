@@ -143,7 +143,7 @@ struct SettingsMenuBarSection: View {
                     let delay = MenuBarIconMotion.frameDelay(style: iconStyle, phase: phase, frameRate: frameRate)
                     try? await Task.sleep(for: .seconds(delay))
                     guard !Task.isCancelled else { return }
-                    iconPreviewPhase = (phase + 1) % 336
+                    iconPreviewPhase = (phase + 1) % 24
                 }
             }
         }
