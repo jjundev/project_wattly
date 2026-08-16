@@ -132,10 +132,7 @@ enum MenuBarIconMotion {
                                    isACConnected: Bool = true,
                                    isLowPowerMode: Bool = false,
                                    frameCount: Int = 24) -> Double {
-        let rps = revolutionsPerSecond(load: load)
-        let visualFPS = rps * Double(frameCount)
-        let targetFPS = KineticNotchSpeed.resolveTargetFPS(speed: speed, isACConnected: isACConnected, isLowPowerMode: isLowPowerMode)
-        return min(targetFPS, max(visualFPS, 6.0))
+        KineticNotchSpeed.resolveTargetFPS(speed: speed, isACConnected: isACConnected, isLowPowerMode: isLowPowerMode)
     }
 
     /// Advance continuous fractional phase [0.0, 1.0) given rps and elapsed dt (clamped to 1.0s for sleep/wake).

@@ -78,6 +78,22 @@ struct KineticNotchMotionTests {
         #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .eco, frameCount: 24) == 24.0)
         #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .standard, frameCount: 24) == 48.0)
         #expect(MenuBarIconMotion.effectiveFrameRate(load: 100, speed: .responsive, frameCount: 24) == 60.0)
+
+        // At idle load (0.0):
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 0, speed: .smart, isACConnected: true, isLowPowerMode: false) == 60.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 0, speed: .smart, isACConnected: false, isLowPowerMode: false) == 24.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 0, speed: .smart, isACConnected: false, isLowPowerMode: true) == 15.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 0, speed: .eco) == 24.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 0, speed: .standard) == 48.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 0, speed: .responsive) == 60.0)
+
+        // At light load (5.0):
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 5.0, speed: .smart, isACConnected: true, isLowPowerMode: false) == 60.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 5.0, speed: .smart, isACConnected: false, isLowPowerMode: false) == 24.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 5.0, speed: .smart, isACConnected: false, isLowPowerMode: true) == 15.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 5.0, speed: .eco) == 24.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 5.0, speed: .standard) == 48.0)
+        #expect(MenuBarIconMotion.effectiveFrameRate(load: 5.0, speed: .responsive) == 60.0)
     }
 
     @Test func timeBasedPhaseAdvancePreservesContinuity() {
