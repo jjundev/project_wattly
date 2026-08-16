@@ -62,6 +62,31 @@ struct ThresholdTests {
             temp: ThresholdPair(warn: 70, crit: 90)))
     }
 
+    @Test func gpuThresholdOptionalSerialization() {
+        // 1. Without GPU (default)
+        let tDefault = Thresholds(
+            cpu: ThresholdPair(warn: 70, crit: 90),
+            temp: ThresholdPair(warn: 70, crit: 90),
+            gpu: nil
+        )
+        #expect(tDefault.gpu == nil)
+        let rawDefault = tDefault.rawValue
+        let restoredDefault = Thresholds(rawValue: rawDefault)
+        #expect(restoredDefault?.gpu == nil)
+        #expect(restoredDefault == tDefault)
+
+        // 2. With GPU enabled
+        let tWithGPU = Thresholds(
+            cpu: ThresholdPair(warn: 70, crit: 90),
+            temp: ThresholdPair(warn: 70, crit: 90),
+            gpu: ThresholdPair(warn: 85, crit: 95)
+        )
+        let rawWithGPU = tWithGPU.rawValue
+        let restoredWithGPU = Thresholds(rawValue: rawWithGPU)
+        #expect(restoredWithGPU?.gpu == ThresholdPair(warn: 85, crit: 95))
+        #expect(restoredWithGPU == tWithGPU)
+    }
+
     @Test func temperatureCardsShareOnePair() {
         let th = Defaults.thresholds       // temp 70/90
         let st = MetricState.value(.temperature(TemperatureSnapshot(

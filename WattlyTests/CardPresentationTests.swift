@@ -74,6 +74,32 @@ struct CardPresentationTests {
         #expect(CardPresentation.gpuMemoryFraction(inUse: 100, alloc: 0) == 0.0)
     }
 
+    @Test func gpuThresholdEvaluation() {
+        let sampleLow = GPUSample(overall: 50.0, coreCount: 10, activeGHz: 1.28)
+        let sampleWarn = GPUSample(overall: 88.0, coreCount: 10, activeGHz: 1.28)
+        let sampleCrit = GPUSample(overall: 98.0, coreCount: 10, activeGHz: 1.28)
+
+        // When disabled (default): always returns nil regardless of overall usage
+        let thresholdsDisabled = Thresholds(
+            cpu: ThresholdPair(warn: 70, crit: 90),
+            temp: ThresholdPair(warn: 70, crit: 90),
+            gpu: nil
+        )
+        #expect(CardPresentation.thresholdLevel(.gpu, .value(.gpu(sampleLow)), thresholdsDisabled) == nil)
+        #expect(CardPresentation.thresholdLevel(.gpu, .value(.gpu(sampleWarn)), thresholdsDisabled) == nil)
+        #expect(CardPresentation.thresholdLevel(.gpu, .value(.gpu(sampleCrit)), thresholdsDisabled) == nil)
+
+        // When enabled: evaluates against gpu threshold pair (.normal, .warn, .crit)
+        let thresholdsEnabled = Thresholds(
+            cpu: ThresholdPair(warn: 70, crit: 90),
+            temp: ThresholdPair(warn: 70, crit: 90),
+            gpu: ThresholdPair(warn: 85, crit: 95)
+        )
+        #expect(CardPresentation.thresholdLevel(.gpu, .value(.gpu(sampleLow)), thresholdsEnabled) == .normal)
+        #expect(CardPresentation.thresholdLevel(.gpu, .value(.gpu(sampleWarn)), thresholdsEnabled) == .warn)
+        #expect(CardPresentation.thresholdLevel(.gpu, .value(.gpu(sampleCrit)), thresholdsEnabled) == .crit)
+    }
+
     @Test func batterySignDropsAtZeroMagnitude() {
         #expect(CardPresentation.batterySign(netW: 12.0, charging: false) == minus)   // discharging
         #expect(CardPresentation.batterySign(netW: -30.0, charging: true) == "+")     // charging

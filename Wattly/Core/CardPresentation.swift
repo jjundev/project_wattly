@@ -98,7 +98,7 @@ enum CardPresentation {
         case (.cpu, .cpu(let s)):
             return thresholds.cpu.level(s.overall)
         case (.gpu, .gpu(let s)):
-            return thresholds.cpu.level(s.overall)
+            return thresholds.gpu?.level(s.overall)
         case (.mem, .memory(let sample)):
             return sample.pressure?.thresholdLevel
         case (.cpuTemp, .temperature(let s)): return tempLevel(s.cpu, thresholds.temp)

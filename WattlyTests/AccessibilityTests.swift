@@ -107,13 +107,25 @@ struct AccessibilityTests {
     }
 
     @Test func gpuStateWordCritWarnNormal() {
-        let th = Defaults.thresholds
-        let high = MetricState.value(.gpu(GPUSample(overall: 95, coreCount: 10, activeGHz: 1.5)))
-        let mid = MetricState.value(.gpu(GPUSample(overall: 75, coreCount: 10, activeGHz: 1.5)))
-        let low = MetricState.value(.gpu(GPUSample(overall: 40, coreCount: 10, activeGHz: 1.5)))
-        #expect(Accessibility.stateWord(.gpu, high, th) == "위험")
-        #expect(Accessibility.stateWord(.gpu, mid, th) == "주의")
-        #expect(Accessibility.stateWord(.gpu, low, th) == nil)
+        let sampleCrit = GPUSample(overall: 98.0, coreCount: 10, activeGHz: 1.28)
+        let sampleWarn = GPUSample(overall: 88.0, coreCount: 10, activeGHz: 1.28)
+        let sampleNormal = GPUSample(overall: 50.0, coreCount: 10, activeGHz: 1.28)
+
+        // Disabled by default -> no warning state word
+        let thDefault = Defaults.thresholds
+        #expect(Accessibility.stateWord(.gpu, .value(.gpu(sampleCrit)), thDefault) == nil)
+        #expect(Accessibility.stateWord(.gpu, .value(.gpu(sampleWarn)), thDefault) == nil)
+        #expect(Accessibility.stateWord(.gpu, .value(.gpu(sampleNormal)), thDefault) == nil)
+
+        // Enabled -> returns "위험" / "주의" / nil
+        let thEnabled = Thresholds(
+            cpu: ThresholdPair(warn: 70, crit: 90),
+            temp: ThresholdPair(warn: 70, crit: 90),
+            gpu: ThresholdPair(warn: 85, crit: 95)
+        )
+        #expect(Accessibility.stateWord(.gpu, .value(.gpu(sampleCrit)), thEnabled) == "위험")
+        #expect(Accessibility.stateWord(.gpu, .value(.gpu(sampleWarn)), thEnabled) == "주의")
+        #expect(Accessibility.stateWord(.gpu, .value(.gpu(sampleNormal)), thEnabled) == nil)
     }
 
     @Test func powerCardHasNoStateWord() {

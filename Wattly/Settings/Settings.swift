@@ -106,10 +106,12 @@ struct ThresholdPair: Equatable, Sendable {
 struct Thresholds: Equatable, Sendable, RawRepresentable {
     var cpu: ThresholdPair
     var temp: ThresholdPair
+    var gpu: ThresholdPair?
 
-    init(cpu: ThresholdPair, temp: ThresholdPair) {
+    init(cpu: ThresholdPair, temp: ThresholdPair, gpu: ThresholdPair? = nil) {
         self.cpu = cpu
         self.temp = temp
+        self.gpu = gpu
     }
 
     init?(rawValue: String) {
@@ -120,26 +122,35 @@ struct Thresholds: Equatable, Sendable, RawRepresentable {
               let cpuWarn = cpuObject["warn"], let cpuCrit = cpuObject["crit"],
               let tempWarn = tempObject["warn"], let tempCrit = tempObject["crit"]
         else { return nil }
-        self.init(cpu: ThresholdPair(warn: cpuWarn, crit: cpuCrit),
-                  temp: ThresholdPair(warn: tempWarn, crit: tempCrit))
+
+        self.cpu = ThresholdPair(warn: cpuWarn, crit: cpuCrit)
+        self.temp = ThresholdPair(warn: tempWarn, crit: tempCrit)
+
+        if let gpuObject = object["gpu"] as? [String: Double],
+           let gpuWarn = gpuObject["warn"], let gpuCrit = gpuObject["crit"] {
+            self.gpu = ThresholdPair(warn: gpuWarn, crit: gpuCrit)
+        } else {
+            self.gpu = nil
+        }
     }
 
     var rawValue: String {
-        let object: [String: [String: Double]] = [
+        var dict: [String: Any] = [
             "cpu": ["warn": cpu.warn, "crit": cpu.crit],
-            "temp": ["warn": temp.warn, "crit": temp.crit],
+            "temp": ["warn": temp.warn, "crit": temp.crit]
         ]
-        guard let data = try? JSONSerialization.data(withJSONObject: object),
-              let value = String(data: data, encoding: .utf8) else { return "" }
-        return value
+        if let g = gpu {
+            dict["gpu"] = ["warn": g.warn, "crit": g.crit]
+        }
+        guard let data = try? JSONSerialization.data(withJSONObject: dict),
+              let string = String(data: data, encoding: .utf8)
+        else { return "" }
+        return string
     }
 
-    /// Explicit memberwise equality. Without this, `==` resolves to a `rawValue`-string
-    /// comparison (the `RawRepresentable` path), and `rawValue`'s JSON dictionary has a
-    /// non-deterministic key order — so two value-equal `Thresholds` compare unequal almost
-    /// every time. Compare the fields directly instead.
+    /// Memberwise equality — NOT JSON string equality (#L12).
     static func == (lhs: Thresholds, rhs: Thresholds) -> Bool {
-        lhs.cpu == rhs.cpu && lhs.temp == rhs.temp
+        lhs.cpu == rhs.cpu && lhs.temp == rhs.temp && lhs.gpu == rhs.gpu
     }
 }
 
@@ -279,7 +290,9 @@ enum Defaults {
     static let cardOrder = CardOrder([.power, .battery, .cpu, .gpu, .mem, .cpuTemp, .gpuTemp, .batTemp, .fan])
     static let thresholds = Thresholds(
         cpu: ThresholdPair(warn: 70, crit: 90),
-        temp: ThresholdPair(warn: 70, crit: 90))
+        temp: ThresholdPair(warn: 70, crit: 90),
+        gpu: nil
+    )
     /// Fan curve: target RPMs at the fixed 30…100 °C anchors (5° steps). A gentle ramp — quiet
     /// at idle, spinning up toward the fan's top end under sustained heat.
     static let fanCurve = FanCurve(rpms: [800, 900, 1000, 1200, 1500, 1900, 2400, 3000, 3600, 4200, 4800, 5500, 6000, 6300, 6500])
