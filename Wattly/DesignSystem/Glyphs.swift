@@ -55,34 +55,50 @@ struct TurbineMark: View {
         GeometryReader { proxy in
             let s = min(proxy.size.width, proxy.size.height)
             let center = CGPoint(x: proxy.size.width / 2, y: proxy.size.height / 2)
-            let strokeW = max(1.2, s * 0.08)
+            let strokeW = max(1.5, s * 0.08)
             let angle = (Double(frame) / 24.0) * 360.0
 
             ZStack {
+                // Outer ring
                 Circle()
                     .stroke(style: StrokeStyle(lineWidth: strokeW * 0.75))
-                    .opacity(0.35)
+                    .opacity(0.40)
                     .frame(width: s * 0.88, height: s * 0.88)
                     .position(center)
 
+                // Rotating blades and hub
                 ZStack {
                     ForEach([0.0, 90.0, 180.0, 270.0], id: \.self) { a in
                         Path { p in
-                            p.move(to: CGPoint(x: center.x, y: center.y - s * 0.10))
-                            p.addQuadCurve(to: CGPoint(x: center.x + s * 0.28, y: center.y - s * 0.28),
-                                           control: CGPoint(x: center.x + s * 0.22, y: center.y - s * 0.08))
-                            p.addLine(to: CGPoint(x: center.x + s * 0.18, y: center.y - s * 0.38))
-                            p.addQuadCurve(to: CGPoint(x: center.x, y: center.y - s * 0.10),
-                                           control: CGPoint(x: center.x + s * 0.10, y: center.y - s * 0.22))
+                            p.move(to: CGPoint(x: center.x, y: center.y - s * 0.12))
+                            p.addCurve(
+                                to: CGPoint(x: center.x + s * 0.26, y: center.y - s * 0.05),
+                                control1: CGPoint(x: center.x + s * 0.22, y: center.y - s * 0.32),
+                                control2: CGPoint(x: center.x + s * 0.38, y: center.y - s * 0.20)
+                            )
+                            p.closeSubpath()
                         }
                         .fill(markerColor)
+                        .opacity(0.90)
                         .rotationEffect(.degrees(a), anchor: .center)
                     }
 
-                    Circle()
-                        .fill(markerColor)
-                        .frame(width: s * 0.24, height: s * 0.24)
-                        .position(center)
+                    // Center donut hub (outer r=0.12s, inner r=0.05s)
+                    Path { p in
+                        p.addEllipse(in: CGRect(
+                            x: center.x - s * 0.12,
+                            y: center.y - s * 0.12,
+                            width: s * 0.24,
+                            height: s * 0.24
+                        ))
+                        p.addEllipse(in: CGRect(
+                            x: center.x - s * 0.05,
+                            y: center.y - s * 0.05,
+                            width: s * 0.10,
+                            height: s * 0.10
+                        ))
+                    }
+                    .fill(markerColor, style: FillStyle(eoFill: true))
                 }
                 .rotationEffect(.degrees(angle), anchor: .center)
             }
