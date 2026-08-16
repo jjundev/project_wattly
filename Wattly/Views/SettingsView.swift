@@ -823,18 +823,23 @@ struct SettingsView: View {
     }
 
     private var menuChipGrid: some View {
-        let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 3)
-        return VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 8) {
             // 주요 지표 (Primary)
-            LazyVGrid(columns: columns, spacing: 4) {
-                menuMetricChip(.cpu, label: "CPU (%)", isOn: menuCPU) { menuCPU.toggle() }
-                menuMetricChip(.gpu, label: "GPU (%)", isOn: menuGPU) { menuGPU.toggle() }
-                menuMetricChip(.power, label: "전력 (W)", isOn: menuPower) { menuPower.toggle() }
-                menuMetricChip(.battery, label: "배터리 (W)", isOn: menuBattery) { menuBattery.toggle() }
-                menuMetricChip(.mem, label: "메모리 (GB)", isOn: menuMem) { menuMem.toggle() }
-                menuMetricChip(.cpuTemp, label: "CPU 온도 (°C)", isOn: menuCpuTemp) { menuCpuTemp.toggle() }
-                menuMetricChip(.gpuTemp, label: "GPU 온도 (°C)", isOn: menuGpuTemp) { menuGpuTemp.toggle() }
-                menuMetricChip(.fan, label: "팬 (RPM)", isOn: menuFan) { menuFan.toggle() }
+            Grid(horizontalSpacing: 4, verticalSpacing: 4) {
+                GridRow {
+                    menuMetricChip(.cpu, label: "CPU (%)", isOn: menuCPU) { menuCPU.toggle() }
+                    menuMetricChip(.gpu, label: "GPU (%)", isOn: menuGPU) { menuGPU.toggle() }
+                    menuMetricChip(.power, label: "전력 (W)", isOn: menuPower) { menuPower.toggle() }
+                }
+                GridRow {
+                    menuMetricChip(.battery, label: "배터리 (W)", isOn: menuBattery) { menuBattery.toggle() }
+                    menuMetricChip(.mem, label: "메모리 (GB)", isOn: menuMem) { menuMem.toggle() }
+                    menuMetricChip(.cpuTemp, label: "CPU 온도 (°C)", isOn: menuCpuTemp) { menuCpuTemp.toggle() }
+                }
+                GridRow {
+                    menuMetricChip(.gpuTemp, label: "GPU 온도 (°C)", isOn: menuGpuTemp) { menuGpuTemp.toggle() }
+                    menuMetricChip(.fan, label: "팬 (RPM)", isOn: menuFan) { menuFan.toggle() }
+                }
             }
             .padding(3)
             .background(RoundedRectangle(cornerRadius: 8).fill(t.segTrack))
@@ -858,12 +863,16 @@ struct SettingsView: View {
 
             // 세부 지표 (Advanced)
             if isAdvancedMenuMetricsExpanded {
-                LazyVGrid(columns: columns, spacing: 4) {
-                    menuClockChip(label: "S 코어 클럭 (GHz)", isOn: menuSClock) { menuSClock.toggle() }
-                    menuClockChip(label: "P 코어 클럭 (GHz)", isOn: menuPClock) { menuPClock.toggle() }
-                    menuClockChip(label: "E 코어 클럭 (GHz)", isOn: menuEClock) { menuEClock.toggle() }
-                    menuMetricChip(.mem, label: "메모리 압력 (%)", isOn: menuMemPressure) { menuMemPressure.toggle() }
-                    menuMetricChip(.batTemp, label: "배터리 온도 (°C)", isOn: menuBatTemp) { menuBatTemp.toggle() }
+                Grid(horizontalSpacing: 4, verticalSpacing: 4) {
+                    GridRow {
+                        menuClockChip(label: "S 코어 클럭 (GHz)", isOn: menuSClock) { menuSClock.toggle() }
+                        menuClockChip(label: "P 코어 클럭 (GHz)", isOn: menuPClock) { menuPClock.toggle() }
+                        menuClockChip(label: "E 코어 클럭 (GHz)", isOn: menuEClock) { menuEClock.toggle() }
+                    }
+                    GridRow {
+                        menuMetricChip(.mem, label: "메모리 압력 (%)", isOn: menuMemPressure) { menuMemPressure.toggle() }
+                        menuMetricChip(.batTemp, label: "배터리 온도 (°C)", isOn: menuBatTemp) { menuBatTemp.toggle() }
+                    }
                 }
                 .padding(3)
                 .background(RoundedRectangle(cornerRadius: 8).fill(t.segTrack))
