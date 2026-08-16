@@ -148,7 +148,7 @@ actor FakeProvider: MetricProvider {
             ]))
         case .gpu:
             let g = v("gpu")
-            return .gpu(GPUSample(overall: g, coreCount: 10, activeGHz: 1.28, cores: Array(repeating: g, count: 10)))
+            return .gpu(makeGPUSample(overall: g, coreCount: 10, activeGHz: 1.28))
         }
     }
 
@@ -201,6 +201,7 @@ enum FakeProviders {
         ProviderKind.allCases.map { kind -> any MetricProvider in
             switch kind {
             case .cpu:    return CPUProvider()
+            case .gpu:    return GPUProvider()
             case .memory: return MemoryProvider()
             case .power where scenario != .fail: return PowerProvider()
             case .battery where scenario != .desktop: return BatteryProvider()

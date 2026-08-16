@@ -91,6 +91,7 @@ struct PollPolicyTests {
         let open = providerIntervals(mode: .performance, setting: .auto, panelVisible: true,
                                      menubarTextEnabled: true, active: all, menubarNeeds: [.cpu])
         #expect(open[.cpu] == .seconds(1))
+        #expect(open[.gpu] == .seconds(1))
         #expect(open[.power] == .seconds(1))
         #expect(open[.temperature] == .seconds(1))
         #expect(open[.memory] == .seconds(3))
@@ -102,6 +103,7 @@ struct PollPolicyTests {
                                               menubarTextEnabled: true, active: all, menubarNeeds: [.cpu],
                                               isACConnected: false)
         #expect(closedBattery[.cpu] == .seconds(3))
+        #expect(closedBattery[.gpu] == .seconds(3))
         #expect(closedBattery[.power] == .seconds(3))
         #expect(closedBattery[.memory] == .seconds(10))
         #expect(closedBattery[.battery] == .seconds(10))
@@ -112,10 +114,23 @@ struct PollPolicyTests {
                                          menubarTextEnabled: true, active: all, menubarNeeds: [.cpu],
                                          isACConnected: true)
         #expect(closedAC[.cpu] == .seconds(2))
+        #expect(closedAC[.gpu] == .seconds(2))
         #expect(closedAC[.power] == .seconds(2))
         #expect(closedAC[.memory] == .seconds(5))
         #expect(closedAC[.battery] == .seconds(5))
         #expect(closedAC[.fan] == .seconds(5))
+    }
+
+    @Test func gpuPollIntervals() {
+        let intervals = providerIntervals(mode: .eco, setting: .auto, panelVisible: true,
+                                          menubarTextEnabled: true, active: [.gpu],
+                                          menubarNeeds: [.gpu], isACConnected: true)
+        #expect(intervals[.gpu] == .seconds(1))
+
+        let closedIntervals = providerIntervals(mode: .eco, setting: .auto, panelVisible: false,
+                                                menubarTextEnabled: true, active: [.gpu],
+                                                menubarNeeds: [.gpu], isACConnected: true)
+        #expect(closedIntervals[.gpu] == .seconds(2))
     }
 
     @Test func performanceAndEcoAgreeForFixedInterval() {
