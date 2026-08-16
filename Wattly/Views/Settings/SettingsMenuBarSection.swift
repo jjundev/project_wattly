@@ -117,7 +117,7 @@ struct SettingsMenuBarSection: View {
                     kineticNotchField(title: "실시간 속도") {
                         HStack(spacing: 8) {
                             if let previewLoad {
-                                let frameRate = MenuBarIconMotion.frameRate(load: previewLoad, speed: kineticNotchSpeed) ?? 0
+                                let frameRate = MenuBarIconMotion.frameRate(load: previewLoad, speed: kineticNotchSpeed)
                                 Text("\(Int(previewLoad.rounded()))% · \(frameRate, specifier: "%.1f") fps")
                                     .font(WattlyFont.at(11.5, weight: .medium))
                                     .foregroundStyle(t.faint)
@@ -209,20 +209,48 @@ struct SettingsMenuBarSection: View {
     }
 
     private var previewLoad: Double? {
+        let power: Double?
+        if case .value(.power(let sample)) = monitor.cardState(.power) {
+            power = sample.totalW
+        } else {
+            power = nil
+        }
+
+        let cpuClockGHz: Double?
         let cpu: Double?
         if case .value(.cpu(let sample)) = monitor.cardState(.cpu) {
             cpu = sample.overall
+            cpuClockGHz = sample.perfLevels.compactMap(\.activeGHz).first
         } else {
             cpu = nil
+            cpuClockGHz = nil
         }
 
         let gpu: Double?
+        let gpuCores: Int?
         if case .value(.gpu(let sample)) = monitor.cardState(.gpu) {
             gpu = sample.overall
+            gpuCores = sample.coreCount
         } else {
             gpu = nil
+            gpuCores = nil
         }
-        return kineticNotchSource.load(cpu: cpu, gpu: gpu)
+
+        let fanCount: Int?
+        if case .value(.fan(let sample)) = monitor.cardState(.fan) {
+            fanCount = sample.fans.count
+        } else {
+            fanCount = nil
+        }
+
+        return kineticNotchSource.load(
+            power: power,
+            cpuClockGHz: cpuClockGHz,
+            cpu: cpu,
+            gpu: gpu,
+            gpuCores: gpuCores,
+            fanCount: fanCount
+        )
     }
 
     private var menuChipGrid: some View {

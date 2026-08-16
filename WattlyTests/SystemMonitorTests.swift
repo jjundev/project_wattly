@@ -277,6 +277,7 @@ struct SystemMonitorTests {
         let cpu = CountingProvider(kind: .cpu)
         let power = CountingProvider(kind: .power)
         let monitor = SystemMonitor(providers: [cpu, power], clock: ManualClock())
+        await monitor.setMenubarMotionMetrics([])
 
         await monitor.pollScheduled(force: false)
 
