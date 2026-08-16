@@ -228,7 +228,23 @@ enum MenuBarIconMotion {
             return tier * 6 + subPhase
         }
 
+        // Hill Runner maps 3 workload tiers (Low Uphill, Mid Flat, High Downhill) into 8 subphases each
+        if style == .hillRunner {
+            let clampedLoad = min(max(activeLoad, 0), 100)
+            let tier: Int
+            if clampedLoad < 25.0 {
+                tier = 0 // 저부하: 오르막 (Frames 0..7)
+            } else if clampedLoad < 65.0 {
+                tier = 1 // 중부하: 평지 (Frames 8..15)
+            } else {
+                tier = 2 // 고부하: 내리막 질주 (Frames 16..23)
+            }
+            let subPhase = Int(safePhase * 8.0) % 8
+            return tier * 8 + subPhase
+        }
+
         return Int(safePhase * Double(count)) % count
+
     }
 
     static func displayedFrame(style: MenuBarIconStyle, phase: Int, reduceMotion: Bool) -> Int {

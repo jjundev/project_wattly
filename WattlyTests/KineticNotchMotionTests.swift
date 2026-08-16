@@ -181,4 +181,24 @@ struct KineticNotchMotionTests {
         let eqNaN = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 0.5, load: .nan, reduceMotion: false)
         #expect(eqNaN >= 0 && eqNaN <= 5)
     }
+
+    @Test func hillRunnerMapsLoadTiersCorrectly() {
+        // Low load (0~24%) -> Tier 0 (Frames 0..7)
+        let lowFrame = MenuBarIconMotion.displayedFrame(style: .hillRunner, phase: 0.5, load: 10.0, reduceMotion: false)
+        #expect(lowFrame >= 0 && lowFrame <= 7)
+
+        // Mid load (25~64%) -> Tier 1 (Frames 8..15)
+        let midFrame = MenuBarIconMotion.displayedFrame(style: .hillRunner, phase: 0.5, load: 45.0, reduceMotion: false)
+        #expect(midFrame >= 8 && midFrame <= 15)
+
+        // High load (65~100%) -> Tier 2 (Frames 16..23)
+        let highFrame = MenuBarIconMotion.displayedFrame(style: .hillRunner, phase: 0.5, load: 85.0, reduceMotion: false)
+        #expect(highFrame >= 16 && highFrame <= 23)
+    }
+
+    @Test func hillRunnerStaticFrameHonorsReduceMotion() {
+        let frame = MenuBarIconMotion.displayedFrame(style: .hillRunner, phase: 0.5, load: 90.0, reduceMotion: true)
+        #expect(frame == 8)
+    }
 }
+
