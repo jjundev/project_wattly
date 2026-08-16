@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 
-/// The always-present menubar item: the brand lightning glyph plus, optionally, the
+/// The always-present menubar item: the Pulse W glyph plus, optionally, the
 /// user-selected metrics as compact text (issue 14). Clicking toggles the popover.
 ///
 /// The text is assembled by the pure `MenuBarText` (its own per-metric format, not the
@@ -22,7 +22,7 @@ struct MenuBarLabel: View {
         // (the status item captures it as a template bitmap), so the glyph is a rasterized
         // template image; if rasterization ever fails, fall back to an SF Symbol so the
         // icon is never blank.
-        let glyph = MenuBarGlyph.template.map(Image.init(nsImage:)) ?? Image(systemName: "bolt.fill")
+        let glyph = MenuBarGlyph.template.map(Image.init(nsImage:)) ?? Image(systemName: "waveform.path")
         return HStack(spacing: 4) {
             glyph
             if let label {
@@ -66,11 +66,11 @@ struct MenuBarLabel: View {
         return Dictionary(uniqueKeysWithValues:
             kinds.map { ($0, monitor.cardState($0, smoothed: powerSmoothed)) })
     }
+
 }
 
-/// The brand lightning mark rasterized once to a template `NSImage` for the menubar.
-/// `LightningGlyph` is the pixel-faithful prototype polygon (stroked, prototype line 53);
-/// rendering it to a template image (rather than drawing the `Shape` live in the label)
+/// The Pulse W mark rasterized once to a template `NSImage` for the menubar.
+/// Rendering it to a template image (rather than drawing the `Shape` live in the label)
 /// is what makes it actually appear in the status bar and tint for light/dark + the
 /// open-panel highlight. Built lazily on the main actor, cached for the process.
 @MainActor
@@ -79,14 +79,14 @@ enum MenuBarGlyph {
 
     private static func render() -> NSImage? {
         let renderer = ImageRenderer(content:
-            LightningGlyph()
+            PulseWGlyph()
                 .stroke(style: StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round))
                 .frame(width: 13, height: 13)
-                .padding(1.5)                 // keep the stroke off the bitmap edge
-                .foregroundStyle(.black))     // template ⇒ only the alpha mask matters
+            .padding(1.5)
+            .foregroundStyle(.black))
         renderer.scale = NSScreen.main?.backingScaleFactor ?? 2
         guard let image = renderer.nsImage else { return nil }
-        image.isTemplate = true               // let the menubar tint it (light/dark + highlight)
+        image.isTemplate = true
         return image
     }
 }
