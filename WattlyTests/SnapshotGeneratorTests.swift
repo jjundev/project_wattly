@@ -191,47 +191,34 @@ struct SnapshotGeneratorTests {
                     Spacer(minLength: 16)
 
                     // Right: Wattly Live Menu Bar Items + System Status Items
-                    HStack(spacing: 8) {
-                        // Wattly Active Live Status Capsules
+                    HStack(spacing: 12) {
+                        // Wattly Active Live Status Items (Pure Monochrome Template Style)
                         HStack(spacing: 5) {
-                            TurbineMark(frame: frame, markerColor: Tokens.accent)
+                            HillRunnerMark(frame: frame, markerColor: .white)
                                 .frame(width: 14, height: 14)
-                            Text("1850 RPM")
+                            Text("CPU 24%")
                                 .font(.system(size: 11.5, weight: .medium, design: .monospaced))
                                 .foregroundStyle(.white)
                         }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(Capsule().fill(Color.white.opacity(0.12)))
 
                         HStack(spacing: 5) {
-                            PulseWaveMark(frame: frame, markerColor: Tokens.accent)
+                            PulseWaveMark(frame: frame, markerColor: .white)
                                 .frame(width: 14, height: 14)
                             Text("8.5W")
                                 .font(.system(size: 11.5, weight: .medium, design: .monospaced))
                                 .foregroundStyle(.white)
                         }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(Capsule().fill(Color.white.opacity(0.12)))
-
-                        HStack(spacing: 5) {
-                            HillRunnerMark(frame: frame, markerColor: Tokens.statusOrange)
-                                .frame(width: 14, height: 14)
-                            Text("48°C")
-                                .font(.system(size: 11.5, weight: .medium, design: .monospaced))
-                                .foregroundStyle(.white)
-                        }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(Capsule().fill(Color.white.opacity(0.12)))
 
                         // Standard macOS System Status Items
                         HStack(spacing: 11) {
                             Image(systemName: "wifi")
                                 .font(.system(size: 11.5, weight: .medium))
-                            Image(systemName: "battery.100")
-                                .font(.system(size: 11.5, weight: .medium))
+                            HStack(spacing: 4) {
+                                Text("68%")
+                                    .font(.system(size: 11.5, weight: .regular))
+                                Image(systemName: "battery.100")
+                                    .font(.system(size: 11.5, weight: .medium))
+                            }
                             Image(systemName: "magnifyingglass")
                                 .font(.system(size: 11.5, weight: .medium))
                             Image(systemName: "switch.2")
@@ -255,14 +242,14 @@ struct SnapshotGeneratorTests {
                 )
                 .shadow(color: Color.black.opacity(0.35), radius: 8, x: 0, y: 3)
 
-                // 2. Balanced 6-Theme Kinetic Motion Preview Badges
+                // 2. Balanced 6-Theme Kinetic Motion Preview Badges (Monochrome Template Style)
                 HStack(spacing: 8) {
-                    themeBadge("Turbine", icon: AnyView(TurbineMark(frame: frame, markerColor: Tokens.accent)), value: "1850 RPM")
-                    themeBadge("Pulse Wave", icon: AnyView(PulseWaveMark(frame: frame, markerColor: Tokens.accent)), value: "24%")
-                    themeBadge("VU Meter", icon: AnyView(VUMeterMark(frame: frame, markerColor: Tokens.statusOrange)), value: "8.5W")
-                    themeBadge("3D Cube", icon: AnyView(Cube3DMark(frame: frame, markerColor: Tokens.accent)), value: "48°C")
-                    themeBadge("Equalizer", icon: AnyView(EqualizerMark(frame: frame, markerColor: Tokens.statusGreen)), value: "38%")
-                    themeBadge("Hill Runner", icon: AnyView(HillRunnerMark(frame: frame, markerColor: Tokens.statusOrange)), value: "CPU 45%")
+                    themeBadge("Cooling Turbine", icon: AnyView(TurbineMark(frame: frame, markerColor: .white)), value: "1850 RPM")
+                    themeBadge("Pulse Wave", icon: AnyView(PulseWaveMark(frame: frame, markerColor: .white)), value: "24%")
+                    themeBadge("VU Meter", icon: AnyView(VUMeterMark(frame: frame, markerColor: .white)), value: "8.5W")
+                    themeBadge("3D Cube", icon: AnyView(Cube3DMark(frame: frame, markerColor: .white)), value: "48°C")
+                    themeBadge("Equalizer", icon: AnyView(EqualizerMark(frame: frame, markerColor: .white)), value: "38%")
+                    themeBadge("Hill Runner", icon: AnyView(HillRunnerMark(frame: frame, markerColor: .white)), value: "CPU 45%")
                 }
             }
             .padding(14)
