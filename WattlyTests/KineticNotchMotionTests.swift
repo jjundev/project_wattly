@@ -13,6 +13,10 @@ struct KineticNotchMotionTests {
         #expect(KineticNotchSource.cpuClock.label == "CPU 클럭")
         #expect(KineticNotchSource.power.label == "전력 소비 (권장)")
         #expect(KineticNotchSource.compute.label == "CPU + GPU")
+
+        #expect(!KineticNotchSource.cpuClock.description.isEmpty)
+        #expect(!KineticNotchSource.power.description.isEmpty)
+        #expect(!KineticNotchSource.compute.description.isEmpty)
     }
 
     @Test func speedOrderingAndLabels() {

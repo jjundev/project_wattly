@@ -36,6 +36,14 @@ enum KineticNotchSource: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    var description: String {
+        switch self {
+        case .cpuClock: "CPU 코어 클럭(GHz)에 비례하여 움직입니다. 연산 작업 시작 시 즉각적인 반응을 보여줍니다."
+        case .power: "SoC 전체 전력 소비량(W)에 비례하여 움직입니다. 시스템의 실제 작업 부하를 가장 정확하게 반영합니다."
+        case .compute: "CPU와 GPU의 평균 점유율(%)에 비례하여 움직입니다. 기존의 사용률 기준 동작을 선호할 때 적합합니다."
+        }
+    }
+
     var requiredCards: Set<CardKind> {
         switch self {
         case .cpuClock: [.cpu]

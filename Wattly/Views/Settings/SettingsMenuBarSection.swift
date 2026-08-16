@@ -100,9 +100,15 @@ struct SettingsMenuBarSection: View {
 
                 if kineticNotchMotionEnabled {
                     kineticNotchField(title: "부하 원본") {
-                        WattlySegment(selection: $kineticNotchSource,
-                                      options: KineticNotchSource.allCases.map { ($0, $0.label) },
-                                      fontSize: 11.5, pillVPadding: 6)
+                        VStack(alignment: .leading, spacing: 8) {
+                            WattlySegment(selection: $kineticNotchSource,
+                                          options: KineticNotchSource.allCases.map { ($0, $0.label) },
+                                          fontSize: 11.5, pillVPadding: 6)
+                            Text(kineticNotchSource.description)
+                                .font(WattlyFont.at(11.5, weight: .regular))
+                                .foregroundStyle(t.faint)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                     kineticNotchField(title: "움직임 속도 (앱 활성화 시)") {
                         VStack(alignment: .leading, spacing: 8) {
