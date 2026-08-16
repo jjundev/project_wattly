@@ -158,49 +158,135 @@ struct SnapshotGeneratorTests {
         }
     }
 
-    /// Menu Bar Icon Themes & Kinetic Motion Showcase Strip
-    struct MenuBarThemesShowcaseView: View {
+    /// Authentic macOS Menu Bar Simulation Strip & Balanced Theme Showcase
+    struct MacOSMenuBarSimulationView: View {
         let frame: Int
         @Environment(\.tokens) private var t
 
         var body: some View {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 14) {
-                    themeItem(title: "Signature W", icon: AnyView(PulseWMark(lineWidth: 1.8, markerColor: .white)), text: "8.5W")
-                    themeItem(title: "Cooling Turbine", icon: AnyView(TurbineMark(frame: frame, markerColor: Tokens.accent)), text: "1850 RPM")
-                    themeItem(title: "Pulse Wave", icon: AnyView(PulseWaveMark(frame: frame, markerColor: Tokens.accent)), text: "24%")
+            VStack(spacing: 12) {
+                // 1. Authentic macOS Menu Bar Strip
+                HStack(spacing: 0) {
+                    // Left: Apple Logo & Standard App Menus
+                    HStack(spacing: 14) {
+                        Image(systemName: "apple.logo")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.95))
+
+                        Text("Wattly")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.white)
+
+                        HStack(spacing: 11) {
+                            Text("File").opacity(0.8)
+                            Text("Edit").opacity(0.8)
+                            Text("View").opacity(0.8)
+                            Text("Window").opacity(0.8)
+                            Text("Help").opacity(0.8)
+                        }
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundStyle(.white)
+                    }
+
+                    Spacer(minLength: 16)
+
+                    // Right: Wattly Live Menu Bar Items + System Status Items
+                    HStack(spacing: 8) {
+                        // Wattly Active Live Status Capsules
+                        HStack(spacing: 5) {
+                            TurbineMark(frame: frame, markerColor: Tokens.accent)
+                                .frame(width: 14, height: 14)
+                            Text("1850 RPM")
+                                .font(.system(size: 11.5, weight: .medium, design: .monospaced))
+                                .foregroundStyle(.white)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(Color.white.opacity(0.12)))
+
+                        HStack(spacing: 5) {
+                            PulseWaveMark(frame: frame, markerColor: Tokens.accent)
+                                .frame(width: 14, height: 14)
+                            Text("8.5W")
+                                .font(.system(size: 11.5, weight: .medium, design: .monospaced))
+                                .foregroundStyle(.white)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(Color.white.opacity(0.12)))
+
+                        HStack(spacing: 5) {
+                            HillRunnerMark(frame: frame, markerColor: Tokens.statusOrange)
+                                .frame(width: 14, height: 14)
+                            Text("48°C")
+                                .font(.system(size: 11.5, weight: .medium, design: .monospaced))
+                                .foregroundStyle(.white)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(Color.white.opacity(0.12)))
+
+                        // Standard macOS System Status Items
+                        HStack(spacing: 11) {
+                            Image(systemName: "wifi")
+                                .font(.system(size: 11.5, weight: .medium))
+                            Image(systemName: "battery.100")
+                                .font(.system(size: 11.5, weight: .medium))
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 11.5, weight: .medium))
+                            Image(systemName: "switch.2")
+                                .font(.system(size: 11.5, weight: .medium))
+                            Text("Mon 9:41 AM")
+                                .font(.system(size: 11.5, weight: .regular))
+                        }
+                        .foregroundStyle(.white.opacity(0.85))
+                        .padding(.leading, 4)
+                    }
                 }
-                HStack(spacing: 14) {
-                    themeItem(title: "VU Power Meter", icon: AnyView(VUMeterMark(frame: frame, markerColor: Tokens.statusOrange)), text: "8.5W")
-                    themeItem(title: "3D Isometric Cube", icon: AnyView(Cube3DMark(frame: frame, markerColor: Tokens.accent)), text: "48°C")
-                    themeItem(title: "Equalizer Bars", icon: AnyView(EqualizerMark(frame: frame, markerColor: Tokens.statusGreen)), text: "38%")
-                    themeItem(title: "Hill Runner", icon: AnyView(HillRunnerMark(frame: frame, markerColor: Tokens.statusOrange)), text: "CPU 45%")
+                .padding(.horizontal, 14)
+                .frame(height: 32)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.black.opacity(0.82))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
+                )
+                .shadow(color: Color.black.opacity(0.35), radius: 8, x: 0, y: 3)
+
+                // 2. Balanced 6-Theme Kinetic Motion Preview Badges
+                HStack(spacing: 8) {
+                    themeBadge("Turbine", icon: AnyView(TurbineMark(frame: frame, markerColor: Tokens.accent)), value: "1850 RPM")
+                    themeBadge("Pulse Wave", icon: AnyView(PulseWaveMark(frame: frame, markerColor: Tokens.accent)), value: "24%")
+                    themeBadge("VU Meter", icon: AnyView(VUMeterMark(frame: frame, markerColor: Tokens.statusOrange)), value: "8.5W")
+                    themeBadge("3D Cube", icon: AnyView(Cube3DMark(frame: frame, markerColor: Tokens.accent)), value: "48°C")
+                    themeBadge("Equalizer", icon: AnyView(EqualizerMark(frame: frame, markerColor: Tokens.statusGreen)), value: "38%")
+                    themeBadge("Hill Runner", icon: AnyView(HillRunnerMark(frame: frame, markerColor: Tokens.statusOrange)), value: "CPU 45%")
                 }
             }
-            .padding(16)
-            .frame(width: 500)
-            .background(RoundedRectangle(cornerRadius: 14).fill(Color(nsColor: .windowBackgroundColor).opacity(0.95)))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(t.panelBorder, lineWidth: 1))
-            .shadow(color: Tokens.shadowFar.color, radius: Tokens.shadowFar.radius, x: 0, y: Tokens.shadowFar.y)
+            .padding(14)
+            .frame(width: 720)
         }
 
-        private func themeItem(title: String, icon: AnyView, text: String) -> some View {
-            VStack(spacing: 6) {
-                HStack(spacing: 7) {
-                    icon.frame(width: 16, height: 16)
-                    Text(text)
-                        .font(.system(size: 11.5, weight: .medium, design: .monospaced))
+        private func themeBadge(_ label: String, icon: AnyView, value: String) -> some View {
+            VStack(spacing: 4) {
+                HStack(spacing: 6) {
+                    icon.frame(width: 14, height: 14)
+                    Text(value)
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
                         .foregroundStyle(.white)
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
                 .background(Capsule().fill(Color.black.opacity(0.85)))
                 .overlay(Capsule().stroke(Color.white.opacity(0.12), lineWidth: 1))
 
-                Text(title)
-                    .font(WattlyFont.at(10, weight: .medium))
+                Text(label)
+                    .font(WattlyFont.at(9.5, weight: .medium))
                     .foregroundStyle(t.faint)
             }
+            .frame(maxWidth: .infinity)
         }
     }
 
@@ -397,7 +483,7 @@ struct SnapshotGeneratorTests {
         hostingView.frame = NSRect(x: 0, y: 0, width: targetWidth + 28, height: 1600)
         hostingView.layoutSubtreeIfNeeded()
         let fitting = hostingView.fittingSize
-        let finalSize = CGSize(width: targetWidth + 28, height: max(fitting.height, 100))
+        let finalSize = CGSize(width: targetWidth + 28, height: max(fitting.height, 80))
         hostingView.frame = NSRect(origin: .zero, size: finalSize)
         hostingView.layoutSubtreeIfNeeded()
 
@@ -419,14 +505,14 @@ struct SnapshotGeneratorTests {
         }
     }
 
-    /// Pure Swift & ImageIO Animated GIF Exporter using SwiftUI ImageRenderer
+    /// Pure Swift & ImageIO Animated GIF Exporter using SwiftUI Views
     @MainActor
     private func exportAnimatedGIFFromSwiftUI<V: View>(
         viewGenerator: (Int) -> V,
         frameCount: Int = 24,
         frameDuration: Double = 0.065,
         filename: String,
-        targetWidth: CGFloat = 500,
+        targetWidth: CGFloat = 720,
         scale: CGFloat = 2.0
     ) {
         let outputDir = URL(fileURLWithPath: "/Users/hyunjun_macbook_pro/.gemini/antigravity/worktrees/project_wattly/draft_project_readme_docs/docs/assets")
@@ -442,7 +528,8 @@ struct SnapshotGeneratorTests {
                 .background(Color.clear)
 
             let hostingView = NSHostingView(rootView: targetView)
-            let size = CGSize(width: targetWidth + 28, height: 180)
+            let fitting = hostingView.fittingSize
+            let size = CGSize(width: targetWidth + 28, height: max(fitting.height, 80))
             hostingView.frame = NSRect(origin: .zero, size: size)
             hostingView.layoutSubtreeIfNeeded()
 
@@ -591,7 +678,6 @@ struct SnapshotGeneratorTests {
             .background(RoundedRectangle(cornerRadius: 16).fill(Tokens.dark.panelBg))
             .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Tokens.dark.panelBorder, lineWidth: 1))
             .shadow(color: Tokens.shadowFar.color, radius: Tokens.shadowFar.radius, x: 0, y: Tokens.shadowFar.y)
-            .shadow(color: Tokens.shadowNear.color, radius: Tokens.shadowNear.radius, x: 0, y: Tokens.shadowNear.y)
         }
         saveSnapshot(view: expandThermalsView, filename: "expand-thermals.png", targetWidth: 320)
 
@@ -641,23 +727,23 @@ struct SnapshotGeneratorTests {
         }
         saveSnapshot(view: displaySectionView, filename: "settings-display.png", targetWidth: 440)
 
-        // 14. Menu Bar Themes Showcase (Static Snapshot)
+        // 14. macOS Menu Bar Simulation (Static Snapshot)
         let menubarThemesView = ThemedRoot {
-            MenuBarThemesShowcaseView(frame: 10)
+            MacOSMenuBarSimulationView(frame: 10)
         }
-        saveSnapshot(view: menubarThemesView, filename: "menubar-styles-preview.png", targetWidth: 500)
+        saveSnapshot(view: menubarThemesView, filename: "menubar-styles-preview.png", targetWidth: 720)
 
-        // 15. Native Animated GIF via ImageIO from SwiftUI Views
+        // 15. Native Animated GIF of macOS Menu Bar Simulation
         exportAnimatedGIFFromSwiftUI(
             viewGenerator: { frame in
                 ThemedRoot {
-                    MenuBarThemesShowcaseView(frame: frame)
+                    MacOSMenuBarSimulationView(frame: frame)
                 }
             },
             frameCount: 24,
             frameDuration: 0.065,
             filename: "menubar-icon-motion.gif",
-            targetWidth: 500
+            targetWidth: 720
         )
     }
 }
