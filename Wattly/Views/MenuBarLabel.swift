@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 
-/// The always-present menubar item: the Kinetic Notch glyph plus, optionally, the
+/// The always-present menubar item: dynamic icon glyph plus, optionally, the
 /// user-selected metrics as compact text (issue 14). Clicking toggles the popover.
 ///
 /// The text is assembled by the pure `MenuBarText` (its own per-metric format, not the
@@ -14,20 +14,17 @@ struct MenuBarLabel: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var visibilitySettings = VisibilitySettings.shared
-    @State private var kineticNotchPhase = 0
+    @State private var dynamicIconPhase = 0
     @AppStorage(StorageKey.menubarTextEnabled) private var textEnabled = Defaults.menubarTextEnabled
     @AppStorage(StorageKey.powerSmoothed)      private var powerSmoothed = Defaults.powerSmoothed
     @AppStorage(StorageKey.kineticNotchMotionEnabled) private var kineticNotchMotionEnabled = Defaults.kineticNotchMotionEnabled
     @AppStorage(StorageKey.kineticNotchSource) private var kineticNotchSource = Defaults.kineticNotchSource
     @AppStorage(StorageKey.kineticNotchSpeed) private var kineticNotchSpeed = Defaults.kineticNotchSpeed
+    @AppStorage(StorageKey.menubarIconStyle) private var iconStyle = Defaults.menubarIconStyle
 
     var body: some View {
         let label = assembled
-        // A MenuBarExtra label renders Image/Text reliably but NOT a live SwiftUI Shape
-        // (the status item captures it as a template bitmap), so the glyph is a rasterized
-        // template image; if rasterization ever fails, fall back to an SF Symbol so the
-        // icon is never blank.
-        let glyph = MenuBarGlyph.template(frame: kineticNotchFrame).map(Image.init(nsImage:)) ?? Image(systemName: "waveform.path")
+        let glyph = MenuBarGlyph.template(style: iconStyle, frame: currentFrame).map(Image.init(nsImage:)) ?? Image(systemName: "waveform.path")
         return HStack(spacing: 4) {
             glyph
             if let label {
@@ -36,42 +33,28 @@ struct MenuBarLabel: View {
                     .monospacedDigit()
             }
         }
-        // a11y label is computed from the selection REGARDLESS of `textEnabled` (issue 15 §1):
-        // a VoiceOver user hears the selected metrics even when the visible text is off; an
-        // empty selection reads just "Wattly" (decision A). Reuses the #14 assembler so the
-        // spoken copy matches the menubar text exactly.
-        // NOTE: MenuBarExtra renders this label as an NSStatusItem, so this SwiftUI
-        // `.accessibilityLabel` may not surface to VoiceOver — verify on-device; if it does
-        // not announce, set the status button's accessibility label via AppKit (issue 15 §메모).
         .accessibilityLabel(accessibilityLabel)
-        .task(id: "\(kineticNotchMotionEnabled)-\(kineticNotchSource.rawValue)-\(kineticNotchSpeed.rawValue)-\(reduceMotion)-\(kineticNotchFrameRate ?? 0)") {
-            guard let frameRate = kineticNotchFrameRate else { return }
+        .task(id: "\(iconStyle.rawValue)-\(kineticNotchMotionEnabled)-\(kineticNotchSource.rawValue)-\(kineticNotchSpeed.rawValue)-\(reduceMotion)-\(dynamicIconFrameRate ?? 0)") {
+            guard let frameRate = dynamicIconFrameRate else { return }
             while !Task.isCancelled {
-                let phase = kineticNotchPhase
-                let delay = KineticNotchMotion.frameDelay(phase: phase, frameRate: frameRate)
+                let phase = dynamicIconPhase
+                let delay = MenuBarIconMotion.frameDelay(style: iconStyle, phase: phase, frameRate: frameRate)
                 try? await Task.sleep(for: .seconds(delay))
                 guard !Task.isCancelled else { return }
-                kineticNotchPhase = (phase + 1) % KineticNotchMotion.frameCount
+                dynamicIconPhase = (phase + 1) % iconStyle.frameCount
             }
         }
     }
 
-    /// The VoiceOver label for the status item — selected metrics in canonical order, always
-    /// assembled (unlike `assembled`, which gates on `textEnabled`). "Wattly" when nothing is
-    /// selected (decision A).
     private var accessibilityLabel: String {
         Accessibility.menuBarLabel(items: items, states: activeStates)
     }
 
-    /// The composed menubar string, or nil → icon only (text off, or no metric selected).
-    /// Power reads the smoothed card value when `powerSmoothed` is on; `smoothed:` is a
-    /// no-op for the other menu metrics (the `isSmoothable` guard), so the call is uniform.
     private var assembled: String? {
         guard textEnabled else { return nil }
         return MenuBarText.assemble(items: items, states: activeStates)
     }
 
-    /// Selected menubar items in canonical order.
     private var items: [MenuBarItem] {
         visibilitySettings.menuItems
     }
@@ -99,39 +82,46 @@ struct MenuBarLabel: View {
         return kineticNotchSource.load(cpu: cpu, gpu: gpu)
     }
 
-    private var kineticNotchFrame: Int {
-        KineticNotchMotion.displayedFrame(
-            phase: kineticNotchPhase,
-            reduceMotion: reduceMotion || kineticNotchFrameRate == nil
+    private var currentFrame: Int {
+        MenuBarIconMotion.displayedFrame(
+            style: iconStyle,
+            phase: dynamicIconPhase,
+            reduceMotion: reduceMotion || dynamicIconFrameRate == nil
         )
     }
 
-    private var kineticNotchFrameRate: Double? {
+    private var dynamicIconFrameRate: Double? {
         guard kineticNotchMotionEnabled, !reduceMotion, let kineticNotchLoad else { return nil }
-        return KineticNotchMotion.frameRate(load: kineticNotchLoad, speed: kineticNotchSpeed)
+        return MenuBarIconMotion.frameRate(load: kineticNotchLoad, speed: kineticNotchSpeed)
     }
-
 }
 
-/// Kinetic Notch frames rasterized once each as template `NSImage`s for the menubar.
-/// Rendering the `Shape` to template images (rather than drawing it live in the label)
-/// is what makes it actually appear in the status bar and tint for light/dark + the
-/// open-panel highlight. Built lazily on the main actor, cached for the process.
 @MainActor
-enum MenuBarGlyph {
-    static var templates = Array<NSImage?>(repeating: nil, count: KineticNotchMotion.frameCount)
+public enum MenuBarGlyph {
+    private static var multiStyleCache: [MenuBarIconStyle: [Int: NSImage]] = [:]
 
-    static func template(frame: Int) -> NSImage? {
-        let index = min(max(frame, 0), KineticNotchMotion.frameCount - 1)
-        if let image = templates[index] { return image }
-        let renderer = ImageRenderer(content: FluxLoopMark(frame: index, markerColor: .black)
-            .frame(width: 16, height: 14)
-            .padding(1.5)
-            .foregroundStyle(.black))
+    public static func template(style: MenuBarIconStyle = .fluxLoop, frame: Int) -> NSImage? {
+        let index = min(max(frame, 0), style.frameCount - 1)
+        if let cached = multiStyleCache[style]?[index] { return cached }
+
+        let renderer = ImageRenderer(content:
+            DynamicMenuBarIconMark(style: style, frame: index, markerColor: .black)
+                .frame(width: 16, height: 14)
+                .padding(1.5)
+                .foregroundStyle(.black)
+        )
         renderer.scale = NSScreen.main?.backingScaleFactor ?? 2
         guard let image = renderer.nsImage else { return nil }
         image.isTemplate = true
-        templates[index] = image
+
+        if multiStyleCache[style] == nil {
+            multiStyleCache[style] = [:]
+        }
+        multiStyleCache[style]?[index] = image
         return image
+    }
+
+    public static func template(frame: Int) -> NSImage? {
+        template(style: .fluxLoop, frame: frame)
     }
 }
