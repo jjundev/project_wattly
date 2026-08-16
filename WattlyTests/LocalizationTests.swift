@@ -95,4 +95,14 @@ struct LocalizationTests {
         #expect(String(localized: "종료", locale: Locale(identifier: "ja")) == "終了")
         #expect(String(localized: "정상", locale: Locale(identifier: "ja")) == "正常")
     }
+
+    @Test func clusterAndBatteryTimeRemainingTranslations() {
+        #expect(String(localized: "S-코어", locale: Locale(identifier: "ja")) == "Sコア")
+        #expect(String(localized: "P-코어", locale: Locale(identifier: "ja")) == "Pコア")
+        #expect(String(localized: "E-코어", locale: Locale(identifier: "ja")) == "Eコア")
+
+        #expect(String(localized: "S-코어", locale: Locale(identifier: "en")) == "S-Core")
+        #expect(String(localized: "P-코어", locale: Locale(identifier: "en")) == "P-Core")
+        #expect(String(localized: "E-코어", locale: Locale(identifier: "en")) == "E-Core")
+    }
 }

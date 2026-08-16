@@ -336,7 +336,7 @@ struct CardExpandRegion: View {
 
     private func tempGroupRow(_ g: TemperatureGroup) -> some View {
         HStack(spacing: 9) {
-            Text(g.name)
+            Text(LocalizedStringKey(g.name))
                 .font(WattlyFont.at(10.5, weight: .semibold))
                 .foregroundStyle(t.faint)
                 .frame(width: 78, alignment: .leading)
