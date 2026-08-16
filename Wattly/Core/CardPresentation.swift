@@ -200,11 +200,7 @@ enum CardPresentation {
             // syscall supplied it; drop the segment entirely when it's unavailable (never "0%").
             guard let p = s.pressurePercent else { return detail }
             return "압력 \(p)% · \(detail)"
-        case .fan(let s):
-            guard !s.fans.isEmpty, let maxMax = s.fans.map(\.maxRPM).max() else { return nil }
-            let avgTarget = s.fans.map(\.targetRPM).reduce(0, +) / Double(s.fans.count)
-            return "목표 \(Int(avgTarget.rounded())) RPM · 최대 \(Int(maxMax.rounded())) RPM"
-        case .temperature:
+        case .fan, .temperature:
             return nil
         }
     }

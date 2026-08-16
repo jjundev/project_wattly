@@ -475,6 +475,14 @@ struct CardPresentationTests {
         #expect(CardPresentation.valueText(.fan, state) == "3000")   // (2000 + 4000) / 2, integer
     }
 
+    @Test func fanSubTextIsNil() {
+        let state = MetricState.value(.fan(FanSample(fans: [
+            FanReading(index: 0, actualRPM: 2000, minRPM: 0, maxRPM: 4000, targetRPM: 2200),
+            FanReading(index: 1, actualRPM: 4000, minRPM: 0, maxRPM: 4000, targetRPM: 4200),
+        ])))
+        #expect(CardPresentation.subText(state) == nil)
+    }
+
     @Test func fanValueTextNoReadingIsDash() {
         #expect(CardPresentation.valueText(.fan, .value(.fan(FanSample(fans: [])))) == "—")
         #expect(CardPresentation.valueText(.fan, .loading) == "—")
