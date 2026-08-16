@@ -961,7 +961,7 @@
       ]
     ];
 
-    function renderHillRunnerFrame(frameNum, size) {
+    function renderHillRunnerFrame(frameNum, size, customLoad) {
       const s = size;
       const strokeW = Math.max(1.4, s * 0.08);
       const headR = s * 0.095;
@@ -969,20 +969,26 @@
       const tier = Math.floor(clampedFrame / 8);
       const frameIdx = clampedFrame % 8;
       
-      const t = tier === 0 ? 0.10 : (tier === 1 ? 0.50 : 0.90);
+      const t = (customLoad !== undefined && customLoad !== null) 
+        ? Math.min(Math.max(customLoad / 100, 0), 1) 
+        : (tier === 0 ? 0.15 : (tier === 1 ? 0.50 : 0.85));
       
+      // Smooth continuous rolling hill elevation
+      const smoothT = t * t * (3 - 2 * t);
       const gX1 = s * 0.08, gX2 = s * 0.92;
-      const gY1 = s * (0.88 - t * 0.30);
-      const gY2 = s * (0.62 + t * 0.28);
-      const groundSlope = (gY2 - gY1) / (gX2 - gX1);
-      const getGroundY = (x) => gY1 + (x - gX1) * groundSlope;
-      
+      const gMidX = s * 0.50;
+      const gY1 = s * (0.82 - smoothT * 0.20);
+      const gMidY = s * (0.75 - Math.sin(smoothT * Math.PI) * 0.08 + (smoothT > 0.5 ? (smoothT - 0.5) * 0.10 : 0));
+      const gY2 = s * (0.70 + smoothT * 0.16);
+
       const hipX = s * 0.46;
-      const groundAtHip = getGroundY(hipX);
+      const u = (hipX - gX1) / (gX2 - gX1);
+      const groundAtHip = (1 - u) * (1 - u) * gY1 + 2 * (1 - u) * u * gMidY + u * u * gY2;
+      
       const pose = Poses[tier][frameIdx];
       const hipY = groundAtHip - s * (0.24 - t * 0.02) + s * pose.bob;
       
-      const leanAngle = (0.24 - (1 - Math.abs(t - 0.5) * 2) * 0.12 + (t > 0.5 ? (t - 0.5) * 0.38 : 0)) * Math.PI;
+      const leanAngle = (0.22 - (1 - Math.abs(t - 0.5) * 2) * 0.10 + (t > 0.5 ? (t - 0.5) * 0.32 : 0)) * Math.PI;
       const torsoLen = s * 0.22;
       const neckX = hipX + Math.sin(leanAngle) * torsoLen;
       const neckY = hipY - Math.cos(leanAngle) * torsoLen;
@@ -1033,8 +1039,11 @@
 
       return `
         <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
-          <line x1="${gX1.toFixed(1)}" y1="${gY1.toFixed(1)}" x2="${gX2.toFixed(1)}" y2="${gY2.toFixed(1)}" 
-                stroke="currentColor" stroke-width="${(strokeW * 0.7).toFixed(1)}" opacity="0.45" stroke-linecap="round" />
+          <!-- Smooth Rolling Hill Curve -->
+          <path d="M ${gX1.toFixed(1)} ${gY1.toFixed(1)} Q ${gMidX.toFixed(1)} ${gMidY.toFixed(1)} ${gX2.toFixed(1)} ${gY2.toFixed(1)}" 
+                fill="none" stroke="currentColor" stroke-width="${(strokeW * 0.75).toFixed(1)}" opacity="0.45" stroke-linecap="round" />
+          
+          <!-- Speed Dash Lines -->
           ${speedLineOpacity > 0 ? `
             <line x1="${sp1X1.toFixed(1)}" y1="${sp1Y1.toFixed(1)}" x2="${sp1X2.toFixed(1)}" y2="${sp1Y2.toFixed(1)}" 
                   stroke="var(--accent-hot)" stroke-width="${(strokeW * 0.7).toFixed(1)}" stroke-linecap="round" opacity="${speedLineOpacity}" />
@@ -1344,7 +1353,7 @@
           const rawFrameIdx = Math.floor(((phase * stepFreq) % (Math.PI * 2)) / (Math.PI * 2) * 8);
           const frameIdx = (rawFrameIdx % 8 + 8) % 8;
           const frameNum = tier * 8 + frameIdx;
-          return renderHillRunnerFrame(frameNum, size);
+          return renderHillRunnerFrame(frameNum, size, load);
         }
       }
     ];

@@ -450,24 +450,28 @@ struct HillRunnerMark: View {
             let pose = Self.poses[tier][frameIdx]
 
             let t: Double = switch tier {
-            case 0: 0.10
+            case 0: 0.15
             case 1: 0.50
-            default: 0.90
+            default: 0.85
             }
 
-            // 1. Ground Slope
+            // 1. Smooth Rolling Hill Elevation
+            let smoothT = t * t * (3.0 - 2.0 * t)
             let gX1 = s * 0.08, gX2 = s * 0.92
-            let gY1 = s * (0.88 - t * 0.30)
-            let gY2 = s * (0.62 + t * 0.28)
-            let groundSlope = (gY2 - gY1) / (gX2 - gX1)
-            let groundAtHip = gY1 + (s * 0.46 - gX1) * groundSlope
+            let gMidX = s * 0.50
+            let gY1 = s * (0.82 - smoothT * 0.20)
+            let gMidY = s * (0.75 - sin(smoothT * .pi) * 0.08 + (smoothT > 0.5 ? (smoothT - 0.5) * 0.10 : 0.0))
+            let gY2 = s * (0.70 + smoothT * 0.16)
+
+            let hipX = s * 0.46
+            let u = (hipX - gX1) / (gX2 - gX1)
+            let groundAtHip = (1.0 - u) * (1.0 - u) * gY1 + 2.0 * (1.0 - u) * u * gMidY + u * u * gY2
 
             // 2. Hip Position
-            let hipX = s * 0.46
             let hipY = groundAtHip - s * (0.24 - t * 0.02) + s * pose.bob
 
             // 3. Torso & Head
-            let leanAngle = (0.24 - (1.0 - abs(t - 0.5) * 2.0) * 0.12 + (t > 0.5 ? (t - 0.5) * 0.38 : 0.0)) * .pi
+            let leanAngle = (0.22 - (1.0 - abs(t - 0.5) * 2.0) * 0.10 + (t > 0.5 ? (t - 0.5) * 0.32 : 0.0)) * .pi
             let torsoLen = s * 0.22
             let neckX = hipX + sin(leanAngle) * torsoLen
             let neckY = hipY - cos(leanAngle) * torsoLen
@@ -511,12 +515,12 @@ struct HillRunnerMark: View {
             let bhY = beY + sin(bArmLowerAngle) * A2
 
             ZStack {
-                // Ground slope line
+                // Smooth Rolling Hill Curve
                 Path { path in
                     path.move(to: CGPoint(x: gX1, y: gY1))
-                    path.addLine(to: CGPoint(x: gX2, y: gY2))
+                    path.addQuadCurve(to: CGPoint(x: gX2, y: gY2), control: CGPoint(x: gMidX, y: gMidY))
                 }
-                .stroke(style: StrokeStyle(lineWidth: max(1.0, strokeW * 0.7), lineCap: .round))
+                .stroke(style: StrokeStyle(lineWidth: max(1.0, strokeW * 0.75), lineCap: .round))
                 .opacity(0.45)
 
                 // High speed dash lines (Tier 2 only)
