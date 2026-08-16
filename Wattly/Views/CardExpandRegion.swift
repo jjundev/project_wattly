@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit   // NSWorkspace for per-process app icons (issue 05)
 
 /// The "tap to reveal detail" region for `isExpandable` cards (processor-power per-app
-/// top processor-power apps, battery voltage/current, CPU per-core, memory process list, CPU-temp clusters, fan
+/// top processor-power apps, battery voltage/current, CPU per-core, memory process list, CPU/GPU-temp clusters, fan
 /// actual/target) — shared by mode A's stack rows (`MetricCardView`) and mode C's hero
 /// card (`PopoverHeroView`, plan: hero card expand). Reads `@Environment(\.tokens)` for
 /// its palette so each host supplies its own: mode A lets it track the live app theme,
@@ -26,6 +26,8 @@ struct CardExpandRegion: View {
         } else if card == .mem, case .value(.memory(let s)) = state {
             memExpand(s)
         } else if card == .cpuTemp, case .value(.temperature(let s)) = state, case .reading(let r) = s.cpu {
+            tempExpand(r.groups)
+        } else if card == .gpuTemp, case .value(.temperature(let s)) = state, case .reading(let r) = s.gpu {
             tempExpand(r.groups)
         } else if card == .fan, case .value(.fan(let s)) = state {
             fanExpand(s)
@@ -252,7 +254,7 @@ struct CardExpandRegion: View {
             Text(g.name)
                 .font(WattlyFont.at(10.5, weight: .semibold))
                 .foregroundStyle(t.faint)
-                .frame(width: 44, alignment: .leading)
+                .frame(width: 78, alignment: .leading)
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 3).fill(t.sparkFill)

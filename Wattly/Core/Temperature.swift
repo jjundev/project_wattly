@@ -22,7 +22,7 @@ import Foundation
 /// keys on an unverified chip). The key lists are explicit (not a prefix glob) so each
 /// profile is re-verified, not inferred — OS updates may change the set.
 /// One named cluster of verified SMC keys (type `flt `). CPU splits into P-코어/E-코어;
-/// GPU is one group. The `name` is the static cluster label shown in the card expand.
+/// GPU splits into GPU 클러스터 1/GPU 클러스터 2. The `name` is the static cluster label shown in the card expand.
 struct TemperatureKeyGroup: Sendable, Equatable {
     let name: String
     let keys: [String]
@@ -34,7 +34,7 @@ struct TemperatureProfile: Sendable, Equatable {
     /// Verified CPU die-sensor clusters (type `flt `). Headline = average across all;
     /// each cluster is summarised (avg + hottest) in the expand.
     let cpuGroups: [TemperatureKeyGroup]
-    /// Verified GPU die-sensor clusters (one group on M5).
+    /// Verified GPU die-sensor clusters (GPU 클러스터 1 / GPU 클러스터 2 on M5).
     let gpuGroups: [TemperatureKeyGroup]
     /// Plausibility band (°C). A finite reading outside this is rejected as bogus.
     let validRange: ClosedRange<Double>
@@ -53,10 +53,12 @@ enum TemperatureProfiles {
                 keys: ["Te04", "Te08", "Te0C", "Te0R"]),
         ],
         gpuGroups: [
-            TemperatureKeyGroup(name: "GPU",
+            TemperatureKeyGroup(name: "GPU 클러스터 1",
                 keys: ["Tg04", "Tg0C", "Tg0G", "Tg0K", "Tg0O", "Tg0R", "Tg0U", "Tg0X",
-                       "Tg0d", "Tg0g", "Tg0j", "Tg0m", "Tg0p", "Tg12", "Tg16", "Tg1A",
-                       "Tg1I", "Tg1M", "Tg1Y", "Tg1c", "Tg1g", "Tg1o", "Tg1s"]),
+                       "Tg0d", "Tg0g", "Tg0j", "Tg0m", "Tg0p"]),
+            TemperatureKeyGroup(name: "GPU 클러스터 2",
+                keys: ["Tg12", "Tg16", "Tg1A", "Tg1I", "Tg1M", "Tg1Y", "Tg1c",
+                       "Tg1g", "Tg1o", "Tg1s"]),
         ],
         validRange: 0...120)
 
