@@ -21,6 +21,7 @@ struct MenuBarIconStyleTests {
         #expect(runner.rawValue == "hillRunner")
         #expect(runner.label == "러너 (경사로 질주)")
         #expect(runner.category == "캐릭터 / 라이프")
+        #expect(!runner.summary.isEmpty)
         #expect(runner.frameCount == 24)
         #expect(runner.staticFrame == 8)
     }
