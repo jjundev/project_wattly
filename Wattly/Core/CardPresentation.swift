@@ -191,7 +191,7 @@ enum CardPresentation {
                 parts.append(ghzText(ghz))
             }
             if s.inUseMemoryBytes > 0 {
-                parts.append("VRAM \(mbText(s.inUseMemoryBytes))")
+                parts.append(mbText(s.inUseMemoryBytes))
             }
             return parts.isEmpty ? nil : parts.joined(separator: " · ")
         case .memory(let s):
