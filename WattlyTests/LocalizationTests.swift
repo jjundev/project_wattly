@@ -104,4 +104,37 @@ struct LocalizationTests {
         #expect(String(localized: "P-코어", locale: Locale(identifier: "en")) == "P-Core")
         #expect(String(localized: "E-코어", locale: Locale(identifier: "en")) == "E-Core")
     }
+
+    @Test func softwareUpdateTranslations() {
+        #expect(String(localized: "소프트웨어 업데이트", locale: Locale(identifier: "en")) == "Software Update")
+        #expect(String(localized: "소프트웨어 업데이트", locale: Locale(identifier: "ja")) == "ソフトウェアアップデート")
+        #expect(String(localized: "소프트웨어 업데이트", locale: Locale(identifier: "zh-Hans")) == "软件更新")
+        #expect(String(localized: "소프트웨어 업데이트", locale: Locale(identifier: "de")) == "Softwareupdate")
+        #expect(String(localized: "소프트웨어 업데이트", locale: Locale(identifier: "fr")) == "Mise à jour de logiciels")
+
+        #expect(String(localized: "최신 버전입니다", locale: Locale(identifier: "en")) == "Wattly is up to date")
+        #expect(String(localized: "최신 버전입니다", locale: Locale(identifier: "ja")) == "最新バージョンです")
+        #expect(String(localized: "최신 버전입니다", locale: Locale(identifier: "de")) == "Wattly ist auf dem neuesten Stand")
+
+        #expect(String(localized: "업데이트 확인", locale: Locale(identifier: "en")) == "Check for Updates")
+        #expect(String(localized: "업데이트 확인", locale: Locale(identifier: "ja")) == "アップデートを確認")
+        #expect(String(localized: "업데이트 확인", locale: Locale(identifier: "zh-Hans")) == "检查更新")
+
+        #expect(String(localized: "확인 중...", locale: Locale(identifier: "en")) == "Checking...")
+        #expect(String(localized: "확인 중...", locale: Locale(identifier: "ja")) == "確認中...")
+
+        #expect(String(localized: "지금 업데이트", locale: Locale(identifier: "en")) == "Update Now")
+        #expect(String(localized: "지금 업데이트", locale: Locale(identifier: "ja")) == "今すぐアップデート")
+
+        #expect(String(localized: "릴리즈 열기", locale: Locale(identifier: "en")) == "Open Release")
+        #expect(String(localized: "릴리즈 열기", locale: Locale(identifier: "ja")) == "リリースを開く")
+
+        #expect(String(localized: "설치 준비 중...", locale: Locale(identifier: "en")) == "Preparing to install...")
+        #expect(String(localized: "설치 준비 중...", locale: Locale(identifier: "ja")) == "インストール準備中...")
+
+        #expect(String(localized: "현재 버전 v%@", locale: Locale(identifier: "en")) == "Current version v%@")
+        #expect(String(localized: "현재 버전 v%@", locale: Locale(identifier: "ja")) == "現在のバージョン v%@")
+        #expect(String(localized: "v%@ 사용 가능", locale: Locale(identifier: "en")) == "v%@ available")
+        #expect(String(localized: "v%@ 사용 가능", locale: Locale(identifier: "ja")) == "v%@ が利用可能")
+    }
 }
