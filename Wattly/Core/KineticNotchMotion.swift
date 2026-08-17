@@ -236,14 +236,6 @@ enum MenuBarIconMotion {
             return tier * 6 + subPhase
         }
 
-        // Flowing Pulse Waveform scales wave amplitude across 4 workload tiers (4 tiers x 6 subphases)
-        if style == .pulseWave {
-            let clampedLoad = min(max(activeLoad, 0), 100)
-            let tier = min(Int(clampedLoad / 25.0), 3) // Tier 0 (low) ~ Tier 3 (max load)
-            let subPhase = Int(safePhase * 6.0) % 6
-            return tier * 6 + subPhase
-        }
-
         // Hill Runner maps 3 workload tiers (Low Uphill, Mid Flat, High Downhill) into 8 subphases each
         if style == .hillRunner {
             let clampedLoad = min(max(activeLoad, 0), 100)
