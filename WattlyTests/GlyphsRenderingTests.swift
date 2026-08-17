@@ -29,7 +29,7 @@ struct GlyphsRenderingTests {
     }
 
     @Test @MainActor func pulseWaveMarkRendersAcrossAllTiers() {
-        for frame in 0..<24 {
+        for frame in 0..<96 {
             let mark = PulseWaveMark(frame: frame, markerColor: .black)
             #expect(mark.frame == frame)
         }

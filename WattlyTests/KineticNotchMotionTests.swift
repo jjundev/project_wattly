@@ -143,7 +143,7 @@ struct KineticNotchMotionTests {
     }
 
     @Test func motionCalculatesDisplayedFrameForContinuousPhase() {
-        let rotationalStyles: [MenuBarIconStyle] = [.turbine, .pulseWave, .cube3D]
+        let rotationalStyles: [MenuBarIconStyle] = [.turbine, .cube3D]
         for style in rotationalStyles {
             #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 0.0, reduceMotion: false) == 0)
             #expect(MenuBarIconMotion.displayedFrame(style: style, phase: 0.999, reduceMotion: false) == style.frameCount - 1)
@@ -178,6 +178,24 @@ struct KineticNotchMotionTests {
 
         let highFrame = MenuBarIconMotion.displayedFrame(style: .equalizer, phase: 0.3, load: 95.0, reduceMotion: false)
         #expect(highFrame >= 18 && highFrame <= 23)
+    }
+
+    @Test func pulseWaveScalesTierWithLoad() {
+        // Tier 0 (0..<15% load, 1W 영역): Frames 0..23
+        let lowFrame = MenuBarIconMotion.displayedFrame(style: .pulseWave, phase: 0.3, load: 4.0, reduceMotion: false)
+        #expect((0...23).contains(lowFrame))
+
+        // Tier 1 (15..<45% load, 5W 영역): Frames 24..47
+        let midLowFrame = MenuBarIconMotion.displayedFrame(style: .pulseWave, phase: 0.3, load: 20.0, reduceMotion: false)
+        #expect((24...47).contains(midLowFrame))
+
+        // Tier 2 (45..<75% load): Frames 48..71
+        let midHighFrame = MenuBarIconMotion.displayedFrame(style: .pulseWave, phase: 0.3, load: 60.0, reduceMotion: false)
+        #expect((48...71).contains(midHighFrame))
+
+        // Tier 3 (75..100% load): Frames 72..95
+        let highFrame = MenuBarIconMotion.displayedFrame(style: .pulseWave, phase: 0.3, load: 95.0, reduceMotion: false)
+        #expect((72...95).contains(highFrame))
     }
 
     @Test func vuMeterAndEqualizerHandleNilAndNaNSafely() {

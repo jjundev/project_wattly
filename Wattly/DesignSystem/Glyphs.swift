@@ -113,9 +113,15 @@ struct PulseWaveMark: View {
             let s = min(proxy.size.width, proxy.size.height)
             let strokeW = max(1.5, s * 0.08)
             let centerY = s * 0.52
-            let safeFrame = min(max(frame, 0), 23)
-            let phase = Double(safeFrame) / 24.0
-            let amp = s * 0.32
+
+            // 4 Workload Tiers x 24 Subphases = 96 Frames
+            let safeFrame = min(max(frame, 0), 95)
+            let tier = safeFrame / 24
+            let subPhase = safeFrame % 24
+            let phase = Double(subPhase) / 24.0
+
+            // Amplitude scales from gentle 0.16s (Tier 0: idle/1W) to vigorous 0.42s (Tier 3: 100% load)
+            let amp = s * (0.16 + Double(tier) * 0.086)
 
             ZStack {
                 Path { p in
