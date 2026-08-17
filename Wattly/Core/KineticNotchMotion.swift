@@ -61,7 +61,7 @@ enum KineticNotchSource: String, CaseIterable, Identifiable, Sendable {
         if cores >= 24 { return 100.0 } // Max
         if cores >= 14 { return 55.0 }  // Pro
         // Base Pro / Mac mini (with fans) vs fallback
-        return (fanCount ?? 0) > 0 ? 30.0 : 20.0
+        return (fanCount ?? 0) > 0 ? 25.0 : 20.0
     }
 
     static func normalizePower(watts: Double, targetWatts: Double) -> Double {
@@ -153,12 +153,12 @@ enum KineticNotchSpeed: String, CaseIterable, Identifiable, Sendable {
 
 enum MenuBarIconMotion {
     static let rpsMin = 0.50 // 1 rev per 2.0s at 0% idle load (upgraded from 0.25 for smooth 12fps baseline under ProMotion throttling)
-    static let rpsMax = 2.50 // 1 rev per 0.4s at 100% full load
+    static let rpsMax = 3.50 // 1 rev per 0.286s at 100% full load
 
     /// Physical rotation speed in revolutions per second (RPS), solely determined by workload.
     static func revolutionsPerSecond(load: Double) -> Double {
         let clampedLoad = min(max(load, 0), 100)
-        let progress = sqrt(clampedLoad / 100.0)
+        let progress = clampedLoad / 100.0
         return rpsMin + (rpsMax - rpsMin) * progress
     }
 

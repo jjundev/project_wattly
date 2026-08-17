@@ -32,8 +32,8 @@ struct KineticNotchMotionTests {
         #expect(KineticNotchSource.targetWatts(gpuCores: 8, fanCount: 0) == 20.0)
         #expect(KineticNotchSource.targetWatts(gpuCores: 10, fanCount: 0) == 20.0)
 
-        // Base MacBook Pro / Mac mini (fanCount >= 1, gpuCores <= 10) -> 30W
-        #expect(KineticNotchSource.targetWatts(gpuCores: 10, fanCount: 1) == 30.0)
+        // Base MacBook Pro / Mac mini (fanCount >= 1, gpuCores <= 10) -> 25W
+        #expect(KineticNotchSource.targetWatts(gpuCores: 10, fanCount: 1) == 25.0)
 
         // Pro chip (gpuCores 14~20) -> 55W
         #expect(KineticNotchSource.targetWatts(gpuCores: 16, fanCount: 2) == 55.0)
@@ -72,14 +72,14 @@ struct KineticNotchMotionTests {
     @Test func physicalRevolutionsPerSecondIsStrictlyBoundToLoad() {
         // Physical RPS is identical regardless of presets
         #expect(MenuBarIconMotion.revolutionsPerSecond(load: 0.0) == 0.50)
-        #expect(MenuBarIconMotion.revolutionsPerSecond(load: 100.0) == 2.50)
-        // 25% load -> sqrt(0.25) = 0.5 progression -> midpoint = 0.50 + 2.00 * 0.5 = 1.50
-        #expect(abs(MenuBarIconMotion.revolutionsPerSecond(load: 25.0) - 1.50) < 1e-9)
+        #expect(MenuBarIconMotion.revolutionsPerSecond(load: 100.0) == 3.50)
+        // 25% load -> linear progression (0.25) -> 0.50 + (3.50 - 0.50) * 0.25 = 1.25
+        #expect(abs(MenuBarIconMotion.revolutionsPerSecond(load: 25.0) - 1.25) < 1e-9)
     }
 
     @Test func smoothedRPS_physicalInertiaSmoothing() {
-        #expect(abs(MenuBarIconMotion.smoothedRPS(current: 0.50, target: 2.50, dt: 0.25) - (0.50 + 2.00 * (1.0 - exp(-1.0)))) < 1e-9)
-        #expect(MenuBarIconMotion.smoothedRPS(current: 0.50, target: 2.50, dt: 0) == 2.50)
+        #expect(abs(MenuBarIconMotion.smoothedRPS(current: 0.50, target: 3.50, dt: 0.25) - (0.50 + 3.00 * (1.0 - exp(-1.0)))) < 1e-9)
+        #expect(MenuBarIconMotion.smoothedRPS(current: 0.50, target: 3.50, dt: 0) == 3.50)
     }
 
     @Test func interFramePrecisionScheduler() {
