@@ -113,7 +113,15 @@ struct PulseWaveMark: View {
             let s = min(proxy.size.width, proxy.size.height)
             let strokeW = max(1.5, s * 0.08)
             let centerY = s * 0.52
-            let phase = Double(frame) / 24.0
+
+            // 4 Workload Tiers (6 subphases per tier = 24 frames total)
+            let safeFrame = min(max(frame, 0), 23)
+            let tier = safeFrame / 6
+            let subPhase = safeFrame % 6
+            let phase = Double(subPhase) / 6.0
+
+            // Amplitude scales from gentle 0.16s (Tier 0: idle/1W) to vigorous 0.40s (Tier 3: 100% load)
+            let amp = s * (0.16 + Double(tier) * 0.08)
 
             ZStack {
                 Path { p in
@@ -130,7 +138,7 @@ struct PulseWaveMark: View {
                         let x = progress * s
                         let envelope = sin(progress * .pi)
                         let wave = sin(progress * .pi * 2.5 - phase * .pi * 2.0)
-                        let y = centerY - (wave * envelope * (s * 0.32))
+                        let y = centerY - (wave * envelope * amp)
                         if i == 0 { p.move(to: CGPoint(x: x, y: y)) }
                         else { p.addLine(to: CGPoint(x: x, y: y)) }
                     }
@@ -142,7 +150,7 @@ struct PulseWaveMark: View {
                     .frame(width: strokeW * 2.2, height: strokeW * 2.2)
                     .position(
                         x: s * 0.5 + sin(phase * .pi * 2.0) * s * 0.35,
-                        y: centerY - cos(phase * .pi * 2.0) * s * 0.24
+                        y: centerY - cos(phase * .pi * 2.0) * (amp * 0.75)
                     )
             }
         }
