@@ -61,7 +61,7 @@ enum KineticNotchSource: String, CaseIterable, Identifiable, Sendable {
         if cores >= 24 { return 100.0 } // Max
         if cores >= 14 { return 55.0 }  // Pro
         // Base Pro / Mac mini (with fans) vs fallback
-        return (fanCount ?? 0) > 0 ? 30.0 : 20.0
+        return (fanCount ?? 0) > 0 ? 25.0 : 20.0
     }
 
     static func normalizePower(watts: Double, targetWatts: Double) -> Double {
@@ -153,12 +153,12 @@ enum KineticNotchSpeed: String, CaseIterable, Identifiable, Sendable {
 
 enum MenuBarIconMotion {
     static let rpsMin = 0.50 // 1 rev per 2.0s at 0% idle load (upgraded from 0.25 for smooth 12fps baseline under ProMotion throttling)
-    static let rpsMax = 2.50 // 1 rev per 0.4s at 100% full load
+    static let rpsMax = 3.50 // 1 rev per 0.286s at 100% full load
 
     /// Physical rotation speed in revolutions per second (RPS), solely determined by workload.
     static func revolutionsPerSecond(load: Double) -> Double {
         let clampedLoad = min(max(load, 0), 100)
-        let progress = sqrt(clampedLoad / 100.0)
+        let progress = clampedLoad / 100.0
         return rpsMin + (rpsMax - rpsMin) * progress
     }
 
@@ -181,8 +181,9 @@ enum MenuBarIconMotion {
         let targetFPS = KineticNotchSpeed.resolveTargetFPS(speed: speed, isACConnected: isACConnected, isLowPowerMode: isLowPowerMode, isForeground: isForeground)
         let maxFPSDelay = 1.0 / targetFPS
 
-        // Natural duration for 1 sprite advance at current RPS
-        let naturalFPS = max(rps * Double(frameCount), 1.0)
+        // Natural duration for 1 sprite advance at current RPS (24 discrete steps per revolution)
+        let stepsPerCycle = (style == .pulseWave) ? 24.0 : Double(frameCount)
+        let naturalFPS = max(rps * stepsPerCycle, 1.0)
         let naturalDelay = 1.0 / naturalFPS
 
         // Floor at targetFPS limit (e.g. at high load, never exceed targetFPS)
@@ -234,6 +235,23 @@ enum MenuBarIconMotion {
             let tier = min(Int(clampedLoad / 25.0), 3) // Tier 0 (low) ~ Tier 3 (max load)
             let subPhase = Int(safePhase * 6.0) % 6
             return tier * 6 + subPhase
+        }
+
+        // Flowing Pulse Waveform scales wave amplitude across 4 workload tiers (4 tiers x 24 subphases = 96 frames)
+        if style == .pulseWave {
+            let clampedLoad = min(max(activeLoad, 0), 100)
+            let tier: Int
+            if clampedLoad < 15.0 {
+                tier = 0 // 초저전력 (0~15%, 1W 포함): 0.16s 잔잔한 물결 (Frames 0..23)
+            } else if clampedLoad < 45.0 {
+                tier = 1 // 중저전력 (15~45%, 5W~10W): 0.26s 중간 물결 (Frames 24..47)
+            } else if clampedLoad < 75.0 {
+                tier = 2 // 중고전력 (45~75%): 0.34s 큰 물결 (Frames 48..71)
+            } else {
+                tier = 3 // 고전력 풀로드 (75~100%): 0.42s 거센 서지 파형 (Frames 72..95)
+            }
+            let subPhase = Int(safePhase * 24.0) % 24
+            return tier * 24 + subPhase
         }
 
         // Hill Runner maps 3 workload tiers (Low Uphill, Mid Flat, High Downhill) into 8 subphases each

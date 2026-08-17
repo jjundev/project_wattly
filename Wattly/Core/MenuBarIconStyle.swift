@@ -45,7 +45,9 @@ public enum MenuBarIconStyle: String, CaseIterable, Identifiable, Sendable {
 
     public var frameCount: Int {
         switch self {
-        case .turbine, .pulseWave, .vuMeter, .cube3D, .equalizer, .hillRunner:
+        case .pulseWave:
+            return 96 // 4 부하 티어 (1W 저진폭 ~ 풀로드 고진폭) x 24 고해상도 위상 프레임
+        case .turbine, .vuMeter, .cube3D, .equalizer, .hillRunner:
             return 24
         }
     }

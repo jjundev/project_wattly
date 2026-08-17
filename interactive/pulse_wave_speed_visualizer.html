@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wattly Pulse Wave Speed Visualizer & Speed Tuning Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #0c0e12;
+      --bg-card: #15181e;
+      --bg-card-hover: #1c2028;
+      --bg-elevated: #222732;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.16);
+      --text-primary: #f0f3f6;
+      --text-secondary: #949da8;
+      --text-tertiary: #5e6673;
+      --accent: #2dd4bf;
+      --accent-glow: rgba(45, 212, 191, 0.25);
+      --accent-orange: #fb923c;
+      --accent-purple: #a78bfa;
+      --accent-blue: #38bdf8;
+      --accent-red: #f87171;
+      --menubar-bg-dark: rgba(26, 28, 33, 0.88);
+      --menubar-bg-light: rgba(235, 238, 243, 0.92);
+      --menubar-text-dark: #f0f3f6;
+      --menubar-text-light: #181b20;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-deep);
+      color: var(--text-primary);
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 80px;
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Top Sticky Control Panel */
+    .top-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(12, 14, 18, 0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 16px 28px;
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .header-row-1 {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .title-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge-tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(45, 212, 191, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(45, 212, 191, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    h1 {
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .theme-toggle-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-card);
+      padding: 4px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .btn-toggle {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-toggle.active {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Preset Buttons Bar */
+    .preset-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding-top: 4px;
+    }
+
+    .preset-label {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-weight: 600;
+      margin-right: 4px;
+    }
+
+    .btn-preset {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-preset:hover {
+      background: var(--bg-card-hover);
+      color: var(--text-primary);
+      border-color: var(--border-strong);
+    }
+
+    .btn-preset.active {
+      background: rgba(45, 212, 191, 0.12);
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Live Controls Strip */
+    .control-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      background: var(--bg-card);
+      padding: 14px 18px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .control-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .control-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .control-name {
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .control-val {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: var(--bg-elevated);
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      border: 2px solid var(--bg-deep);
+      box-shadow: 0 0 8px var(--accent-glow);
+      transition: transform 0.1s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Main Container */
+    .main-container {
+      max-width: 1400px;
+      margin: 24px auto 0;
+      padding: 0 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* Section Cards */
+    .section-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 14px;
+    }
+
+    .section-title-group h2 {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    /* Comparison Head-to-Head Hero */
+    .head-to-head-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .head-to-head-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .hero-compare-box {
+      background: var(--bg-deep);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-compare-box.featured-1w {
+      border-color: rgba(56, 189, 248, 0.4);
+      box-shadow: 0 0 24px rgba(56, 189, 248, 0.06);
+    }
+
+    .hero-compare-box.featured-5w {
+      border-color: rgba(251, 146, 60, 0.4);
+      box-shadow: 0 0 24px rgba(251, 146, 60, 0.06);
+    }
+
+    .hero-tag-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .wattage-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 18px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pill-1w {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-blue);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .pill-5w {
+      background: rgba(251, 146, 60, 0.15);
+      color: var(--accent-orange);
+      border: 1px solid rgba(251, 146, 60, 0.3);
+    }
+
+    .state-tag {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-weight: 500;
+    }
+
+    /* Simulated macOS Menu Bar Component */
+    .macos-menubar-preview {
+      border-radius: 6px;
+      padding: 3px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: background 0.2s ease, color 0.2s ease;
+      user-select: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .macos-menubar-preview.dark {
+      background: var(--menubar-bg-dark);
+      color: var(--menubar-text-dark);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .macos-menubar-preview.light {
+      background: var(--menubar-bg-light);
+      color: var(--menubar-text-light);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .menubar-left-mock {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 12px;
+      font-weight: 600;
+      opacity: 0.7;
+    }
+
+    .menubar-right-actual {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .menubar-icon-slot {
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .menubar-text-slot {
+      font-size: 11px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: -0.2px;
+    }
+
+    /* Enlarged Inspector Views */
+    .zoom-stage {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .zoom-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .zoom-item-label {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .zoom-box-4x {
+      width: 72px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-elevated);
+      border-radius: 12px;
+      border: 1px solid var(--border-strong);
+    }
+
+    .zoom-box-8x {
+      width: 120px;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-elevated);
+      border-radius: 16px;
+      border: 1px solid var(--border-strong);
+      position: relative;
+    }
+
+    /* Physics & Timing Specs */
+    .specs-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      background: var(--bg-elevated);
+      padding: 12px;
+      border-radius: var(--radius-sm);
+    }
+
+    .spec-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .spec-k {
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
+    .spec-v {
+      font-size: 13px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-primary);
+    }
+
+    /* Speed Ladder Table */
+    .ladder-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+    }
+
+    .ladder-card {
+      background: var(--bg-deep);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+
+    .ladder-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-strong);
+    }
+
+    .ladder-card.active-target {
+      border-color: var(--accent);
+      background: rgba(45, 212, 191, 0.04);
+    }
+
+    .ladder-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .ladder-watt {
+      font-size: 14px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .ladder-sub {
+      font-size: 10px;
+      color: var(--text-tertiary);
+    }
+
+    .ladder-inspect {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 48px;
+      background: var(--bg-elevated);
+      border-radius: 8px;
+    }
+
+    .ladder-stats {
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      color: var(--text-secondary);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Progress bar in ladder */
+    .ladder-bar-bg {
+      height: 4px;
+      width: 100%;
+      background: var(--bg-elevated);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .ladder-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      transition: width 0.1s ease;
+    }
+
+    /* Graph and Code Generator Area */
+    .bottom-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 1000px) {
+      .bottom-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .canvas-container {
+      position: relative;
+      width: 100%;
+      height: 260px;
+      background: var(--bg-deep);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      overflow: hidden;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Code Export Box */
+    .code-container {
+      background: var(--bg-deep);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+    }
+
+    .code-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .code-top-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .btn-copy {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-copy:hover {
+      background: var(--accent);
+      color: #0c0e12;
+      border-color: var(--accent);
+    }
+
+    pre code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #a5d6ff;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* Highlight badge */
+    .highlight-diff {
+      color: #7ee787;
+      font-weight: 600;
+    }
+
+    /* Diagnostic Insight Box */
+    .insight-card {
+      background: rgba(45, 212, 191, 0.05);
+      border: 1px solid rgba(45, 212, 191, 0.25);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .insight-icon {
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .insight-body {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .insight-body strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .chip-formula {
+      display: inline-block;
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      margin: 0 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Sticky Bar -->
+  <header class="top-header">
+    <div class="header-content">
+      <div class="header-row-1">
+        <div class="title-group">
+          <span class="badge-tag">Pulse Wave Lab</span>
+          <h1>펄스 웨이브 속도 체감 & 튜닝 시각화</h1>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <div class="theme-toggle-group">
+            <button class="btn-toggle active" id="btnThemeDark" onclick="setMenuBarTheme('dark')">Dark MenuBar</button>
+            <button class="btn-toggle" id="btnThemeLight" onclick="setMenuBarTheme('light')">Light MenuBar</button>
+          </div>
+          <div class="theme-toggle-group">
+            <button class="btn-toggle active" id="btnStepDiscrete" onclick="setStepMode('discrete')">24-Frame (실제 앱)</button>
+            <button class="btn-toggle" id="btnStepSmooth" onclick="setStepMode('smooth')">Smooth 60fps</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Presets -->
+      <div class="preset-bar">
+        <span class="preset-label">추천 튜닝 프리셋:</span>
+        <button class="btn-preset active" id="preset-current" onclick="applyPreset('current')">
+          <span>⚡</span> 현재 코드 구현 (Min 0.50, Max 2.50, Sqrt)
+        </button>
+        <button class="btn-preset" id="preset-wide" onclick="applyPreset('wide')">
+          <span>🎯</span> (권장) 1W vs 5W 확연한 구분 (Min 0.18, Max 3.20, Linear)
+        </button>
+        <button class="btn-preset" id="preset-gentle-idle" onclick="applyPreset('gentle-idle')">
+          <span>🍃</span> 초저전력 숨쉬기 모드 (Min 0.10, Max 2.80, Power 1.5)
+        </button>
+        <button class="btn-preset" id="preset-dynamic-amp" onclick="applyPreset('dynamic-amp')">
+          <span>🌊</span> 속도 + 진폭 연동 가속 (저와트 완만, 고와트 격렬)
+        </button>
+      </div>
+
+      <!-- Live Sliders -->
+      <div class="control-strip">
+        <div class="control-item">
+          <div class="control-label-row">
+            <span class="control-name">Min RPS (0W~1W 기준 최저 속도)</span>
+            <span class="control-val" id="valMinRPS">0.50</span>
+          </div>
+          <input type="range" id="sliderMinRPS" min="0.05" max="1.00" step="0.01" value="0.50" oninput="updateControls()" />
+        </div>
+
+        <div class="control-item">
+          <div class="control-label-row">
+            <span class="control-name">Max RPS (100% 풀로드 최고 속도)</span>
+            <span class="control-val" id="valMaxRPS">2.50</span>
+          </div>
+          <input type="range" id="sliderMaxRPS" min="1.00" max="6.00" step="0.05" value="2.50" oninput="updateControls()" />
+        </div>
+
+        <div class="control-item">
+          <div class="control-label-row">
+            <span class="control-name">반응 곡선 지수 (Curve Power)</span>
+            <span class="control-val" id="valCurveExp">0.50 (Sqrt)</span>
+          </div>
+          <input type="range" id="sliderCurveExp" min="0.30" max="2.50" step="0.05" value="0.50" oninput="updateControls()" />
+        </div>
+
+        <div class="control-item">
+          <div class="control-label-row">
+            <span class="control-name">기준 타겟 전력 (Target Watts)</span>
+            <span class="control-val" id="valTargetWatts">30W (M Pro Base)</span>
+          </div>
+          <input type="range" id="sliderTargetWatts" min="15" max="100" step="5" value="30" oninput="updateControls()" />
+        </div>
+
+        <div class="control-item">
+          <div class="control-label-row">
+            <span class="control-name">진폭(높낮이) 와트 연동</span>
+            <span class="control-val" id="valAmpScaling">OFF (고정)</span>
+          </div>
+          <input type="range" id="sliderAmpScaling" min="0" max="1" step="1" value="0" oninput="updateControls()" />
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-container">
+
+    <!-- Insight Box Explaining Why 1W vs 5W Felt Indistinguishable -->
+    <div class="insight-card">
+      <div class="insight-icon">💡</div>
+      <div class="insight-body">
+        <strong>왜 현재 1W와 5W의 속도 차이가 거의 체감되지 않았을까요?</strong><br />
+        현재 Swift 코드에는 <span class="chip-formula">Min RPS = 0.50</span> (최저 2.0초/회전)과 
+        <span class="chip-formula">Sqrt 곡선 (부하^0.5)</span>이 적용되어 있습니다. 
+        30W 기준 1W는 부하 3.3%이지만 제곱근에 의해 벌써 <strong>0.86 RPS (1.15초)</strong>로 가속되고, 
+        5W(16.7%)는 <strong>1.31 RPS (0.76초)</strong>가 됩니다. 
+        작은 18px 메뉴바 아이콘에서 둘 다 1초 내외로 휙 지나가 눈으로 구분하기 어렵습니다. 
+        <strong>[🎯 1W vs 5W 확연한 구분]</strong> 프리셋을 클릭하거나 상단 슬라이더로 Min RPS를 0.20 수준으로 낮추고 지수를 1.0(선형)으로 조절하면 1W는 매우 느긋하게, 5W는 확연히 경쾌하게 구별됩니다!
+      </div>
+    </div>
+
+    <!-- Section 1: 1W vs 5W Head-to-Head Comparison -->
+    <section class="section-card">
+      <div class="section-header">
+        <div class="section-title-group">
+          <h2>🔥 1W vs 5W 1:1 맞대면 비교 (체감 핵심 영역)</h2>
+          <p class="section-desc">실제 메뉴바 크기(18px)와 4배/8배 확대 뷰를 통해 두 전력 상태 간의 파형 전파 리듬을 즉시 비교하세요.</p>
+        </div>
+        <button class="btn-preset" onclick="resetPhases()"><span>🔄</span> 파형 위상 동기화 (Sync Phase)</button>
+      </div>
+
+      <div class="head-to-head-grid">
+        <!-- 1W Box -->
+        <div class="hero-compare-box featured-1w">
+          <div class="hero-tag-bar">
+            <span class="wattage-pill pill-1w">1.0 W</span>
+            <span class="state-tag">초저전력 대기 / 문서 읽기</span>
+          </div>
+
+          <!-- macOS Menubar 1:1 Preview -->
+          <div>
+            <div style="font-size: 11px; color: var(--text-tertiary); margin-bottom: 6px; font-weight: 600;">macOS 실제 메뉴바 크기 (1:1 렌더링)</div>
+            <div class="macos-menubar-preview dark" id="menubar-preview-1w">
+              <div class="menubar-left-mock">
+                <span>Finder</span>
+                <span>파일</span>
+                <span>편집</span>
+              </div>
+              <div class="menubar-right-actual">
+                <div class="menubar-icon-slot" id="slot-1w"></div>
+                <span class="menubar-text-slot">1.0W</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Enlarged Stage -->
+          <div class="zoom-stage">
+            <div class="zoom-item">
+              <span class="zoom-item-label">4x 확대 (72px)</span>
+              <div class="zoom-box-4x" id="zoom-4x-1w"></div>
+            </div>
+            <div class="zoom-item">
+              <span class="zoom-item-label">8x 확대 (120px)</span>
+              <div class="zoom-box-8x" id="zoom-8x-1w"></div>
+            </div>
+          </div>
+
+          <!-- Specs -->
+          <div class="specs-grid">
+            <div class="spec-item">
+              <span class="spec-k">회전 주기 (1사이클 완료 시간)</span>
+              <span class="spec-v" id="spec-cycle-1w">1.16 s</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-k">초당 회전 속도 (RPS)</span>
+              <span class="spec-v" id="spec-rps-1w">0.86 rev/s</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-k">프레임 딜레이 (Frame Delay)</span>
+              <span class="spec-v" id="spec-delay-1w">48.5 ms</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-k">정규화 부하 (Normalized Load)</span>
+              <span class="spec-v" id="spec-load-1w">3.3 %</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5W Box -->
+        <div class="hero-compare-box featured-5w">
+          <div class="hero-tag-bar">
+            <span class="wattage-pill pill-5w">5.0 W</span>
+            <span class="state-tag">영상 재생 / 브라우징 부하</span>
+          </div>
+
+          <!-- macOS Menubar 1:1 Preview -->
+          <div>
+            <div style="font-size: 11px; color: var(--text-tertiary); margin-bottom: 6px; font-weight: 600;">macOS 실제 메뉴바 크기 (1:1 렌더링)</div>
+            <div class="macos-menubar-preview dark" id="menubar-preview-5w">
+              <div class="menubar-left-mock">
+                <span>Finder</span>
+                <span>파일</span>
+                <span>편집</span>
+              </div>
+              <div class="menubar-right-actual">
+                <div class="menubar-icon-slot" id="slot-5w"></div>
+                <span class="menubar-text-slot">5.0W</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Enlarged Stage -->
+          <div class="zoom-stage">
+            <div class="zoom-item">
+              <span class="zoom-item-label">4x 확대 (72px)</span>
+              <div class="zoom-box-4x" id="zoom-4x-5w"></div>
+            </div>
+            <div class="zoom-item">
+              <span class="zoom-item-label">8x 확대 (120px)</span>
+              <div class="zoom-box-8x" id="zoom-8x-5w"></div>
+            </div>
+          </div>
+
+          <!-- Specs -->
+          <div class="specs-grid">
+            <div class="spec-item">
+              <span class="spec-k">회전 주기 (1사이클 완료 시간)</span>
+              <span class="spec-v" id="spec-cycle-5w">0.76 s</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-k">초당 회전 속도 (RPS)</span>
+              <span class="spec-v" id="spec-rps-5w">1.32 rev/s</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-k">프레임 딜레이 (Frame Delay)</span>
+              <span class="spec-v" id="spec-delay-5w">31.6 ms</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-k">정규화 부하 (Normalized Load)</span>
+              <span class="spec-v" id="spec-load-5w">16.7 %</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2: Full Wattage Spectrum Ladder -->
+    <section class="section-card">
+      <div class="section-header">
+        <div class="section-title-group">
+          <h2>📊 전력 단계별 스펙트럼 (0W ~ 50W+ 전구간 속도 체감)</h2>
+          <p class="section-desc">저전력 유휴 상태부터 빌드/렌더링 최고 부하까지의 펄스 전파 속도 점진성을 확인하세요.</p>
+        </div>
+      </div>
+
+      <div class="ladder-grid" id="ladderGrid">
+        <!-- Rendered dynamically by JS -->
+      </div>
+    </section>
+
+    <!-- Section 3: Curve Comparison Graph & Live Swift Code -->
+    <div class="bottom-layout">
+      <!-- Curve Graph -->
+      <section class="section-card">
+        <div class="section-header">
+          <div class="section-title-group">
+            <h2>📈 전력(W) vs 회전속도(RPS) 반응 곡선</h2>
+            <p class="section-desc">회색 점선: 현재 코드 | 에메랄드 실선: 현재 튜닝값</p>
+          </div>
+        </div>
+        <div class="canvas-container">
+          <canvas id="curveCanvas"></canvas>
+        </div>
+      </section>
+
+      <!-- Swift Code Generator -->
+      <section class="section-card">
+        <div class="section-header">
+          <div class="section-title-group">
+            <h2>💻 적용 가능한 Swift 코드</h2>
+            <p class="section-desc">원하는 체감 속도를 찾으셨다면 이 파라미터를 그대로 적용할 수 있습니다.</p>
+          </div>
+          <button class="btn-copy" id="btnCopyCode" onclick="copySwiftCode()">코드 복사</button>
+        </div>
+        <div class="code-container">
+          <div class="code-top">
+            <span class="code-top-title">Wattly/Core/KineticNotchMotion.swift</span>
+          </div>
+          <pre><code id="swiftCodeBlock">// 로딩 중...</code></pre>
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <script>
+    // Configuration & State
+    const state = {
+      theme: 'dark',
+      stepMode: 'discrete', // 'discrete' or 'smooth'
+      minRPS: 0.50,
+      maxRPS: 2.50,
+      curveExp: 0.50,
+      targetWatts: 30.0,
+      ampScaling: false,
+      currentPreset: 'current',
+      phases: {
+        '0': 0,
+        '0.5': 0,
+        '1': 0,
+        '2': 0,
+        '3': 0,
+        '5': 0,
+        '10': 0,
+        '15': 0,
+        '25': 0,
+        '45': 0
+      },
+      lastTimestamp: null
+    };
+
+    const ladderWatts = [0.0, 0.5, 1.0, 2.0, 3.0, 5.0, 10.0, 15.0, 25.0, 45.0];
+
+    // Presets definitions
+    const PRESETS = {
+      'current': {
+        name: '현재 코드 구현',
+        minRPS: 0.50,
+        maxRPS: 2.50,
+        curveExp: 0.50,
+        targetWatts: 30.0,
+        ampScaling: false
+      },
+      'wide': {
+        name: '1W vs 5W 확연한 구분',
+        minRPS: 0.18,
+        maxRPS: 3.20,
+        curveExp: 1.00, // Linear
+        targetWatts: 30.0,
+        ampScaling: false
+      },
+      'gentle-idle': {
+        name: '초저전력 숨쉬기 모드',
+        minRPS: 0.10,
+        maxRPS: 2.80,
+        curveExp: 1.50,
+        targetWatts: 30.0,
+        ampScaling: false
+      },
+      'dynamic-amp': {
+        name: '속도 + 진폭 연동 가속',
+        minRPS: 0.18,
+        maxRPS: 3.00,
+        curveExp: 1.00,
+        targetWatts: 30.0,
+        ampScaling: true
+      }
+    };
+
+    // Calculate normalized load (0..100)
+    function calcLoad(watts, targetWatts) {
+      if (watts <= 0) return 0;
+      return Math.min(Math.max((watts / targetWatts) * 100.0, 0), 100);
+    }
+
+    // Calculate RPS with given parameters
+    function calcRPS(load, minRPS, maxRPS, curveExp) {
+      const clamped = Math.min(Math.max(load, 0), 100);
+      const progress = Math.pow(clamped / 100.0, curveExp);
+      return minRPS + (maxRPS - minRPS) * progress;
+    }
+
+    // Calculate baseline current RPS (0.5 to 2.5 with sqrt)
+    function calcBaselineRPS(load) {
+      const clamped = Math.min(Math.max(load, 0), 100);
+      const progress = Math.sqrt(clamped / 100.0);
+      return 0.50 + (2.50 - 0.50) * progress;
+    }
+
+    // SVG Generator matching PulseWaveMark in Glyphs.swift
+    function renderPulseWaveSVG(size, phase, load, isDarkTheme, ampScaling) {
+      const s = size;
+      const strokeW = Math.max(1.5, s * 0.08);
+      const centerY = s * 0.52;
+
+      // Amplitude: fixed vs scaling
+      let amp = s * 0.32;
+      if (ampScaling) {
+        amp = s * (0.16 + (load / 100.0) * 0.22);
+      }
+
+      const steps = 24;
+      const points = [];
+      for (let i = 0; i <= steps; i++) {
+        const progress = i / steps;
+        const x = progress * s;
+        const envelope = Math.sin(progress * Math.PI);
+        const wave = Math.sin(progress * Math.PI * 2.5 - phase * Math.PI * 2.0);
+        const y = centerY - (wave * envelope * amp);
+        points.push(`${i === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`);
+      }
+
+      const dotX = s * 0.5 + Math.sin(phase * Math.PI * 2.0) * s * 0.35;
+      const dotY = centerY - Math.cos(phase * Math.PI * 2.0) * (amp * 0.75);
+
+      const strokeColor = isDarkTheme ? '#f0f3f6' : '#181b20';
+      const markerColor = '#2dd4bf'; // Tokens.accent
+
+      return `
+        <svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" style="display: block;">
+          <!-- Baseline Guide -->
+          <line x1="${s * 0.08}" y1="${centerY}" x2="${s * 0.92}" y2="${centerY}" 
+                stroke="${strokeColor}" stroke-width="${strokeW * 0.5}" opacity="0.25" stroke-dasharray="2,2" />
+          <!-- Waveform Path -->
+          <path d="${points.join(' ')}" fill="none" stroke="${strokeColor}" stroke-width="${strokeW}" stroke-linecap="round" stroke-linejoin="round" />
+          <!-- Flowing Energy Node (Marker) -->
+          <circle cx="${dotX.toFixed(2)}" cy="${dotY.toFixed(2)}" r="${strokeW * 1.1}" fill="${markerColor}" />
+        </svg>
+      `;
+    }
+
+    // Apply Preset
+    function applyPreset(presetKey) {
+      const p = PRESETS[presetKey];
+      if (!p) return;
+      state.currentPreset = presetKey;
+      state.minRPS = p.minRPS;
+      state.maxRPS = p.maxRPS;
+      state.curveExp = p.curveExp;
+      state.targetWatts = p.targetWatts;
+      state.ampScaling = p.ampScaling;
+
+      document.getElementById('sliderMinRPS').value = p.minRPS;
+      document.getElementById('sliderMaxRPS').value = p.maxRPS;
+      document.getElementById('sliderCurveExp').value = p.curveExp;
+      document.getElementById('sliderTargetWatts').value = p.targetWatts;
+      document.getElementById('sliderAmpScaling').value = p.ampScaling ? 1 : 0;
+
+      // Update preset buttons active state
+      document.querySelectorAll('.btn-preset').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById(`preset-${presetKey}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      updateControlLabels();
+      drawCurveGraph();
+      updateSwiftCode();
+    }
+
+    // Read Slider Controls
+    function updateControls() {
+      state.minRPS = parseFloat(document.getElementById('sliderMinRPS').value);
+      state.maxRPS = parseFloat(document.getElementById('sliderMaxRPS').value);
+      state.curveExp = parseFloat(document.getElementById('sliderCurveExp').value);
+      state.targetWatts = parseFloat(document.getElementById('sliderTargetWatts').value);
+      state.ampScaling = parseInt(document.getElementById('sliderAmpScaling').value) === 1;
+
+      // Reset preset active button highlight if customized
+      document.querySelectorAll('.btn-preset').forEach(btn => btn.classList.remove('active'));
+
+      updateControlLabels();
+      drawCurveGraph();
+      updateSwiftCode();
+    }
+
+    function updateControlLabels() {
+      document.getElementById('valMinRPS').textContent = state.minRPS.toFixed(2) + ' rev/s (' + (1.0 / state.minRPS).toFixed(1) + 's/회전)';
+      document.getElementById('valMaxRPS').textContent = state.maxRPS.toFixed(2) + ' rev/s (' + (1.0 / state.maxRPS).toFixed(2) + 's/회전)';
+      
+      let expName = '';
+      if (Math.abs(state.curveExp - 0.5) < 0.05) expName = ' (Sqrt)';
+      else if (Math.abs(state.curveExp - 1.0) < 0.05) expName = ' (Linear 선형)';
+      else if (Math.abs(state.curveExp - 2.0) < 0.05) expName = ' (Quadratic)';
+      document.getElementById('valCurveExp').textContent = state.curveExp.toFixed(2) + expName;
+
+      let modelText = '';
+      if (state.targetWatts <= 20) modelText = ' (Air)';
+      else if (state.targetWatts <= 30) modelText = ' (Pro Base / Mini)';
+      else if (state.targetWatts <= 55) modelText = ' (M Pro 14/16")';
+      else modelText = ' (M Max / Ultra)';
+      document.getElementById('valTargetWatts').textContent = state.targetWatts.toFixed(0) + 'W' + modelText;
+
+      document.getElementById('valAmpScaling').textContent = state.ampScaling ? 'ON (와트별 가변)' : 'OFF (고정)';
+    }
+
+    // Set Theme
+    function setMenuBarTheme(theme) {
+      state.theme = theme;
+      document.getElementById('btnThemeDark').classList.toggle('active', theme === 'dark');
+      document.getElementById('btnThemeLight').classList.toggle('active', theme === 'light');
+
+      const isDark = theme === 'dark';
+      document.getElementById('menubar-preview-1w').className = `macos-menubar-preview ${theme}`;
+      document.getElementById('menubar-preview-5w').className = `macos-menubar-preview ${theme}`;
+    }
+
+    // Set Step Mode
+    function setStepMode(mode) {
+      state.stepMode = mode;
+      document.getElementById('btnStepDiscrete').classList.toggle('active', mode === 'discrete');
+      document.getElementById('btnStepSmooth').classList.toggle('active', mode === 'smooth');
+    }
+
+    // Reset Phases
+    function resetPhases() {
+      for (const k in state.phases) {
+        state.phases[k] = 0;
+      }
+    }
+
+    // Build Ladder Grid HTML
+    function buildLadderGrid() {
+      const container = document.getElementById('ladderGrid');
+      container.innerHTML = '';
+
+      ladderWatts.forEach(w => {
+        const isHighlight = (w === 1.0 || w === 5.0);
+        const card = document.createElement('div');
+        card.className = `ladder-card ${isHighlight ? 'active-target' : ''}`;
+        card.id = `ladder-card-${w}`;
+
+        card.innerHTML = `
+          <div class="ladder-header">
+            <span class="ladder-watt" style="color: ${w === 1.0 ? 'var(--accent-blue)' : w === 5.0 ? 'var(--accent-orange)' : 'var(--text-primary)'}">${w.toFixed(1)} W</span>
+            <span class="ladder-sub" id="ladder-load-${w}">0%</span>
+          </div>
+          <div class="ladder-inspect" id="ladder-icon-${w}"></div>
+          <div class="ladder-bar-bg">
+            <div class="ladder-bar-fill" id="ladder-bar-${w}" style="width: 0%;"></div>
+          </div>
+          <div class="ladder-stats">
+            <span id="ladder-rps-${w}">0.00 rev/s</span>
+            <span id="ladder-sec-${w}">0.00 s/회전</span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Animation Loop
+    function animate(timestamp) {
+      if (!state.lastTimestamp) state.lastTimestamp = timestamp;
+      const dt = Math.min(Math.max((timestamp - state.lastTimestamp) / 1000.0, 0.001), 0.1);
+      state.lastTimestamp = timestamp;
+
+      const isDark = state.theme === 'dark';
+      const frameCount = 24;
+
+      // Update 1W and 5W and Ladder
+      ladderWatts.forEach(w => {
+        const load = calcLoad(w, state.targetWatts);
+        const rps = calcRPS(load, state.minRPS, state.maxRPS, state.curveExp);
+        const cycleSec = 1.0 / rps;
+
+        // Advance continuous phase
+        state.phases[w] = (state.phases[w] + rps * dt) % 1.0;
+        const continuousPhase = state.phases[w];
+
+        // Effective phase for rendering
+        let effectivePhase = continuousPhase;
+        if (state.stepMode === 'discrete') {
+          const discreteFrame = Math.floor(continuousPhase * frameCount) % frameCount;
+          effectivePhase = discreteFrame / frameCount;
+        }
+
+        // Render Hero 1W
+        if (w === 1.0) {
+          document.getElementById('slot-1w').innerHTML = renderPulseWaveSVG(18, effectivePhase, load, isDark, state.ampScaling);
+          document.getElementById('zoom-4x-1w').innerHTML = renderPulseWaveSVG(54, effectivePhase, load, true, state.ampScaling);
+          document.getElementById('zoom-8x-1w').innerHTML = renderPulseWaveSVG(96, effectivePhase, load, true, state.ampScaling);
+
+          document.getElementById('spec-cycle-1w').textContent = cycleSec.toFixed(2) + ' 초 (1주기)';
+          document.getElementById('spec-rps-1w').textContent = rps.toFixed(2) + ' rev/s';
+          document.getElementById('spec-delay-1w').textContent = (cycleSec / 24 * 1000).toFixed(1) + ' ms';
+          document.getElementById('spec-load-1w').textContent = load.toFixed(1) + ' %';
+        }
+
+        // Render Hero 5W
+        if (w === 5.0) {
+          document.getElementById('slot-5w').innerHTML = renderPulseWaveSVG(18, effectivePhase, load, isDark, state.ampScaling);
+          document.getElementById('zoom-4x-5w').innerHTML = renderPulseWaveSVG(54, effectivePhase, load, true, state.ampScaling);
+          document.getElementById('zoom-8x-5w').innerHTML = renderPulseWaveSVG(96, effectivePhase, load, true, state.ampScaling);
+
+          document.getElementById('spec-cycle-5w').textContent = cycleSec.toFixed(2) + ' 초 (1주기)';
+          document.getElementById('spec-rps-5w').textContent = rps.toFixed(2) + ' rev/s';
+          document.getElementById('spec-delay-5w').textContent = (cycleSec / 24 * 1000).toFixed(1) + ' ms';
+          document.getElementById('spec-load-5w').textContent = load.toFixed(1) + ' %';
+        }
+
+        // Render Ladder Icon & Stats
+        const iconSlot = document.getElementById(`ladder-icon-${w}`);
+        if (iconSlot) {
+          iconSlot.innerHTML = renderPulseWaveSVG(24, effectivePhase, load, true, state.ampScaling);
+        }
+        const loadLabel = document.getElementById(`ladder-load-${w}`);
+        if (loadLabel) loadLabel.textContent = load.toFixed(0) + '%';
+        const bar = document.getElementById(`ladder-bar-${w}`);
+        if (bar) bar.style.width = load + '%';
+        const rpsLabel = document.getElementById(`ladder-rps-${w}`);
+        if (rpsLabel) rpsLabel.textContent = rps.toFixed(2) + ' rev/s';
+        const secLabel = document.getElementById(`ladder-sec-${w}`);
+        if (secLabel) secLabel.textContent = cycleSec.toFixed(2) + 's/회전';
+      });
+
+      requestAnimationFrame(animate);
+    }
+
+    // Draw RPS Curve Comparison Graph
+    function drawCurveGraph() {
+      const canvas = document.getElementById('curveCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+
+      const W = rect.width;
+      const H = rect.height;
+      const padL = 45;
+      const padR = 25;
+      const padT = 25;
+      const padB = 35;
+      const plotW = W - padL - padR;
+      const plotH = H - padT - padB;
+
+      ctx.clearRect(0, 0, W, H);
+
+      // Grid & Axes
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.lineWidth = 1;
+
+      const maxWatt = Math.max(state.targetWatts, 45);
+      const maxPlotRPS = Math.max(state.maxRPS * 1.15, 3.5);
+
+      // Horizontal grid (RPS)
+      const rpsSteps = 4;
+      for (let i = 0; i <= rpsSteps; i++) {
+        const val = (maxPlotRPS / rpsSteps) * i;
+        const y = padT + plotH - (val / maxPlotRPS) * plotH;
+        ctx.beginPath();
+        ctx.moveTo(padL, y);
+        ctx.lineTo(padL + plotW, y);
+        ctx.stroke();
+
+        ctx.fillStyle = '#5e6673';
+        ctx.font = '10px JetBrains Mono';
+        ctx.textAlign = 'right';
+        ctx.fillText(val.toFixed(1) + 'r', padL - 6, y + 3);
+      }
+
+      // Vertical grid (Watts)
+      const wattSteps = [0, 1, 5, 10, 20, 30, Math.round(maxWatt)];
+      wattSteps.forEach(w => {
+        if (w > maxWatt) return;
+        const x = padL + (w / maxWatt) * plotW;
+        ctx.beginPath();
+        ctx.moveTo(x, padT);
+        ctx.lineTo(x, padT + plotH);
+        ctx.stroke();
+
+        ctx.fillStyle = (w === 1 || w === 5) ? (w === 1 ? '#38bdf8' : '#fb923c') : '#5e6673';
+        ctx.font = (w === 1 || w === 5) ? 'bold 11px JetBrains Mono' : '10px JetBrains Mono';
+        ctx.textAlign = 'center';
+        ctx.fillText(w + 'W', x, padT + plotH + 16);
+      });
+
+      // Axis labels
+      ctx.fillStyle = '#949da8';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('RPS (초당 회전수)', padL, padT - 10);
+      ctx.textAlign = 'right';
+      ctx.fillText('전력 소비 (W)', padL + plotW, padT + plotH + 30);
+
+      // Plot Baseline Current Curve (Gray Dashed)
+      ctx.beginPath();
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 1.8;
+      for (let i = 0; i <= 100; i++) {
+        const w = (maxWatt / 100) * i;
+        const load = calcLoad(w, 30.0); // Baseline default target
+        const rps = calcBaselineRPS(load);
+        const x = padL + (w / maxWatt) * plotW;
+        const y = padT + plotH - (rps / maxPlotRPS) * plotH;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Plot Tuned Current Curve (Emerald Solid)
+      ctx.beginPath();
+      ctx.strokeStyle = '#2dd4bf';
+      ctx.lineWidth = 2.5;
+      for (let i = 0; i <= 100; i++) {
+        const w = (maxWatt / 100) * i;
+        const load = calcLoad(w, state.targetWatts);
+        const rps = calcRPS(load, state.minRPS, state.maxRPS, state.curveExp);
+        const x = padL + (w / maxWatt) * plotW;
+        const y = padT + plotH - (rps / maxPlotRPS) * plotH;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Highlight 1W and 5W points on Tuned curve
+      [1.0, 5.0].forEach(w => {
+        const load = calcLoad(w, state.targetWatts);
+        const rps = calcRPS(load, state.minRPS, state.maxRPS, state.curveExp);
+        const x = padL + (w / maxWatt) * plotW;
+        const y = padT + plotH - (rps / maxPlotRPS) * plotH;
+        const color = (w === 1.0) ? '#38bdf8' : '#fb923c';
+
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = '#0c0e12';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Label above point
+        ctx.fillStyle = color;
+        ctx.font = 'bold 11px JetBrains Mono';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${rps.toFixed(2)}r`, x, y - 8);
+      });
+    }
+
+    // Update Swift Code Block
+    function updateSwiftCode() {
+      const codeBlock = document.getElementById('swiftCodeBlock');
+      const minVal = state.minRPS.toFixed(2);
+      const maxVal = state.maxRPS.toFixed(2);
+      const expVal = state.curveExp.toFixed(2);
+
+      let curveFormula = '';
+      if (Math.abs(state.curveExp - 0.5) < 0.05) {
+        curveFormula = `let progress = sqrt(clampedLoad / 100.0)`;
+      } else if (Math.abs(state.curveExp - 1.0) < 0.05) {
+        curveFormula = `let progress = clampedLoad / 100.0 // 선형 반응 (1W와 5W 명확한 구분)`;
+      } else {
+        curveFormula = `let progress = pow(clampedLoad / 100.0, ${expVal}) // 커스텀 반응 지수`;
+      }
+
+      codeBlock.innerHTML = `// Wattly/Core/KineticNotchMotion.swift
+enum MenuBarIconMotion {
+    <span class="highlight-diff">static let rpsMin = ${minVal}</span> // 0% 유휴 시 최저 속도 (1사이클 ${(1.0 / state.minRPS).toFixed(2)}초)
+    <span class="highlight-diff">static let rpsMax = ${maxVal}</span> // 100% 풀로드 시 최고 속도 (1사이클 ${(1.0 / state.maxRPS).toFixed(2)}초)
+
+    /// Physical rotation speed in revolutions per second (RPS)
+    static func revolutionsPerSecond(load: Double) -> Double {
+        let clampedLoad = min(max(load, 0), 100)
+        <span class="highlight-diff">${curveFormula}</span>
+        return rpsMin + (rpsMax - rpsMin) * progress
+    }
+}`;
+    }
+
+    // Copy Swift Code to Clipboard
+    function copySwiftCode() {
+      const codeText = document.getElementById('swiftCodeBlock').innerText;
+      navigator.clipboard.writeText(codeText).then(() => {
+        const btn = document.getElementById('btnCopyCode');
+        btn.textContent = '✅ 복사 완료!';
+        setTimeout(() => { btn.textContent = '코드 복사'; }, 2000);
+      });
+    }
+
+    // Initialize
+    window.addEventListener('DOMContentLoaded', () => {
+      buildLadderGrid();
+      updateControlLabels();
+      drawCurveGraph();
+      updateSwiftCode();
+      requestAnimationFrame(animate);
+
+      window.addEventListener('resize', drawCurveGraph);
+    });
+  </script>
+</body>
+</html>
