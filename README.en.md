@@ -19,7 +19,7 @@
 
 ## Overview
 
-**Wattly** is a native, ultra-lightweight menu bar system monitor and intelligent fan controller engineered from the ground up for Apple Silicon Macs. Written entirely in **Swift 6** with strict concurrency and rendered using **SwiftUI**, Wattly delivers milliwatt-precision SoC telemetry, per-cluster CPU/GPU performance breakdown, kernel memory pressure tracking, real-time battery analytics, and custom fan curves—all while consuming near-zero CPU cycles and battery power.
+**Wattly** is a native, ultra-lightweight menu bar system monitor and intelligent fan controller engineered from the ground up for Apple Silicon Macs (M1, M2, M3, M4, and M5 full lineups). Written entirely in **Swift 6** with strict concurrency and rendered using **SwiftUI**, Wattly delivers milliwatt-precision SoC telemetry, per-cluster CPU/GPU performance breakdown, kernel memory pressure tracking, real-time battery analytics, and custom fan curves—all while consuming near-zero CPU cycles and battery power.
 
 <p align="center">
   <img src="docs/assets/menubar-live.gif" alt="Menu Bar Kinetic Motion" width="720" />
@@ -102,7 +102,7 @@ Each telemetry domain in Wattly expands into a dedicated diagnostic card with re
   <img src="docs/assets/en/expand-thermals.png" alt="Cluster Thermals Telemetry" width="640" />
 </p>
 
-- **Multi-Sensor Thermal Aggregation**: Direct hardware readings across P-Core clusters, E-Core clusters, and GPU silicon.
+- **Multi-Sensor Thermal Aggregation**: Direct hardware readings across P-Core clusters, E-Core clusters, and GPU silicon across the entire M1 through M5 lineup.
 - **Peak Hotspot Detection**: Automatic maximum sensor selection identifying silicon thermal bottlenecks in real time.
 - **Thermal Headroom**: Proactive monitoring preventing unexpected OS thermal throttling during sustained compilation or render workloads.
 
@@ -153,7 +153,7 @@ Wattly implements a strict separation of concerns to guarantee maximum security,
 
 ## Apple Silicon Compatibility Matrix
 
-Wattly is built specifically for the Apple Silicon architecture, supporting all generations and tiers:
+Wattly is built specifically for the Apple Silicon architecture, supporting all generations and tiers (Base, Pro, Max, and Ultra from M1 through M5):
 
 | Generation | Base Chip | Pro Chip | Max Chip | Ultra Chip | macOS Compatibility |
 | :--- | :---: | :---: | :---: | :---: | :---: |
@@ -161,8 +161,9 @@ Wattly is built specifically for the Apple Silicon architecture, supporting all 
 | **Apple M2 Series** | M2 | M2 Pro | M2 Max | M2 Ultra | macOS 14.0+ (Sonoma) / 15.0+ (Sequoia) |
 | **Apple M3 Series** | M3 | M3 Pro | M3 Max | M3 Ultra | macOS 14.0+ (Sonoma) / 15.0+ (Sequoia) |
 | **Apple M4 Series** | M4 | M4 Pro | M4 Max | M4 Ultra | macOS 14.0+ (Sonoma) / 15.0+ (Sequoia) |
+| **Apple M5 Series** | M5 | M5 Pro | M5 Max | M5 Ultra | macOS 14.0+ (Sonoma) / 15.0+ (Sequoia) |
 
-*Full feature support across all models: SoC Watts, CPU P/E Clusters, GPU Tiler/Renderer, Unified VRAM, System Discharge, Cluster Thermals, and Smart Fan Control.*
+*Full feature support across all M1–M5 models: SoC Watts, CPU P/E Clusters, GPU Tiler/Renderer, Unified VRAM, System Discharge, Cluster Thermals, and Smart Fan Control.*
 
 ---
 
