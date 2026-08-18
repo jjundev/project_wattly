@@ -10,12 +10,12 @@ import AppKit
 
     @Test func diagnosticBodyContainsVersionAndSystemInfo() {
         let body = ContactDeveloperHelper.generateDiagnosticBody(
-            version: "1.0.2",
-            build: "3",
+            version: "1.0.3",
+            build: "4",
             osVersion: "macOS 14.5",
             hardwareModel: "Mac14,2"
         )
-        #expect(body.contains("Wattly Version: v1.0.2 (3)"))
+        #expect(body.contains("Wattly Version: v1.0.3 (4)"))
         #expect(body.contains("macOS: macOS 14.5"))
         #expect(body.contains("Hardware Model: Mac14,2"))
     }
