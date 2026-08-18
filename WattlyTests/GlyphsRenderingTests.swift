@@ -27,5 +27,12 @@ struct GlyphsRenderingTests {
             #expect(mark.frame == frame)
         }
     }
+
+    @Test @MainActor func pulseWaveMarkRendersAcrossAllTiers() {
+        for frame in 0..<96 {
+            let mark = PulseWaveMark(frame: frame, markerColor: .black)
+            #expect(mark.frame == frame)
+        }
+    }
 }
 
