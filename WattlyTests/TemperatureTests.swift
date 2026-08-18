@@ -8,10 +8,50 @@ import Foundation
 /// terminal/disabled/backoff state does ZERO sensor I/O.
 struct TemperatureTests {
 
-    // MARK: Pure: profile selection
+    // MARK: Pure: profile selection for M1~M5 generations
+
+    @Test func m1ProfilesResolve() {
+        #expect(TemperatureProfiles.profile(forModel: "MacBookAir10,1") == TemperatureProfiles.m1Base)
+        #expect(TemperatureProfiles.profile(forModel: "MacBookPro18,1") == TemperatureProfiles.m1ProMax)
+        #expect(TemperatureProfiles.profile(forModel: "Mac13,2") == TemperatureProfiles.m1Ultra)
+    }
+
+    @Test func m2ProfilesResolve() {
+        #expect(TemperatureProfiles.profile(forModel: "Mac14,2") == TemperatureProfiles.m2Base)
+        #expect(TemperatureProfiles.profile(forModel: "Mac14,9") == TemperatureProfiles.m2ProMax)
+        #expect(TemperatureProfiles.profile(forModel: "Mac14,14") == TemperatureProfiles.m2Ultra)
+    }
+
+    @Test func m3ProfilesResolve() {
+        #expect(TemperatureProfiles.profile(forModel: "Mac15,3") == TemperatureProfiles.m3Base)
+        #expect(TemperatureProfiles.profile(forModel: "Mac15,8") == TemperatureProfiles.m3ProMax)
+    }
+
+    @Test func m4ProfilesResolve() {
+        #expect(TemperatureProfiles.profile(forModel: "Mac16,12") == TemperatureProfiles.m4Base)
+        #expect(TemperatureProfiles.profile(forModel: "Mac16,8") == TemperatureProfiles.m4ProMax)
+    }
+
+    @Test func m5ProfilesResolve() {
+        #expect(TemperatureProfiles.profile(forModel: "Mac17,2") == TemperatureProfiles.m5Base)
+        #expect(TemperatureProfiles.profile(forModel: "Mac17,9") == TemperatureProfiles.m5ProMax)
+    }
 
     @Test func m5ProfileResolvesForMac17_2() {
         #expect(TemperatureProfiles.profile(forModel: "Mac17,2") == TemperatureProfiles.m5)
+    }
+    @Test func m4BaseProfileResolvesForM4Models() {
+        #expect(TemperatureProfiles.profile(forModel: "Mac16,12") == TemperatureProfiles.m4Base) // M4 MacBook Air 13"
+        #expect(TemperatureProfiles.profile(forModel: "Mac16,13") == TemperatureProfiles.m4Base) // M4 MacBook Air 15"
+        #expect(TemperatureProfiles.profile(forModel: "Mac16,1") == TemperatureProfiles.m4Base)  // M4 MacBook Pro 14"
+        #expect(TemperatureProfiles.profile(forModel: "Mac16,10") == TemperatureProfiles.m4Base) // M4 Mac mini
+    }
+    @Test func m4ProMaxProfileResolvesForM4ProMaxModels() {
+        #expect(TemperatureProfiles.profile(forModel: "Mac16,8") == TemperatureProfiles.m4ProMax) // M4 Pro MBP 14"
+        #expect(TemperatureProfiles.profile(forModel: "Mac16,6") == TemperatureProfiles.m4ProMax) // M4 Max MBP 14"
+        #expect(TemperatureProfiles.profile(forModel: "Mac16,7") == TemperatureProfiles.m4ProMax) // M4 Pro MBP 16"
+        #expect(TemperatureProfiles.profile(forModel: "Mac16,5") == TemperatureProfiles.m4ProMax) // M4 Max MBP 16"
+        #expect(TemperatureProfiles.profile(forModel: "Mac16,11") == TemperatureProfiles.m4ProMax) // M4 Pro Mac mini
     }
     @Test func unknownChipHasNoProfile() {
         #expect(TemperatureProfiles.profile(forModel: "Mac99,9") == nil)
@@ -74,6 +114,46 @@ struct TemperatureTests {
         let snap = await readSnapshot(p, at: base)
         #expect(snap.cpu.celsius == 85)   // uniform sensors → average == 85
         #expect(snap.gpu.celsius == 70)
+        #expect(tx.openCalls == 1)
+    }
+
+    @Test func m1AirReadsCpuAndGpuSuccessfully() async {
+        let tx = FakeTempTransport(); tx.cpuCelsius = 45.0; tx.gpuCelsius = 42.0
+        let p = TemperatureProvider(transport: tx, model: "MacBookAir10,1")
+        let snap = await readSnapshot(p, at: base)
+        #expect(snap.cpu.celsius == 45.0)
+        #expect(snap.gpu.celsius == 42.0)
+        #expect(tx.openCalls == 1)
+    }
+
+    @Test func m2UltraReadsCpuAndGpuSuccessfully() async {
+        let tx = FakeTempTransport(); tx.cpuCelsius = 55.0; tx.gpuCelsius = 50.0
+        let p = TemperatureProvider(transport: tx, model: "Mac14,14")
+        let snap = await readSnapshot(p, at: base)
+        #expect(snap.cpu.celsius == 55.0)
+        #expect(snap.gpu.celsius == 50.0)
+        #expect(tx.openCalls == 1)
+    }
+
+    @Test func m4AirReadsCpuAndGpuSuccessfully() async {
+        let tx = FakeTempTransport()
+        tx.cpuCelsius = 52.0
+        tx.gpuCelsius = 48.0
+        let p = TemperatureProvider(transport: tx, model: "Mac16,12")
+        let snap = await readSnapshot(p, at: base)
+        #expect(snap.cpu.celsius == 52.0)
+        #expect(snap.gpu.celsius == 48.0)
+        #expect(tx.openCalls == 1)
+    }
+
+    @Test func m4ProMacBookProReadsCpuAndGpuSuccessfully() async {
+        let tx = FakeTempTransport()
+        tx.cpuCelsius = 64.0
+        tx.gpuCelsius = 58.0
+        let p = TemperatureProvider(transport: tx, model: "Mac16,8")
+        let snap = await readSnapshot(p, at: base)
+        #expect(snap.cpu.celsius == 64.0)
+        #expect(snap.gpu.celsius == 58.0)
         #expect(tx.openCalls == 1)
     }
 

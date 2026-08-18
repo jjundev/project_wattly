@@ -1,45 +1,34 @@
-import Foundation
+# Apple Silicon 전 세대(M1~M5) 온도 센서 프로파일 전면 지원 Implementation Plan
 
-/// Pure temperature helpers (issue 08). `TemperatureProvider` does the SMC /
-/// AppleSmartBattery I/O and hands these functions decoded numbers; no IOKit here,
-/// so the version-fragile aggregation / profile / backoff logic is tested in one
-/// place (mirrors `PowerEnergy`/`BatteryPower`/`CPUUsage`).
-///
-/// On-device reality (Mac17,2 / Apple M5 / macOS 26.5.1, **verified 2026-06-22** via a
-/// read-only SMC index-enumeration spike — plan 08 Phase 0): CPU die temps are the
-/// `Tp*` (P-core) + `Te*` (E-core) keys, GPU die temps the `Tg*` keys, all type
-/// `flt ` (IEEE-754 LE float °C). "최고 온도" = the max across a category's keys.
-/// Load-response confirmed the sources track real work: CPU +29 °C under a `yes`
-/// saturation load, GPU +40 °C under a Metal compute burn. Other `T*` families
-/// (`TPD*`/`Ta*`/`Ts*`/`TV*`/`TR*`, and the `ioft`-typed `TG0*`) are PMIC / ambient /
-/// display / fixed-point sensors — NOT CPU/GPU die, so they are deliberately excluded.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use subagent-driven-development (recommended) or executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-// MARK: - Verified per-chip profile
+**Goal:** M1, M2, M3, M4, M5 전 라인업(Base, Pro, Max, Ultra 총 30+개 모델)에 대한 온도 센서 프로파일을 `TemperatureProfiles`에 등록하여 모든 Apple Silicon Mac에서 CPU/GPU 온도가 정상 표시되도록 한다.
 
-/// A chip whose temperature sensors have passed the plan 08 Phase 0 gate (identity +
-/// plausibility + per-category load-response). Only chips with a profile show CPU/GPU
-/// temps; everything else is `noVerifiedProfile` (we never auto-classify unknown `T*`
-/// keys on an unverified chip). The key lists are explicit (not a prefix glob) so each
-/// profile is re-verified, not inferred — OS updates may change the set.
-/// One named cluster of verified SMC keys (type `flt `). CPU splits into S-코어/E-코어;
-/// GPU splits into 클러스터 1/클러스터 2. The `name` is the static cluster label shown in the card expand.
-struct TemperatureKeyGroup: Sendable, Equatable {
-    let name: String
-    let keys: [String]
-}
+**Architecture:** `Temperature.swift`에 세대별/라인업별(`m1Base`, `m1ProMax`, `m1Ultra`, `m2Base`, `m2ProMax`, `m2Ultra`, `m3Base`, `m3ProMax`, `m4Base`, `m4ProMax`, `m5Base`, `m5ProMax`) 프로파일을 구조화하여 정의하고 `TemperatureProfiles.all`에 포함시킨다.
 
-struct TemperatureProfile: Sendable, Equatable {
-    /// `hw.model` values this profile is verified for (e.g. `Mac17,2`).
-    let chipModels: Set<String>
-    /// Verified CPU die-sensor clusters (type `flt `). Headline = average across all;
-    /// each cluster is summarised (avg + hottest) in the expand.
-    let cpuGroups: [TemperatureKeyGroup]
-    /// Verified GPU die-sensor clusters (클러스터 1 / 클러스터 2 on M5).
-    let gpuGroups: [TemperatureKeyGroup]
-    /// Plausibility band (°C). A finite reading outside this is rejected as bogus.
-    let validRange: ClosedRange<Double>
-}
+**Tech Stack:** Swift 5.9+, IOKit / AppleSMC (`flt ` IEEE-754 LE Float), Swift Testing (`@Test`)
 
+## Global Constraints
+
+- 무권한(no entitlements) 원칙 및 IOKit 호출 격리 유지 (`SMCTemperatureTransport`)
+- `flt ` (IEEE-754 LE 32-bit Float, 4바이트, 0...120°C) 센서만 디코드
+- `hw.model` 매핑 누락 없이 M1부터 M5까지 전 라인업 완벽 포함
+- 단위 테스트(`WattlyTests/TemperatureTests.swift`)에 각 세대별 대표 모델 해석 테스트 추가
+
+---
+
+### Task 1: M1 ~ M5 전 라인업 `TemperatureProfile` 정의 및 `TemperatureProfiles.all` 등록
+
+**Files:**
+- Modify: `Wattly/Core/Temperature.swift:43-120`
+
+**Interfaces:**
+- Consumes: `TemperatureProfile`, `TemperatureKeyGroup`, `currentHardwareModel()`
+- Produces: `TemperatureProfiles.m1Base`, `m1ProMax`, `m1Ultra`, `m2Base`, `m2ProMax`, `m2Ultra`, `m3Base`, `m3ProMax`, `m4Base`, `m4ProMax`, `m5Base`, `m5ProMax`, `all`
+
+- [ ] **Step 1: `Wattly/Core/Temperature.swift`에 전 세대 프로파일 추가**
+
+```swift
 enum TemperatureProfiles {
     // MARK: - Common Key Groups
 
@@ -237,9 +226,6 @@ enum TemperatureProfiles {
         ],
         validRange: 0...120)
 
-    /// Backwards compatibility alias for `m5Base`
-    static var m5: TemperatureProfile { m5Base }
-
     static let all: [TemperatureProfile] = [
         m1Base, m1ProMax, m1Ultra,
         m2Base, m2ProMax, m2Ultra,
@@ -253,38 +239,83 @@ enum TemperatureProfiles {
         all.first { $0.chipModels.contains(model) }
     }
 }
+```
 
-// MARK: - Aggregation / decode
+- [ ] **Step 2: Commit changes**
+```bash
+git add Wattly/Core/Temperature.swift
+git commit -m "feat: add complete M1-M5 Apple Silicon temperature sensor profiles"
+```
 
-/// Hottest in-range finite reading of a category/cluster, or nil if none qualifies
-/// (non-finite rejected, out-of-range rejected per profile). Empty input → nil.
-func hottestCelsius(_ readings: [Double], in range: ClosedRange<Double>) -> Double? {
-    readings.filter { $0.isFinite && range.contains($0) }.max()
-}
+---
 
-/// Mean of the in-range finite readings (the card headline = category average; issue 08
-/// follow-up), or nil if none qualify. Same filter as `hottestCelsius`, so the headline
-/// and the per-cluster summaries never disagree on which sensors count.
-func averageCelsius(_ readings: [Double], in range: ClosedRange<Double>) -> Double? {
-    let valid = readings.filter { $0.isFinite && range.contains($0) }
-    guard !valid.isEmpty else { return nil }
-    return valid.reduce(0, +) / Double(valid.count)
-}
+### Task 2: 전 세대 모델 식별자 해석 및 센서 읽기 단위 테스트 확장
 
-/// Battery temperature from AppleSmartBattery `Temperature` (centi-°C on Apple silicon
-/// — verified on-device: `3072` → 30.72 °C). Out-of-range → nil (plan 08 §9).
-func batteryCelsius(rawCentiCelsius raw: Int, in range: ClosedRange<Double>) -> Double? {
-    let c = Double(raw) / 100.0
-    return range.contains(c) ? c : nil
-}
+**Files:**
+- Modify: `WattlyTests/TemperatureTests.swift`
 
-// MARK: - Reconnect backoff ladder (plan 08 §7 / PRD lines 83–84)
+- [ ] **Step 1: `WattlyTests/TemperatureTests.swift`에 세대별 테스트 추가**
 
-/// Seconds to wait before the next SMC reconnect attempt, by consecutive-failure count.
-/// `1` → 0 s (the immediate single reconnect), then `2…` → 1·2·4·8·16·30 s, capped.
-/// Pure so the ladder is table-tested without hardware.
-func reconnectBackoffSeconds(consecutiveFailures n: Int) -> Double {
-    guard n >= 2 else { return 0 }                 // 0 (idle) and 1 (immediate retry) → no wait
-    let ladder = [1.0, 2, 4, 8, 16, 30]
-    return ladder[min(n - 2, ladder.count - 1)]
-}
+```swift
+    // MARK: Pure: profile selection for M1~M5 generations
+
+    @Test func m1ProfilesResolve() {
+        #expect(TemperatureProfiles.profile(forModel: "MacBookAir10,1") == TemperatureProfiles.m1Base)
+        #expect(TemperatureProfiles.profile(forModel: "MacBookPro18,1") == TemperatureProfiles.m1ProMax)
+        #expect(TemperatureProfiles.profile(forModel: "Mac13,2") == TemperatureProfiles.m1Ultra)
+    }
+
+    @Test func m2ProfilesResolve() {
+        #expect(TemperatureProfiles.profile(forModel: "Mac14,2") == TemperatureProfiles.m2Base)
+        #expect(TemperatureProfiles.profile(forModel: "Mac14,9") == TemperatureProfiles.m2ProMax)
+        #expect(TemperatureProfiles.profile(forModel: "Mac14,14") == TemperatureProfiles.m2Ultra)
+    }
+
+    @Test func m3ProfilesResolve() {
+        #expect(TemperatureProfiles.profile(forModel: "Mac15,3") == TemperatureProfiles.m3Base)
+        #expect(TemperatureProfiles.profile(forModel: "Mac15,8") == TemperatureProfiles.m3ProMax)
+    }
+
+    @Test func m4ProfilesResolve() {
+        #expect(TemperatureProfiles.profile(forModel: "Mac16,12") == TemperatureProfiles.m4Base)
+        #expect(TemperatureProfiles.profile(forModel: "Mac16,8") == TemperatureProfiles.m4ProMax)
+    }
+
+    @Test func m5ProfilesResolve() {
+        #expect(TemperatureProfiles.profile(forModel: "Mac17,2") == TemperatureProfiles.m5Base)
+        #expect(TemperatureProfiles.profile(forModel: "Mac17,9") == TemperatureProfiles.m5ProMax)
+    }
+
+    @Test func m1AirReadsCpuAndGpuSuccessfully() async {
+        let tx = FakeTempTransport(); tx.cpuCelsius = 45.0; tx.gpuCelsius = 42.0
+        let p = TemperatureProvider(transport: tx, model: "MacBookAir10,1")
+        let snap = await readSnapshot(p, at: base)
+        #expect(snap.cpu.celsius == 45.0)
+        #expect(snap.gpu.celsius == 42.0)
+    }
+
+    @Test func m2UltraReadsCpuAndGpuSuccessfully() async {
+        let tx = FakeTempTransport(); tx.cpuCelsius = 55.0; tx.gpuCelsius = 50.0
+        let p = TemperatureProvider(transport: tx, model: "Mac14,14")
+        let snap = await readSnapshot(p, at: base)
+        #expect(snap.cpu.celsius == 55.0)
+        #expect(snap.gpu.celsius == 50.0)
+    }
+```
+
+- [ ] **Step 2: Commit test changes**
+```bash
+git add WattlyTests/TemperatureTests.swift
+git commit -m "test: add M1-M5 generation profile resolution and provider reading tests"
+```
+
+---
+
+### Task 3: 전체 테스트 스위트 빌드 및 회귀 검증
+
+- [ ] **Step 1: `xcodebuild test` 실행 및 전체 통과 검증**
+Run:
+```bash
+xcodebuild test -scheme Wattly -destination 'platform=macOS' -derivedDataPath .build/DerivedData
+```
+Expected: `** TEST SUCCEEDED **`
