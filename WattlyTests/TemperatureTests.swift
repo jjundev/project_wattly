@@ -40,12 +40,14 @@ struct TemperatureTests {
     @Test func m5ProfileResolvesForMac17_2() {
         #expect(TemperatureProfiles.profile(forModel: "Mac17,2") == TemperatureProfiles.m5)
     }
+
     @Test func m4BaseProfileResolvesForM4Models() {
         #expect(TemperatureProfiles.profile(forModel: "Mac16,12") == TemperatureProfiles.m4Base) // M4 MacBook Air 13"
         #expect(TemperatureProfiles.profile(forModel: "Mac16,13") == TemperatureProfiles.m4Base) // M4 MacBook Air 15"
         #expect(TemperatureProfiles.profile(forModel: "Mac16,1") == TemperatureProfiles.m4Base)  // M4 MacBook Pro 14"
         #expect(TemperatureProfiles.profile(forModel: "Mac16,10") == TemperatureProfiles.m4Base) // M4 Mac mini
     }
+
     @Test func m4ProMaxProfileResolvesForM4ProMaxModels() {
         #expect(TemperatureProfiles.profile(forModel: "Mac16,8") == TemperatureProfiles.m4ProMax) // M4 Pro MBP 14"
         #expect(TemperatureProfiles.profile(forModel: "Mac16,6") == TemperatureProfiles.m4ProMax) // M4 Max MBP 14"
@@ -53,6 +55,34 @@ struct TemperatureTests {
         #expect(TemperatureProfiles.profile(forModel: "Mac16,5") == TemperatureProfiles.m4ProMax) // M4 Max MBP 16"
         #expect(TemperatureProfiles.profile(forModel: "Mac16,11") == TemperatureProfiles.m4ProMax) // M4 Pro Mac mini
     }
+
+    @Test func allAppleSiliconProfilesResolve() {
+        // M1 variants
+        #expect(TemperatureProfiles.profile(forModel: "MacBookAir10,1") == TemperatureProfiles.m1Base)
+        #expect(TemperatureProfiles.profile(forModel: "MacBookPro18,1") == TemperatureProfiles.m1ProMax)
+        #expect(TemperatureProfiles.profile(forModel: "Mac13,2") == TemperatureProfiles.m1Ultra)
+
+        // M2 variants
+        #expect(TemperatureProfiles.profile(forModel: "Mac14,2") == TemperatureProfiles.m2Base)
+        #expect(TemperatureProfiles.profile(forModel: "Mac14,9") == TemperatureProfiles.m2ProMax)
+        #expect(TemperatureProfiles.profile(forModel: "Mac14,14") == TemperatureProfiles.m2Ultra)
+
+        // M3 variants
+        #expect(TemperatureProfiles.profile(forModel: "Mac15,3") == TemperatureProfiles.m3Base)
+        #expect(TemperatureProfiles.profile(forModel: "Mac15,6") == TemperatureProfiles.m3ProMax)
+
+        // M4 variants (including M4 Pro feedback target)
+        #expect(TemperatureProfiles.profile(forModel: "Mac16,1") == TemperatureProfiles.m4Base)
+        #expect(TemperatureProfiles.profile(forModel: "Mac16,6") == TemperatureProfiles.m4ProMax)
+        #expect(TemperatureProfiles.profile(forModel: "Mac16,7") == TemperatureProfiles.m4ProMax)
+        #expect(TemperatureProfiles.profile(forModel: "Mac16,8") == TemperatureProfiles.m4ProMax)
+        #expect(TemperatureProfiles.profile(forModel: "Mac16,10") == TemperatureProfiles.m4Base)
+
+        // M5 variants
+        #expect(TemperatureProfiles.profile(forModel: "Mac17,2") == TemperatureProfiles.m5Base)
+        #expect(TemperatureProfiles.profile(forModel: "Mac17,8") == TemperatureProfiles.m5ProMax)
+    }
+
     @Test func unknownChipHasNoProfile() {
         #expect(TemperatureProfiles.profile(forModel: "Mac99,9") == nil)
         #expect(TemperatureProfiles.profile(forModel: "") == nil)
@@ -155,6 +185,73 @@ struct TemperatureTests {
         #expect(snap.cpu.celsius == 64.0)
         #expect(snap.gpu.celsius == 58.0)
         #expect(tx.openCalls == 1)
+    }
+
+    @Test func m4ProReadsCpuAndGpuSuccessfully() async {
+        let tx = FakeTempTransport()
+        tx.keyValues = [
+            "Tp00": 52.0, "Tp04": 58.0, // M4 P-Cores
+            "Te04": 44.0, "Te08": 46.0, // M4 E-Cores
+            "Tg04": 48.0, "Tg12": 50.0  // M4 GPU
+        ]
+        let p = TemperatureProvider(transport: tx, model: "Mac16,8") // MacBook Pro 14" M4 Pro
+        let snap = await readSnapshot(p, at: base)
+
+        guard case .reading(let cpu) = snap.cpu else { Issue.record("CPU temperature should read for M4 Pro"); return }
+        #expect(cpu.celsius == 50.0) // mean of (52+58+44+46)/4
+        #expect(cpu.groups.count == 2)
+        #expect(hottestCPUCelsius(snap) == 58.0)
+
+        guard case .reading(let gpu) = snap.gpu else { Issue.record("GPU temperature should read for M4 Pro"); return }
+        #expect(gpu.celsius == 49.0) // mean of (48+50)/2
+    }
+
+    @Test func m3ReadsCpuWithTfKeys() async {
+        let tx = FakeTempTransport()
+        tx.keyValues = [
+            "Tp00": 62.0, "Tp04": 64.0, "Tf04": 62.0, "Tf09": 64.0, // M3 P-Cores
+            "Te04": 40.0, "Te08": 42.0, "Te05": 40.0, "Te0L": 42.0, // M3 E-Cores
+            "Tg04": 50.0, "Tg12": 52.0, "Tf14": 50.0, "Tf24": 52.0  // M3 GPU
+        ]
+        let p = TemperatureProvider(transport: tx, model: "Mac15,6") // MBP 14" M3 Pro
+        let snap = await readSnapshot(p, at: base)
+
+        guard case .reading(let cpu) = snap.cpu else { Issue.record("CPU temperature should read for M3"); return }
+        #expect(cpu.celsius == 52.0) // mean of (62+64+40+42)/4
+        #expect(hottestCPUCelsius(snap) == 64.0)
+
+        guard case .reading(let gpu) = snap.gpu else { Issue.record("GPU temperature should read for M3"); return }
+        #expect(gpu.celsius == 51.0) // mean of (50+52)/2
+    }
+
+    @Test func m1AndM2ReadCpuAndGpuSuccessfully() async {
+        // M1
+        let txM1 = FakeTempTransport()
+        txM1.cpuCelsius = 55.0
+        txM1.gpuCelsius = 48.0
+        let pM1 = TemperatureProvider(transport: txM1, model: "MacBookPro18,1")
+        let snapM1 = await readSnapshot(pM1, at: base)
+
+        guard case .reading(let cpuM1) = snapM1.cpu else { Issue.record("CPU temperature should read for M1"); return }
+        #expect(cpuM1.celsius == 55.0)
+        #expect(hottestCPUCelsius(snapM1) == 55.0)
+
+        guard case .reading(let gpuM1) = snapM1.gpu else { Issue.record("GPU temperature should read for M1"); return }
+        #expect(gpuM1.celsius == 48.0)
+
+        // M2
+        let txM2 = FakeTempTransport()
+        txM2.cpuCelsius = 60.0
+        txM2.gpuCelsius = 52.0
+        let pM2 = TemperatureProvider(transport: txM2, model: "Mac14,9")
+        let snapM2 = await readSnapshot(pM2, at: base)
+
+        guard case .reading(let cpuM2) = snapM2.cpu else { Issue.record("CPU temperature should read for M2"); return }
+        #expect(cpuM2.celsius == 60.0)
+        #expect(hottestCPUCelsius(snapM2) == 60.0)
+
+        guard case .reading(let gpuM2) = snapM2.gpu else { Issue.record("GPU temperature should read for M2"); return }
+        #expect(gpuM2.celsius == 52.0)
     }
 
     // MARK: Provider: cluster groups carry per-cluster average + hottest
@@ -285,7 +382,7 @@ private extension CategoryReading {
 
 /// In-memory `TemperatureTransport` for tests. Lock-guarded so the test (one isolation)
 /// and the provider actor (another) can both touch it; counts I/O so "zero I/O" claims
-/// are assertable. `readCelsius` classifies by key prefix (Tp/Te → CPU, Tg → GPU).
+/// are assertable. `readCelsius` classifies by key prefix (Tp/Te/Tf → CPU, Tg/Tf1/Tf2 → GPU).
 final class FakeTempTransport: TemperatureTransport, @unchecked Sendable {
     private let lock = NSLock()
     private var _openQueue: [Bool] = []
@@ -335,8 +432,8 @@ final class FakeTempTransport: TemperatureTransport, @unchecked Sendable {
         readCalls += 1
         if _allUnreadable { return nil }
         if let v = _keyValues[key] { return v }
-        if key.hasPrefix("Tg") { return _gpu }
-        if key.hasPrefix("Tp") || key.hasPrefix("Te") { return _cpu }
+        if key.hasPrefix("Tg") || (key.hasPrefix("Tf") && (key.contains("1") || key.contains("2"))) { return _gpu }
+        if key.hasPrefix("Tp") || key.hasPrefix("Te") || key.hasPrefix("Tf") { return _cpu }
         return nil
     }
     func close() {
