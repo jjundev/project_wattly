@@ -153,6 +153,38 @@ struct SettingsView: View {
 
                 Rectangle().fill(t.line).frame(height: 1)
 
+                // 개발자에게 문의하기
+                HStack(alignment: .center, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        SettingsRowTitle("개발자에게 문의하기")
+                        Text(ContactDeveloperHelper.email)
+                            .font(WattlyFont.at(11.5, weight: .regular))
+                            .foregroundStyle(t.faint)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Button {
+                        ContactDeveloperHelper.openContactEmailInBrowser()
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "envelope")
+                                .font(.system(size: 11, weight: .medium))
+                            Text("문의하기")
+                                .font(WattlyFont.at(12, weight: .medium))
+                                .foregroundStyle(t.text)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(t.segTrack))
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(t.rowBorder, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(EdgeInsets(top: 10, leading: 14, bottom: 10, trailing: 14))
+
+                Rectangle().fill(t.line).frame(height: 1)
+
                 Button {
                     isResetConfirmationPresented = true
                 } label: {
