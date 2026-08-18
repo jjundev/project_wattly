@@ -157,7 +157,7 @@ struct SettingsView: View {
                 HStack(alignment: .center, spacing: 12) {
                     VStack(alignment: .leading, spacing: 2) {
                         SettingsRowTitle("개발자에게 문의하기")
-                        Text(ContactDeveloperHelper.email)
+                        Text("버그 제보나 기능 제안 등 피드백을 보냅니다.")
                             .font(WattlyFont.at(11.5, weight: .regular))
                             .foregroundStyle(t.faint)
                     }

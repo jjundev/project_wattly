@@ -35891,6 +35891,191 @@
           }
         }
       }
+    },
+    "버그 제보나 기능 제안 등 피드백을 보냅니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "버그 제보나 기능 제안 등 피드백을 보냅니다."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send feedback, report bugs, or suggest features."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バグ報告や機能の提案などのフィードバックを送信します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "发送错误报告或功能建议等反馈。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "傳送錯誤回報或功能建議等意見回饋。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senden Sie Feedback wie Fehlerberichte oder Funktionsvorschläge."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envoyez des commentaires tels que des rapports de bugs ou des suggestions de fonctionnalités."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envía comentarios como informes de errores o sugerencias de funciones."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invia feedback come segnalazioni di bug o suggerimenti di funzionalità."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envie comentários como relatórios de erros ou sugestões de recursos."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envie comentários como relatórios de erros ou sugestões de funcionalidades."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отправить отзыв, например отчет об ошибке или предложение функции."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prześlij opinię, np. zgłoszenia błędów lub sugestie funkcji."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stuur feedback zoals bugrapporten of functiesuggesties."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skicka feedback som felrapporter eller funktionsförslag."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send feedback som fejlrapporter eller forslag til funktioner."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lähetä palautetta, kuten virheraportteja tai toimintoehdotuksia."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send tilbakemelding som feilrapporter eller funksjonsforslag."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odeslat zpětnou vazbu, jako jsou hlášení chyb nebo návrhy funkcí."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visszajelzés küldése, például hibajelentések vagy funkciójavaslatok."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trimiteți feedback, cum ar fi rapoarte de erori sau sugestii de funcții."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Στείλτε σχόλια, όπως αναφορές σφαλμάτων ή προτάσεις λειτουργιών."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Надіслати відгук, наприклад звіти про помилки або пропозиції функцій."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hata bildirimleri veya özellik önerileri gibi geri bildirimler gönderin."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إرسال ملاحظات مثل تقارير الأخطاء أو اقتراحات الميزات."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "שלח משוב כגון דיווחי באגים או הצעות לתכונות."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ส่งความคิดเห็น เช่น รายงานข้อบกพร่อง หรือข้อเสนอแนะเกี่ยวกับฟีเจอร์"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gửi phản hồi như báo cáo lỗi hoặc đề xuất tính năng."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirim masukan seperti laporan bug atau saran fitur."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बग रिपोर्ट या सुविधा सुझाव जैसे फ़ीडबैक भेजें।"
+          }
+        }
+      }
     }
   }
 }

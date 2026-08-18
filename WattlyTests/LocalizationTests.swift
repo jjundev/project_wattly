@@ -153,6 +153,9 @@ struct LocalizationTests {
         #expect(String(localized: "문의하기", locale: Locale(identifier: "zh-Hant")) == "聯絡")
         #expect(String(localized: "문의하기", locale: Locale(identifier: "de")) == "Kontaktieren")
         #expect(String(localized: "문의하기", locale: Locale(identifier: "fr")) == "Contacter")
+
+        #expect(String(localized: "버그 제보나 기능 제안 등 피드백을 보냅니다.", locale: Locale(identifier: "en")) == "Send feedback, report bugs, or suggest features.")
+        #expect(String(localized: "버그 제보나 기능 제안 등 피드백을 보냅니다.", locale: Locale(identifier: "ja")) == "バグ報告や機能の提案などのフィードバックを送信します。")
     }
 }
 
