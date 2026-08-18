@@ -41,6 +41,47 @@ struct TemperatureProfile: Sendable, Equatable {
 }
 
 enum TemperatureProfiles {
+    /// Apple M4 기본형 (MacBook Air 13"/15", MacBook Pro 14", Mac mini, iMac)
+    /// hw.model: Mac16,12 (Air 13"), Mac16,13 (Air 15"), Mac16,1 (MBP 14"), Mac16,10 (mini), Mac16,2/Mac16,3 (iMac)
+    static let m4Base = TemperatureProfile(
+        chipModels: ["Mac16,12", "Mac16,13", "Mac16,1", "Mac16,10", "Mac16,2", "Mac16,3"],
+        cpuGroups: [
+            TemperatureKeyGroup(name: "P-코어",
+                keys: ["Tp00", "Tp04", "Tp0C", "Tp0G", "Tp0O", "Tp0R", "Tp0X", "Tp0a", "Tp0p", "Tp0u", "Tp0y"]),
+            TemperatureKeyGroup(name: "E-코어",
+                keys: ["Te04", "Te08", "Te0C", "Te0R", "Te09", "Te0H"]),
+        ],
+        gpuGroups: [
+            TemperatureKeyGroup(name: "클러스터 1",
+                keys: ["Tg04", "Tg0C", "Tg0G", "Tg0K", "Tg0O", "Tg0R", "Tg0U", "Tg0X",
+                       "Tg0d", "Tg0g", "Tg0j", "Tg0m", "Tg0p"]),
+            TemperatureKeyGroup(name: "클러스터 2",
+                keys: ["Tg12", "Tg16", "Tg1A", "Tg1I", "Tg1M", "Tg1Y", "Tg1c",
+                       "Tg1g", "Tg1o", "Tg1s"]),
+        ],
+        validRange: 0...120)
+
+    /// Apple M4 Pro / Max (MacBook Pro 14"/16", Mac mini Pro)
+    /// hw.model: Mac16,8 (MBP 14" Pro), Mac16,6 (MBP 14" Max), Mac16,7 (MBP 16" Pro), Mac16,5 (MBP 16" Max), Mac16,11 (mini Pro)
+    static let m4ProMax = TemperatureProfile(
+        chipModels: ["Mac16,8", "Mac16,6", "Mac16,7", "Mac16,5", "Mac16,11"],
+        cpuGroups: [
+            TemperatureKeyGroup(name: "P-코어",
+                keys: ["Tp00", "Tp04", "Tp08", "Tp0C", "Tp0G", "Tp0K", "Tp0O", "Tp0R", "Tp0U", "Tp0X",
+                       "Tp0a", "Tp0d", "Tp0h", "Tp0p", "Tp0u", "Tp0y", "Tp12", "Tp16", "Tp1E"]),
+            TemperatureKeyGroup(name: "E-코어",
+                keys: ["Te04", "Te08", "Te09", "Te0C", "Te0H", "Te0R"]),
+        ],
+        gpuGroups: [
+            TemperatureKeyGroup(name: "클러스터 1",
+                keys: ["Tg04", "Tg0C", "Tg0G", "Tg0K", "Tg0O", "Tg0R", "Tg0U", "Tg0X",
+                       "Tg0d", "Tg0g", "Tg0j", "Tg0m", "Tg0p"]),
+            TemperatureKeyGroup(name: "클러스터 2",
+                keys: ["Tg12", "Tg16", "Tg1A", "Tg1I", "Tg1M", "Tg1Y", "Tg1c",
+                       "Tg1g", "Tg1o", "Tg1s"]),
+        ],
+        validRange: 0...120)
+
     /// Apple M5 (`Mac17,2`), verified 2026-06-22 (macOS 26.5.1 / 25F80). CPU = `Tp*`
     /// (P-core) + `Te*` (E-core), GPU = `Tg*`, all `flt `. See `Temperature.swift` header.
     static let m5 = TemperatureProfile(
@@ -62,7 +103,7 @@ enum TemperatureProfiles {
         ],
         validRange: 0...120)
 
-    static let all = [m5]
+    static let all = [m4Base, m4ProMax, m5]
 
     /// The verified profile for a `hw.model`, or nil → `noVerifiedProfile` (terminal).
     static func profile(forModel model: String) -> TemperatureProfile? {
