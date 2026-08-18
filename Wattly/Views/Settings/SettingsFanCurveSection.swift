@@ -88,9 +88,24 @@ struct SettingsFanCurveSection: View {
             // (one macOS admin-auth prompt). On success the curve is applied to engage control; if
             // the user cancels the prompt, revert the toggle so it reflects reality.
             .onChange(of: fanControlEnabled) { _, enabled in
-                guard enabled, fanControl.status.mode == .unavailable, !fanControl.isInstallingHelper else { return }
+                guard enabled, !fanControl.isInstallingHelper else {
+                    if !enabled {
+                        Task { await fanControl.apply(enabled: false, curve: fanCurve) }
+                    }
+                    return
+                }
                 let window = NSApp.keyWindow
                 Task {
+                    // 1. Probe if the daemon is already alive in the system
+                    let currentStatus = await fanControl.refreshStatus()
+                    if let mode = currentStatus?.mode, mode != .unavailable {
+                        // Daemon already running! Seamlessly apply curve without admin prompt
+                        await fanControl.apply(enabled: true, curve: fanCurve)
+                        editApplyDeadline = Date().addingTimeInterval(5)
+                        return
+                    }
+
+                    // 2. Daemon not running or unavailable -> trigger in-app helper install
                     let success = await fanControl.installAndEngage(curve: fanCurve, window: window)
                     if !success {
                         fanControlEnabled = false
@@ -106,6 +121,9 @@ struct SettingsFanCurveSection: View {
                 let remaining = deadline.timeIntervalSinceNow
                 if remaining > 0 { try? await Task.sleep(for: .seconds(remaining)) }
                 if !Task.isCancelled { editApplyDeadline = nil }
+            }
+            .task {
+                await fanControl.refreshStatus()
             }
         }
     }

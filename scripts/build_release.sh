@@ -18,6 +18,11 @@ if [ ! -d "$APP_PATH" ]; then
   exit 1
 fi
 
+if [ ! -x "$APP_PATH/Contents/Helpers/WattlyFanDaemon" ]; then
+  echo "Error: Embedded WattlyFanDaemon helper missing or not executable in $APP_PATH/Contents/Helpers" >&2
+  exit 1
+fi
+
 OUTPUT_DIR="build/Release"
 mkdir -p "$OUTPUT_DIR"
 ZIP_PATH="$OUTPUT_DIR/Wattly.zip"

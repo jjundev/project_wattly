@@ -103,10 +103,8 @@ struct SettingsView: View {
 
                             switch autoUpdater.state {
                             case .downloading(let fraction):
-                                ProgressView(value: fraction)
-                                    .progressViewStyle(.linear)
-                                    .frame(width: 80)
-                                Text("\(Int(fraction * 100))%")
+                                WattlyProgressBar(value: fraction)
+                                Text("\(Int(WattlyProgressBar.clampedFraction(fraction) * 100))%")
                                     .font(WattlyFont.at(11, weight: .medium))
                                     .foregroundStyle(t.text)
                             case .extracting, .readyToRelaunch:

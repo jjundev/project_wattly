@@ -391,4 +391,36 @@ struct WindowAppearanceSync: NSViewRepresentable {
     }
 }
 
+// MARK: - Linear Progress Bar (pure SwiftUI, 80×5, rounded capsule)
+
+struct WattlyProgressBar: View {
+    let value: Double
+    @Environment(\.tokens) private var t
+
+    public static func clampedFraction(_ v: Double) -> Double {
+        guard v.isFinite else { return v.isNaN ? 0.0 : (v > 0 ? 1.0 : 0.0) }
+        return max(0.0, min(1.0, v))
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            let totalWidth = proxy.size.width
+            let fillWidth = totalWidth * Self.clampedFraction(value)
+
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(t.segTrack)
+                Capsule()
+                    .fill(Tokens.accent)
+                    .frame(width: fillWidth)
+            }
+            .clipShape(Capsule())
+        }
+        .frame(width: 80, height: 5)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("다운로드 진행률")
+        .accessibilityValue("\(Int(Self.clampedFraction(value) * 100))%")
+    }
+}
+
 

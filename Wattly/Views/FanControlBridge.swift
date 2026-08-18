@@ -14,7 +14,11 @@ struct FanControlBridge: View {
             .frame(width: 0, height: 0)
             .accessibilityHidden(true)
             .task {
-                await client.apply(enabled: enabled, curve: curve)
+                if enabled {
+                    await client.apply(enabled: true, curve: curve)
+                } else {
+                    await client.refreshStatus()
+                }
             }
             .onChange(of: enabled) { _, value in
                 Task { await client.apply(enabled: value, curve: curve) }
