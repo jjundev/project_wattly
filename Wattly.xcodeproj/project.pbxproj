@@ -34,6 +34,7 @@
 		24E614EA3299409018DD6491 /* Glyphs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 416979B2919C07DC814AE533 /* Glyphs.swift */; };
 		27C614EC4DFE85A7F86C4603 /* FanControlEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AA3E6D04D62D0E0B1F64EF6 /* FanControlEngineTests.swift */; };
 		2AC9061FF4DAA4F40409049C /* FanControlHardware.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D4830FA8F8BCCF06F3E5A6C /* FanControlHardware.swift */; };
+		2E7C67D524ED5BB3C4DB0F1C /* ContactDeveloperHelperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42A2AAD1ABE517C684E0D643 /* ContactDeveloperHelperTests.swift */; };
 		2EB4D74291423268439F3CAD /* SMC.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9717A4622D508E51C16FA8 /* SMC.swift */; };
 		2F21C6921E2896512BD4FF55 /* AccessibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C59C21E293258105C63FB142 /* AccessibilityTests.swift */; };
 		31926AD6C690491825627C11 /* OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = DECFD3734A1569FA8CFE4AF5 /* OFL.txt */; };
@@ -53,6 +54,7 @@
 		42D2D7E93A275138AD2FD1BB /* FanControlProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8986A56C6D4C7B2671573BA6 /* FanControlProtocol.swift */; };
 		4587922601A6E87A81367A73 /* GPUProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E17CA2A3537249BE71E29BDA /* GPUProviderTests.swift */; };
 		459C8A0FEDF87980EB44E521 /* ProcessPowerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE68DC8258B9BDE754435964 /* ProcessPowerTests.swift */; };
+		4662FACCAC2C7ABEF02E5A03 /* ContactDeveloperHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36D525FEA0E1AB5EF8E5FAAF /* ContactDeveloperHelper.swift */; };
 		485735366A6681DDDB9B001C /* CPUUsageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C6277EFF84708F461754CA3 /* CPUUsageTests.swift */; };
 		4BC2EA1A342CCFB33F863AF2 /* GlyphsRenderingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD98A9BCB03687E506F17880 /* GlyphsRenderingTests.swift */; };
 		4D2FE12ACAD52D739A069CB8 /* KineticNotchMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 747B4163C3F814DAB3F6FF79 /* KineticNotchMotion.swift */; };
@@ -219,12 +221,14 @@
 		30CFB92C90260B259E7D218E /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		32D8574AAFF0BFEF6380060D /* FakeProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeProvider.swift; sourceTree = "<group>"; };
 		341AB84EA25E71EC8BED209D /* MenuBarGlyphTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarGlyphTests.swift; sourceTree = "<group>"; };
+		36D525FEA0E1AB5EF8E5FAAF /* ContactDeveloperHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDeveloperHelper.swift; sourceTree = "<group>"; };
 		3A4050A1C7B99C5FDEB0117D /* PowerSmoothing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerSmoothing.swift; sourceTree = "<group>"; };
 		3CC07BAFD29885CF7E76FF5D /* MetricProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricProvider.swift; sourceTree = "<group>"; };
 		3D946C27E4FCBE51115DBA82 /* FanCurveEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanCurveEditor.swift; sourceTree = "<group>"; };
 		3F5BBBFEC7E20B1DBE033A22 /* PowerSmoothingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerSmoothingTests.swift; sourceTree = "<group>"; };
 		416979B2919C07DC814AE533 /* Glyphs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glyphs.swift; sourceTree = "<group>"; };
 		419C0BB5C63DC6C6DCEE8BBF /* TemperatureProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemperatureProvider.swift; sourceTree = "<group>"; };
+		42A2AAD1ABE517C684E0D643 /* ContactDeveloperHelperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDeveloperHelperTests.swift; sourceTree = "<group>"; };
 		43761373E1878A83B8F6365E /* PopoverHeroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverHeroView.swift; sourceTree = "<group>"; };
 		4533B30821882929BD063FA4 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		4889AE37A893CA3BEB6CED49 /* FanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanTests.swift; sourceTree = "<group>"; };
@@ -359,6 +363,7 @@
 				8CA6F0813668973FD7B387F6 /* BatteryTelemetryPipeline.swift */,
 				5FADA80FC02FE00A50BB9B45 /* CardPresentation.swift */,
 				1D2CEA18A30B021587C24F0A /* Clock.swift */,
+				36D525FEA0E1AB5EF8E5FAAF /* ContactDeveloperHelper.swift */,
 				D620F32C016A23C9A9478E15 /* CPUFrequency.swift */,
 				F9AB5AA6871BCF1DC1EEBBE7 /* CPUUsage.swift */,
 				09A53C49214CBBFA066B1697 /* Fan.swift */,
@@ -471,6 +476,7 @@
 				6C9EC23D454E4B738EF329E8 /* BatteryTelemetryPipelineTests.swift */,
 				E0AD4C82FC1A9EA5F33B69B3 /* CardPresentationTests.swift */,
 				2E3CEC05A8EC12EB24156C91 /* CardReorderTests.swift */,
+				42A2AAD1ABE517C684E0D643 /* ContactDeveloperHelperTests.swift */,
 				D0C8FA9D6B1F52ECC6920D40 /* CPUFrequencyTests.swift */,
 				5C6277EFF84708F461754CA3 /* CPUUsageTests.swift */,
 				11EBBCE6C3A455120A035632 /* FanControlClientTests.swift */,
@@ -769,6 +775,7 @@
 				485735366A6681DDDB9B001C /* CPUUsageTests.swift in Sources */,
 				AD7234042C8B58DCD400BE17 /* CardPresentationTests.swift in Sources */,
 				0DC692829BD9D200DBBECE47 /* CardReorderTests.swift in Sources */,
+				2E7C67D524ED5BB3C4DB0F1C /* ContactDeveloperHelperTests.swift in Sources */,
 				946D280DA26860224B5A850A /* FanControlClientTests.swift in Sources */,
 				27C614EC4DFE85A7F86C4603 /* FanControlEngineTests.swift in Sources */,
 				F75BBDEA46E53B9724E142FA /* FanControlPolicyTests.swift in Sources */,
@@ -848,6 +855,7 @@
 				FCFFB2CEE33152456E33982A /* CardKind.swift in Sources */,
 				4219CC4B500EF72AA9C617E6 /* CardPresentation.swift in Sources */,
 				67087007F09610655F68D44C /* Clock.swift in Sources */,
+				4662FACCAC2C7ABEF02E5A03 /* ContactDeveloperHelper.swift in Sources */,
 				ACDC80B0A710B12831C2F88D /* FakeProvider.swift in Sources */,
 				6D464930823FC1EA22FCC2DB /* Fan.swift in Sources */,
 				F09A382CFB4D0A12620EE56F /* FanControlBridge.swift in Sources */,
@@ -1005,13 +1013,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS = NO;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Wattly;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Created by jjundev";
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.jjundev.Wattly;
 				PRODUCT_NAME = Wattly;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1035,13 +1043,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS = NO;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Wattly;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Created by jjundev";
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.jjundev.Wattly;
 				PRODUCT_NAME = Wattly;
 				SWIFT_EMIT_LOC_STRINGS = YES;

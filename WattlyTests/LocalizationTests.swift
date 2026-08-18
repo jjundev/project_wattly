@@ -137,4 +137,25 @@ struct LocalizationTests {
         #expect(String(localized: "v%@ 사용 가능", locale: Locale(identifier: "en")) == "v%@ available")
         #expect(String(localized: "v%@ 사용 가능", locale: Locale(identifier: "ja")) == "v%@ が利用可能")
     }
+
+    @Test func contactDeveloperTranslations() {
+        #expect(String(localized: "개발자에게 문의하기", locale: Locale(identifier: "en")) == "Contact Developer")
+        #expect(String(localized: "개발자에게 문의하기", locale: Locale(identifier: "ja")) == "開発者に問い合わせ")
+        #expect(String(localized: "개발자에게 문의하기", locale: Locale(identifier: "zh-Hans")) == "联系开发者")
+        #expect(String(localized: "개발자에게 문의하기", locale: Locale(identifier: "zh-Hant")) == "聯絡開發者")
+        #expect(String(localized: "개발자에게 문의하기", locale: Locale(identifier: "de")) == "Entwickler kontaktieren")
+        #expect(String(localized: "개발자에게 문의하기", locale: Locale(identifier: "fr")) == "Contacter le développeur")
+        #expect(String(localized: "개발자에게 문의하기", locale: Locale(identifier: "es")) == "Contactar al desarrollador")
+
+        #expect(String(localized: "문의하기", locale: Locale(identifier: "en")) == "Contact")
+        #expect(String(localized: "문의하기", locale: Locale(identifier: "ja")) == "問い合わせ")
+        #expect(String(localized: "문의하기", locale: Locale(identifier: "zh-Hans")) == "联系")
+        #expect(String(localized: "문의하기", locale: Locale(identifier: "zh-Hant")) == "聯絡")
+        #expect(String(localized: "문의하기", locale: Locale(identifier: "de")) == "Kontaktieren")
+        #expect(String(localized: "문의하기", locale: Locale(identifier: "fr")) == "Contacter")
+
+        #expect(String(localized: "버그 제보나 기능 제안 등 피드백을 보냅니다.", locale: Locale(identifier: "en")) == "Send feedback, report bugs, or suggest features.")
+        #expect(String(localized: "버그 제보나 기능 제안 등 피드백을 보냅니다.", locale: Locale(identifier: "ja")) == "バグ報告や機能の提案などのフィードバックを送信します。")
+    }
 }
+
