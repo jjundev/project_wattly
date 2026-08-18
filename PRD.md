@@ -65,7 +65,7 @@
 - **두 전력 수치의 관계:** IOReport = SoC 엔진별 전력, AppleSmartBattery = 전체 시스템 순(net) 방전. 서로 **다른 것을 측정**하므로 fallback이 아니라 **별도 라벨 카드**로 병행 표기("SoC 전력" vs "배터리 방전"). 사용자에게 둘이 다른 이유를 UI에서 명시.
 - **CPU/GPU 온도 — source resolution:** 전역 1차 소스를 미리 확정하지 않는다. 읽기 전용 AppleSMC/IOKit과 IOHID vendor temperature event를 후보로 두고, M5 실기 spike에서 service/key identity·data type·값을 검증한 source만 사용한다. `powermetrics`, shell parsing, root helper는 런타임 경로에서 제외한다.
 - **온도 profile:** `TemperatureProfile`은 chip family·variant·OS 범위·source·sensor identity·data type·CPU/GPU category·집계법·정상 범위·검증 근거·상태(`verified`/`experimental`/`unsupported`)를 기록한다. 이름이 불명확한 key나 unknown `T*` key는 자동 분류하지 않는다.
-- **온도 값:** 각 category의 verified sensor 중 최댓값을 각각 "CPU 최고 온도", "GPU 최고 온도"로 표시한다. v1 정식 실기 범위는 Apple M5이며, M1~M4는 동일 검증 절차를 통과한 profile이 생긴 뒤 순차 지원한다. verified profile이 없거나 유효 reading이 없으면 해당 카드만 `unavailable`이다.
+- **온도 값:** 각 category의 verified sensor 중 최댓값을 각각 "CPU 최고 온도", "GPU 최고 온도"로 표시한다. Apple Silicon M1, M2, M3, M4, M5 전 세대(Base, Pro, Max, Ultra)의 검증된 프로필을 정식 지원한다. verified profile이 없거나 유효 reading이 없으면 해당 카드만 `unavailable`이다.
 - **M5 온도 검증 gate:** 독립 모니터와 idle/CPU/GPU 구간 동시 sample 10개를 비교해 중앙 절대 오차 ≤5°C, CPU/GPU 5분 부하 각 3회 중 대상 category가 ≥5°C 상승하는 run 2회 이상을 만족해야 `verified`로 승격한다. raw key, chip variant, OS build, 비교 도구와 결과를 profile 근거로 남긴다.
 
 ### 동시성 경계 (단일 seam)
@@ -132,8 +132,7 @@
 - **powermetrics 기반 정밀 전력** — root 필요·권한 헬퍼(LaunchDaemon) 필요로 범위 밖.
 - **Metal/GPU 가속 렌더** — 저전력 목표와 충돌하여 명시적으로 제외(#26r=pure-swiftui).
 - **Activity Monitor급 풀 히스토리 차트** — 60초 슬라이딩 sparkline까지만.
-- **Intel Mac 지원** — Apple Silicon(IOReport Energy Model) 전제. Intel은 검증 범위 밖.
-- **M1~M4 CPU/GPU 온도 정식 지원** — v1은 M5 실기 검증 profile만 정식 지원한다. 각 세대·variant가 동일한 검증 gate를 통과하면 후속 지원한다.
+- **Intel Mac 지원** — Apple Silicon(IOReport Energy Model) 전제. Intel은 검증 범위 밖. (Apple Silicon M1~M5 전 세대 Base/Pro/Max/Ultra는 정식 지원).
 
 ---
 
@@ -143,10 +142,10 @@
 다음은 코드가 아니라 사용자의 제품·위험·비즈니스 판단으로만 결정 가능하다. 기본값을 PRD에 인코딩했으나 **미확정 가정**으로 남는다:
 
 - **(#8r) 전력 측정 위험 수용:** IOReport는 비공개 API라 macOS 메이저 업데이트 시 채널/그룹 이름이 바뀌어 깨질 수 있다. 기본값 = **IOReport 채택(위험 수용)**, graceful degrade로 완화. 대안: 배터리-only(안정·노트북 한정) 또는 powermetrics root 헬퍼(정밀·복잡).
-- **(#9) v1 메트릭 범위:** 기본값 = CPU·RAM·전력(+배터리%)·M5 CPU/GPU 최고 온도. 데스크톱 Mac을 1급 지원할지에 따라 전력 UX가 달라짐.
+- **(#9) v1 메트릭 범위:** 기본값 = CPU·RAM·전력(+배터리%)·Apple Silicon M1~M5 CPU/GPU 최고 온도. 데스크톱 Mac을 1급 지원할지에 따라 전력 UX가 달라짐.
 - **(#14/#15) 샌드박스·배포 채널:** 기본값 = 비-MAS, 개인용 ad-hoc / 공유 시 Developer ID 공증.
 - **(#13-24/#13-27/#13-29) 온도 UX:** 기본값 = hottest 집계, °C 소수점 한 자리, CPU/GPU 카드 기본 ON 및 개별 토글. 메뉴바 텍스트에는 온도를 추가하지 않는다.
-- **(#13-26) 온도 지원 범위:** 기본값 = v1 M5 정식 지원, M1~M4는 실기 검증 후 순차 지원.
+- **(#13-26) 온도 지원 범위:** 기본값 = Apple Silicon M1, M2, M3, M4, M5 전 세대(Base, Pro, Max, Ultra) 검증 프로필 정식 지원.
 - **(#13-30) 온도 private interface 위험 수용:** 기본값 = 비-MAS 직접 배포에서 SMC/HID 위험 수용. verified profile이 없으면 추측하지 않고 unavailable 처리.
 
 ### 리스크 메모

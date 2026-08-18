@@ -19,7 +19,7 @@
 
 ## 개요
 
-**Wattly**는 Apple Silicon Mac을 위해 처음부터 완전히 새롭게 설계된 네이티브 메뉴바 시스템 모니터 및 지능형 팬 컨트롤러입니다. 엄격한 동시성(Strict Concurrency)을 갖춘 **Swift 6**와 **SwiftUI**로 작성되어, CPU 점유율과 배터리 소모를 0에 가깝게 유지하면서도 밀리와트(mW) 단위의 SoC 전력 측정, 클러스터별 CPU/GPU 성능 분석, 커널 메모리 압박 감시, 실시간 배터리 정밀 분석, 맞춤형 스마트 팬 커브 제어를 지원합니다.
+**Wattly**는 Apple Silicon Mac(M1, M2, M3, M4, M5 전 세대)을 위해 처음부터 완전히 새롭게 설계된 네이티브 메뉴바 시스템 모니터 및 지능형 팬 컨트롤러입니다. 엄격한 동시성(Strict Concurrency)을 갖춘 **Swift 6**와 **SwiftUI**로 작성되어, CPU 점유율과 배터리 소모를 0에 가깝게 유지하면서도 밀리와트(mW) 단위의 SoC 전력 측정, 클러스터별 CPU/GPU 성능 분석, 커널 메모리 압박 감시, 실시간 배터리 정밀 분석, 맞춤형 스마트 팬 커브 제어를 지원합니다.
 
 <p align="center">
   <img src="docs/assets/menubar-live.gif" alt="메뉴바 키네틱 모션" width="720" />
@@ -102,7 +102,7 @@ Wattly의 각 텔레메트리 도메인은 실시간 지표, 기록 추세, 프�
   <img src="docs/assets/expand-thermals.png" alt="클러스터 발열 텔레메트리" width="640" />
 </p>
 
-- **다중 센서 발열 집계**: P-Core 클러스터, E-Core 클러스터, GPU 실리콘의 하드웨어 센서 직접 판독.
+- **다중 센서 발열 집계**: Apple Silicon M1~M5 전 라인업에 걸쳐 P-Core 클러스터, E-Core 클러스터, GPU 실리콘의 하드웨어 센서 직접 판독.
 - **최고 핫스팟 탐지**: 실시간으로 가장 온도가 높은 센서를 감지하여 써멀 스로틀링 위험 구역 식별.
 - **써멀 헤드룸 감시**: 대규모 빌드나 렌더링 작업 시 예기치 않은 스로틀링 발생 전 여유 온도 사전 파악.
 
@@ -153,7 +153,7 @@ Wattly는 최상의 보안, 시스템 안정성 및 성능을 보장하기 위�
 
 ## Apple Silicon 호환성 표
 
-Wattly는 Apple Silicon 아키텍처 전용으로 제작되었으며, 모든 세대 및 티어를 지원합니다:
+Wattly는 Apple Silicon 아키텍처 전용으로 제작되었으며, M1부터 M5까지 모든 세대 및 티어(Base, Pro, Max, Ultra)를 완벽히 지원합니다:
 
 | 세대 | 기본 칩 (Base) | Pro 칩 | Max 칩 | Ultra 칩 | macOS 호환성 |
 | :--- | :---: | :---: | :---: | :---: | :---: |
@@ -161,8 +161,9 @@ Wattly는 Apple Silicon 아키텍처 전용으로 제작되었으며, 모든 세
 | **Apple M2 시리즈** | M2 | M2 Pro | M2 Max | M2 Ultra | macOS 14.0+ (Sonoma) / 15.0+ (Sequoia) |
 | **Apple M3 시리즈** | M3 | M3 Pro | M3 Max | M3 Ultra | macOS 14.0+ (Sonoma) / 15.0+ (Sequoia) |
 | **Apple M4 시리즈** | M4 | M4 Pro | M4 Max | M4 Ultra | macOS 14.0+ (Sonoma) / 15.0+ (Sequoia) |
+| **Apple M5 시리즈** | M5 | M5 Pro | M5 Max | M5 Ultra | macOS 14.0+ (Sonoma) / 15.0+ (Sequoia) |
 
-*모든 모델에서 전 기능 지원: SoC 전력(W), CPU P/E 클러스터, GPU 타일러/렌더러, 통합 VRAM, 시스템 순방전, 클러스터 발열 및 스마트 팬 제어.*
+*M1~M5 전 모델에서 전 기능 지원: SoC 전력(W), CPU P/E 클러스터, GPU 타일러/렌더러, 통합 VRAM, 시스템 순방전, 클러스터 발열 모니터링 및 스마트 팬 커브 제어.*
 
 ---
 
