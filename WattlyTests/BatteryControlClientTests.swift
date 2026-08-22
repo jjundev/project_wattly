@@ -9,6 +9,21 @@ private actor RequestReceiver {
     }
 }
 
+private actor FailureSwitch {
+    var isOn = false
+    func turnOn() { isOn = true }
+}
+
+private actor RequestRecorder {
+    var kinds: [String] = []
+    func record(_ request: BatteryControlClient.BatteryControlClientRequest) {
+        switch request {
+        case .configure: kinds.append("configure")
+        case .status: kinds.append("status")
+        }
+    }
+}
+
 struct BatteryControlClientTests {
     @MainActor @Test func clientAppliesConfigurationAndUpdatesStatus() async throws {
         let expectedStatus = BatteryControlServiceStatus(
@@ -76,12 +91,81 @@ struct BatteryControlClientTests {
         #expect(client.status.detail == "목표치(80%)까지 충전 중")
     }
 
-    @MainActor @Test func clientHandlesErrorGracefully() async {
+    @MainActor @Test func clientMarksItselfUnavailableAfterAGoodStatusGoesBad() async {
+        let good = BatteryControlServiceStatus(
+            mode: .inhibited,
+            currentPercentage: 85,
+            isPowerAdapterConnected: true,
+            detail: "충전 제한 85% 도달 (전원 어댑터 바이패스 구동)",
+            updatedAt: 1.0,
+            appliedLimitPercentage: 85
+        )
+        let failNow = FailureSwitch()
         let client = BatteryControlClient { _ in
-            (nil, NSError(domain: "WattlyTest", code: -1, userInfo: nil))
+            if await failNow.isOn {
+                return (nil, NSError(domain: "WattlyTest", code: -1,
+                                     userInfo: [NSLocalizedDescriptionKey: "도우미 연결 끊김"]))
+            }
+            return (try? BatteryControlCodec.encode(good), nil)
         }
 
-        await client.apply(enabled: true, limitPercentage: 80)
+        await client.apply(enabled: true, limitPercentage: 85)
+        #expect(client.status.mode == .inhibited)
+
+        await failNow.turnOn()
+        await client.refreshStatus()
         #expect(client.status.mode == .unavailable)
+        #expect(client.status.detail == "도우미 연결 끊김")
+        #expect(client.status.appliedLimitPercentage == nil)
+    }
+
+    @MainActor @Test func clientMarksItselfUnavailableWhenTheReplyIsUndecodable() async {
+        let client = BatteryControlClient { _ in (Data("not json".utf8), nil) }
+        await client.refreshStatus()
+        #expect(client.status.mode == .unavailable)
+    }
+
+    @MainActor @Test func reconcileRepushesTheLimitWhenTheHelperForgotIt() async {
+        let forgetful = BatteryControlServiceStatus(
+            mode: .charging,
+            currentPercentage: 70,
+            isPowerAdapterConnected: true,
+            detail: "충전 제한 비활성화됨",
+            updatedAt: 1.0,
+            appliedLimitPercentage: nil
+        )
+        let recorder = RequestRecorder()
+        let client = BatteryControlClient { request in
+            await recorder.record(request)
+            return (try? BatteryControlCodec.encode(forgetful), nil)
+        }
+
+        await client.reconcile(enabled: true, limitPercentage: 85)
+
+        let kinds = await recorder.kinds
+        #expect(kinds.count == 2)
+        #expect(kinds.first == "status")
+        #expect(kinds.last == "configure")
+    }
+
+    @MainActor @Test func reconcileIsSilentWhenTheHelperAlreadyAgrees() async {
+        let agreeing = BatteryControlServiceStatus(
+            mode: .charging,
+            currentPercentage: 70,
+            isPowerAdapterConnected: true,
+            detail: "목표치(85%)까지 충전 중",
+            updatedAt: 1.0,
+            appliedLimitPercentage: 85
+        )
+        let recorder = RequestRecorder()
+        let client = BatteryControlClient { request in
+            await recorder.record(request)
+            return (try? BatteryControlCodec.encode(agreeing), nil)
+        }
+
+        await client.reconcile(enabled: true, limitPercentage: 85)
+
+        let kinds = await recorder.kinds
+        #expect(kinds == ["status"])
     }
 }

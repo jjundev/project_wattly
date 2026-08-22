@@ -37,26 +37,64 @@ import AppKit
         commandGeneration &+= 1
         let config = BatteryControlConfiguration(enabled: enabled, limitPercentage: limitPercentage)
         let request = BatteryControlConfigurationRequest(configuration: config, generation: commandGeneration)
-        guard let data = try? BatteryControlCodec.encode(request) else { return }
-
-        let (replyData, _) = await requestHandler(.configure(data))
-        if let replyData, let decoded = try? BatteryControlCodec.decode(BatteryControlServiceStatus.self, from: replyData) {
-            self.status = decoded
+        guard let data = try? BatteryControlCodec.encode(request) else {
+            updateUnavailable("충전 제한 설정을 인코딩할 수 없음")
+            return
         }
+        await send(.configure(data))
     }
 
-    public func refreshStatus() async {
-        let (replyData, _) = await requestHandler(.status)
-        if let replyData, let decoded = try? BatteryControlCodec.decode(BatteryControlServiceStatus.self, from: replyData) {
-            self.status = decoded
-        }
+    @discardableResult
+    public func refreshStatus() async -> BatteryControlServiceStatus? {
+        await send(.status)
     }
 
-    public func installHelper() async throws {
+    /// Repairs a helper that restarted and lost its configuration. Reads the helper's state first,
+    /// so a healthy helper costs one status call and no SMC traffic at all.
+    public func reconcile(enabled: Bool, limitPercentage: Int) async {
+        await refreshStatus()
+        guard BatteryControlPolicy.shouldReapply(enabled: enabled,
+                                                 limitPercentage: limitPercentage,
+                                                 status: status) else { return }
+        await apply(enabled: enabled, limitPercentage: limitPercentage)
+    }
+
+    /// Installs the privileged helper with one admin-auth prompt and immediately pushes the user's
+    /// limit — without this the helper would sit at its disabled default while the toggle reads ON.
+    /// Returns `nil` on success or the install failure.
+    public func installAndApply(limitPercentage: Int, window: NSWindow?) async -> Error? {
         isInstallingHelper = true
         defer { isInstallingHelper = false }
-        try await FanHelperInstaller.install()
-        await refreshStatus()
+        return await PrivilegedHelperInstallSession.run(window: window) {
+            await self.apply(enabled: true, limitPercentage: limitPercentage)
+        }
+    }
+
+    @discardableResult
+    private func send(_ request: BatteryControlClientRequest) async -> BatteryControlServiceStatus? {
+        let (replyData, error) = await requestHandler(request)
+        guard error == nil,
+              let replyData,
+              let decoded = try? BatteryControlCodec.decode(BatteryControlServiceStatus.self, from: replyData) else {
+            updateUnavailable(error?.localizedDescription ?? "도우미 응답 오류")
+            return nil
+        }
+        status = decoded
+        return decoded
+    }
+
+    /// A dropped helper has to be visible: the settings screen gates its install button on
+    /// `.unavailable`, so silently keeping the last good status would hide the only recovery
+    /// action the user has.
+    private func updateUnavailable(_ detail: String) {
+        status = BatteryControlServiceStatus(
+            mode: .unavailable,
+            currentPercentage: status.currentPercentage,
+            isPowerAdapterConnected: status.isPowerAdapterConnected,
+            detail: detail,
+            updatedAt: Date().timeIntervalSince1970,
+            appliedLimitPercentage: nil
+        )
     }
 
     private nonisolated static func sendXPC(

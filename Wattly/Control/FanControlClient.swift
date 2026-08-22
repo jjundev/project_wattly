@@ -91,59 +91,10 @@ import AppKit
     func installAndEngage(curve: FanCurve, window: NSWindow?) async -> Bool {
         isInstallingHelper = true
         defer { isInstallingHelper = false }
-
-        // Hold a regular activation policy across the whole flow: it keeps the Settings window
-        // alive through the auth-dialog deactivation AND lets it layer like a normal app's window
-        // while we re-raise it (an accessory app's window sinks behind the active app).
-        let priorPolicy = NSApp.activationPolicy()
-        let raised = priorPolicy != .regular
-        if raised { NSApp.setActivationPolicy(.regular) }
-
-        // Keep the Settings window visible UNDER the auth panel for the whole prompt + script run
-        // (~seconds): order it front every 0.4s so it doesn't sink behind other apps. Crucially this
-        // uses `orderFrontRegardless` only — NOT `activate`, which would steal keyboard focus from the
-        // password field. `install()` runs its `osascript` on a background thread, so the main actor
-        // is free to run this loop while we await it.
-        let keepVisible = Task { @MainActor in
-            while !Task.isCancelled {
-                window?.orderFrontRegardless()
-                try? await Task.sleep(for: .milliseconds(400))
-            }
+        let failure = await PrivilegedHelperInstallSession.run(window: window) {
+            await self.apply(enabled: true, curve: curve)
         }
-
-        var installed = true
-        do {
-            try await FanHelperInstaller.install()
-        } catch {
-            installed = false
-        }
-        keepVisible.cancel()
-
-        // Re-raise Settings the INSTANT the auth dialog is gone — before the XPC `apply` below.
-        // `apply` connects to the just-started daemon and can stall for several seconds; doing it
-        // first was what left the window sunk for ~10s. `activate` only raises the app, so drive the
-        // captured window itself with `orderFrontRegardless`.
-        raiseFront(window)
-
-        if installed {
-            await apply(enabled: true, curve: curve)
-        }
-
-        // Drop the transient Dock icon, then re-front once more (restoring `.accessory` while another
-        // app is active can sink the window), with a couple of retries to win any late focus steal.
-        if raised { NSApp.setActivationPolicy(priorPolicy) }
-        for _ in 0..<3 {
-            raiseFront(window)
-            try? await Task.sleep(for: .milliseconds(300))
-        }
-
-        return installed
-    }
-
-    private func raiseFront(_ window: NSWindow?) {
-        NSApp.activate(ignoringOtherApps: true)
-        window?.makeKeyAndOrderFront(nil)
-        window?.orderFrontRegardless()
+        return failure == nil
     }
 
     @discardableResult
