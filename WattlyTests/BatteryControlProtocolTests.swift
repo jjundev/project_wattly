@@ -89,4 +89,32 @@ struct BatteryControlProtocolTests {
         #expect(decoded == status)
         #expect(decoded.appliedLimitPercentage == 85)
     }
+
+    @Test func statusRoundTripsHardwareSupport() throws {
+        let status = BatteryControlServiceStatus(
+            mode: .unsupported,
+            currentPercentage: 70,
+            isPowerAdapterConnected: true,
+            detail: "이 Mac은 충전 제어를 지원하지 않습니다",
+            updatedAt: 1.0,
+            appliedLimitPercentage: nil,
+            isHardwareSupported: false
+        )
+        let decoded = try BatteryControlCodec.decode(
+            BatteryControlServiceStatus.self,
+            from: try BatteryControlCodec.encode(status)
+        )
+        #expect(decoded == status)
+        #expect(decoded.isHardwareSupported == false)
+    }
+
+    @Test func statusFromOlderHelperLeavesHardwareSupportUnknown() throws {
+        // A helper predating this field says nothing about capability, which must decode as nil —
+        // "unknown", not "unsupported". The settings screen keys its toggle off exactly this.
+        let legacy = Data("""
+        {"mode":"charging","currentPercentage":70,"isPowerAdapterConnected":true,"detail":"충전 중","updatedAt":1.0}
+        """.utf8)
+        let decoded = try BatteryControlCodec.decode(BatteryControlServiceStatus.self, from: legacy)
+        #expect(decoded.isHardwareSupported == nil)
+    }
 }

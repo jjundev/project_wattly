@@ -49,6 +49,9 @@ public enum BatteryControlPolicy {
                                      limitPercentage: Int,
                                      status: BatteryControlServiceStatus) -> Bool {
         guard enabled, status.mode != .unavailable else { return false }
+        // Hardware with no charge-control register will never accept the configuration, so
+        // re-pushing is not a recovery there — just traffic. `nil` is "unknown" and still retries.
+        guard status.isHardwareSupported != false else { return false }
         return status.appliedLimitPercentage != limitPercentage
     }
 

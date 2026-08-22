@@ -80,4 +80,32 @@ import Testing
         #expect(BatteryControlPolicy.shouldReassert(now: 1_060, lastReassertAt: 1_000))
         #expect(BatteryControlPolicy.shouldReassert(now: 9_999, lastReassertAt: 1_000))
     }
+
+    @Test func doNotReapplyIntoHardwareThatCanNeverAcceptIt() {
+        let noRegister = BatteryControlServiceStatus(
+            mode: .unsupported,
+            currentPercentage: 70,
+            isPowerAdapterConnected: true,
+            detail: "이 Mac은 충전 제어를 지원하지 않습니다",
+            updatedAt: 0,
+            appliedLimitPercentage: nil,
+            isHardwareSupported: false
+        )
+        #expect(!BatteryControlPolicy.shouldReapply(enabled: true, limitPercentage: 85, status: noRegister))
+    }
+
+    @Test func stillReapplyWhenCapabilityIsUnknown() {
+        // An older helper reports nil. That is "unknown", and giving up on it would strand a
+        // perfectly capable Mac behind a field its helper is simply too old to send.
+        let olderHelper = BatteryControlServiceStatus(
+            mode: .unsupported,
+            currentPercentage: 70,
+            isPowerAdapterConnected: true,
+            detail: "이 Mac에서 충전 제어를 적용하지 못했습니다",
+            updatedAt: 0,
+            appliedLimitPercentage: nil,
+            isHardwareSupported: nil
+        )
+        #expect(BatteryControlPolicy.shouldReapply(enabled: true, limitPercentage: 85, status: olderHelper))
+    }
 }

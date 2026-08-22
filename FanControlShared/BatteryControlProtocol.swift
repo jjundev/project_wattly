@@ -60,6 +60,11 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
     /// compares this against its own opt-in to notice a helper that restarted and came back with
     /// an empty configuration. Optional so a payload from an older installed helper still decodes.
     public var appliedLimitPercentage: Int?
+    /// Whether this Mac exposes a charge-control register at all. `nil` from a helper too old to
+    /// report it — "unknown", not "unsupported". `false` means the limit can never work here, which
+    /// is a different thing from a write that failed: the settings screen disables its toggle
+    /// instead of showing a state that looks like it is still retrying.
+    public var isHardwareSupported: Bool?
 
     public init(
         mode: BatteryControlServiceMode,
@@ -67,7 +72,8 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
         isPowerAdapterConnected: Bool,
         detail: String,
         updatedAt: TimeInterval,
-        appliedLimitPercentage: Int? = nil
+        appliedLimitPercentage: Int? = nil,
+        isHardwareSupported: Bool? = nil
     ) {
         self.mode = mode
         self.currentPercentage = currentPercentage
@@ -75,6 +81,7 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
         self.detail = detail
         self.updatedAt = updatedAt
         self.appliedLimitPercentage = appliedLimitPercentage
+        self.isHardwareSupported = isHardwareSupported
     }
 }
 

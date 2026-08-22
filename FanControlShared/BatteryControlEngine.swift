@@ -33,6 +33,11 @@ public final class BatteryControlEngine: @unchecked Sendable {
         lastWriteFailed && (config.enabled || isCurrentlyInhibited)
     }
 
+    /// A permanent fact about the Mac, not a state the engine can retry its way out of.
+    private var isHardwareSupported: Bool {
+        hardware.registerSet != .unsupported
+    }
+
     public init(hardware: BatteryControlHardwareProtocol, initialConfig: BatteryControlConfiguration = .init()) {
         self.hardware = hardware
         self.config = initialConfig.normalized
@@ -44,7 +49,11 @@ public final class BatteryControlEngine: @unchecked Sendable {
     /// engine that has exhausted its write budget is included in that: it cannot act on a sample
     /// until `configure` re-arms it, and `configure` clears the latch.
     public var needsSampling: Bool {
-        config.enabled || isCurrentlyInhibited || (!hasInitializedState && !isWriteLatched)
+        // A Mac with no charge-control register cannot act on any reading, so it should never ask
+        // the daemon for one. The XPC status path forces a sample regardless, so the settings
+        // screen still gets a fresh answer to show.
+        guard isHardwareSupported else { return false }
+        return config.enabled || isCurrentlyInhibited || (!hasInitializedState && !isWriteLatched)
     }
 
     public func configure(_ newConfig: BatteryControlConfiguration) {
@@ -91,6 +100,13 @@ public final class BatteryControlEngine: @unchecked Sendable {
     }
 
     public func update(currentSoC: Int, isPluggedIn: Bool) -> BatteryControlServiceStatus {
+        // No register means no write can ever succeed. Short-circuit before the normalization gate
+        // so the budget is not spent proving a permanent fact three times over.
+        guard isHardwareSupported else {
+            return status(currentSoC: currentSoC, isPluggedIn: isPluggedIn,
+                          target: config.clampedLimitPercentage)
+        }
+
         // Until the hardware is confirmed at a known state the state machine cannot be trusted, so
         // it does not run at all. This also keeps a failing normalization from spending the write
         // budget on a transition whose starting point is a guess.
@@ -177,6 +193,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
     }
 
     private func detailText(isPluggedIn: Bool, target: Int) -> String {
+        if !isHardwareSupported { return "이 Mac은 충전 제어를 지원하지 않습니다" }
         if hasActionableFailure {
             // A failed release is the opposite failure from a failed apply: control IS applied and
             // stuck on, so telling the user it could not be applied would be actively misleading.
@@ -191,7 +208,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
 
     private func status(currentSoC: Int, isPluggedIn: Bool, target: Int) -> BatteryControlServiceStatus {
         let mode: BatteryControlServiceMode
-        if hasActionableFailure {
+        if !isHardwareSupported || hasActionableFailure {
             mode = .unsupported
         } else if isCurrentlyInhibited {
             mode = .inhibited
@@ -204,9 +221,12 @@ public final class BatteryControlEngine: @unchecked Sendable {
             isPowerAdapterConnected: isPluggedIn,
             detail: detailText(isPluggedIn: isPluggedIn, target: target),
             updatedAt: Date().timeIntervalSince1970,
-            // Report the limit actually being enforced. A failed write means nothing is, and
-            // reporting `nil` is what makes the app's reconcile pass re-push and clear the latch.
-            appliedLimitPercentage: (config.enabled && !hasActionableFailure) ? config.clampedLimitPercentage : nil
+            // Report the limit actually being enforced. A failed write means nothing is, and so
+            // does a Mac with no register — reporting `nil` is what makes the app's reconcile pass
+            // re-push and clear the latch in the one of those two cases that can recover.
+            appliedLimitPercentage: (isHardwareSupported && config.enabled && !hasActionableFailure)
+                ? config.clampedLimitPercentage : nil,
+            isHardwareSupported: isHardwareSupported
         )
     }
 }

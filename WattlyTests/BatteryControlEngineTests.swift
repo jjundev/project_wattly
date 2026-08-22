@@ -446,4 +446,37 @@ struct BatteryControlEngineTests {
         engine.reassertHardwareState()
         #expect(mockHW.writeCount == writesBeforeWake)
     }
+
+    @Test func hardwareWithNoRegisterIsReportedAsPermanentlyUnsupported() {
+        let mockHW = MockBatteryHardware()
+        mockHW.registerSet = .unsupported
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+
+        let status = engine.update(currentSoC: 90, isPluggedIn: true)
+        #expect(status.mode == .unsupported)
+        #expect(status.isHardwareSupported == false)
+        #expect(status.detail == "이 Mac은 충전 제어를 지원하지 않습니다")
+        #expect(status.appliedLimitPercentage == nil)
+    }
+
+    @Test func unsupportedHardwareSpendsNoWriteBudgetAtAll() {
+        // "No register" is a permanent fact, not a transient failure. Discovering it three times
+        // over would be pure waste, and would report a retryable-looking state.
+        let mockHW = MockBatteryHardware()
+        mockHW.registerSet = .unsupported
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+
+        for _ in 0..<6 { _ = engine.update(currentSoC: 90, isPluggedIn: true) }
+        #expect(mockHW.writeCount == 0)
+        #expect(!engine.needsSampling)
+    }
+
+    @Test func supportedHardwareStillReportsItsCapability() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+        #expect(engine.update(currentSoC: 70, isPluggedIn: true).isHardwareSupported == true)
+    }
 }
