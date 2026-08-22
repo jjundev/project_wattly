@@ -22,6 +22,10 @@ struct AppIdentityTests {
             == "/Applications/Xcode.app")
         // Plain CLI tool, no enclosing .app → the executable itself (generic icon).
         #expect(appBundlePath(forExecutable: "/usr/sbin/cfprefsd") == "/usr/sbin/cfprefsd")
+        // Relative path whose FIRST component is the bundle → no enclosing `.app` we can
+        // anchor, so the path itself. Must not trap on the slice.
+        #expect(appBundlePath(forExecutable: "claude.app/Contents/MacOS/claude")
+            == "claude.app/Contents/MacOS/claude")
         #expect(appBundlePath(forExecutable: "") == nil)
     }
 
@@ -77,6 +81,20 @@ struct AppIdentityTests {
         #expect(identity.key == "/Applications/Broken.app")
         #expect(identity.name == "Broken")
     }
+
+    /// Half a plist: the two fields fall back independently. A readable id with no usable name
+    /// must still label the row from the path — never with the raw bundle id.
+    @Test func identityFallsBackPerFieldOnPartialPlist() {
+        let noName = appIdentity(bundlePath: "/Applications/Broken.app", pid: 6,
+                                 bundleID: "com.example.broken", bundleName: "")
+        #expect(noName.key == "com.example.broken")
+        #expect(noName.name == "Broken")
+
+        let noID = appIdentity(bundlePath: "/Applications/Broken.app", pid: 7,
+                               bundleID: nil, bundleName: "Broken App")
+        #expect(noID.key == "/Applications/Broken.app")
+        #expect(noID.name == "Broken App")
+    }
 }
 
 /// The Info.plist read and its memo. The reader is injected, so cache behaviour is verified
@@ -98,19 +116,31 @@ struct BundleMetadataCacheTests {
         #expect(reads == 2)
     }
 
-    /// A path with no readable Info.plist (a plain CLI, a deleted bundle) must be memoised
-    /// too — otherwise every poll retries the same failing read forever.
+    /// An `.app` with no readable Info.plist (deleted, or malformed) must be memoised too —
+    /// otherwise every poll retries the same failing read forever.
     @Test func cachesMissesSoFailuresAreNotRetried() {
         var reads = 0
         var cache = BundleMetadataCache(read: { _ in
             reads += 1
             return (id: nil, name: nil)
         })
-        let first = cache.metadata(forBundlePath: "/usr/sbin/cfprefsd")
-        let second = cache.metadata(forBundlePath: "/usr/sbin/cfprefsd")
+        let first = cache.metadata(forBundlePath: "/Applications/Deleted.app")
+        let second = cache.metadata(forBundlePath: "/Applications/Deleted.app")
         #expect(reads == 1)
         #expect(first.id == nil && first.name == nil)
         #expect(second.id == nil && second.name == nil)
+    }
+
+    /// Non-bundle executables — most pids — must never reach the reader or take a memo slot.
+    @Test func nonBundlePathsAreNeverMemoised() {
+        var reads = 0
+        var cache = BundleMetadataCache(read: { _ in
+            reads += 1
+            return (id: "x", name: "X")
+        })
+        let cli = cache.metadata(forBundlePath: "/usr/sbin/cfprefsd")
+        #expect(reads == 0)
+        #expect(cli.id == nil && cli.name == nil)
     }
 
     @Test func nilOrEmptyPathSkipsTheReadEntirely() {
@@ -137,6 +167,9 @@ struct BundleMetadataCacheTests {
         #expect(reads == BundleMetadataCache.capacity)
         _ = cache.metadata(forBundlePath: "/Overflow.app")   // trips the ceiling → memo cleared
         _ = cache.metadata(forBundlePath: "/App0.app")       // must be re-read, not a stale hit
+        #expect(reads == BundleMetadataCache.capacity + 2)
+        // The entry that tripped the ceiling is inserted AFTER the clear, so it must be a hit.
+        _ = cache.metadata(forBundlePath: "/Overflow.app")
         #expect(reads == BundleMetadataCache.capacity + 2)
     }
 

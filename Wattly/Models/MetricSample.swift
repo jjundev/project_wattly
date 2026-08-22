@@ -84,8 +84,9 @@ struct ProcessUsage: Sendable, Equatable, Identifiable {
     var id: String
     var name: String
     var footprintBytes: UInt64
-    /// App-bundle (or executable) path used by `NSWorkspace` for the row icon — no longer the
-    /// same value as `id`. A String rather than an `NSImage` so the sample stays Sendable.
+    /// App-bundle (or executable) path used by `NSWorkspace` for the row icon. Usually a
+    /// different value from `id` — the two coincide only in the path-fallback tier, when no
+    /// Info.plist was readable. A String rather than an `NSImage` so the sample stays Sendable.
     var iconPath: String? = nil
 }
 
@@ -105,7 +106,7 @@ struct PowerSample: Sendable, Equatable {
 
 /// One APP row in the power card's expand (issue 16 follow-up). `watts` is the app's
 /// summed per-process average power over the last interval, from `ri_energy_nj` deltas
-/// coalesced across helper pids by their owning `.app` (Electron apps like Claude/Chrome
+/// coalesced across helper pids by their owning app (Electron apps like Claude/Chrome
 /// fragment across helpers — per-pid would bury them). CPU+GPU compute energy only — ANE is
 /// not attributed per-process, and only readable apps are counted, so these rows don't sum
 /// to the card's Combined headline. `id` is the coalescing key from `AppIdentity.key`.
@@ -116,9 +117,10 @@ struct ProcessPower: Sendable, Equatable, Identifiable {
     var id: String
     var name: String
     var watts: Double
-    /// App-bundle (or executable) path for the row icon — a separate value from `id`. A
-    /// `String` (not `NSImage`) so the sample stays `Sendable`; the view turns it into an
-    /// icon with `NSWorkspace`. nil → no icon (a per-pid fallback group).
+    /// App-bundle (or executable) path for the row icon — usually a different value from `id`
+    /// (they coincide only in the path-fallback tier). A `String` (not `NSImage`) so the sample
+    /// stays `Sendable`; the view turns it into an icon with `NSWorkspace`. nil → no icon (a
+    /// per-pid fallback group).
     var iconPath: String? = nil
 }
 

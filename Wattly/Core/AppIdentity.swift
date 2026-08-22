@@ -13,7 +13,6 @@ import Foundation
 ///
 /// The derivation here is pure — the caller supplies the already-read Info.plist values — so
 /// it is table-testable with no filesystem.
-
 struct AppIdentity: Sendable, Equatable {
     /// Coalescing key: `CFBundleIdentifier` when the process lives in a readable `.app`,
     /// else the bundle/executable path, else `"PID n"`. Version-independent, so an app keeps
@@ -47,7 +46,10 @@ func appIdentity(bundlePath: String?, pid: Int32,
 func appBundlePath(forExecutable path: String) -> String? {
     guard !path.isEmpty else { return nil }
     let parts = path.split(separator: "/", omittingEmptySubsequences: false)
-    if let idx = parts.firstIndex(where: { $0.hasSuffix(".app") }) {
+    // `idx >= 1` guards the slice: a RELATIVE path whose first component is the bundle would
+    // form an invalid `1...0` range and trap. `proc_pidpath` only ever yields absolute paths,
+    // but this function now lives in a general-purpose home where a caller can't know that.
+    if let idx = parts.firstIndex(where: { $0.hasSuffix(".app") }), idx >= 1 {
         return "/" + parts[1...idx].joined(separator: "/")
     }
     return path
@@ -65,7 +67,10 @@ func appDisplayName(forKey key: String) -> String {
 /// Read `CFBundleIdentifier` + the display name straight out of a bundle's `Info.plist`.
 /// `CFBundleCopyInfoDictionaryForURL` parses the plist WITHOUT instantiating a live
 /// `Bundle`/`CFBundle` — no bundle-cache pollution, no code-signature validation — and
-/// returns nil for anything unreadable. Non-`.app` paths (plain CLI executables, which are
+/// returns nil for anything unreadable. The values are whatever the bundle declares —
+/// unvalidated and unsigned, so an app can claim another's id or any display name; they are
+/// display-only text here (the view renders `name` via `Text(_: String)`, which does no
+/// markdown or localization lookup). Non-`.app` paths (plain CLI executables, which are
 /// most pids) short-circuit with no I/O at all. Measured ≈0.21 ms per call on an M-series
 /// Mac, which is why `BundleMetadataCache` exists.
 func bundleMetadata(atBundlePath path: String) -> (id: String?, name: String?) {
@@ -78,20 +83,31 @@ func bundleMetadata(atBundlePath path: String) -> (id: String?, name: String?) {
 }
 
 /// Memo for `bundleMetadata`, owned by each provider actor. The Top-N sweeps re-resolve the
-/// same few dozen bundle paths every poll (~560 pids for memory); without this, each poll
-/// would re-read those plists off disk. Misses are memoised too — a `(nil, nil)` for a CLI or
-/// a deleted bundle — so a failing read isn't retried forever.
+/// same bundle paths every poll (~560 pids for memory); without this, each poll would re-read
+/// those plists off disk. Only `.app` paths are memoised: non-bundle executables outnumber
+/// real bundles roughly 6:1 (measured 294 vs 69 on a working Mac) and already cost zero I/O in
+/// `bundleMetadata`, so caching them would spend the whole ceiling on entries worth nothing.
+/// Misses among the `.app` paths ARE memoised — a `(nil, nil)` for a deleted or unreadable
+/// bundle — so a failing read isn't retried forever. Entries never expire, so an app replaced
+/// in place under the same path keeps its old label until Wattly restarts (cosmetic, and
+/// self-healing).
 ///
 /// A value type with an injected reader, so the caching behaviour is testable with no
 /// filesystem. Each provider owns one instance (actor-isolated → no locking), keeping
 /// `ProcessList`'s no-shared-mutable-state rule intact.
 struct BundleMetadataCache {
     /// Hard ceiling on retained entries — a menubar app runs for weeks and every launched app
-    /// adds one. Blown → drop everything and re-warm on the next poll (simpler than an LRU,
-    /// and the re-warm costs one sweep).
+    /// adds one. Only `.app` bundles land here (~70 on a working Mac), so this is deep
+    /// headroom rather than a working limit. Blown → drop everything and re-warm on the next
+    /// sweep (simpler than an LRU).
     static let capacity = 512
 
     private var memo: [String: (id: String?, name: String?)] = [:]
+    /// Deliberately NOT `@Sendable`, unlike `PowerProvider.now`: that closure is injected from
+    /// outside the actor and must cross an isolation boundary, while this one never does (each
+    /// provider builds its cache inline from the default argument). Keeping it non-`@Sendable`
+    /// also keeps `BundleMetadataCache` non-`Sendable`, so the compiler rejects any attempt to
+    /// share one cache between the two provider actors.
     private let read: (String) -> (id: String?, name: String?)
 
     init(read: @escaping (String) -> (id: String?, name: String?) = bundleMetadata(atBundlePath:)) {
@@ -99,7 +115,10 @@ struct BundleMetadataCache {
     }
 
     mutating func metadata(forBundlePath path: String?) -> (id: String?, name: String?) {
-        guard let path, !path.isEmpty else { return (nil, nil) }
+        // Only bundles get a memo slot. A non-`.app` path resolves for free in `bundleMetadata`
+        // (it short-circuits before any I/O), so memoising one buys nothing and burns a slot —
+        // and there are ~6 of them for every real bundle. This subsumes the nil/empty check.
+        guard let path, path.hasSuffix(".app") else { return (nil, nil) }
         if let hit = memo[path] { return hit }
         let value = read(path)
         if memo.count >= Self.capacity { memo.removeAll(keepingCapacity: true) }

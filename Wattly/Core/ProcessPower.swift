@@ -3,13 +3,14 @@ import Foundation
 /// Pure per-APP power ranking (per-app power Top-N, issue 16 follow-up). Electron/Chromium
 /// apps (Claude, Codex, Chrome) fragment work across many helper pids — "Helper (Renderer)",
 /// "Helper (GPU)", … — so per-PID ranking buries the real consumer (a single big renderer
-/// can outrank an app whose draw is spread evenly across helpers). We coalesce per-pid
-/// energy deltas by their resolved app bundle (`appBundlePath`), summing helpers into the
-/// owning `.app`. The provider supplies absolute per-pid energy snapshots (nanojoules, from
-/// `proc_pid_rusage(pid, RUSAGE_INFO_V6).ri_energy_nj`) + a pid→app-key map; these turn them
-/// into watts, group, and rank — no I/O. Mirrors `PowerEnergy`/`MemoryUsage`.
+/// can outrank an app whose draw is spread evenly across helpers). We coalesce per-pid energy
+/// deltas by `AppIdentity.key` — the owning app's `CFBundleIdentifier` when readable, else its
+/// bundle/executable path — summing helpers into the owning app. The provider supplies
+/// absolute per-pid energy snapshots (nanojoules, from
+/// `proc_pid_rusage(pid, RUSAGE_INFO_V6).ri_energy_nj`) + a pid→`AppIdentity` map; these turn
+/// them into watts, group, and rank — no I/O. Mirrors `PowerEnergy`/`MemoryUsage`.
 ///
-/// Free functions (like `barFraction`/`appBundlePath`) so they don't collide with the
+/// Free functions (like `barFraction`) so they don't collide with the
 /// `ProcessPower` row model in `MetricSample`.
 
 /// Per-pid average watts over the interval, for pids present in BOTH snapshots with a
