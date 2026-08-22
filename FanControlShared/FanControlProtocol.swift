@@ -43,6 +43,8 @@ protocol FanControlXPCService {
     func heartbeat(withReply reply: @escaping (Data?, NSError?) -> Void)
     func release(_ data: Data, withReply reply: @escaping (Data?, NSError?) -> Void)
     func status(withReply reply: @escaping (Data?, NSError?) -> Void)
+    func configureBattery(_ data: Data, withReply reply: @escaping (Data?, NSError?) -> Void)
+    func batteryStatus(withReply reply: @escaping (Data?, NSError?) -> Void)
 }
 
 enum FanControlXPC {
