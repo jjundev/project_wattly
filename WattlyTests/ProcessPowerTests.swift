@@ -29,33 +29,50 @@ struct ProcessPowerTests {
     @Test func coalescesHelpersSoFragmentedAppOutranksSingleProcess() {
         // The real-world bug: Claude's draw spread across 3 helpers (Σ 0.346 W) was buried
         // under a single Codex process (0.212 W). Coalesced, Claude must outrank it.
+        let claude = AppIdentity(key: "com.anthropic.claudefordesktop", name: "Claude",
+                                 iconPath: "/Applications/Claude.app")
+        let codex = AppIdentity(key: "com.openai.codex", name: "Codex",
+                                iconPath: "/Applications/Codex.app")
         let perPid: [(pid: Int32, watts: Double)] = [
             (1, 0.178), (2, 0.110), (3, 0.058),   // Claude helpers
             (4, 0.212)]                            // Codex single process
-        let appKey: [Int32: String] = [
-            1: "/Applications/Claude.app", 2: "/Applications/Claude.app", 3: "/Applications/Claude.app",
-            4: "/Applications/Codex.app"]
-        let top = topAppPower(perPidWatts: perPid, appKey: appKey, limit: 3)
+        let identity: [Int32: AppIdentity] = [1: claude, 2: claude, 3: claude, 4: codex]
+
+        let top = topAppPower(perPidWatts: perPid, identity: identity, limit: 3)
+
         #expect(top.count == 2)
-        #expect(top[0].key == "/Applications/Claude.app")     // 0.346 Σ > 0.212
+        #expect(top[0].identity.key == "com.anthropic.claudefordesktop")   // 0.346 Σ > 0.212
+        #expect(top[0].identity.name == "Claude")
+        #expect(top[0].identity.iconPath == "/Applications/Claude.app")
         #expect(abs(top[0].watts - 0.346) < 1e-9)
-        #expect(top[1].key == "/Applications/Codex.app")
+        #expect(top[1].identity.key == "com.openai.codex")
     }
 
     @Test func fallbackKeyAndStableTieOrder() {
-        // Missing appKey → per-pid fallback; equal watts → key asc (no jitter between polls).
+        // No identity for pid 2 (proc_pidpath failed) → per-pid fallback group, no icon.
+        // Equal watts order by key asc so rows don't jitter between polls; in ASCII "P" (0x50)
+        // sorts before "c" (0x63), so the fallback group leads here.
         let perPid: [(pid: Int32, watts: Double)] = [(1, 0.5), (2, 0.5)]
-        let appKey: [Int32: String] = [1: "/Applications/B.app"]   // pid 2 has no key
-        let top = topAppPower(perPidWatts: perPid, appKey: appKey, limit: 3)
+        let identity: [Int32: AppIdentity] = [
+            1: AppIdentity(key: "com.example.b", name: "B", iconPath: "/Applications/B.app")]
+
+        let top = topAppPower(perPidWatts: perPid, identity: identity, limit: 3)
+
         #expect(top.count == 2)
-        #expect(top[0].key == "/Applications/B.app")               // "/…" < "PID 2" lexically
-        #expect(top[1].key == "PID 2")
+        #expect(top[0].identity == AppIdentity(key: "PID 2", name: "PID 2", iconPath: nil))
+        #expect(top[1].identity.key == "com.example.b")
+        #expect(top[1].identity.name == "B")
     }
 
     @Test func limitCaps() {
         let perPid: [(pid: Int32, watts: Double)] = [(1, 3), (2, 2), (3, 1)]
-        let appKey: [Int32: String] = [1: "a", 2: "b", 3: "c"]
-        #expect(topAppPower(perPidWatts: perPid, appKey: appKey, limit: 2).map(\.key) == ["a", "b"])
+        let identity: [Int32: AppIdentity] = [
+            1: AppIdentity(key: "a", name: "a", iconPath: nil),
+            2: AppIdentity(key: "b", name: "b", iconPath: nil),
+            3: AppIdentity(key: "c", name: "c", iconPath: nil)]
+
+        #expect(topAppPower(perPidWatts: perPid, identity: identity, limit: 2)
+            .map(\.identity.key) == ["a", "b"])
     }
 
     @Test func powerProcessLimitClampsToSupportedRange() {

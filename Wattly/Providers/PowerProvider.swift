@@ -27,6 +27,9 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
     private var enumerating = false
     private var prevProcEnergy: [Int32: UInt64]?
     private var prevProcInstant: ContinuousClock.Instant?
+    /// Bundle-identity memo, actor-isolated (one per provider — `ProcessList`'s
+    /// no-shared-mutable-state rule). Only CONSUMING pids are resolved, so it stays small.
+    private var bundleCache = BundleMetadataCache()
 
     /// Above this the reading is implausible (unit-decode error or a transient
     /// spike) → re-baseline rather than emit. Generous enough never to reject a real
@@ -108,18 +111,18 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
         guard dt > 0, dt <= Self.maxPlausibleDt else { return nil }   // gap → re-baseline
 
         let perPid = processWatts(prev: prevE, curr: curr, dt: dt)
-        var appKey: [Int32: String] = [:]
-        appKey.reserveCapacity(perPid.count)
+        var identities: [Int32: AppIdentity] = [:]
+        identities.reserveCapacity(perPid.count)
         for (pid, _) in perPid {
-            appKey[pid] = appBundlePath(forExecutable: pidPath(pid)) ?? "PID \(pid)"
+            identities[pid] = bundleCache.identity(executablePath: pidPath(pid), pid: pid)
         }
         let limit = powerProcessLimit(
             UserDefaults.standard.object(forKey: StorageKey.powerProcessLimit) as? Int)
-        return topAppPower(perPidWatts: perPid, appKey: appKey, limit: limit).map { group in
-            ProcessPower(id: group.key,
-                         name: appDisplayName(forKey: group.key),
+        return topAppPower(perPidWatts: perPid, identity: identities, limit: limit).map { group in
+            ProcessPower(id: group.identity.key,
+                         name: group.identity.name,
                          watts: group.watts,
-                         iconPath: group.key.hasPrefix("/") ? group.key : nil)
+                         iconPath: group.identity.iconPath)
         }
     }
 

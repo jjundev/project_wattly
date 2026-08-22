@@ -28,18 +28,31 @@ func processWatts(prev: [Int32: UInt64], curr: [Int32: UInt64],
     return out
 }
 
-/// Coalesce per-pid watts into the top-`limit` apps by summed watts, keyed by `appKey`
-/// (a `.app` bundle path, or a per-pid fallback for non-app processes). Stable order:
-/// watts desc, then key asc, so equal-watt groups don't jitter between polls.
+/// Coalesce per-pid watts into the top-`limit` apps by summed watts, keyed by
+/// `AppIdentity.key` (the app's bundle id when readable, else its path, else a per-pid
+/// fallback). Stable order: watts desc, then key asc, so equal-watt groups don't jitter
+/// between polls. The group carries its largest member's identity, so the row gets the app's
+/// real name and icon path.
 func topAppPower(perPidWatts: [(pid: Int32, watts: Double)],
-                 appKey: [Int32: String], limit: Int) -> [(key: String, watts: Double)] {
+                 identity: [Int32: AppIdentity],
+                 limit: Int) -> [(identity: AppIdentity, watts: Double)] {
     var sums: [String: Double] = [:]
-    for (pid, watts) in perPidWatts {
-        sums[appKey[pid] ?? "PID \(pid)", default: 0] += watts
+    var representative: [String: AppIdentity] = [:]
+    // Biggest member first, so the representative is deterministic (tie → pid asc).
+    for (pid, watts) in perPidWatts.sorted(by: {
+        $0.watts != $1.watts ? $0.watts > $1.watts : $0.pid < $1.pid
+    }) {
+        let member = identity[pid] ?? AppIdentity(key: "PID \(pid)", name: "PID \(pid)", iconPath: nil)
+        sums[member.key, default: 0] += watts
+        if representative[member.key] == nil { representative[member.key] = member }
     }
     return sums.sorted { $0.value > $1.value || ($0.value == $1.value && $0.key < $1.key) }
         .prefix(max(0, limit))
-        .map { (key: $0.key, watts: $0.value) }
+        .map { key, watts in
+            (identity: representative[key]
+                ?? AppIdentity(key: key, name: appDisplayName(forKey: key), iconPath: nil),
+             watts: watts)
+        }
 }
 
 /// Clamp the persisted processor-power expanded-list size to the supported 3...7 range.
