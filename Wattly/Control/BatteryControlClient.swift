@@ -68,7 +68,8 @@ import AppKit
     /// configuration — without this the helper would sit at its disabled default while the toggle
     /// reads ON. `enabled` is the caller's real opt-in rather than an assumption, so installing from
     /// a recovery button can never switch the limit on behind the user's back.
-    /// Returns `nil` on success or the install failure.
+    /// Returns `nil` only when both halves landed — otherwise the install failure, or a synthesized
+    /// error for an install that succeeded while the configure push did not.
     public func installAndApply(enabled: Bool, limitPercentage: Int, window: NSWindow?) async -> Error? {
         isInstallingHelper = true
         defer { isInstallingHelper = false }
