@@ -49,6 +49,17 @@ enum AppUninstaller: Sendable {
         bundleID: String = Bundle.main.bundleIdentifier ?? "dev.jjundev.Wattly",
         releaseBatteryLimit: @MainActor () async -> Void = {
             await BatteryControlClient().apply(enabled: false, limitPercentage: 100)
+        },
+        /// Injected because the default checks real `/Library` paths and, when the helper is
+        /// installed, shells out through `osascript … with administrator privileges` — a test
+        /// that let the default run would block the suite on a credential dialog on any machine
+        /// with the helper installed.
+        removeHelper: @MainActor () async -> Void = {
+            let daemonPath = "/Library/PrivilegedHelperTools/\(FanHelperInstaller.label)"
+            let plistPath = "/Library/LaunchDaemons/\(FanHelperInstaller.label).plist"
+            if FileManager.default.fileExists(atPath: daemonPath) || FileManager.default.fileExists(atPath: plistPath) {
+                try? await FanHelperInstaller.uninstall()
+            }
         }
     ) async {
         // 1. Unregister login item
@@ -60,11 +71,7 @@ enum AppUninstaller: Sendable {
         await releaseBatteryLimit()
 
         // 3. Remove privileged helper daemon if installed
-        let daemonPath = "/Library/PrivilegedHelperTools/\(FanHelperInstaller.label)"
-        let plistPath = "/Library/LaunchDaemons/\(FanHelperInstaller.label).plist"
-        if fileManager.fileExists(atPath: daemonPath) || fileManager.fileExists(atPath: plistPath) {
-            try? await FanHelperInstaller.uninstall()
-        }
+        await removeHelper()
 
         // 4. Clear user defaults
         userDefaults.removePersistentDomain(forName: bundleID)
