@@ -56,18 +56,27 @@ public final class BatteryControlEngine: @unchecked Sendable {
         config = normalized
     }
 
-    /// Forgets what the engine believes the hardware is doing, so the next `update` re-establishes
-    /// it from scratch instead of trusting a belief formed before a sleep cycle.
+    /// Re-writes the charge-inhibit register to what the engine already believes, rather than
+    /// trusting that a sleep cycle preserved it. Nothing downstream could detect a register cleared
+    /// behind the engine's back: the reported applied limit is derived from configuration, not from
+    /// the register, so the app's reconcile pass would see perfect agreement and do nothing.
     ///
-    /// Whether the SMC charge-inhibit register survives sleep is model-dependent and unverified,
-    /// and nothing downstream can detect that it was cleared: the reported applied limit is derived
-    /// from configuration, not from the register, so the app's reconcile pass sees perfect agreement
-    /// and does nothing. Costs at most two writes per wake — a normalization, then a re-inhibit if
-    /// one is still due — which is a state transition, not a loop.
-    public func invalidateHardwareState() {
-        hasInitializedState = false
-        consecutiveWriteFailures = 0
-        lastWriteFailed = false
+    /// Only an active inhibit needs this. Nothing but this engine ever sets the register, so a
+    /// belief of "not inhibiting" cannot silently drift into the opposite.
+    ///
+    /// This deliberately does NOT route through `normalizeOnFirstUpdate`. That path exists for a
+    /// cold start, where the belief is worthless, and it clears `isCurrentlyInhibited` as part of
+    /// forcing a known baseline. On wake the belief is the very thing worth keeping: erasing it
+    /// would drop a hold the hysteresis band still wants, and a battery resting at 84 % under an
+    /// 85 % limit would resume charging on every lid-open.
+    public func reassertHardwareState() {
+        guard isCurrentlyInhibited else { return }
+        if !attemptWrite(inhibited: true, targetLimit: config.clampedLimitPercentage) {
+            // The re-assert did not land, so the register's real state is now genuinely unknown.
+            // Hand it to the normalization gate, which parks and reports honestly until a write
+            // succeeds — and a nil applied limit is what makes the app re-push and re-arm the budget.
+            hasInitializedState = false
+        }
     }
 
     public func update(currentSoC: Int, isPluggedIn: Bool) -> BatteryControlServiceStatus {

@@ -238,7 +238,7 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
         ) { [weak self] _ in
             self?.queue.async { [weak self] in
                 guard let self else { return }
-                batteryEngine.invalidateHardwareState()
+                batteryEngine.reassertHardwareState()
                 sampleBatteryAndEvaluate(force: true)
             }
         }

@@ -368,22 +368,64 @@ struct BatteryControlEngineTests {
         #expect(status.detail == "충전 제한 비활성화됨")
     }
 
-    @Test func invalidatingHardwareStateReEstablishesTheInhibitFromScratch() {
+    @Test func reassertingKeepsAHoldThatTheHysteresisBandStillWants() {
+        // The everyday case: charge settled at 84 % under an 85 % limit, lid closed and reopened.
+        // The hold must survive — releasing here would recharge to 85 % on every wake.
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+        _ = engine.update(currentSoC: 85, isPluggedIn: true)
+        _ = engine.update(currentSoC: 84, isPluggedIn: true)
+        #expect(mockHW.chargingInhibited)
+        #expect(mockHW.writeCount == 2)   // normalize, then inhibit
+
+        engine.reassertHardwareState()
+        let afterWake = engine.update(currentSoC: 84, isPluggedIn: true)
+        #expect(mockHW.chargingInhibited)          // still holding, not released
+        #expect(afterWake.mode == .inhibited)
+        #expect(mockHW.writeCount == 3)            // exactly one re-assert write
+    }
+
+    @Test func reassertingRestoresARegisterClearedBehindTheEnginesBack() {
         let mockHW = MockBatteryHardware()
         let engine = BatteryControlEngine(hardware: mockHW)
         engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
         _ = engine.update(currentSoC: 90, isPluggedIn: true)
         #expect(mockHW.chargingInhibited)
-        let writesBeforeWake = mockHW.writeCount
 
-        // Something cleared the register behind the engine's back while the Mac slept. Nothing in
-        // the status could reveal this: the applied limit is reported from configuration.
+        // Something cleared it while the Mac slept. No status field could reveal this.
         mockHW.chargingInhibited = false
 
-        engine.invalidateHardwareState()
-        let status = engine.update(currentSoC: 90, isPluggedIn: true)
-        #expect(mockHW.chargingInhibited)                      // re-established, not assumed
-        #expect(status.mode == .inhibited)
-        #expect(mockHW.writeCount == writesBeforeWake + 2)     // normalize, then re-inhibit
+        engine.reassertHardwareState()
+        #expect(mockHW.chargingInhibited)
+        #expect(mockHW.appliedLimit == 85)
+    }
+
+    @Test func reassertingWritesNothingWhenNoHoldIsActive() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+        _ = engine.update(currentSoC: 60, isPluggedIn: true)
+        let writesBeforeWake = mockHW.writeCount
+
+        // Nothing but this engine sets the register, so "not inhibiting" cannot silently drift.
+        engine.reassertHardwareState()
+        #expect(mockHW.writeCount == writesBeforeWake)
+    }
+
+    @Test func aFailedReassertParksTheEngineInsteadOfAssumingItWorked() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+        _ = engine.update(currentSoC: 90, isPluggedIn: true)
+        #expect(mockHW.chargingInhibited)
+
+        mockHW.writeShouldFail = true
+        engine.reassertHardwareState()
+
+        // The register's real state is now unknown, so the engine must stop claiming health.
+        let parked = engine.update(currentSoC: 90, isPluggedIn: true)
+        #expect(parked.mode == .unsupported)
+        #expect(parked.appliedLimitPercentage == nil)
     }
 }
