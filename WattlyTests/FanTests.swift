@@ -26,6 +26,52 @@ struct FanTests {
         #expect(CardPresentation.fanBarFraction(actual: 2000, max: 0) == 0.0)      // no max → 0
     }
 
+    // MARK: - FanSample.loadPercent (threshold input — % of each fan's own ceiling)
+
+    @Test func loadPercentEmptySampleIsNil() {
+        #expect(FanSample(fans: []).loadPercent == nil)
+    }
+
+    @Test func loadPercentAveragesPerFanRatios() {
+        // Fan 0 sits at 50 % of its own 6000 ceiling, fan 1 at 100 % of its 4000 ceiling.
+        let s = FanSample(fans: [
+            FanReading(index: 0, actualRPM: 3000, minRPM: 1200, maxRPM: 6000, targetRPM: 3000),
+            FanReading(index: 1, actualRPM: 4000, minRPM: 1200, maxRPM: 4000, targetRPM: 4000),
+        ])
+        #expect(s.loadPercent == 75)   // (50 + 100) / 2
+    }
+
+    @Test func loadPercentSkipsFansWithoutAReadableCeiling() {
+        // A fan reporting max 0 is unreadable, NOT idle — averaging it in as 0 % would
+        // dilute a genuinely spinning fan below its warn threshold.
+        let s = FanSample(fans: [
+            FanReading(index: 0, actualRPM: 4800, minRPM: 1200, maxRPM: 6000, targetRPM: 4800),
+            FanReading(index: 1, actualRPM: 0, minRPM: 0, maxRPM: 0, targetRPM: 0),
+        ])
+        #expect(s.loadPercent == 80)   // fan 1 skipped entirely, not averaged as 0
+    }
+
+    @Test func loadPercentIsNilWhenNoFanHasACeiling() {
+        let s = FanSample(fans: [
+            FanReading(index: 0, actualRPM: 2000, minRPM: 0, maxRPM: 0, targetRPM: 0),
+        ])
+        #expect(s.loadPercent == nil)
+    }
+
+    @Test func loadPercentClampsOvershootToOneHundred() {
+        // SMC can briefly report an actual above the advertised max; the band must not
+        // exceed 100 % (and must never go negative on a garbage decode).
+        let over = FanSample(fans: [
+            FanReading(index: 0, actualRPM: 7200, minRPM: 1200, maxRPM: 6000, targetRPM: 6000),
+        ])
+        #expect(over.loadPercent == 100)
+
+        let under = FanSample(fans: [
+            FanReading(index: 0, actualRPM: -50, minRPM: 0, maxRPM: 6000, targetRPM: 0),
+        ])
+        #expect(under.loadPercent == 0)
+    }
+
     // MARK: - fanCount(fromRawFNum:)
 
     /// Regression for the `Int(v)` trap: a corrupted SMC key-info `dataSize` can make
