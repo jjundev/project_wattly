@@ -6,14 +6,15 @@ final class MockBatteryHardware: BatteryControlHardwareProtocol, @unchecked Send
     var isAppleSilicon: Bool = true
     var chargingInhibited: Bool = false
     var appliedLimit: Int = 100
+    /// Counts EVERY call, including a redundant one — a retry has to be visible to the tests.
     var writeCount: Int = 0
+    var writeShouldFail: Bool = false
 
     func setChargingInhibited(_ inhibited: Bool, targetLimit: Int) -> Bool {
-        if chargingInhibited != inhibited || appliedLimit != targetLimit {
-            chargingInhibited = inhibited
-            appliedLimit = targetLimit
-            writeCount += 1
-        }
+        writeCount += 1
+        if writeShouldFail { return false }
+        chargingInhibited = inhibited
+        appliedLimit = targetLimit
         return true
     }
 }
@@ -95,5 +96,108 @@ struct BatteryControlEngineTests {
         #expect(status.mode == .charging)
         #expect(!status.isPowerAdapterConnected)
         #expect(!mockHW.chargingInhibited)
+    }
+
+    @Test func failedInhibitWriteReportsUnsupportedAndRetriesUpToTheBound() {
+        let mockHW = MockBatteryHardware()
+        mockHW.writeShouldFail = true
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+
+        let failed = engine.update(currentSoC: 85, isPluggedIn: true)
+        #expect(failed.mode == .unsupported)
+        #expect(failed.appliedLimitPercentage == nil)   // nothing is actually being enforced
+        #expect(!mockHW.chargingInhibited)
+        #expect(mockHW.writeCount == 1)
+
+        // The state machine did not advance, so the same branch retries — but only up to the
+        // bound, because the global constraint forbids writing SMC registers in a loop.
+        for _ in 0..<5 { _ = engine.update(currentSoC: 85, isPluggedIn: true) }
+        #expect(mockHW.writeCount == BatteryControlEngine.maxConsecutiveWriteFailures)
+    }
+
+    @Test func reconfiguringClearsTheFailureLatchAndLetsItTryAgain() {
+        let mockHW = MockBatteryHardware()
+        mockHW.writeShouldFail = true
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+        for _ in 0..<5 { _ = engine.update(currentSoC: 85, isPluggedIn: true) }
+        #expect(mockHW.writeCount == BatteryControlEngine.maxConsecutiveWriteFailures)
+
+        // This is exactly what the app's 60 s reconcile does once it sees a nil applied limit.
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+        mockHW.writeShouldFail = false
+        let recovered = engine.update(currentSoC: 85, isPluggedIn: true)
+        #expect(recovered.mode == .inhibited)
+        #expect(recovered.appliedLimitPercentage == 85)
+        #expect(mockHW.chargingInhibited)
+    }
+
+    @Test func failedReleaseWriteRetriesWithinTheBound() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+        _ = engine.update(currentSoC: 85, isPluggedIn: true)
+        #expect(mockHW.chargingInhibited)
+
+        mockHW.writeShouldFail = true
+        let failed = engine.update(currentSoC: 83, isPluggedIn: true)
+        #expect(failed.mode == .unsupported)
+        #expect(mockHW.chargingInhibited)   // still latched — the release did not take
+
+        mockHW.writeShouldFail = false
+        let recovered = engine.update(currentSoC: 83, isPluggedIn: true)
+        #expect(recovered.mode == .charging)
+        #expect(!mockHW.chargingInhibited)
+    }
+
+    @Test func releaseBypassesTheFailureLatchForDaemonShutdown() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+        _ = engine.update(currentSoC: 85, isPluggedIn: true)
+        #expect(mockHW.chargingInhibited)
+
+        mockHW.writeShouldFail = true
+        for _ in 0..<5 { _ = engine.update(currentSoC: 83, isPluggedIn: true) }
+        #expect(mockHW.chargingInhibited)   // release kept failing, then the latch stopped trying
+
+        // Shutdown must still try: leaving the register set would stop the Mac charging with no
+        // helper left to ever clear it.
+        mockHW.writeShouldFail = false
+        engine.release()
+        #expect(!mockHW.chargingInhibited)
+    }
+
+    @Test func statusCarriesTheLimitTheEngineIsEnforcing() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 90))
+        #expect(engine.update(currentSoC: 70, isPluggedIn: true).appliedLimitPercentage == 90)
+
+        engine.configure(BatteryControlConfiguration(enabled: false, limitPercentage: 90))
+        #expect(engine.update(currentSoC: 70, isPluggedIn: true).appliedLimitPercentage == nil)
+    }
+
+    @Test func configureNormalizesHostileValues() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 999, lowerHysteresisDelta: 900))
+
+        let status = engine.update(currentSoC: 100, isPluggedIn: true)
+        #expect(status.appliedLimitPercentage == 100)
+        #expect(status.mode == .inhibited)
+    }
+
+    @Test func needsSamplingIsFalseOnceIdleAndDisabled() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        #expect(engine.needsSampling)   // startup normalization has not run yet
+
+        _ = engine.update(currentSoC: 70, isPluggedIn: true)
+        #expect(!engine.needsSampling)  // disabled, hardware already normal — nothing to evaluate
+
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 80))
+        #expect(engine.needsSampling)
     }
 }
