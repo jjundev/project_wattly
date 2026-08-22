@@ -3,7 +3,7 @@ import Testing
 @testable import Wattly
 
 final class MockBatteryHardware: BatteryControlHardwareProtocol, @unchecked Sendable {
-    var isAppleSilicon: Bool = true
+    var registerSet: BatteryControlRegisterSet = .modern
     var chargingInhibited: Bool = false
     var appliedLimit: Int = 100
     /// Counts EVERY call, including a redundant one — a retry has to be visible to the tests.
@@ -66,7 +66,7 @@ struct BatteryControlEngineTests {
 
     @Test func intelMacReceivesCustomTargetLimit() {
         let mockHW = MockBatteryHardware()
-        mockHW.isAppleSilicon = false
+        mockHW.registerSet = .intel
         let engine = BatteryControlEngine(hardware: mockHW)
         engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 90))
 

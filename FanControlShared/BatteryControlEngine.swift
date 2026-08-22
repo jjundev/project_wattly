@@ -1,7 +1,9 @@
 import Foundation
 
 public protocol BatteryControlHardwareProtocol: Sendable {
-    var isAppleSilicon: Bool { get }
+    /// Which charge-control register generation this Mac exposes, probed from the hardware rather
+    /// than inferred from the architecture.
+    var registerSet: BatteryControlRegisterSet { get }
     func setChargingInhibited(_ inhibited: Bool, targetLimit: Int) -> Bool
 }
 
