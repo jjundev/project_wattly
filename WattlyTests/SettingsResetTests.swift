@@ -168,6 +168,17 @@ struct SettingsResetTests {
         #expect(defaults.bool(forKey: StorageKey.fanControlEnabled) == false)
     }
 
+    @Test func resetDisablesBatteryLimit() {
+        let defaults = makeDefaults(#function)
+        defaults.set(true, forKey: StorageKey.batteryLimitEnabled)
+        defaults.set(90, forKey: StorageKey.batteryLimitPercentage)
+
+        SettingsReset.applyDefaults(into: defaults)
+
+        #expect(defaults.bool(forKey: StorageKey.batteryLimitEnabled) == Defaults.batteryLimitEnabled)
+        #expect(defaults.integer(forKey: StorageKey.batteryLimitPercentage) == Defaults.batteryLimitPercentage)
+    }
+
     @Test func resetHidesBatteryEfficiency() {
         let defaults = makeDefaults(#function)
         defaults.set(true, forKey: StorageKey.showBatteryEfficiency)

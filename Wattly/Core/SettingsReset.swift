@@ -35,6 +35,8 @@ enum SettingsReset {
         let targetFanCurve = maxFanRPM.map { FanCurvePreset.balanced.curve(forMaxRPM: $0) } ?? Defaults.fanCurve
         defaults.set(targetFanCurve.rawValue, forKey: StorageKey.fanCurve)
         defaults.set(Defaults.fanControlEnabled, forKey: StorageKey.fanControlEnabled)
+        defaults.set(Defaults.batteryLimitEnabled, forKey: StorageKey.batteryLimitEnabled)
+        defaults.set(Defaults.batteryLimitPercentage, forKey: StorageKey.batteryLimitPercentage)
         defaults.set("", forKey: StorageKey.expandedCards)        // collapse all cards (가정 C)
         defaults.set(Defaults.loginItem, forKey: StorageKey.loginItem)
 

@@ -408,6 +408,8 @@ enum Defaults {
     static let fanCurve = FanCurvePreset.balanced.curve
     /// Opt-in only: without an explicit user choice the helper is never asked to take over.
     static let fanControlEnabled = false
+    static let batteryLimitEnabled = false
+    static let batteryLimitPercentage = 80
 }
 
 /// `@AppStorage` key names. `loginItem` is a mirror of `SMAppService.mainApp`
@@ -437,6 +439,8 @@ enum StorageKey {
     static let thresholds = "thresholds"
     static let fanCurve = "fanCurve"
     static let fanControlEnabled = "fanControlEnabled"
+    static let batteryLimitEnabled = "batteryLimitEnabled"
+    static let batteryLimitPercentage = "batteryLimitPercentage"
     static let menuBatteryTemp = "menu.batteryTemp"
     static let menuMemPressure = "menu.memPressure"
     static let expandedCards = "expandedCards"   // CSV of expanded card raw values (issue 04)
