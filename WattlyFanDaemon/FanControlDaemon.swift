@@ -11,6 +11,7 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
     private var lastBatteryGeneration: UInt64 = 0
     private var latestBatteryStatus: BatteryControlServiceStatus
     private var lastPowerReading: (soc: Int, plugged: Bool)?
+    private var lastReassertAt: TimeInterval?
     private let listener: NSXPCListener
     private let queue = DispatchQueue(label: "dev.jjundev.WattlyFanDaemon.control")
     private var controlTimer: DispatchSourceTimer?
@@ -131,13 +132,22 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
                     return
                 }
                 lastBatteryGeneration = request.generation
+                batteryEngine.configure(request.configuration)
                 // The app pushes a configuration on launch, on wake, and on every edit — and its
                 // wake notification is the only one that reliably fires, since this daemon runs in
                 // the system domain where NSWorkspace notifications do not. So this is where a
                 // register cleared during sleep gets repaired: nothing else could detect it, because
                 // the applied limit we report is derived from configuration, not from the hardware.
-                batteryEngine.reassertHardwareState()
-                batteryEngine.configure(request.configuration)
+                //
+                // After `configure`, not before: the engine's own guard reads the opt-in, and before
+                // `configure` that is still the OLD one — so a push that turns the limit off would
+                // write a fresh inhibit and then immediately release it. Throttled because this is
+                // an XPC entry point and a re-assert does not correspond to a state transition.
+                let nowSeconds = now()
+                if BatteryControlPolicy.shouldReassert(now: nowSeconds, lastReassertAt: lastReassertAt) {
+                    lastReassertAt = nowSeconds
+                    batteryEngine.reassertHardwareState()
+                }
                 sampleBatteryAndEvaluate(force: true)
                 reply.send((try BatteryControlCodec.encode(latestBatteryStatus), nil))
             } catch {

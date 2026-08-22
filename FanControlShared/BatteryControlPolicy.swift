@@ -26,6 +26,20 @@ public enum BatteryControlPolicy {
     /// minutes after the window opens.
     public static let statusPollInterval = 5.0
 
+    /// Minimum spacing between hardware re-asserts. `configureBattery` is an XPC entry point, so its
+    /// call rate is set by whatever is calling it rather than by the helper — and a re-assert is by
+    /// construction a non-transitioning write, the one thing the SMC-traffic rule forbids doing in a
+    /// loop. The real callers (an app launch, a wake, a settings edit) are minutes apart, so a floor
+    /// costs them nothing and bounds everything else. A skipped re-assert is harmless: the next one
+    /// covers it, and it is belt-and-braces over a register that usually survives sleep anyway.
+    public static let reassertMinimumInterval = 60.0
+
+    /// Whether enough time has passed since the last hardware re-assert to allow another.
+    public static func shouldReassert(now: TimeInterval, lastReassertAt: TimeInterval?) -> Bool {
+        guard let lastReassertAt else { return true }
+        return now - lastReassertAt >= reassertMinimumInterval
+    }
+
     /// True when the helper is reachable but is not enforcing the limit the user opted into.
     /// `.unavailable` is left alone on purpose — installing or connecting belongs to the settings
     /// screen, where the user can see an auth prompt, not to a background loop.

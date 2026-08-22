@@ -9,7 +9,8 @@ public final class BatteryControlEngine: @unchecked Sendable {
     /// Consecutive failed SMC writes before the engine stops trying. The global constraint forbids
     /// writing registers in a loop, and a machine that rejects the write would otherwise be written
     /// to on every tick forever. Recovery is deliberately slow rather than busy: `configure` clears
-    /// the latch, and the app's reconcile pass re-pushes the configuration about once a minute.
+    /// the latch, and the app's reconcile pass re-pushes the configuration, backing its cadence off
+    /// the longer the hardware keeps refusing.
     public static let maxConsecutiveWriteFailures = 3
 
     private let hardware: BatteryControlHardwareProtocol
@@ -135,8 +136,9 @@ public final class BatteryControlEngine: @unchecked Sendable {
     /// limit), which is exactly the signal the app's reconcile pass re-pushes `configure` on — and
     /// `configure` clears the latch, buying another set of attempts.
     /// `attemptWrite` still caps the hardware calls at `maxConsecutiveWriteFailures`, so parking
-    /// costs no further SMC traffic until the next `configure` re-arms the budget — keep the
-    /// reconcile cadence slow enough that those re-arms stay far apart.
+    /// costs no further SMC traffic until the next `configure` re-arms the budget —
+    /// `BatteryControlPolicy.reconcileInterval(consecutiveUnsupported:)` is what keeps those
+    /// re-arms far apart.
     private func normalizeOnFirstUpdate() -> Bool {
         guard !hasInitializedState else { return true }
         guard attemptWrite(inhibited: false, targetLimit: 100) else { return false }

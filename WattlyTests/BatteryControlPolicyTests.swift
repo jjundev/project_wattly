@@ -66,7 +66,18 @@ import Testing
         #expect(BatteryControlPolicy.reconcileInterval(consecutiveUnsupported: 3) == 300.0)
         #expect(BatteryControlPolicy.reconcileInterval(consecutiveUnsupported: 4) == 900.0)
         #expect(BatteryControlPolicy.reconcileInterval(consecutiveUnsupported: 99) == 900.0)
-        // It backs off rather than giving up, so a transient failure still recovers unattended.
-        #expect(BatteryControlPolicy.reconcileInterval(consecutiveUnsupported: 99) < .infinity)
+    }
+
+    @Test func reassertIsThrottledBecauseItIsNotAStateTransition() {
+        // The first re-assert of a process always runs.
+        #expect(BatteryControlPolicy.shouldReassert(now: 1_000, lastReassertAt: nil))
+
+        // A caller driving the XPC entry point faster than the floor gets one write, not many.
+        #expect(!BatteryControlPolicy.shouldReassert(now: 1_000, lastReassertAt: 1_000))
+        #expect(!BatteryControlPolicy.shouldReassert(now: 1_059, lastReassertAt: 1_000))
+
+        // The real callers — a launch, a wake, a settings edit — are far past the floor.
+        #expect(BatteryControlPolicy.shouldReassert(now: 1_060, lastReassertAt: 1_000))
+        #expect(BatteryControlPolicy.shouldReassert(now: 9_999, lastReassertAt: 1_000))
     }
 }

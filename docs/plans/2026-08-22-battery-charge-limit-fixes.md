@@ -537,7 +537,8 @@ public final class BatteryControlEngine: @unchecked Sendable {
     /// Consecutive failed SMC writes before the engine stops trying. The global constraint forbids
     /// writing registers in a loop, and a machine that rejects the write would otherwise be written
     /// to on every tick forever. Recovery is deliberately slow rather than busy: `configure` clears
-    /// the latch, and the app's reconcile pass re-pushes the configuration about once a minute.
+    /// the latch, and the app's reconcile pass re-pushes the configuration, backing its cadence off
+    /// the longer the hardware keeps refusing.
     public static let maxConsecutiveWriteFailures = 3
 
     private let hardware: BatteryControlHardwareProtocol
@@ -1578,7 +1579,7 @@ Expected: `** TEST SUCCEEDED **`, 4 tests.
 xcodebuild test -project Wattly.xcodeproj -scheme Wattly -destination 'platform=macOS' 2>&1 | tail -8
 ```
 
-Expected: `** TEST SUCCEEDED **`, 565 tests in 54 suites.
+Expected: `** TEST SUCCEEDED **`, 581 tests in 54 suites.
 
 ```bash
 git add Wattly/Core/AppUninstaller.swift WattlyTests/AppUninstallerTests.swift && git commit -m "fix(battery): release the charge limit before uninstalling the helper"
