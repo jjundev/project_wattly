@@ -75,8 +75,8 @@ struct MemorySample: Sendable, Equatable {
 }
 
 /// One application row in the memory card's expand. `footprintBytes` is the sum of
-/// readable member processes' `ri_phys_footprint`; `id` is the outer `.app` bundle
-/// path (or executable-path fallback), stable across helper-process churn.
+/// readable member processes' `ri_phys_footprint`; `id` is the coalescing key from
+/// `AppIdentity.key`, stable across helper-process churn.
 struct ProcessUsage: Sendable, Equatable, Identifiable {
     /// Coalescing key from `AppIdentity.key` — the app's `CFBundleIdentifier` when readable,
     /// else its bundle/executable path, else `"PID n"`. Bundle-id keyed so an app keeps ONE
@@ -116,7 +116,7 @@ struct ProcessPower: Sendable, Equatable, Identifiable {
     var id: String
     var name: String
     var watts: Double
-    /// App-bundle (or executable) path for the row icon — usually the same as `id`. A
+    /// App-bundle (or executable) path for the row icon — a separate value from `id`. A
     /// `String` (not `NSImage`) so the sample stays `Sendable`; the view turns it into an
     /// icon with `NSWorkspace`. nil → no icon (a per-pid fallback group).
     var iconPath: String? = nil
