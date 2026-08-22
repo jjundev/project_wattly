@@ -37,9 +37,11 @@ public final class BatteryControlEngine: @unchecked Sendable {
 
     /// True while the engine still has something a fresh power reading could change. With the
     /// limit off and the charger already back to normal there is nothing to evaluate, so the
-    /// daemon can skip its IOPS snapshot entirely instead of copying one on every tick.
+    /// daemon can skip its IOPS snapshot entirely instead of copying one on every tick. A parked
+    /// engine that has exhausted its write budget is included in that: it cannot act on a sample
+    /// until `configure` re-arms it, and `configure` clears the latch.
     public var needsSampling: Bool {
-        config.enabled || isCurrentlyInhibited || !hasInitializedState
+        config.enabled || isCurrentlyInhibited || (!hasInitializedState && !isWriteLatched)
     }
 
     public func configure(_ newConfig: BatteryControlConfiguration) {
@@ -100,8 +102,10 @@ public final class BatteryControlEngine: @unchecked Sendable {
     /// hardware state is a guess, and running the state machine on a guess is how a stuck battery
     /// becomes a silent one. Parking here keeps the status honest (`.unsupported`, nil applied
     /// limit), which is exactly the signal the app's reconcile pass re-pushes `configure` on — and
-    /// `configure` clears the latch, buying another set of attempts. `attemptWrite` still caps the
-    /// hardware calls, so parking costs no further SMC traffic.
+    /// `configure` clears the latch, buying another set of attempts.
+    /// `attemptWrite` still caps the hardware calls at `maxConsecutiveWriteFailures`, so parking
+    /// costs no further SMC traffic until the next `configure` re-arms the budget — keep the
+    /// reconcile cadence slow enough that those re-arms stay far apart.
     private func normalizeOnFirstUpdate() -> Bool {
         guard !hasInitializedState else { return true }
         guard attemptWrite(inhibited: false, targetLimit: 100) else { return false }
@@ -112,9 +116,11 @@ public final class BatteryControlEngine: @unchecked Sendable {
 
     /// The last chance to hand the battery back before the daemon exits, so it bypasses the failure
     /// latch on purpose: leaving the register set would stop the Mac charging with no helper left
-    /// to ever clear it.
+    /// to ever clear it. An engine that never confirmed the hardware state is included — that is
+    /// precisely the crashed-daemon case, where the register may well be latched and this is the
+    /// only remaining chance to clear it. Worst case is one extra failed write per daemon exit.
     public func release() {
-        guard isCurrentlyInhibited else { return }
+        guard isCurrentlyInhibited || !hasInitializedState else { return }
         if hardware.setChargingInhibited(false, targetLimit: 100) {
             isCurrentlyInhibited = false
             consecutiveWriteFailures = 0
@@ -165,7 +171,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
             updatedAt: Date().timeIntervalSince1970,
             // Report the limit actually being enforced. A failed write means nothing is, and
             // reporting `nil` is what makes the app's reconcile pass re-push and clear the latch.
-            appliedLimitPercentage: (config.enabled && !lastWriteFailed) ? config.clampedLimitPercentage : nil
+            appliedLimitPercentage: (config.enabled && !hasActionableFailure) ? config.clampedLimitPercentage : nil
         )
     }
 }

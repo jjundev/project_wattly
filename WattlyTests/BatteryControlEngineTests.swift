@@ -307,6 +307,7 @@ struct BatteryControlEngineTests {
 
         for _ in 0..<6 {
             let status = engine.update(currentSoC: 60, isPluggedIn: true)
+            #expect(mockHW.chargingInhibited)   // the Mac is not charging while we report this
             #expect(status.mode == .unsupported)
             #expect(status.appliedLimitPercentage == nil)
         }
@@ -319,5 +320,51 @@ struct BatteryControlEngineTests {
         #expect(!mockHW.chargingInhibited)
         #expect(recovered.mode == .charging)
         #expect(recovered.appliedLimitPercentage == 85)
+    }
+
+    @Test func aParkedEngineWithTheFeatureOffStopsAskingForSamples() {
+        // Task 6 gates the daemon's IOPS snapshot on `needsSampling`. A Mac that will never accept
+        // the write must not be the one machine that samples forever for no benefit.
+        let mockHW = MockBatteryHardware()
+        mockHW.writeShouldFail = true
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: false, limitPercentage: 85))
+
+        for _ in 0..<5 { _ = engine.update(currentSoC: 60, isPluggedIn: true) }
+        #expect(mockHW.writeCount == BatteryControlEngine.maxConsecutiveWriteFailures)
+        #expect(!engine.needsSampling)
+
+        // A re-push re-arms the write budget and the sampling together.
+        engine.configure(BatteryControlConfiguration(enabled: false, limitPercentage: 85))
+        #expect(engine.needsSampling)
+    }
+
+    @Test func releaseStillWritesWhenTheHardwareStateWasNeverConfirmed() {
+        // The crashed-daemon scenario the normalization gate exists for: the register really is
+        // latched, the engine knows it does not know, and shutdown is the last chance to clear it.
+        let mockHW = MockBatteryHardware()
+        mockHW.chargingInhibited = true
+        mockHW.writeShouldFail = true
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+        for _ in 0..<5 { _ = engine.update(currentSoC: 60, isPluggedIn: true) }
+        #expect(mockHW.chargingInhibited)
+
+        mockHW.writeShouldFail = false
+        engine.release()
+        #expect(!mockHW.chargingInhibited)
+    }
+
+    @Test func aFailedNormalizationStaysQuietWhenTheUserNeverAskedForTheLimit() {
+        // The alarm is for work the user asked for. With the limit off, a write that will not land
+        // is nothing to alarm them about — and mode and detail must agree on that.
+        let mockHW = MockBatteryHardware()
+        mockHW.writeShouldFail = true
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: false, limitPercentage: 85))
+
+        let status = engine.update(currentSoC: 60, isPluggedIn: true)
+        #expect(status.mode == .charging)
+        #expect(status.detail == "충전 제한 비활성화됨")
     }
 }
