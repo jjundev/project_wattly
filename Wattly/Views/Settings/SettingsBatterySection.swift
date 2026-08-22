@@ -17,17 +17,25 @@ struct SettingsBatterySection: View {
     var body: some View {
         SettingsSection(title: "배터리 충전 제어") {
             SettingsCard {
-                SettingsToggleRow(isOn: $batteryLimitEnabled, divider: batteryLimitEnabled) {
+                // Leave the stored value alone. Flipping it off would look like the app undoing the
+                // user's choice, and it would be wrong the moment the same preferences reach a Mac
+                // that does support the limit.
+                SettingsToggleRow(isOn: $batteryLimitEnabled,
+                                  divider: batteryLimitEnabled && !isHardwareUnsupported,
+                                  isEnabled: !isHardwareUnsupported,
+                                  disabledReason: isHardwareUnsupported ? "이 Mac은 충전 제어를 지원하지 않습니다" : nil) {
                     VStack(alignment: .leading, spacing: 2) {
                         SettingsRowTitle("배터리 충전 제한")
-                        Text("설정한 한도에 도달하면 충전을 멈추고 전원 어댑터로만 작동하여 배터리 수명을 보호합니다.")
+                        Text(isHardwareUnsupported
+                             ? "이 Mac은 충전 제어를 지원하지 않습니다. 이 기능이 사용하는 SMC 레지스터가 없습니다."
+                             : "설정한 한도에 도달하면 충전을 멈추고 전원 어댑터로만 작동하여 배터리 수명을 보호합니다.")
                             .font(WattlyFont.at(10.5, weight: .regular))
                             .foregroundStyle(t.faint)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
 
-                if batteryLimitEnabled {
+                if batteryLimitEnabled && !isHardwareUnsupported {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text("최대 충전 한도")
@@ -54,10 +62,14 @@ struct SettingsBatterySection: View {
                 }
             }
             .task(id: batteryLimitEnabled) {
+                // One read regardless of the opt-in: a Mac with no charge register has to disable
+                // its toggle before the user ever reaches for it.
+                await batteryControl.refreshStatus()
                 guard batteryLimitEnabled else { return }
                 while !Task.isCancelled {
-                    await batteryControl.refreshStatus()
                     try? await Task.sleep(for: .seconds(BatteryControlPolicy.statusPollInterval))
+                    guard !Task.isCancelled else { return }
+                    await batteryControl.refreshStatus()
                 }
             }
             // Turning the opt-in on installs the helper if it is missing (one macOS admin-auth
@@ -144,6 +156,12 @@ struct SettingsBatterySection: View {
                 .foregroundStyle(t.faint)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    /// Only an explicit `false` disables the control. `nil` means the helper has not answered yet —
+    /// or is too old to say — and a Mac must never be declared incapable on a missing answer.
+    private var isHardwareUnsupported: Bool {
+        batteryControl.status.isHardwareSupported == false
     }
 
     private var statusDotColor: Color {

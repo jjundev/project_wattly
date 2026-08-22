@@ -45,6 +45,9 @@ struct BatteryControlBridge: View {
                     consecutiveUnsupported = client.status.mode == .unsupported
                         ? consecutiveUnsupported + 1
                         : 0
+                    // A Mac with no charge-control register will report the same thing forever, and
+                    // the register set is probed once per helper process. Stop rather than back off.
+                    if client.status.isHardwareSupported == false { return }
                 }
             }
     }
