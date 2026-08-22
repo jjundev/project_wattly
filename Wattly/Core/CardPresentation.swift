@@ -92,6 +92,11 @@ enum CardPresentation {
     /// the category **average** (`celsius`) — the same number the card displays (the
     /// prototype fed the max; the average is the steadier, self-consistent input). The three
     /// temperature cards share the one `thresholds.temp` pair (prototype lines 616–620).
+    ///
+    /// The fan card compares `FanSample.loadPercent` — the mean of each fan's own
+    /// `actual / max` ratio as a percentage — against `thresholds.fan`, so one default pair
+    /// is correct across every RPM ceiling. A sample with no readable ceiling yields `nil`
+    /// and the card stays neutral.
     static func thresholdLevel(_ card: CardKind, _ state: MetricState, _ thresholds: Thresholds) -> ThresholdLevel? {
         guard case .value(let sample) = state else { return nil }
         switch (card, sample) {
@@ -103,6 +108,10 @@ enum CardPresentation {
             return sample.pressure?.thresholdLevel
         case (.cpuTemp, .temperature(let s)): return tempLevel(s.cpu, thresholds.temp)
         case (.gpuTemp, .temperature(let s)): return tempLevel(s.gpu, thresholds.temp)
+        case (.fan, .fan(let s)):
+            // % of each fan's own ceiling, not raw RPM — see `FanSample.loadPercent`.
+            // No readable ceiling → nil → the card stays neutral.
+            return s.loadPercent.map { thresholds.fan.level($0) }
         default: return nil   // power/battery (fixed) + any state/sample mismatch
         }
     }

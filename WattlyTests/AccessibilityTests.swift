@@ -128,6 +128,17 @@ struct AccessibilityTests {
         #expect(Accessibility.stateWord(.gpu, .value(.gpu(sampleNormal)), thEnabled) == nil)
     }
 
+    @Test func fanStateWordCritWarnNormal() {
+        let th = Defaults.thresholds   // fan warn 70 % / crit 90 % of max RPM
+        func fanState(_ actual: Double) -> MetricState {
+            .value(.fan(FanSample(fans: [
+                FanReading(index: 0, actualRPM: actual, minRPM: 1200, maxRPM: 6000, targetRPM: actual)])))
+        }
+        #expect(Accessibility.stateWord(.fan, fanState(5700), th) == "위험")   // 95 %
+        #expect(Accessibility.stateWord(.fan, fanState(4500), th) == "주의")   // 75 %
+        #expect(Accessibility.stateWord(.fan, fanState(1800), th) == nil)      // 30 %
+    }
+
     @Test func powerCardHasNoStateWord() {
         #expect(Accessibility.stateWord(.power, power(8.4), Defaults.thresholds) == nil)
     }

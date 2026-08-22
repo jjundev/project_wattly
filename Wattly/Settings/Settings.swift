@@ -104,14 +104,25 @@ struct ThresholdPair: Equatable, Sendable {
 /// `@AppStorage`-storable via a JSON `RawRepresentable` (L12) — `@AppStorage` has
 /// no native support for a nested value like this.
 struct Thresholds: Equatable, Sendable, RawRepresentable {
+    /// The ship default for the fan pair, and the fallback used when decoding a payload
+    /// persisted before the fan pair existed. One home so the two can't drift.
+    static let defaultFan = ThresholdPair(warn: 70, crit: 90)
+
     var cpu: ThresholdPair
     var temp: ThresholdPair
     var gpu: ThresholdPair?
+    /// Fan warning band, compared against `FanSample.loadPercent` (% of each fan's own max
+    /// RPM), NOT against absolute RPM — ceilings vary by model, so a percentage keeps one
+    /// default correct everywhere. Non-optional: unlike the opt-in GPU pair, the fan warning
+    /// ships on, like CPU and temperature.
+    var fan: ThresholdPair
 
-    init(cpu: ThresholdPair, temp: ThresholdPair, gpu: ThresholdPair? = nil) {
+    init(cpu: ThresholdPair, temp: ThresholdPair, gpu: ThresholdPair? = nil,
+         fan: ThresholdPair = Thresholds.defaultFan) {
         self.cpu = cpu
         self.temp = temp
         self.gpu = gpu
+        self.fan = fan
     }
 
     init?(rawValue: String) {
@@ -132,12 +143,22 @@ struct Thresholds: Equatable, Sendable, RawRepresentable {
         } else {
             self.gpu = nil
         }
+
+        // Payloads persisted before the fan pair existed carry no "fan" key — fall back to
+        // the default instead of failing the decode (which would reset every threshold).
+        if let fanObject = object["fan"] as? [String: Double],
+           let fanWarn = fanObject["warn"], let fanCrit = fanObject["crit"] {
+            self.fan = ThresholdPair(warn: fanWarn, crit: fanCrit)
+        } else {
+            self.fan = Self.defaultFan
+        }
     }
 
     var rawValue: String {
         var dict: [String: Any] = [
             "cpu": ["warn": cpu.warn, "crit": cpu.crit],
-            "temp": ["warn": temp.warn, "crit": temp.crit]
+            "temp": ["warn": temp.warn, "crit": temp.crit],
+            "fan": ["warn": fan.warn, "crit": fan.crit]
         ]
         if let g = gpu {
             dict["gpu"] = ["warn": g.warn, "crit": g.crit]
@@ -150,7 +171,7 @@ struct Thresholds: Equatable, Sendable, RawRepresentable {
 
     /// Memberwise equality — NOT JSON string equality (#L12).
     static func == (lhs: Thresholds, rhs: Thresholds) -> Bool {
-        lhs.cpu == rhs.cpu && lhs.temp == rhs.temp && lhs.gpu == rhs.gpu
+        lhs.cpu == rhs.cpu && lhs.temp == rhs.temp && lhs.gpu == rhs.gpu && lhs.fan == rhs.fan
     }
 }
 
@@ -400,7 +421,8 @@ enum Defaults {
     static let thresholds = Thresholds(
         cpu: ThresholdPair(warn: 70, crit: 90),
         temp: ThresholdPair(warn: 70, crit: 90),
-        gpu: nil
+        gpu: nil,
+        fan: Thresholds.defaultFan       // 70 / 90 % of max RPM — on by default
     )
     /// Fan curve: the balanced preset at the canonical 6 500 RPM ceiling.
     /// Using `FanCurvePreset.balanced.curve` keeps this value in sync with the

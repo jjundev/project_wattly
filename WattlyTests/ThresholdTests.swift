@@ -87,6 +87,65 @@ struct ThresholdTests {
         #expect(restoredWithGPU == tWithGPU)
     }
 
+    // MARK: fan — % of each fan's own ceiling, ON by default (no opt-in toggle)
+
+    @Test func fanComparesLoadPercentAgainstItsOwnPair() {
+        let th = Defaults.thresholds        // fan 70/90 (% of max RPM)
+        #expect(CardPresentation.thresholdLevel(.fan, fan(actual: 1800, max: 6000), th) == .normal)  // 30 %
+        #expect(CardPresentation.thresholdLevel(.fan, fan(actual: 4500, max: 6000), th) == .warn)    // 75 %
+        #expect(CardPresentation.thresholdLevel(.fan, fan(actual: 5700, max: 6000), th) == .crit)    // 95 %
+    }
+
+    @Test func fanBoundariesAreInclusiveOnThePercentage() {
+        let th = Defaults.thresholds        // fan 70/90
+        #expect(CardPresentation.thresholdLevel(.fan, fan(actual: 4200, max: 6000), th) == .warn)    // exactly 70 %
+        #expect(CardPresentation.thresholdLevel(.fan, fan(actual: 5400, max: 6000), th) == .crit)    // exactly 90 %
+    }
+
+    @Test func fanWithoutAReadableCeilingIsNil() {
+        // No ceiling → no percentage → no band. The card stays neutral rather than
+        // guessing, matching the memory card's behavior when kernel pressure is missing.
+        let th = Defaults.thresholds
+        let noCeiling = MetricState.value(.fan(FanSample(fans: [
+            FanReading(index: 0, actualRPM: 3000, minRPM: 0, maxRPM: 0, targetRPM: 0)])))
+        #expect(CardPresentation.thresholdLevel(.fan, noCeiling, th) == nil)
+        #expect(CardPresentation.thresholdLevel(.fan, .value(.fan(FanSample(fans: []))), th) == nil)
+        #expect(CardPresentation.thresholdLevel(.fan, .loading, th) == nil)
+    }
+
+    @Test func fanThresholdIsOnByDefault() {
+        // Unlike the opt-in GPU pair, the fan pair is non-optional and ships enabled.
+        #expect(Defaults.thresholds.fan == ThresholdPair(warn: 70, crit: 90))
+    }
+
+    @Test func fanThresholdSurvivesSerializationRoundTrip() {
+        var t = Defaults.thresholds
+        t.fan = ThresholdPair(warn: 55, crit: 80)
+        let restored = Thresholds(rawValue: t.rawValue)
+        #expect(restored?.fan == ThresholdPair(warn: 55, crit: 80))
+        #expect(restored == t)
+    }
+
+    @Test func legacyPayloadWithoutFanDecodesToTheDefaultPair() {
+        // Regression: every already-installed copy has a persisted blob with no "fan" key.
+        // It must decode (keeping the user's cpu/temp/gpu edits) with the fan default filled
+        // in — NOT fail the decode and silently reset every threshold.
+        let legacy = #"{"cpu":{"warn":60,"crit":85},"temp":{"warn":72,"crit":95},"gpu":{"warn":85,"crit":95}}"#
+        let decoded = Thresholds(rawValue: legacy)
+        #expect(decoded?.cpu == ThresholdPair(warn: 60, crit: 85))
+        #expect(decoded?.temp == ThresholdPair(warn: 72, crit: 95))
+        #expect(decoded?.gpu == ThresholdPair(warn: 85, crit: 95))
+        #expect(decoded?.fan == ThresholdPair(warn: 70, crit: 90))
+    }
+
+    @Test func fanDifferenceRegistersAsUnequal() {
+        // The memberwise `==` must include the new field, or a fan-only edit would compare
+        // equal and the settings UI would not re-render.
+        var changed = Defaults.thresholds
+        changed.fan.crit -= 5
+        #expect(changed != Defaults.thresholds)
+    }
+
     @Test func temperatureCardsShareOnePair() {
         let th = Defaults.thresholds       // temp 70/90
         let st = MetricState.value(.temperature(TemperatureSnapshot(
@@ -158,5 +217,9 @@ struct ThresholdTests {
     private func cpu(_ v: Double) -> MetricState { .value(.cpu(CPUSample(overall: v, perfLevels: []))) }
     private func mem(used: Double, total: Double, pressure: MemoryPressure? = nil) -> MetricState {
         .value(.memory(MemorySample(usedGB: used, totalGB: total, wiredGB: 0, compressedGB: 0, pressure: pressure)))
+    }
+    private func fan(actual: Double, max: Double) -> MetricState {
+        .value(.fan(FanSample(fans: [
+            FanReading(index: 0, actualRPM: actual, minRPM: 0, maxRPM: max, targetRPM: actual)])))
     }
 }
