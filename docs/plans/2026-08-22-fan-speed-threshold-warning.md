@@ -4,7 +4,7 @@
 
 **Goal:** Color the 팬 속도 card orange (주의) / red (위험) when fan speed climbs toward the hardware ceiling, using a user-adjustable 주의/위험 threshold pair expressed as a percentage of each fan's own maximum RPM.
 
-**Architecture:** Fan load is normalized to a machine-independent percentage by a new pure `FanSample.loadPercent` (mean of every fan's clamped `actualRPM / maxRPM`, ×100), so one default threshold pair works on every Mac regardless of its 4 000–7 000 RPM ceiling. `Thresholds` gains a **non-optional** `fan: ThresholdPair` (default 70/90 — the fan warning ships ON, like CPU and temperature, unlike the opt-in GPU pair), and `CardPresentation.thresholdLevel` grows a `.fan` case. Every rendering surface — `MetricCardView` sparkline, `CardExpandRegion` bars, `PopoverGridView`, `PopoverHeroView` — and the VoiceOver `Accessibility.stateWord` already read that one function, so no view code changes. Settings reuses the existing `thresholdBlock` helper for the new sliders, shown only on Macs that actually have a fan.
+**Architecture:** Fan load is normalized to a machine-independent percentage by a new pure `FanSample.loadPercent` (mean of every fan's clamped `actualRPM / maxRPM`, ×100), so one default threshold pair works on every Mac regardless of its 4 000–7 000 RPM ceiling. `Thresholds` gains a **non-optional** `fan: ThresholdPair` (default 70/90 — the fan warning ships ON, like CPU and temperature, unlike the opt-in GPU pair), and `CardPresentation.thresholdLevel` grows a `.fan` case. Every sparkline surface — `MetricCardView`, `PopoverGridView`, `PopoverHeroView` — and the VoiceOver `Accessibility.stateWord` already read that one function, so no view code changes. Settings reuses the existing `thresholdBlock` helper for the new sliders, shown only on Macs that actually have a fan.
 
 **Tech Stack:** Swift 6.0 (strict concurrency), SwiftUI, Swift Testing (`import Testing`, `@Test`, `#expect`), Xcode String Catalog (`Localizable.xcstrings`), XcodeGen.
 
@@ -176,7 +176,7 @@ git commit -m "feat(fan): add FanSample.loadPercent, the %-of-ceiling threshold 
 
 ### Task 2: Fan threshold pair + `.fan` case in `thresholdLevel`
 
-This is the task that makes the warning visible. `Thresholds` gains a non-optional `fan` pair (default 70/90); `CardPresentation.thresholdLevel` routes `.fan` through `loadPercent`. Because `MetricCardView`, `CardExpandRegion`, `PopoverGridView`, `PopoverHeroView` and `Accessibility.stateWord` all read that one function, the sparkline, the per-fan expand bars, the grid and hero surfaces, and VoiceOver all light up from this single change.
+This is the task that makes the warning visible. `Thresholds` gains a non-optional `fan` pair (default 70/90); `CardPresentation.thresholdLevel` routes `.fan` through `loadPercent`. Because `MetricCardView`, `PopoverGridView`, `PopoverHeroView` and `Accessibility.stateWord` all read that one function, the card sparkline, the grid and hero surfaces, and VoiceOver all light up from this single change.
 
 Note the ordering constraint in the decoder: a pre-existing persisted `thresholds` JSON has **no** `"fan"` key, so decoding must fall back to the ship default rather than fail — otherwise every existing user's whole threshold settings blob would be discarded.
 
@@ -619,8 +619,9 @@ xcodebuild -project Wattly.xcodeproj -scheme Wattly -configuration Debug -destin
 
 Expected: **BUILD SUCCEEDED**. Then launch the built app, and check three things:
 1. 설정 → 고급 → 상태 경고 기준 shows the new **팬 속도 (최대 RPM 대비 %)** block with 주의 / 위험 sliders under the temperature block (a fanless Mac shows no fan block and no fan-curve section — both gates agree).
-2. Dragging 주의 down below the current fan load turns the 팬 속도 card's sparkline orange, and dragging 위험 below it turns the sparkline and the per-fan expand bars red — on the stack (mode A), grid (mode B) and hero (mode C) layouts alike.
+2. Dragging 주의 down below the current fan load turns the 팬 속도 card's **sparkline** orange, and dragging 위험 below it turns it red — on the stack (mode A), grid (mode B) and hero (mode C) layouts alike. The per-fan bars in the expand region stay neutral (`t.spark`, hardcoded at `CardExpandRegion.swift:390`) — same as the temperature expand bars; only the mem/power *process* bars follow the threshold color.
 3. Dragging 주의 above 위험 pushes 위험 up with it (the existing clamp), and the value readouts stay whole numbers.
+4. At idle (below 주의) the fan sparkline is now **green**, where it used to be neutral gray — `ThresholdLevel.normal.stroke` is `Tokens.statusGreen`, so this is the same idle appearance the CPU and temperature cards already have. Confirm that reads as intended. (On a Mac whose fan ceiling is unreadable there is no percentage, so that card's spark stays gray.)
 
 - [ ] **Step 7: Commit**
 
@@ -637,6 +638,6 @@ git commit -m "feat(settings): add fan-speed warning thresholds with 30-language
 - [ ] A pre-existing persisted `thresholds` blob (no `"fan"` key) decodes with cpu/temp/gpu preserved and fan filled from `Thresholds.defaultFan`.
 - [ ] `Thresholds.==` includes `fan` (a fan-only edit compares unequal).
 - [ ] 기본값으로 되돌리기 restores the fan pair — `SettingsReset` writes `Defaults.thresholds.rawValue`, so this needs no code change but the round-trip is asserted by `SettingsResetTests`.
-- [ ] The fan color appears on all four surfaces (card sparkline, expand bars, grid, hero) with no view-layer edits.
+- [ ] The fan color appears on every sparkline surface (stack card, grid, hero) with no view-layer edits. The expand region's per-fan bars are deliberately NOT colored — they use `t.spark` like the temperature bars.
 - [ ] VoiceOver announces 주의 / 위험 on the fan card.
 - [ ] The fan block is hidden in Settings on a fanless Mac.

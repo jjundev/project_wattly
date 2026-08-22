@@ -88,6 +88,10 @@ struct ThresholdTests {
     }
 
     // MARK: fan — % of each fan's own ceiling, ON by default (no opt-in toggle)
+    //
+    // The boundary cases below rely on their ratios being exactly representable as Doubles
+    // (4200/6000 → exactly 70, 5400/6000 → exactly 90), which is what makes an inclusive
+    // boundary testable at all. Keep any new case on an exact ratio.
 
     @Test func fanComparesLoadPercentAgainstItsOwnPair() {
         let th = Defaults.thresholds        // fan 70/90 (% of max RPM)

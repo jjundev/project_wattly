@@ -27,6 +27,11 @@ struct FanTests {
     }
 
     // MARK: - FanSample.loadPercent (threshold input — % of each fan's own ceiling)
+    //
+    // Every ratio below is chosen to be exactly representable as a Double, so `==` on the
+    // resulting percentage is safe. Editing one to, say, 5000/6000 would yield
+    // 83.33333333333334 and fail against a whole number — pick another exact ratio instead
+    // of loosening the comparison.
 
     @Test func loadPercentEmptySampleIsNil() {
         #expect(FanSample(fans: []).loadPercent == nil)
