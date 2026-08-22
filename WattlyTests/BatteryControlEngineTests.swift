@@ -272,4 +272,52 @@ struct BatteryControlEngineTests {
         #expect(stuck.detail == "충전을 다시 시작하지 못했습니다 (전원 어댑터를 다시 연결해 보세요)")
         #expect(stuck.appliedLimitPercentage == nil)
     }
+
+    @Test func failedInhibitTransitionRetriesOnTheNextTick() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+        // Let normalization land first, so the failure below is the transition's, not the gate's.
+        _ = engine.update(currentSoC: 70, isPluggedIn: true)
+        #expect(mockHW.writeCount == 1)
+
+        mockHW.writeShouldFail = true
+        let failed = engine.update(currentSoC: 85, isPluggedIn: true)
+        #expect(failed.mode == .unsupported)
+        #expect(!mockHW.chargingInhibited)
+        #expect(mockHW.writeCount == 2)
+
+        // The state machine did not advance, so the same transition is re-entered.
+        mockHW.writeShouldFail = false
+        let recovered = engine.update(currentSoC: 85, isPluggedIn: true)
+        #expect(recovered.mode == .inhibited)
+        #expect(mockHW.chargingInhibited)
+        #expect(mockHW.writeCount == 3)
+    }
+
+    @Test func anUnconfirmedHardwareStateNeverReportsHealth() {
+        // Feature on, battery below the limit, register latched by a crashed daemon, and the
+        // normalization write will not land. The engine must stay loud rather than fall through to
+        // the state machine on a guess — a nil applied limit is what makes the app re-push.
+        let mockHW = MockBatteryHardware()
+        mockHW.chargingInhibited = true
+        mockHW.writeShouldFail = true
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+
+        for _ in 0..<6 {
+            let status = engine.update(currentSoC: 60, isPluggedIn: true)
+            #expect(status.mode == .unsupported)
+            #expect(status.appliedLimitPercentage == nil)
+        }
+        #expect(mockHW.writeCount == BatteryControlEngine.maxConsecutiveWriteFailures)
+
+        // A re-push clears the latch and buys another set of attempts.
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+        mockHW.writeShouldFail = false
+        let recovered = engine.update(currentSoC: 60, isPluggedIn: true)
+        #expect(!mockHW.chargingInhibited)
+        #expect(recovered.mode == .charging)
+        #expect(recovered.appliedLimitPercentage == 85)
+    }
 }

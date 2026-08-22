@@ -23,6 +23,13 @@ public final class BatteryControlEngine: @unchecked Sendable {
         consecutiveWriteFailures >= Self.maxConsecutiveWriteFailures
     }
 
+    /// The engine is failing at work that matters: either the user asked for the limit, or the
+    /// hardware is still inhibiting and the release will not land — the state where the Mac
+    /// silently refuses to charge. A failure on work nobody asked for stays quiet.
+    private var hasActionableFailure: Bool {
+        lastWriteFailed && (config.enabled || isCurrentlyInhibited)
+    }
+
     public init(hardware: BatteryControlHardwareProtocol, initialConfig: BatteryControlConfiguration = .init()) {
         self.hardware = hardware
         self.config = initialConfig.normalized
@@ -87,20 +94,20 @@ public final class BatteryControlEngine: @unchecked Sendable {
     /// Hands the hardware back to a known state before the state machine runs for the first time.
     /// A daemon that was SIGKILLed while inhibiting leaves the register latched; if the feature is
     /// on but the battery sits below the limit, no transition would ever fire to clear it and the
-    /// Mac would stop charging permanently. Returns whether the engine may proceed.
+    /// Mac would stop charging permanently.
+    ///
+    /// There is deliberately no give-up branch. Until this write lands, the engine's idea of the
+    /// hardware state is a guess, and running the state machine on a guess is how a stuck battery
+    /// becomes a silent one. Parking here keeps the status honest (`.unsupported`, nil applied
+    /// limit), which is exactly the signal the app's reconcile pass re-pushes `configure` on — and
+    /// `configure` clears the latch, buying another set of attempts. `attemptWrite` still caps the
+    /// hardware calls, so parking costs no further SMC traffic.
     private func normalizeOnFirstUpdate() -> Bool {
         guard !hasInitializedState else { return true }
-        if attemptWrite(inhibited: false, targetLimit: 100) {
-            isCurrentlyInhibited = false
-            hasInitializedState = true
-            return true
-        }
-        if isWriteLatched {
-            // Out of attempts. Stop blocking the rest of the machine on a write that will not land.
-            hasInitializedState = true
-            return true
-        }
-        return false
+        guard attemptWrite(inhibited: false, targetLimit: 100) else { return false }
+        isCurrentlyInhibited = false
+        hasInitializedState = true
+        return true
     }
 
     /// The last chance to hand the battery back before the daemon exits, so it bypasses the failure
@@ -129,7 +136,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
     }
 
     private func detailText(isPluggedIn: Bool, target: Int) -> String {
-        if lastWriteFailed {
+        if hasActionableFailure {
             // A failed release is the opposite failure from a failed apply: control IS applied and
             // stuck on, so telling the user it could not be applied would be actively misleading.
             return isCurrentlyInhibited
@@ -143,9 +150,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
 
     private func status(currentSoC: Int, isPluggedIn: Bool, target: Int) -> BatteryControlServiceStatus {
         let mode: BatteryControlServiceMode
-        if lastWriteFailed && (config.enabled || isCurrentlyInhibited) {
-            // `isCurrentlyInhibited` matters even with the feature off: a release that will not
-            // land is the state where the Mac silently refuses to charge, so it must not be quiet.
+        if hasActionableFailure {
             mode = .unsupported
         } else if isCurrentlyInhibited {
             mode = .inhibited
