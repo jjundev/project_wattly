@@ -51,8 +51,6 @@ public final class BatteryControlEngine: @unchecked Sendable {
     /// daemon can skip its IOPS snapshot entirely instead of copying one on every tick. A parked
     /// engine that has exhausted its write budget is included in that: it cannot act on a sample
     /// until `configure` re-arms it, and `configure` clears the latch.
-    /// A Mac with no charge-control register is included for a different reason: it can never act on
-    /// a reading at all.
     public var needsSampling: Bool {
         // A Mac with no charge-control register cannot act on any reading, so it should never ask
         // the daemon for one. The XPC status path forces a sample regardless, so the settings

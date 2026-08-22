@@ -111,7 +111,10 @@ import AppKit
             isPowerAdapterConnected: status.isPowerAdapterConnected,
             detail: detail,
             updatedAt: Date().timeIntervalSince1970,
-            appliedLimitPercentage: nil
+            appliedLimitPercentage: nil,
+            // Capability is a fact about this Mac, not about the connection — dropping it would
+            // flicker the settings toggle back to enabled on every transient failure.
+            isHardwareSupported: status.isHardwareSupported
         )
     }
 

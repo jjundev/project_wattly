@@ -10,9 +10,7 @@ public final class SMCBatteryControlHardware: BatteryControlHardwareProtocol, @u
         // Ask the hardware which generation it is instead of inferring it from the architecture.
         // A `keyInfo` probe is read-only and costs at most three calls, once per process — and a
         // key that does not answer here is a key that could only ever fail to be written.
-        self.registerSet = BatteryControlKeys.probeOrder
-            .first { smc.keyInfo($0.key) != nil }?
-            .registerSet ?? .unsupported
+        self.registerSet = BatteryControlKeys.registerSet { smc.keyInfo($0) }
     }
 
     public func setChargingInhibited(_ inhibited: Bool, targetLimit: Int) -> Bool {

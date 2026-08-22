@@ -56,9 +56,11 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
     public var isPowerAdapterConnected: Bool
     public var detail: String
     public var updatedAt: TimeInterval
-    /// The limit the helper is enforcing right now, or `nil` when the limit is off. The app
-    /// compares this against its own opt-in to notice a helper that restarted and came back with
-    /// an empty configuration. Optional so a payload from an older installed helper still decodes.
+    /// The limit the helper is enforcing right now, or `nil` when it is enforcing nothing — because
+    /// the limit is off, because a write did not land, or because this Mac has no charge register.
+    /// The app compares this against its own opt-in to notice a helper that restarted and came back
+    /// with an empty configuration. Optional so a payload from an older installed helper still
+    /// decodes.
     public var appliedLimitPercentage: Int?
     /// Whether this Mac exposes a charge-control register at all. `nil` from a helper too old to
     /// report it — "unknown", not "unsupported". `false` means the limit can never work here, which

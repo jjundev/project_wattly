@@ -82,14 +82,22 @@ struct SettingsBatterySection: View {
                 let limit = batteryLimitPercentage
                 Task {
                     let mode = await batteryControl.refreshStatus()?.mode ?? .unavailable
-                    guard BatteryControlPolicy.shouldRunInstaller(mode: mode) else {
+                    if BatteryControlPolicy.shouldRunInstaller(mode: mode) {
+                        if let failure = await batteryControl.installAndApply(enabled: true, limitPercentage: limit, window: window) {
+                            installErrorMessage = failure.localizedDescription
+                            isInstallFailedAlertPresented = true
+                            batteryLimitEnabled = false
+                        }
+                    } else {
                         // The helper already answers — reuse it, no second admin prompt.
                         await batteryControl.apply(enabled: true, limitPercentage: limit)
-                        return
                     }
-                    if let failure = await batteryControl.installAndApply(enabled: true, limitPercentage: limit, window: window) {
-                        installErrorMessage = failure.localizedDescription
-                        isInstallFailedAlertPresented = true
+                    // The helper has now answered. If it says this Mac has no charge register, undo
+                    // the opt-in the user just made — otherwise the row disables itself in the ON
+                    // position with nothing left to switch it back. This clears only a value set in
+                    // this session and just proven impossible; a `true` carried in from a supported
+                    // Mac is never touched, because that path never reaches this handler.
+                    if batteryControl.status.isHardwareSupported == false {
                         batteryLimitEnabled = false
                     }
                 }

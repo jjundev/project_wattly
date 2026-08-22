@@ -601,7 +601,7 @@ Expected: `** BUILD SUCCEEDED **`. (`xcodebuild test` already builds the daemon 
 xcodebuild test -project Wattly.xcodeproj -scheme Wattly -destination 'platform=macOS' 2>&1 | tail -8
 ```
 
-Expected: `** TEST SUCCEEDED **`, 591 tests in 54 suites (584 + 7).
+Expected: `** TEST SUCCEEDED **`, 593 tests in 54 suites (584 + 7).
 
 - [ ] **Step 7: Commit**
 
@@ -615,7 +615,7 @@ git add FanControlShared/BatteryControlProtocol.swift FanControlShared/BatteryCo
 
 Closes the whole-branch review's Minor 10 — today an unsupported Mac shows the toggle switched ON with a faint grey dot and no explanation, which reads as a broken feature rather than an unavailable one.
 
-This task adds no unit tests: SwiftUI views are not unit-testable in this project, and the decision it renders (`isHardwareSupported == false`) is covered by Task 2. Its gate is a clean build, the suite staying at 591, and the manual check below.
+This task adds no unit tests: SwiftUI views are not unit-testable in this project, and the decision it renders (`isHardwareSupported == false`) is covered by Task 2. Its gate is a clean build, the suite staying at 593, and the manual check below.
 
 **Files:**
 - Modify: `Wattly/Views/Settings/SettingsBatterySection.swift`
@@ -681,6 +681,11 @@ Replace the `SettingsToggleRow` block and the `if batteryLimitEnabled` condition
                 if batteryLimitEnabled && !isHardwareUnsupported {
 ```
 
+> **Superseded during implementation.** `SettingsToggleRow` takes `isEnabled:` and
+> `disabledReason:` parameters, and those are what flip its accessibility trait from `.isButton`
+> to `.isStaticText` and route the reason into the VoiceOver hint — `.disabled()` does neither.
+> The shipped code uses those parameters instead, matching `SettingsDisplaySection.swift`.
+
 Change nothing else in the file — the preset selector, status indicator, install button and advisory banner all live inside that `if` and are correctly hidden by it.
 
 - [ ] **Step 4: Let the reconcile loop go quiet on unsupported hardware**
@@ -715,7 +720,7 @@ Expected: `** BUILD SUCCEEDED **`.
 xcodebuild test -project Wattly.xcodeproj -scheme Wattly -destination 'platform=macOS' 2>&1 | tail -8
 ```
 
-Expected: `** TEST SUCCEEDED **`, 591 tests in 54 suites — unchanged, this task adds no tests.
+Expected: `** TEST SUCCEEDED **`, 593 tests in 54 suites — unchanged, this task adds no tests.
 
 - [ ] **Step 6: Commit**
 
@@ -734,11 +739,21 @@ xcodegen generate && xcodebuild build -project Wattly.xcodeproj -scheme Wattly -
 xcodebuild test -project Wattly.xcodeproj -scheme Wattly -destination 'platform=macOS'
 ```
 
-Baseline before Task 1 is 581 tests / 54 suites. Task 1 adds 3, Task 2 adds 7, Task 3 adds none — **591 tests / 54 suites**, all passing.
+Baseline before Task 1 is 581 tests / 54 suites. Task 1 adds 3, Task 2 adds 7, Task 3 adds none — **593 tests / 54 suites**, all passing.
 
 ### Manual, on-device — required before merge
 
 The development machine is an M5 (`.modern`), so it exercises the row this plan exists for. The `.legacy` and `.intel` rows cannot be exercised here and remain covered by unit tests only — say so in the PR rather than implying they were tried.
+
+0. **Force-replace the installed helper first — this step is blocking.** Nothing in the app replaces
+   a helper that answers but is outdated, so an older build left over from earlier work will satisfy
+   step 1 while the fix is not actually installed:
+   ```bash
+   sudo launchctl bootout system/dev.jjundev.WattlyFanDaemon
+   sudo rm -f /Library/PrivilegedHelperTools/dev.jjundev.WattlyFanDaemon /Library/LaunchDaemons/dev.jjundev.WattlyFanDaemon.plist
+   ```
+   Then install from the fresh build and confirm the binary's mtime is today's. Treat step 3's `B0AC`
+   measurement as the real gate — it is the only criterion an old helper cannot fake.
 
 1. **Detection.** Install the helper, open Settings → 배터리 충전 제어. The toggle must be **enabled** and the status must not say 지원하지 않습니다. (Before this plan it said "이 Mac에서 충전 제어를 적용하지 못했습니다".)
 2. **The limit engages.** Plug in below the limit, set 85%, and charge past it. Status must read "충전 제한 85% 도달 (전원 어댑터 바이패스 구동)".
@@ -751,6 +766,14 @@ The development machine is an M5 (`.modern`), so it exercises the row this plan 
 5. **Sleep.** Close the lid plugged in at ≥ 85% for at least 30 minutes. On wake the battery must still be held at the limit — and per the branch's earlier work, the app's wake push re-asserts the register through `configureBattery`.
 6. **Release on uninstall.** With the limit engaged, run the in-app 완전 삭제 and confirm `pmset -g batt` shows charging resumed.
 7. **Unsupported rendering.** This cannot be produced on real hardware here. Verify it by temporarily returning `.unsupported` from `SMCBatteryControlHardware.registerSet`, launching, and confirming the toggle is greyed out with the 지원하지 않습니다 copy — then revert the edit. Do not commit it.
+   Then, with the stub still in place, switch the toggle **on** and confirm you can switch it back
+   **off**. That is the check for the stranded-ON bug.
+8. **Does `CHTE` survive a reboot?** The measurement covered live toggling only, and a root daemon
+   that can latch a Mac into never charging deserves an explicit answer. Engage the limit, then
+   `sudo launchctl bootout system/dev.jjundev.WattlyFanDaemon` **without** uninstalling, reboot, and
+   read `B0AC` before launching Wattly. If the register persisted, the startup normalization write is
+   the only thing that clears it — which means a user who deletes the app while inhibited keeps a Mac
+   that will not charge.
 
 ## Traceability
 

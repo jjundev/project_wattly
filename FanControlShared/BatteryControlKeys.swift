@@ -37,13 +37,33 @@ public struct BatteryControlKeyWrite: Equatable, Sendable {
 /// than beside the hardware because the `WattlyFanDaemon` target has no test host — keeping the
 /// register table here is what makes it verifiable at all.
 public enum BatteryControlKeys {
-    /// Probed in this order at daemon startup; the first key that answers a `keyInfo` call decides
-    /// the generation. Newest first, so a Mac exposing more than one set gets the current one.
-    public static let probeOrder: [(registerSet: BatteryControlRegisterSet, key: String)] = [
-        (.modern, "CHTE"),
-        (.legacy, "CH0B"),
-        (.intel, "BCLM")
+    /// Probed in this order at daemon startup; the first key whose `keyInfo` answers **with the
+    /// expected payload size** decides the generation.
+    ///
+    /// Newest first. That preference is not a measured requirement: the only machine anyone has
+    /// probed (an M5) exposes `CHTE` and not `CH0B`, so the order has never been exercised on a Mac
+    /// that offers both, and it is unknown whether such a Mac exists. Revisit with data if one turns
+    /// up — `expectedSize` below is what a wrong guess would most likely trip over.
+    public static let probeOrder: [(registerSet: BatteryControlRegisterSet, key: String, expectedSize: Int)] = [
+        (.modern, "CHTE", 4),
+        (.legacy, "CH0B", 1),
+        (.intel, "BCLM", 1)
     ]
+
+    /// Chooses the generation from whatever the hardware answers. Takes the probe as a closure so
+    /// the daemon's `SMCControlConnection` stays out of `FanControlShared` and the selection — the
+    /// riskiest new decision in this change — is unit-testable.
+    ///
+    /// A key that answers with an unexpected size is treated as absent rather than trusted: writing
+    /// a 4-byte payload at a 1-byte register is how a "supported" Mac would fail every write with no
+    /// way to tell that apart from broken hardware.
+    public static func registerSet(probing keyInfo: (String) -> (type: String, size: Int)?) -> BatteryControlRegisterSet {
+        for candidate in probeOrder {
+            guard let info = keyInfo(candidate.key), info.size == candidate.expectedSize else { continue }
+            return candidate.registerSet
+        }
+        return .unsupported
+    }
 
     public static func writes(inhibited: Bool,
                               registerSet: BatteryControlRegisterSet,

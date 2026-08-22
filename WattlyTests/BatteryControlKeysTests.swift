@@ -56,9 +56,35 @@ import Testing
     }
 
     @Test func probeOrderPrefersTheNewerRegisterSet() {
-        // An M5 exposes CHTE and not CH0B. Probing CH0B first would pick the legacy set on any Mac
-        // that happens to expose both, which is the failure mode this ordering exists to prevent.
+        // A preference, not a measured requirement — see the doc comment on `probeOrder`.
         #expect(BatteryControlKeys.probeOrder.map(\.key) == ["CHTE", "CH0B", "BCLM"])
         #expect(BatteryControlKeys.probeOrder.map(\.registerSet) == [.modern, .legacy, .intel])
+    }
+
+    @Test func selectionPicksTheGenerationTheHardwareActuallyAnswers() {
+        // An M5: CHTE present at 4 bytes, the legacy pair absent.
+        #expect(BatteryControlKeys.registerSet { $0 == "CHTE" ? ("ui32", 4) : nil } == .modern)
+        // An M1–M3: CH0B present at one byte.
+        #expect(BatteryControlKeys.registerSet { $0 == "CH0B" ? ("hex_", 1) : nil } == .legacy)
+        // An Intel Mac.
+        #expect(BatteryControlKeys.registerSet { $0 == "BCLM" ? ("ui8", 1) : nil } == .intel)
+        // A desktop with no charge control at all.
+        #expect(BatteryControlKeys.registerSet { _ in nil } == .unsupported)
+    }
+
+    @Test func aKeyOfTheWrongSizeIsTreatedAsAbsent() {
+        // A register that answers but is not the shape the table writes would fail every write with
+        // no way to tell that apart from broken hardware. Fall through instead of trusting it.
+        #expect(BatteryControlKeys.registerSet { $0 == "CHTE" ? ("ui8", 1) : nil } == .unsupported)
+
+        // ...and falling through is what lets a machine with a malformed CHTE still use CH0B.
+        let bothButModernIsWrong = BatteryControlKeys.registerSet {
+            switch $0 {
+            case "CHTE": return ("ui8", 1)
+            case "CH0B": return ("hex_", 1)
+            default: return nil
+            }
+        }
+        #expect(bothButModernIsWrong == .legacy)
     }
 }

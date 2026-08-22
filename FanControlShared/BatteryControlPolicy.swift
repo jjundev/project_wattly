@@ -9,10 +9,10 @@ public enum BatteryControlPolicy {
     /// and nothing else would notice: `onChange` needs a user edit and the wake notification needs a
     /// sleep. One status round-trip a minute is the cost of never silently losing the limit.
     ///
-    /// A helper that keeps answering `.unsupported` is a different case: each re-push re-arms the
-    /// engine's write budget, so a flat cadence would mean three failed SMC writes a minute forever
-    /// on a Mac that will never accept one — exactly the loop the project forbids. Back off instead
-    /// of stopping, so a genuinely transient failure still recovers on its own.
+    /// A helper that keeps answering `.unsupported` on hardware that *does* have a register — the
+    /// write reaches it and is refused — is a different case: each re-push re-arms the engine's
+    /// write budget, so a flat cadence would mean three failed SMC writes a minute forever. Back off
+    /// instead of stopping, so a genuinely transient failure still recovers on its own.
     public static func reconcileInterval(consecutiveUnsupported: Int) -> Double {
         switch consecutiveUnsupported {
         case ..<1: return 60.0

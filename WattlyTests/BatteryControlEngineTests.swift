@@ -64,9 +64,8 @@ struct BatteryControlEngineTests {
         #expect(!mockHW.chargingInhibited)
     }
 
-    @Test func intelMacReceivesCustomTargetLimit() {
+    @Test func theEngineForwardsTheTargetLimitToTheHardware() {
         let mockHW = MockBatteryHardware()
-        mockHW.registerSet = .intel
         let engine = BatteryControlEngine(hardware: mockHW)
         engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 90))
 
