@@ -110,11 +110,11 @@ actor FakeProvider: MetricProvider {
             let used = v("mem")
             let gib = 1024.0 * 1024.0 * 1024.0
             let procs = [
-                ProcessUsage(id: "/Applications/Google Chrome.app", name: "Google Chrome",
+                ProcessUsage(id: "com.google.Chrome", name: "Google Chrome",
                              footprintBytes: UInt64(used * 0.30 * gib), iconPath: "/Applications/Google Chrome.app"),
-                ProcessUsage(id: "/Applications/Xcode.app", name: "Xcode",
+                ProcessUsage(id: "com.apple.dt.Xcode", name: "Xcode",
                              footprintBytes: UInt64(used * 0.21 * gib), iconPath: "/Applications/Xcode.app"),
-                ProcessUsage(id: "/Applications/Figma.app", name: "Figma",
+                ProcessUsage(id: "com.figma.Desktop", name: "Figma",
                              footprintBytes: UInt64(used * 0.13 * gib), iconPath: "/Applications/Figma.app"),
             ]
             // Synthesise pressure from the occupancy ratio so the fake/dev harness still

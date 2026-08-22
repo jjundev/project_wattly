@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		00A20B4C0894C6BEAB66BC13 /* FanCurveEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D946C27E4FCBE51115DBA82 /* FanCurveEditor.swift */; };
 		00A74CF529FE67DA3E141D39 /* FanControlEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E92DBEAC072A56D8DCF1D665 /* FanControlEngine.swift */; };
+		012C9093DA1EDAAACEDCFE33 /* AppIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 247F5A24D4B4BC5D47F9F7C8 /* AppIdentity.swift */; };
 		03C1B6D30296659A3095B84D /* FanCurveGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBB7155B2535718E387DA449 /* FanCurveGeometryTests.swift */; };
 		05A74F528E537DFEA675834F /* WattlyFanDaemon in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = C48EFA903806186E968B2D77 /* WattlyFanDaemon */; settings = {ATTRIBUTES = (); }; };
 		06A4E2EC1F8085EB8A90BE32 /* GPUTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 630ABF3D16423E3CBC855D3B /* GPUTransport.swift */; };
@@ -148,6 +149,7 @@
 		F09A382CFB4D0A12620EE56F /* FanControlBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 140F7DBFC4FAB83E2B10015A /* FanControlBridge.swift */; };
 		F10C0DA94A81731AD5BAEDD8 /* FanControlPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = E81B47E3252A5121772114A7 /* FanControlPolicy.swift */; };
 		F2CB4E2A4AE442F961B0E497 /* PowerEnergyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8019EC757BBE28FC570B71D /* PowerEnergyTests.swift */; };
+		F3694B232EC487E5AAF39ED2 /* AppIdentityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F83934D3000879D7EC333BBA /* AppIdentityTests.swift */; };
 		F38F679D33E6DD796A2A578A /* PopoverHeroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43761373E1878A83B8F6365E /* PopoverHeroView.swift */; };
 		F44A4D3FC723BB45C7C6802A /* CardExpandRegion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C57CD51031CA86CBEF2930C /* CardExpandRegion.swift */; };
 		F543F2B2FB157D47528C809F /* LocalizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DA72C9411B1C36567589906 /* LocalizationTests.swift */; };
@@ -214,6 +216,7 @@
 		21242F142598B4648C88DB0C /* ProcessPower.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessPower.swift; sourceTree = "<group>"; };
 		21C8BF6274BBB6992A1F1633 /* PopoverGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverGridView.swift; sourceTree = "<group>"; };
 		2416472810E29E43641FBC70 /* PretendardVariable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = PretendardVariable.ttf; sourceTree = "<group>"; };
+		247F5A24D4B4BC5D47F9F7C8 /* AppIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIdentity.swift; sourceTree = "<group>"; };
 		26D090D32552BB2923E4E526 /* AppUninstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUninstaller.swift; sourceTree = "<group>"; };
 		2CE18CEEC4C10EBF94CFD85F /* MenuBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarItem.swift; sourceTree = "<group>"; };
 		2E3CEC05A8EC12EB24156C91 /* CardReorderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardReorderTests.swift; sourceTree = "<group>"; };
@@ -331,6 +334,7 @@
 		F29DD358CE8F3D499D04E593 /* HardwareModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareModel.swift; sourceTree = "<group>"; };
 		F47F59935E82A4ADE8A739EE /* GPUUsageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUUsageTests.swift; sourceTree = "<group>"; };
 		F61FA5F6DFF92047EE2B7B8E /* SystemMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMonitor.swift; sourceTree = "<group>"; };
+		F83934D3000879D7EC333BBA /* AppIdentityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIdentityTests.swift; sourceTree = "<group>"; };
 		F9AB5AA6871BCF1DC1EEBBE7 /* CPUUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUUsage.swift; sourceTree = "<group>"; };
 		FA3C7588F992C544BD1383D0 /* FanCurvePreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanCurvePreset.swift; sourceTree = "<group>"; };
 		FA98B2B1F73BCF4A0B7AC05B /* MemoryUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryUsage.swift; sourceTree = "<group>"; };
@@ -355,6 +359,7 @@
 			isa = PBXGroup;
 			children = (
 				1FB43BADD9D2756BBE8F6A7B /* Accessibility.swift */,
+				247F5A24D4B4BC5D47F9F7C8 /* AppIdentity.swift */,
 				124595F06443853225A78F1C /* AppReplacer.swift */,
 				26D090D32552BB2923E4E526 /* AppUninstaller.swift */,
 				7FF3A85EC269993CF6023AEB /* AutoUpdater.swift */,
@@ -469,6 +474,7 @@
 			isa = PBXGroup;
 			children = (
 				C59C21E293258105C63FB142 /* AccessibilityTests.swift */,
+				F83934D3000879D7EC333BBA /* AppIdentityTests.swift */,
 				0087639C19083396DB06A189 /* AppReplacerTests.swift */,
 				D987ECF9FA534486FD44FE62 /* AppUninstallerTests.swift */,
 				4B193EC77CC4F6135B8F3566 /* BatteryPowerTests.swift */,
@@ -766,6 +772,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2F21C6921E2896512BD4FF55 /* AccessibilityTests.swift in Sources */,
+				F3694B232EC487E5AAF39ED2 /* AppIdentityTests.swift in Sources */,
 				D7BADF2FB54956C1BB865849 /* AppReplacerTests.swift in Sources */,
 				98FFEDBA03EB593EF689E781 /* AppUninstallerTests.swift in Sources */,
 				E6D4F1BE411CB7202D52B89D /* BatteryPowerTests.swift in Sources */,
@@ -840,6 +847,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0CCE23A7B4FB7DEC009ECA18 /* Accessibility.swift in Sources */,
+				012C9093DA1EDAAACEDCFE33 /* AppIdentity.swift in Sources */,
 				327B519F858C0BCAE3AB2296 /* AppReplacer.swift in Sources */,
 				CB7EC9C8F05538B7AAA385E6 /* AppUninstaller.swift in Sources */,
 				55D146D89F01CBC8A4224B66 /* AutoUpdater.swift in Sources */,

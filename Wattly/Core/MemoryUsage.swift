@@ -74,17 +74,34 @@ func memoryProcessLimit(_ persisted: Int?) -> Int {
     min(7, max(3, persisted ?? Defaults.memoryProcessLimit))
 }
 
-func topMemoryApps(perProcess: [(key: String, bytes: UInt64)], limit: Int) -> [ProcessUsage] {
+/// Coalesce per-process footprints into the top-N apps, keyed by `AppIdentity.key` (the app's
+/// bundle id when readable — NOT its install path, which can carry a version). The group's
+/// row takes its name and icon from its largest member, so two installs of one app (or two
+/// versions running side by side) merge into a single, correctly-labelled row.
+func topMemoryApps(perProcess: [(identity: AppIdentity, bytes: UInt64)], limit: Int) -> [ProcessUsage] {
     var sums: [String: UInt64] = [:]
-    for process in perProcess {
-        sums[process.key, default: 0] += process.bytes
+    var representative: [String: AppIdentity] = [:]
+    // Biggest member first, so the representative is deterministic (tie → icon path asc).
+    for member in perProcess.sorted(by: { lhs, rhs in
+        lhs.bytes != rhs.bytes
+            ? lhs.bytes > rhs.bytes
+            : (lhs.identity.iconPath ?? "") < (rhs.identity.iconPath ?? "")
+    }) {
+        sums[member.identity.key, default: 0] += member.bytes
+        if representative[member.identity.key] == nil {
+            representative[member.identity.key] = member.identity
+        }
     }
     return sums.sorted { lhs, rhs in
         lhs.value > rhs.value || (lhs.value == rhs.value && lhs.key < rhs.key)
     }
     .prefix(memoryProcessLimit(limit))
     .map { key, bytes in
-        ProcessUsage(id: key, name: appDisplayName(forKey: key), footprintBytes: bytes, iconPath: key)
+        let rep = representative[key]
+        return ProcessUsage(id: key,
+                            name: rep?.name ?? appDisplayName(forKey: key),
+                            footprintBytes: bytes,
+                            iconPath: rep?.iconPath)
     }
 }
 
@@ -99,18 +116,4 @@ func topProcesses(_ all: [ProcessUsage], limit: Int) -> [ProcessUsage] {
 /// zero denominator (plan 05 §M19 — mirrors `CPUUsage` `pct`).
 func barFraction(footprint: UInt64, maxBytes: UInt64) -> Double {
     maxBytes > 0 ? Double(footprint) / Double(maxBytes) : 0
-}
-
-/// Responsible app bundle for an executable path: the OUTERMOST `.app` component,
-/// so a Chrome helper resolves to `Google Chrome.app` and `lldb-rpc-server` to
-/// `Xcode.app` — without the private responsible-pid API. Falls back to the
-/// executable path itself when there's no enclosing `.app` (a plain CLI tool →
-/// generic icon), or nil for an empty path. The view feeds this to `NSWorkspace`.
-func appBundlePath(forExecutable path: String) -> String? {
-    guard !path.isEmpty else { return nil }
-    let parts = path.split(separator: "/", omittingEmptySubsequences: false)
-    if let idx = parts.firstIndex(where: { $0.hasSuffix(".app") }) {
-        return "/" + parts[1...idx].joined(separator: "/")
-    }
-    return path
 }

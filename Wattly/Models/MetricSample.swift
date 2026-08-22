@@ -75,14 +75,18 @@ struct MemorySample: Sendable, Equatable {
 }
 
 /// One application row in the memory card's expand. `footprintBytes` is the sum of
-/// readable member processes' `ri_phys_footprint`; `id` is the outer `.app` bundle
-/// path (or executable-path fallback), stable across helper-process churn.
+/// readable member processes' `ri_phys_footprint`; `id` is the coalescing key from
+/// `AppIdentity.key`, stable across helper-process churn.
 struct ProcessUsage: Sendable, Equatable, Identifiable {
+    /// Coalescing key from `AppIdentity.key` — the app's `CFBundleIdentifier` when readable,
+    /// else its bundle/executable path, else `"PID n"`. Bundle-id keyed so an app keeps ONE
+    /// row across an update that changes its install path.
     var id: String
     var name: String
     var footprintBytes: UInt64
-    /// App-bundle (or executable) path used by `NSWorkspace` for the row icon.
-    /// It is a String rather than an `NSImage` so the sample remains Sendable.
+    /// App-bundle (or executable) path used by `NSWorkspace` for the row icon. Usually a
+    /// different value from `id` — the two coincide only in the path-fallback tier, when no
+    /// Info.plist was readable. A String rather than an `NSImage` so the sample stays Sendable.
     var iconPath: String? = nil
 }
 
@@ -102,20 +106,21 @@ struct PowerSample: Sendable, Equatable {
 
 /// One APP row in the power card's expand (issue 16 follow-up). `watts` is the app's
 /// summed per-process average power over the last interval, from `ri_energy_nj` deltas
-/// coalesced across helper pids by their owning `.app` (Electron apps like Claude/Chrome
+/// coalesced across helper pids by their owning app (Electron apps like Claude/Chrome
 /// fragment across helpers — per-pid would bury them). CPU+GPU compute energy only — ANE is
 /// not attributed per-process, and only readable apps are counted, so these rows don't sum
-/// to the card's Combined headline. `id` is the coalescing key (the `.app` bundle path, or
-/// a per-pid fallback for non-app processes), which is also the icon path.
+/// to the card's Combined headline. `id` is the coalescing key from `AppIdentity.key`.
 struct ProcessPower: Sendable, Equatable, Identifiable {
-    /// Coalescing key — the `.app` bundle path (or a per-pid fallback). Stable across polls
-    /// for SwiftUI diffing, and the path `NSWorkspace` resolves the icon from.
+    /// Coalescing key — the app's `CFBundleIdentifier` when readable, else its bundle path,
+    /// else `"PID n"`. Stable across polls for SwiftUI diffing; the icon comes from
+    /// `iconPath`, which is a separate value.
     var id: String
     var name: String
     var watts: Double
-    /// App-bundle (or executable) path for the row icon — usually the same as `id`. A
-    /// `String` (not `NSImage`) so the sample stays `Sendable`; the view turns it into an
-    /// icon with `NSWorkspace`. nil → no icon (a per-pid fallback group).
+    /// App-bundle (or executable) path for the row icon — usually a different value from `id`
+    /// (they coincide only in the path-fallback tier). A `String` (not `NSImage`) so the sample
+    /// stays `Sendable`; the view turns it into an icon with `NSWorkspace`. nil → no icon (a
+    /// per-pid fallback group).
     var iconPath: String? = nil
 }
 
