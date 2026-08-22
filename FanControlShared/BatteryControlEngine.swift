@@ -56,6 +56,20 @@ public final class BatteryControlEngine: @unchecked Sendable {
         config = normalized
     }
 
+    /// Forgets what the engine believes the hardware is doing, so the next `update` re-establishes
+    /// it from scratch instead of trusting a belief formed before a sleep cycle.
+    ///
+    /// Whether the SMC charge-inhibit register survives sleep is model-dependent and unverified,
+    /// and nothing downstream can detect that it was cleared: the reported applied limit is derived
+    /// from configuration, not from the register, so the app's reconcile pass sees perfect agreement
+    /// and does nothing. Costs at most two writes per wake — a normalization, then a re-inhibit if
+    /// one is still due — which is a state transition, not a loop.
+    public func invalidateHardwareState() {
+        hasInitializedState = false
+        consecutiveWriteFailures = 0
+        lastWriteFailed = false
+    }
+
     public func update(currentSoC: Int, isPluggedIn: Bool) -> BatteryControlServiceStatus {
         // Until the hardware is confirmed at a known state the state machine cannot be trusted, so
         // it does not run at all. This also keeps a failing normalization from spending the write

@@ -367,4 +367,23 @@ struct BatteryControlEngineTests {
         #expect(status.mode == .charging)
         #expect(status.detail == "충전 제한 비활성화됨")
     }
+
+    @Test func invalidatingHardwareStateReEstablishesTheInhibitFromScratch() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+        _ = engine.update(currentSoC: 90, isPluggedIn: true)
+        #expect(mockHW.chargingInhibited)
+        let writesBeforeWake = mockHW.writeCount
+
+        // Something cleared the register behind the engine's back while the Mac slept. Nothing in
+        // the status could reveal this: the applied limit is reported from configuration.
+        mockHW.chargingInhibited = false
+
+        engine.invalidateHardwareState()
+        let status = engine.update(currentSoC: 90, isPluggedIn: true)
+        #expect(mockHW.chargingInhibited)                      // re-established, not assumed
+        #expect(status.mode == .inhibited)
+        #expect(mockHW.writeCount == writesBeforeWake + 2)     // normalize, then re-inhibit
+    }
 }

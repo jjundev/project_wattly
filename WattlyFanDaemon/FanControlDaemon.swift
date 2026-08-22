@@ -225,8 +225,9 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
         ) { [weak self] _ in
             // Fans MUST go back to automatic before sleep. The charge limit must NOT: dropping the
             // inhibit here is what lets an overnight sleep charge straight to 100 %, which is the
-            // exact case this feature exists to prevent. The SMC register holds across sleep on its
-            // own, and the app-side reconcile loop repairs it if anything does clear it.
+            // exact case this feature exists to prevent. Whether the SMC register itself survives
+            // sleep is model-dependent, so the wake handler below re-establishes it rather than
+            // trusting it — nothing downstream could detect a register cleared behind our back.
             self?.releaseSynchronously(reason: "system sleep", releaseBattery: false)
         }
 
@@ -235,8 +236,10 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.queue.async {
-                self?.sampleBatteryAndEvaluate(force: true)
+            self?.queue.async { [weak self] in
+                guard let self else { return }
+                batteryEngine.invalidateHardwareState()
+                sampleBatteryAndEvaluate(force: true)
             }
         }
     }
