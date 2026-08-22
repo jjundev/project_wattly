@@ -479,4 +479,42 @@ struct BatteryControlEngineTests {
         engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
         #expect(engine.update(currentSoC: 70, isPluggedIn: true).isHardwareSupported == true)
     }
+
+    @Test func unsupportedHardwareSaysSoEvenWithTheLimitOff() {
+        // The settings screen has to disable its toggle whether or not the user opted in, so the
+        // capability is reported unconditionally rather than folded into the failure path — that
+        // path only speaks when the user asked for something. Before this task an unsupported Mac
+        // with the limit off reported `.charging` / "충전 제한 비활성화됨".
+        let mockHW = MockBatteryHardware()
+        mockHW.registerSet = .unsupported
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: false, limitPercentage: 85))
+
+        let status = engine.update(currentSoC: 70, isPluggedIn: true)
+        #expect(status.mode == .unsupported)
+        #expect(status.isHardwareSupported == false)
+        #expect(status.detail == "이 Mac은 충전 제어를 지원하지 않습니다")
+    }
+
+    @Test func unsupportedHardwareLeavesTheOtherEntryPointsInert() {
+        // `update` is not the only way into the hardware. These three read state that the
+        // short-circuit now leaves permanently false, so pin what they actually do.
+        let mockHW = MockBatteryHardware()
+        mockHW.registerSet = .unsupported
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+        _ = engine.update(currentSoC: 90, isPluggedIn: true)
+        #expect(mockHW.writeCount == 0)
+
+        // Neither of these can act: the engine never came to believe it was inhibiting.
+        engine.reassertHardwareState()
+        engine.configure(BatteryControlConfiguration(enabled: false, limitPercentage: 85))
+        #expect(mockHW.writeCount == 0)
+
+        // `release` still spends its one deliberate last-chance attempt. The real hardware turns
+        // that into a no-op before any bus traffic, because the register table is empty — but the
+        // mock succeeds unconditionally, so the count is what pins the attempt.
+        engine.release()
+        #expect(mockHW.writeCount == 1)
+    }
 }

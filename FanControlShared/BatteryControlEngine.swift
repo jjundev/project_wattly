@@ -33,8 +33,11 @@ public final class BatteryControlEngine: @unchecked Sendable {
         lastWriteFailed && (config.enabled || isCurrentlyInhibited)
     }
 
-    /// A permanent fact about the Mac, not a state the engine can retry its way out of.
-    private var isHardwareSupported: Bool {
+    /// A permanent fact about the Mac, not a state the engine can retry its way out of. Public
+    /// because the daemon builds a status by hand when the power source cannot be read at all, and
+    /// that status has to carry the same answer — otherwise the one machine class most likely to be
+    /// unsupported is the one that never reports it.
+    public var isHardwareSupported: Bool {
         hardware.registerSet != .unsupported
     }
 
@@ -48,6 +51,8 @@ public final class BatteryControlEngine: @unchecked Sendable {
     /// daemon can skip its IOPS snapshot entirely instead of copying one on every tick. A parked
     /// engine that has exhausted its write budget is included in that: it cannot act on a sample
     /// until `configure` re-arms it, and `configure` clears the latch.
+    /// A Mac with no charge-control register is included for a different reason: it can never act on
+    /// a reading at all.
     public var needsSampling: Bool {
         // A Mac with no charge-control register cannot act on any reading, so it should never ask
         // the daemon for one. The XPC status path forces a sample regardless, so the settings

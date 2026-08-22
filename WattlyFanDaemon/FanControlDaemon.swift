@@ -183,7 +183,12 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
                 currentPercentage: 0,
                 isPowerAdapterConnected: false,
                 detail: "전원 소스를 읽을 수 없습니다",
-                updatedAt: Date().timeIntervalSince1970
+                updatedAt: Date().timeIntervalSince1970,
+                appliedLimitPercentage: nil,
+                // A Mac whose power source cannot be read still knows whether it has a charge
+                // register. Without this the app cannot tell "no battery here, stop asking" from
+                // "read failed, try again", and re-pushes at the first one forever.
+                isHardwareSupported: batteryEngine.isHardwareSupported
             )
             return
         }
