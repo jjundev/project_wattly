@@ -59,3 +59,60 @@ func appDisplayName(forKey key: String) -> String {
     let last = key.split(separator: "/").last.map(String.init) ?? key
     return last.hasSuffix(".app") ? String(last.dropLast(4)) : last
 }
+
+// MARK: - Info.plist (this file's only I/O)
+
+/// Read `CFBundleIdentifier` + the display name straight out of a bundle's `Info.plist`.
+/// `CFBundleCopyInfoDictionaryForURL` parses the plist WITHOUT instantiating a live
+/// `Bundle`/`CFBundle` — no bundle-cache pollution, no code-signature validation — and
+/// returns nil for anything unreadable. Non-`.app` paths (plain CLI executables, which are
+/// most pids) short-circuit with no I/O at all. Measured ≈0.21 ms per call on an M-series
+/// Mac, which is why `BundleMetadataCache` exists.
+func bundleMetadata(atBundlePath path: String) -> (id: String?, name: String?) {
+    guard path.hasSuffix(".app"),
+          let info = CFBundleCopyInfoDictionaryForURL(URL(fileURLWithPath: path) as CFURL)
+              as? [String: Any]
+    else { return (nil, nil) }
+    return (info["CFBundleIdentifier"] as? String,
+            (info["CFBundleDisplayName"] as? String) ?? (info["CFBundleName"] as? String))
+}
+
+/// Memo for `bundleMetadata`, owned by each provider actor. The Top-N sweeps re-resolve the
+/// same few dozen bundle paths every poll (~560 pids for memory); without this, each poll
+/// would re-read those plists off disk. Misses are memoised too — a `(nil, nil)` for a CLI or
+/// a deleted bundle — so a failing read isn't retried forever.
+///
+/// A value type with an injected reader, so the caching behaviour is testable with no
+/// filesystem. Each provider owns one instance (actor-isolated → no locking), keeping
+/// `ProcessList`'s no-shared-mutable-state rule intact.
+struct BundleMetadataCache {
+    /// Hard ceiling on retained entries — a menubar app runs for weeks and every launched app
+    /// adds one. Blown → drop everything and re-warm on the next poll (simpler than an LRU,
+    /// and the re-warm costs one sweep).
+    static let capacity = 512
+
+    private var memo: [String: (id: String?, name: String?)] = [:]
+    private let read: (String) -> (id: String?, name: String?)
+
+    init(read: @escaping (String) -> (id: String?, name: String?) = bundleMetadata(atBundlePath:)) {
+        self.read = read
+    }
+
+    mutating func metadata(forBundlePath path: String?) -> (id: String?, name: String?) {
+        guard let path, !path.isEmpty else { return (nil, nil) }
+        if let hit = memo[path] { return hit }
+        let value = read(path)
+        if memo.count >= Self.capacity { memo.removeAll(keepingCapacity: true) }
+        memo[path] = value
+        return value
+    }
+
+    /// The one call a provider makes per pid: executable path → bundle path → (memoised)
+    /// plist values → identity.
+    mutating func identity(executablePath: String, pid: Int32) -> AppIdentity {
+        let bundlePath = appBundlePath(forExecutable: executablePath)
+        let meta = metadata(forBundlePath: bundlePath)
+        return appIdentity(bundlePath: bundlePath, pid: pid,
+                           bundleID: meta.id, bundleName: meta.name)
+    }
+}

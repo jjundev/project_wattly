@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Wattly
 
@@ -75,5 +76,95 @@ struct AppIdentityTests {
                                    bundleID: "", bundleName: "")
         #expect(identity.key == "/Applications/Broken.app")
         #expect(identity.name == "Broken")
+    }
+}
+
+/// The Info.plist read and its memo. The reader is injected, so cache behaviour is verified
+/// with a counting stub and no filesystem; one case exercises the real CoreFoundation read
+/// against the test host bundle (Wattly.app), which is guaranteed to exist while tests run.
+struct BundleMetadataCacheTests {
+
+    /// Every poll re-resolves the same few dozen bundles across ~560 pids. One read per path
+    /// for the life of the provider is the whole point of the memo.
+    @Test func readsEachBundlePathOnce() {
+        var reads = 0
+        var cache = BundleMetadataCache(read: { path in
+            reads += 1
+            return (id: "com.test" + path, name: "Test")
+        })
+        _ = cache.metadata(forBundlePath: "/Applications/A.app")
+        _ = cache.metadata(forBundlePath: "/Applications/A.app")
+        _ = cache.metadata(forBundlePath: "/Applications/B.app")
+        #expect(reads == 2)
+    }
+
+    /// A path with no readable Info.plist (a plain CLI, a deleted bundle) must be memoised
+    /// too — otherwise every poll retries the same failing read forever.
+    @Test func cachesMissesSoFailuresAreNotRetried() {
+        var reads = 0
+        var cache = BundleMetadataCache(read: { _ in
+            reads += 1
+            return (id: nil, name: nil)
+        })
+        let first = cache.metadata(forBundlePath: "/usr/sbin/cfprefsd")
+        let second = cache.metadata(forBundlePath: "/usr/sbin/cfprefsd")
+        #expect(reads == 1)
+        #expect(first.id == nil && first.name == nil)
+        #expect(second.id == nil && second.name == nil)
+    }
+
+    @Test func nilOrEmptyPathSkipsTheReadEntirely() {
+        var reads = 0
+        var cache = BundleMetadataCache(read: { _ in
+            reads += 1
+            return (id: "x", name: "X")
+        })
+        _ = cache.metadata(forBundlePath: nil)
+        _ = cache.metadata(forBundlePath: "")
+        #expect(reads == 0)
+    }
+
+    /// Bounded so a menubar app running for weeks can't grow the memo without limit.
+    @Test func dropsEverythingWhenCapacityIsExceeded() {
+        var reads = 0
+        var cache = BundleMetadataCache(read: { _ in
+            reads += 1
+            return (id: nil, name: nil)
+        })
+        for i in 0..<BundleMetadataCache.capacity {
+            _ = cache.metadata(forBundlePath: "/App\(i).app")
+        }
+        #expect(reads == BundleMetadataCache.capacity)
+        _ = cache.metadata(forBundlePath: "/Overflow.app")   // trips the ceiling → memo cleared
+        _ = cache.metadata(forBundlePath: "/App0.app")       // must be re-read, not a stale hit
+        #expect(reads == BundleMetadataCache.capacity + 2)
+    }
+
+    /// The one call the providers make per pid: resolve the bundle path, read (or reuse) its
+    /// plist, and assemble the identity.
+    @Test func identityResolvesBundlePathAndPlistTogether() {
+        var cache = BundleMetadataCache(read: { _ in
+            (id: "com.anthropic.claude-code", name: "Claude Code")
+        })
+        let identity = cache.identity(
+            executablePath: "/Users/me/Library/Application Support/Claude/claude-code/2.1.237/claude.app/Contents/MacOS/claude",
+            pid: 7)
+        #expect(identity.key == "com.anthropic.claude-code")
+        #expect(identity.name == "Claude Code")
+        #expect(identity.iconPath
+            == "/Users/me/Library/Application Support/Claude/claude-code/2.1.237/claude.app")
+    }
+
+    /// The real CoreFoundation read, against the test host bundle (Wattly.app).
+    @Test func realReaderParsesAnInfoPlistAndIgnoresNonBundles() {
+        let host = bundleMetadata(atBundlePath: Bundle.main.bundlePath)
+        #expect(host.id == "dev.jjundev.Wattly")
+        #expect(host.name == "Wattly")
+        // A plain executable is not a bundle — short-circuits with no I/O.
+        let cli = bundleMetadata(atBundlePath: "/usr/sbin/cfprefsd")
+        #expect(cli.id == nil && cli.name == nil)
+        // A .app path that doesn't exist must not crash or invent values.
+        let missing = bundleMetadata(atBundlePath: "/Applications/DoesNotExist.app")
+        #expect(missing.id == nil && missing.name == nil)
     }
 }
