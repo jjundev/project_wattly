@@ -64,7 +64,8 @@ import Foundation
             loginItem: mockLogin,
             fileManager: .default,
             homeDirectory: tempHome,
-            bundleID: suiteName
+            bundleID: suiteName,
+            releaseBatteryLimit: { }
         )
 
         #expect(mockLogin.isEnabled == false)
@@ -72,7 +73,7 @@ import Foundation
         #expect(testDefaults.string(forKey: "someTestKey") == nil)
     }
 
-    @Test @MainActor func testCleanUserDataReleasesTheChargeLimitBeforeRemovingTheHelper() async {
+    @Test @MainActor func testCleanUserDataReleasesTheChargeLimit() async {
         let mockLogin = MockLoginItem()
         let spy = ReleaseSpy()
         let suiteName = "test.uninstall.battery.\(UUID().uuidString)"
@@ -81,6 +82,8 @@ import Foundation
         try? FileManager.default.createDirectory(at: tempHome, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempHome) }
 
+        // Ordering (release before helper removal) is enforced by the source, not here: the
+        // removal branch needs the real /Library paths to exist, which a unit test must not create.
         await AppUninstaller.cleanUserData(
             userDefaults: testDefaults,
             loginItem: mockLogin,

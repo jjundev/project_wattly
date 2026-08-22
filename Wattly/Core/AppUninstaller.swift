@@ -39,7 +39,7 @@ enum AppUninstaller: Sendable {
         return lines.joined(separator: "\n")
     }
 
-    /// Cleans in-app data, unregisters login items, removes helper daemon if present, and deletes user library files.
+    /// Cleans in-app data, unregisters login items, releases the battery charge limit, removes helper daemon if present, and deletes user library files.
     @MainActor
     static func cleanUserData(
         userDefaults: UserDefaults = .standard,
