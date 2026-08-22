@@ -40,6 +40,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
         // A new configuration is the user — or the app's reconcile pass — asking again, so clear
         // the latch and let the next tick spend a fresh set of attempts.
         consecutiveWriteFailures = 0
+        lastWriteFailed = false
         if config.enabled && !normalized.enabled && isCurrentlyInhibited {
             if attemptWrite(inhibited: false, targetLimit: 100) { isCurrentlyInhibited = false }
         }
@@ -47,47 +48,59 @@ public final class BatteryControlEngine: @unchecked Sendable {
     }
 
     public func update(currentSoC: Int, isPluggedIn: Bool) -> BatteryControlServiceStatus {
-        guard config.enabled && isPluggedIn else {
-            if isCurrentlyInhibited || !hasInitializedState {
-                if attemptWrite(inhibited: false, targetLimit: 100) { isCurrentlyInhibited = false }
-            }
-            hasInitializedState = true
-            let detail: String
-            if !config.enabled {
-                detail = "충전 제한 비활성화됨"
-            } else if lastWriteFailed {
-                detail = "이 Mac에서 충전 제어를 적용하지 못했습니다"
-            } else {
-                detail = "배터리 전원으로 구동 중"
-            }
-            return status(currentSoC: currentSoC, isPluggedIn: isPluggedIn, detail: detail)
+        // Until the hardware is confirmed at a known state the state machine cannot be trusted, so
+        // it does not run at all. This also keeps a failing normalization from spending the write
+        // budget on a transition whose starting point is a guess.
+        guard normalizeOnFirstUpdate() else {
+            return status(currentSoC: currentSoC, isPluggedIn: isPluggedIn, target: config.clampedLimitPercentage)
         }
 
-        hasInitializedState = true
         let target = config.clampedLimitPercentage
-
-        // Only a transition writes. A failed write deliberately leaves `isCurrentlyInhibited`
-        // alone, so the very same branch is re-entered on the next tick — that IS the retry, and
-        // it costs no extra state. `attemptWrite` is what stops it after the bound.
-        if isCurrentlyInhibited {
-            if currentSoC <= config.resumePercentage,
-               attemptWrite(inhibited: false, targetLimit: 100) {
-                isCurrentlyInhibited = false
-            }
-        } else if currentSoC >= target,
-                  attemptWrite(inhibited: true, targetLimit: target) {
-            isCurrentlyInhibited = true
-        }
-
-        let detail: String
-        if lastWriteFailed {
-            detail = "이 Mac에서 충전 제어를 적용하지 못했습니다"
-        } else if isCurrentlyInhibited {
-            detail = "충전 제한 \(target)% 도달 (전원 어댑터 바이패스 구동)"
+        let shouldInhibit: Bool
+        if config.enabled && isPluggedIn {
+            // Hysteresis: cross up at the target, come back down only at the resume threshold.
+            shouldInhibit = isCurrentlyInhibited
+                ? currentSoC > config.resumePercentage
+                : currentSoC >= target
         } else {
-            detail = "목표치(\(target)%)까지 충전 중"
+            shouldInhibit = false
         }
-        return status(currentSoC: currentSoC, isPluggedIn: isPluggedIn, detail: detail)
+
+        if shouldInhibit != isCurrentlyInhibited {
+            // Only a transition writes. A failed write deliberately leaves `isCurrentlyInhibited`
+            // alone, so the very same comparison is re-entered on the next tick — that IS the
+            // retry. `attemptWrite` is what stops it after the bound.
+            if attemptWrite(inhibited: shouldInhibit, targetLimit: shouldInhibit ? target : 100) {
+                isCurrentlyInhibited = shouldInhibit
+            }
+        } else {
+            // Nothing is due, so nothing is failing. Without this a single transient failure would
+            // mislabel a perfectly healthy engine as unsupported until the next transition — which
+            // can be hours away, or never.
+            consecutiveWriteFailures = 0
+            lastWriteFailed = false
+        }
+
+        return status(currentSoC: currentSoC, isPluggedIn: isPluggedIn, target: target)
+    }
+
+    /// Hands the hardware back to a known state before the state machine runs for the first time.
+    /// A daemon that was SIGKILLed while inhibiting leaves the register latched; if the feature is
+    /// on but the battery sits below the limit, no transition would ever fire to clear it and the
+    /// Mac would stop charging permanently. Returns whether the engine may proceed.
+    private func normalizeOnFirstUpdate() -> Bool {
+        guard !hasInitializedState else { return true }
+        if attemptWrite(inhibited: false, targetLimit: 100) {
+            isCurrentlyInhibited = false
+            hasInitializedState = true
+            return true
+        }
+        if isWriteLatched {
+            // Out of attempts. Stop blocking the rest of the machine on a write that will not land.
+            hasInitializedState = true
+            return true
+        }
+        return false
     }
 
     /// The last chance to hand the battery back before the daemon exits, so it bypasses the failure
@@ -103,7 +116,6 @@ public final class BatteryControlEngine: @unchecked Sendable {
     }
 
     /// Every routine hardware write goes through here, so the failure latch has exactly one home.
-    @discardableResult
     private func attemptWrite(inhibited: Bool, targetLimit: Int) -> Bool {
         guard !isWriteLatched else { return false }
         if hardware.setChargingInhibited(inhibited, targetLimit: targetLimit) {
@@ -116,11 +128,24 @@ public final class BatteryControlEngine: @unchecked Sendable {
         return false
     }
 
-    private func status(currentSoC: Int, isPluggedIn: Bool, detail: String) -> BatteryControlServiceStatus {
+    private func detailText(isPluggedIn: Bool, target: Int) -> String {
+        if lastWriteFailed {
+            // A failed release is the opposite failure from a failed apply: control IS applied and
+            // stuck on, so telling the user it could not be applied would be actively misleading.
+            return isCurrentlyInhibited
+                ? "충전을 다시 시작하지 못했습니다 (전원 어댑터를 다시 연결해 보세요)"
+                : "이 Mac에서 충전 제어를 적용하지 못했습니다"
+        }
+        if isCurrentlyInhibited { return "충전 제한 \(target)% 도달 (전원 어댑터 바이패스 구동)" }
+        if !config.enabled { return "충전 제한 비활성화됨" }
+        return isPluggedIn ? "목표치(\(target)%)까지 충전 중" : "배터리 전원으로 구동 중"
+    }
+
+    private func status(currentSoC: Int, isPluggedIn: Bool, target: Int) -> BatteryControlServiceStatus {
         let mode: BatteryControlServiceMode
-        if config.enabled && lastWriteFailed {
-            // Only report unsupported for work the user actually asked for; a failed startup
-            // normalization while the feature is off is not something to alarm them about.
+        if lastWriteFailed && (config.enabled || isCurrentlyInhibited) {
+            // `isCurrentlyInhibited` matters even with the feature off: a release that will not
+            // land is the state where the Mac silently refuses to charge, so it must not be quiet.
             mode = .unsupported
         } else if isCurrentlyInhibited {
             mode = .inhibited
@@ -131,7 +156,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
             mode: mode,
             currentPercentage: currentSoC,
             isPowerAdapterConnected: isPluggedIn,
-            detail: detail,
+            detail: detailText(isPluggedIn: isPluggedIn, target: target),
             updatedAt: Date().timeIntervalSince1970,
             // Report the limit actually being enforced. A failed write means nothing is, and
             // reporting `nil` is what makes the app's reconcile pass re-push and clear the latch.

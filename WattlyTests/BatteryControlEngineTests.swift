@@ -25,29 +25,32 @@ struct BatteryControlEngineTests {
         let engine = BatteryControlEngine(hardware: mockHW)
         engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85, lowerHysteresisDelta: 2))
 
+        // The first update always normalizes the hardware to a known state, so the baseline is one
+        // write, not zero. The point of these counts is that no REDUNDANT write happens inside the
+        // hysteresis band.
         // 1. Below limit while plugged in -> Charging allowed
         let s1 = engine.update(currentSoC: 84, isPluggedIn: true)
         #expect(s1.mode == .charging)
         #expect(!mockHW.chargingInhibited)
-        #expect(mockHW.writeCount == 0)
+        #expect(mockHW.writeCount == 1)
 
         // 2. Reaches limit (85%) -> Inhibits charging (1 write)
         let s2 = engine.update(currentSoC: 85, isPluggedIn: true)
         #expect(s2.mode == .inhibited)
         #expect(mockHW.chargingInhibited)
-        #expect(mockHW.writeCount == 1)
+        #expect(mockHW.writeCount == 2)
 
         // 3. Stays at 84% (within hysteresis band) -> Still inhibited, NO redundant SMC write
         let s3 = engine.update(currentSoC: 84, isPluggedIn: true)
         #expect(s3.mode == .inhibited)
         #expect(mockHW.chargingInhibited)
-        #expect(mockHW.writeCount == 1) // write count must NOT increase
+        #expect(mockHW.writeCount == 2) // write count must NOT increase
 
         // 4. Drops to 83% (resume threshold: 85 - 2 = 83) -> Re-enables charging (1 write)
         let s4 = engine.update(currentSoC: 83, isPluggedIn: true)
         #expect(s4.mode == .charging)
         #expect(!mockHW.chargingInhibited)
-        #expect(mockHW.writeCount == 2)
+        #expect(mockHW.writeCount == 3)
     }
 
     @Test func disabledConfigReEnablesCharging() {
@@ -199,5 +202,74 @@ struct BatteryControlEngineTests {
 
         engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 80))
         #expect(engine.needsSampling)
+    }
+
+    @Test func firstUpdateNormalizesHardwareLeftLatchedByACrashedDaemon() {
+        // Feature on, battery below the limit, register still latched from a previous process. No
+        // transition would ever fire here, so without the normalization the Mac never charges.
+        let mockHW = MockBatteryHardware()
+        mockHW.chargingInhibited = true
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+
+        let status = engine.update(currentSoC: 60, isPluggedIn: true)
+        #expect(!mockHW.chargingInhibited)
+        #expect(status.mode == .charging)
+        #expect(mockHW.writeCount == 1)
+    }
+
+    @Test func failedStartupNormalizationRetriesUpToTheBound() {
+        let mockHW = MockBatteryHardware()
+        mockHW.writeShouldFail = true
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: false, limitPercentage: 85))
+
+        // The state machine stays parked until the hardware is at a known state.
+        for _ in 0..<5 { _ = engine.update(currentSoC: 60, isPluggedIn: true) }
+        #expect(mockHW.writeCount == BatteryControlEngine.maxConsecutiveWriteFailures)
+
+        // And it recovers when the write finally lands.
+        engine.configure(BatteryControlConfiguration(enabled: false, limitPercentage: 85))
+        mockHW.writeShouldFail = false
+        _ = engine.update(currentSoC: 60, isPluggedIn: true)
+        #expect(!mockHW.chargingInhibited)
+    }
+
+    @Test func staleFailureClearsOnceNoWriteIsDue() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+        _ = engine.update(currentSoC: 85, isPluggedIn: true)
+        #expect(mockHW.chargingInhibited)
+
+        // Unplug with a transient failure on the release.
+        mockHW.writeShouldFail = true
+        #expect(engine.update(currentSoC: 84, isPluggedIn: false).mode == .unsupported)
+
+        // Re-plug above the resume threshold: the limit is working and no write is due, so the
+        // engine must stop calling itself unsupported.
+        mockHW.writeShouldFail = false
+        let healthy = engine.update(currentSoC: 90, isPluggedIn: true)
+        #expect(healthy.mode == .inhibited)
+        #expect(healthy.appliedLimitPercentage == 85)
+    }
+
+    @Test func disablingWhileTheReleaseFailsStaysLoudAboutTheStuckBattery() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+        _ = engine.update(currentSoC: 85, isPluggedIn: true)
+        #expect(mockHW.chargingInhibited)
+
+        mockHW.writeShouldFail = true
+        engine.configure(BatteryControlConfiguration(enabled: false, limitPercentage: 85))
+        let stuck = engine.update(currentSoC: 85, isPluggedIn: true)
+
+        // The Mac is not charging and the user asked for the limit OFF — this must not report a
+        // quiet, contradictory "disabled" state.
+        #expect(mockHW.chargingInhibited)
+        #expect(stuck.mode == .unsupported)
+        #expect(stuck.detail == "충전을 다시 시작하지 못했습니다 (전원 어댑터를 다시 연결해 보세요)")
+        #expect(stuck.appliedLimitPercentage == nil)
     }
 }
