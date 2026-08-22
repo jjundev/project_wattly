@@ -69,12 +69,6 @@ struct ProcessPowerTests {
 
     // MARK: name + bar helpers
 
-    @Test func appDisplayNameStripsDotApp() {
-        #expect(appDisplayName(forKey: "/Applications/Claude.app") == "Claude")
-        #expect(appDisplayName(forKey: "/usr/bin/node") == "node")
-        #expect(appDisplayName(forKey: "PID 42") == "PID 42")
-    }
-
     @Test func wattFractionRelativeAndClamped() {
         #expect(wattFraction(watts: 2, maxWatts: 4) == 0.5)
         #expect(wattFraction(watts: 4, maxWatts: 4) == 1)

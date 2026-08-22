@@ -195,19 +195,4 @@ struct MemoryUsageTests {
         #expect(barFraction(footprint: 100, maxBytes: 100) == 1.0)
         #expect(barFraction(footprint: 10, maxBytes: 0) == 0)   // no divide-by-zero
     }
-
-    // MARK: appBundlePath — outermost-.app heuristic for the row icon
-
-    @Test func appBundlePathPicksOutermostDotApp() {
-        // Helper nested inside the main app → the OUTER app (Chrome icon, not the helper's).
-        #expect(appBundlePath(forExecutable:
-            "/Applications/Google Chrome.app/Contents/Frameworks/Chrome.framework/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)")
-            == "/Applications/Google Chrome.app")
-        // CLI tool bundled in an app → that app (Xcode icon).
-        #expect(appBundlePath(forExecutable: "/Applications/Xcode.app/Contents/Developer/usr/bin/lldb-rpc-server")
-            == "/Applications/Xcode.app")
-        // Plain CLI tool, no enclosing .app → the executable itself (generic icon).
-        #expect(appBundlePath(forExecutable: "/usr/sbin/cfprefsd") == "/usr/sbin/cfprefsd")
-        #expect(appBundlePath(forExecutable: "") == nil)
-    }
 }

@@ -49,13 +49,6 @@ func powerProcessLimit(_ persisted: Int?) -> Int {
     min(7, max(3, persisted ?? Defaults.powerProcessLimit))
 }
 
-/// Display name for an app group key: the `.app` basename minus ".app" (e.g.
-/// "/Applications/Claude.app" → "Claude"), else the path basename (a CLI), else the key.
-func appDisplayName(forKey key: String) -> String {
-    let last = key.split(separator: "/").last.map(String.init) ?? key
-    return last.hasSuffix(".app") ? String(last.dropLast(4)) : last
-}
-
 /// Bar width 0..1 for a power row, relative to the top app's watts (flat/zero guard).
 func wattFraction(watts: Double, maxWatts: Double) -> Double {
     guard maxWatts > 0 else { return 0 }

@@ -100,17 +100,3 @@ func topProcesses(_ all: [ProcessUsage], limit: Int) -> [ProcessUsage] {
 func barFraction(footprint: UInt64, maxBytes: UInt64) -> Double {
     maxBytes > 0 ? Double(footprint) / Double(maxBytes) : 0
 }
-
-/// Responsible app bundle for an executable path: the OUTERMOST `.app` component,
-/// so a Chrome helper resolves to `Google Chrome.app` and `lldb-rpc-server` to
-/// `Xcode.app` — without the private responsible-pid API. Falls back to the
-/// executable path itself when there's no enclosing `.app` (a plain CLI tool →
-/// generic icon), or nil for an empty path. The view feeds this to `NSWorkspace`.
-func appBundlePath(forExecutable path: String) -> String? {
-    guard !path.isEmpty else { return nil }
-    let parts = path.split(separator: "/", omittingEmptySubsequences: false)
-    if let idx = parts.firstIndex(where: { $0.hasSuffix(".app") }) {
-        return "/" + parts[1...idx].joined(separator: "/")
-    }
-    return path
-}
