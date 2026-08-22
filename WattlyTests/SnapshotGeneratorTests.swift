@@ -683,7 +683,7 @@ struct SnapshotGeneratorTests {
         // 12. Settings: Thresholds Section
         let thresholdSectionView = ThemedRoot {
             VStack(spacing: 0) {
-                SettingsThresholdSection()
+                SettingsThresholdSection(showsFan: monitor.isPresent(.fan))
             }
             .padding(16)
             .frame(width: 440)
