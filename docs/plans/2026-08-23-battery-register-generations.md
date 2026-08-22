@@ -72,7 +72,7 @@ The protocol member, the daemon's implementation and the test mock all change in
 - Produces:
   - `BatteryControlRegisterSet` — `.modern` / `.legacy` / `.intel` / `.unsupported`, `String`-backed `Codable`
   - `BatteryControlKeyWrite(key: String, bytes: [UInt8], isRequired: Bool)` — note `bytes`, replacing the old single `byte`
-  - `BatteryControlKeys.probeOrder: [(registerSet: BatteryControlRegisterSet, key: String)]`
+  - `BatteryControlKeys.probeOrder: [(registerSet: BatteryControlRegisterSet, key: String)]` — **superseded:** the shipped tuple carries a third element, `expectedSize`, and selection moved into a pure `BatteryControlKeys.registerSet(probing:)`. See the note below Step 5.
   - `BatteryControlKeys.writes(inhibited: Bool, registerSet: BatteryControlRegisterSet, targetLimit: Int) -> [BatteryControlKeyWrite]`
   - `BatteryControlHardwareProtocol.registerSet: BatteryControlRegisterSet` — replaces `isAppleSilicon`
 
@@ -272,9 +272,7 @@ public final class SMCBatteryControlHardware: BatteryControlHardwareProtocol, @u
         // Ask the hardware which generation it is instead of inferring it from the architecture.
         // A `keyInfo` probe is read-only and costs at most three calls, once per process — and a
         // key that does not answer here is a key that could only ever fail to be written.
-        self.registerSet = BatteryControlKeys.probeOrder
-            .first { smc.keyInfo($0.key) != nil }?
-            .registerSet ?? .unsupported
+        self.registerSet = BatteryControlKeys.registerSet { smc.keyInfo($0) }
     }
 
     public func setChargingInhibited(_ inhibited: Bool, targetLimit: Int) -> Bool {
@@ -297,6 +295,12 @@ public final class SMCBatteryControlHardware: BatteryControlHardwareProtocol, @u
     }
 }
 ```
+
+> **Superseded during implementation.** Existence alone is not enough: `keyInfo` answers for any
+> key of size 1–32, so a register of the wrong shape would be selected and then fail every write.
+> The shipped code validates the payload size against the table and falls through to the next
+> candidate on a mismatch, and the selection itself moved into a pure, testable
+> `BatteryControlKeys.registerSet(probing:)` in `FanControlShared`.
 
 - [ ] **Step 6: Update the test mock**
 
@@ -601,7 +605,7 @@ Expected: `** BUILD SUCCEEDED **`. (`xcodebuild test` already builds the daemon 
 xcodebuild test -project Wattly.xcodeproj -scheme Wattly -destination 'platform=macOS' 2>&1 | tail -8
 ```
 
-Expected: `** TEST SUCCEEDED **`, 593 tests in 54 suites (584 + 7).
+Expected: `** TEST SUCCEEDED **`, 591 tests in 54 suites (584 + 7) at the time this task was written. Two review-fix passes later added tests; the branch ends at 595.
 
 - [ ] **Step 7: Commit**
 
@@ -615,7 +619,7 @@ git add FanControlShared/BatteryControlProtocol.swift FanControlShared/BatteryCo
 
 Closes the whole-branch review's Minor 10 — today an unsupported Mac shows the toggle switched ON with a faint grey dot and no explanation, which reads as a broken feature rather than an unavailable one.
 
-This task adds no unit tests: SwiftUI views are not unit-testable in this project, and the decision it renders (`isHardwareSupported == false`) is covered by Task 2. Its gate is a clean build, the suite staying at 593, and the manual check below.
+This task adds no unit tests: SwiftUI views are not unit-testable in this project, and the decision it renders (`isHardwareSupported == false`) is covered by Task 2. Its gate is a clean build, the suite staying green, and the manual check below.
 
 **Files:**
 - Modify: `Wattly/Views/Settings/SettingsBatterySection.swift`
@@ -739,7 +743,7 @@ xcodegen generate && xcodebuild build -project Wattly.xcodeproj -scheme Wattly -
 xcodebuild test -project Wattly.xcodeproj -scheme Wattly -destination 'platform=macOS'
 ```
 
-Baseline before Task 1 is 581 tests / 54 suites. Task 1 adds 3, Task 2 adds 7, Task 3 adds none — **593 tests / 54 suites**, all passing.
+Baseline before Task 1 is 581 tests / 54 suites. Task 1 adds 3, Task 2 adds 7 and Task 3 none, which is 591; two review-fix passes added 4 more — the branch ends at **595 tests / 54 suites**, all passing. Read the real number from a run rather than trusting this line.
 
 ### Manual, on-device — required before merge
 

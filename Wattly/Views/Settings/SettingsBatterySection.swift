@@ -17,9 +17,12 @@ struct SettingsBatterySection: View {
     var body: some View {
         SettingsSection(title: "배터리 충전 제어") {
             SettingsCard {
-                // Leave the stored value alone. Flipping it off would look like the app undoing the
-                // user's choice, and it would be wrong the moment the same preferences reach a Mac
-                // that does support the limit.
+                // Rendering never writes the stored value: flipping it off here would look like the
+                // app undoing the user's choice, and it would be wrong the moment the same
+                // preferences reach a Mac that does support the limit. The one exception is the
+                // opt-in the user just made in this session, which the toggle handler clears once
+                // the helper answers that this Mac has no register — otherwise the row would
+                // disable itself in the ON position with nothing left to switch it back.
                 SettingsToggleRow(isOn: $batteryLimitEnabled,
                                   divider: batteryLimitEnabled && !isHardwareUnsupported,
                                   isEnabled: !isHardwareUnsupported,

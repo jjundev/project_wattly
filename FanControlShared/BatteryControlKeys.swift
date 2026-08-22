@@ -57,6 +57,12 @@ public enum BatteryControlKeys {
     /// A key that answers with an unexpected size is treated as absent rather than trusted: writing
     /// a 4-byte payload at a 1-byte register is how a "supported" Mac would fail every write with no
     /// way to tell that apart from broken hardware.
+    ///
+    /// Size is checked and `type` deliberately is not, unlike the fan probes next door. Only one of
+    /// these registers has ever been observed — `CHTE` reports `ui32` on an M5 — so a type check on
+    /// the other two would be asserting a string nobody has read off real hardware, and rejecting a
+    /// working register is worse than accepting an odd type at the right width. Size is what makes
+    /// the raw byte-array write well-formed, which is the property that actually matters here.
     public static func registerSet(probing keyInfo: (String) -> (type: String, size: Int)?) -> BatteryControlRegisterSet {
         for candidate in probeOrder {
             guard let info = keyInfo(candidate.key), info.size == candidate.expectedSize else { continue }
