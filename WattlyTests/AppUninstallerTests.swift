@@ -15,6 +15,10 @@ import Foundation
         }
     }
 
+    final class ReleaseSpy: @unchecked Sendable {
+        var callCount = 0
+    }
+
     @Test func testTargetCleanupPathsIncludeExpectedLocations() {
         let home = URL(fileURLWithPath: "/Users/testuser")
         let bundleID = "dev.jjundev.Wattly"
@@ -66,5 +70,27 @@ import Foundation
         #expect(mockLogin.isEnabled == false)
         #expect(mockLogin.disabledCallCount == 1)
         #expect(testDefaults.string(forKey: "someTestKey") == nil)
+    }
+
+    @Test @MainActor func testCleanUserDataReleasesTheChargeLimitBeforeRemovingTheHelper() async {
+        let mockLogin = MockLoginItem()
+        let spy = ReleaseSpy()
+        let suiteName = "test.uninstall.battery.\(UUID().uuidString)"
+        let testDefaults = UserDefaults(suiteName: suiteName)!
+        let tempHome = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempHome, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempHome) }
+
+        await AppUninstaller.cleanUserData(
+            userDefaults: testDefaults,
+            loginItem: mockLogin,
+            fileManager: .default,
+            homeDirectory: tempHome,
+            bundleID: suiteName,
+            releaseBatteryLimit: { spy.callCount += 1 }
+        )
+
+        #expect(spy.callCount == 1)
+        #expect(mockLogin.disabledCallCount == 1)
     }
 }
