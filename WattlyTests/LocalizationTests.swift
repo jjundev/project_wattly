@@ -70,6 +70,8 @@ struct LocalizationTests {
 
         #expect(String(localized: "CPU 사용률 (%)", locale: Locale(identifier: "ja")) == "CPU使用率 (%)")
         #expect(String(localized: "GPU 사용률 (%)", locale: Locale(identifier: "ja")) == "GPU使用率 (%)")
+        #expect(String(localized: "팬 속도 (최대 RPM 대비 %)", locale: Locale(identifier: "ja")) == "ファン回転数 最大比 (%)")
+        #expect(String(localized: "팬 속도 (최대 RPM 대비 %)", locale: Locale(identifier: "en")) == "Fan Speed vs. Max RPM (%)")
 
         #expect(String(localized: "활성", locale: Locale(identifier: "ja")) == "アクティブ")
         #expect(String(localized: "저전력", locale: Locale(identifier: "ja")) == "低電力")

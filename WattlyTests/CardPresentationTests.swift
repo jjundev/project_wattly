@@ -522,10 +522,16 @@ struct CardPresentationTests {
         #expect(CardPresentation.valueText(.fan, .loading) == "—")
     }
 
-    @Test func fanHasNoThresholdColor() {
-        let state = MetricState.value(.fan(FanSample(fans: [
+    @Test func fanColorsByPercentageOfItsCeiling() {
+        // A fan pinned at its own ceiling is 100 % → 위험, regardless of the absolute RPM
+        // (this same 9000 RPM sample used to be color-free).
+        let pinned = MetricState.value(.fan(FanSample(fans: [
             FanReading(index: 0, actualRPM: 9000, minRPM: 0, maxRPM: 9000, targetRPM: 9000)])))
-        #expect(CardPresentation.thresholdLevel(.fan, state, Defaults.thresholds) == nil)
+        #expect(CardPresentation.thresholdLevel(.fan, pinned, Defaults.thresholds) == .crit)
+
+        let idle = MetricState.value(.fan(FanSample(fans: [
+            FanReading(index: 0, actualRPM: 1200, minRPM: 1200, maxRPM: 9000, targetRPM: 1200)])))
+        #expect(CardPresentation.thresholdLevel(.fan, idle, Defaults.thresholds) == .normal)
     }
 
     // MARK: Coverage — every CardKind must format a value, plot a scalar, and (if menubar-

@@ -351,7 +351,7 @@ struct SettingsView: View {
     private var advancedGroup: some View {
         VStack(alignment: .leading, spacing: 18) {
             SettingsGroupHeader(title: "고급")
-            SettingsThresholdSection()
+            SettingsThresholdSection(showsFan: monitor.isPresent(.fan))
             if monitor.isPresent(.fan) {
                 SettingsFanCurveSection(monitor: monitor, fanControl: fanControl)
             }
