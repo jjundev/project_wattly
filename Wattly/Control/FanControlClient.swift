@@ -81,12 +81,8 @@ import AppKit
     /// Installs the privileged helper via one admin-auth prompt, then applies the specified curve to
     /// engage control. If the user cancels the prompt (or it fails), returns false.
     ///
-    /// Window-survival: this is an accessory (LSUIElement) app, and the admin-auth dialog
-    /// deactivates it long enough (on the success path, while the root script runs) for macOS to
-    /// destroy the Settings window — reopening it afterward proved unreliable. So instead we hold a
-    /// **regular activation policy for the duration of the install**: a regular app keeps its windows
-    /// when deactivated, so the Settings window is never torn down. The menubar-only policy (and its
-    /// absent Dock icon) is restored once the window is back up front.
+    /// `window` is held alive across the auth dialog by `PrivilegedHelperInstallSession` — see that
+    /// type for why an accessory app needs the activation-policy dance.
     @discardableResult
     func installAndEngage(curve: FanCurve, window: NSWindow?) async -> Bool {
         isInstallingHelper = true

@@ -120,9 +120,28 @@ struct BatteryControlClientTests {
     }
 
     @MainActor @Test func clientMarksItselfUnavailableWhenTheReplyIsUndecodable() async {
-        let client = BatteryControlClient { _ in (Data("not json".utf8), nil) }
+        let good = BatteryControlServiceStatus(
+            mode: .inhibited,
+            currentPercentage: 85,
+            isPowerAdapterConnected: true,
+            detail: "충전 제한 85% 도달 (전원 어댑터 바이패스 구동)",
+            updatedAt: 1.0,
+            appliedLimitPercentage: 85
+        )
+        let garbage = FailureSwitch()
+        let client = BatteryControlClient { _ in
+            if await garbage.isOn { return (Data("not json".utf8), nil) }
+            return (try? BatteryControlCodec.encode(good), nil)
+        }
+
+        await client.apply(enabled: true, limitPercentage: 85)
+        #expect(client.status.mode == .inhibited)
+
+        // A reply that arrives but cannot be decoded is just as much a dead helper as no reply.
+        await garbage.turnOn()
         await client.refreshStatus()
         #expect(client.status.mode == .unavailable)
+        #expect(client.status.detail == "도우미 응답 오류")
     }
 
     @MainActor @Test func reconcileRepushesTheLimitWhenTheHelperForgotIt() async {

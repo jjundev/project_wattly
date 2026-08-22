@@ -60,13 +60,15 @@ import AppKit
     }
 
     /// Installs the privileged helper with one admin-auth prompt and immediately pushes the user's
-    /// limit — without this the helper would sit at its disabled default while the toggle reads ON.
+    /// configuration — without this the helper would sit at its disabled default while the toggle
+    /// reads ON. `enabled` is the caller's real opt-in rather than an assumption, so installing from
+    /// a recovery button can never switch the limit on behind the user's back.
     /// Returns `nil` on success or the install failure.
-    public func installAndApply(limitPercentage: Int, window: NSWindow?) async -> Error? {
+    public func installAndApply(enabled: Bool, limitPercentage: Int, window: NSWindow?) async -> Error? {
         isInstallingHelper = true
         defer { isInstallingHelper = false }
         return await PrivilegedHelperInstallSession.run(window: window) {
-            await self.apply(enabled: true, limitPercentage: limitPercentage)
+            await self.apply(enabled: enabled, limitPercentage: limitPercentage)
         }
     }
 
