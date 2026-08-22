@@ -11,6 +11,9 @@ struct BatteryControlBridge: View {
         Color.clear
             .frame(width: 0, height: 0)
             .accessibilityHidden(true)
+            // Unconditional on purpose, unlike the fan bridge: a helper that survived the last app
+            // session may still be holding an inhibit the user has since switched off, and this is
+            // the push that clears it.
             .task {
                 await client.apply(enabled: enabled, limitPercentage: limit)
             }
@@ -22,6 +25,18 @@ struct BatteryControlBridge: View {
             }
             .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)) { _ in
                 Task { await client.apply(enabled: enabled, limitPercentage: limit) }
+            }
+            // The helper restarts with an empty configuration (KeepAlive relaunch, kickstart, a
+            // crash) and nothing else would notice: `onChange` needs a user edit, the wake handler
+            // needs a sleep. The id covers BOTH values so an edit mid-loop restarts the task —
+            // otherwise a stale captured `limit` could be reconciled back over the new one.
+            .task(id: "\(enabled)-\(limit)") {
+                guard enabled else { return }
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(BatteryControlPolicy.reconcileInterval))
+                    guard !Task.isCancelled else { return }
+                    await client.reconcile(enabled: enabled, limitPercentage: limit)
+                }
             }
     }
 }

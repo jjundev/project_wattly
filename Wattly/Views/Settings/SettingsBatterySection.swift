@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// Battery charge limit settings section: Toggle, limit percentage selector (80%, 85%, 90%, 95%),
 /// live status indicator, and helper installation trigger.
@@ -52,8 +53,35 @@ struct SettingsBatterySection: View {
                     .padding(EdgeInsets(top: 12, leading: 14, bottom: 14, trailing: 14))
                 }
             }
+            // A one-shot refresh freezes the dot: the interesting moment — reaching the limit —
+            // happens minutes after the window opens.
             .task {
-                await batteryControl.refreshStatus()
+                while !Task.isCancelled {
+                    await batteryControl.refreshStatus()
+                    try? await Task.sleep(for: .seconds(5))
+                }
+            }
+            // Turning the opt-in on installs the helper if it is missing (one macOS admin-auth
+            // prompt) and pushes the limit either way, so the helper never sits at its disabled
+            // default while this toggle reads ON. If the user cancels the prompt, revert the toggle
+            // so it reflects reality.
+            .onChange(of: batteryLimitEnabled) { _, isEnabled in
+                guard isEnabled, !batteryControl.isInstallingHelper else { return }
+                let window = NSApp.keyWindow
+                let limit = batteryLimitPercentage
+                Task {
+                    let mode = await batteryControl.refreshStatus()?.mode ?? .unavailable
+                    guard BatteryControlPolicy.shouldRunInstaller(mode: mode) else {
+                        // The helper already answers — reuse it, no second admin prompt.
+                        await batteryControl.apply(enabled: true, limitPercentage: limit)
+                        return
+                    }
+                    if let failure = await batteryControl.installAndApply(enabled: true, limitPercentage: limit, window: window) {
+                        installErrorMessage = failure.localizedDescription
+                        isInstallFailedAlertPresented = true
+                        batteryLimitEnabled = false
+                    }
+                }
             }
         }
         .alert("도우미 설치 실패", isPresented: $isInstallFailedAlertPresented) {
@@ -75,11 +103,11 @@ struct SettingsBatterySection: View {
             Spacer()
             if batteryControl.status.mode == .unavailable {
                 Button {
+                    let window = NSApp.keyWindow
+                    let limit = batteryLimitPercentage
                     Task {
-                        do {
-                            try await batteryControl.installHelper()
-                        } catch {
-                            installErrorMessage = error.localizedDescription
+                        if let failure = await batteryControl.installAndApply(enabled: batteryLimitEnabled, limitPercentage: limit, window: window) {
+                            installErrorMessage = failure.localizedDescription
                             isInstallFailedAlertPresented = true
                         }
                     }

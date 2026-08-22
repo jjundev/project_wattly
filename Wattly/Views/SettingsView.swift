@@ -11,7 +11,7 @@ struct SettingsView: View {
     let fanControl: FanControlClient
     let batteryControl: BatteryControlClient
 
-    init(monitor: SystemMonitor, fanControl: FanControlClient, batteryControl: BatteryControlClient = BatteryControlClient()) {
+    init(monitor: SystemMonitor, fanControl: FanControlClient, batteryControl: BatteryControlClient) {
         self.monitor = monitor
         self.fanControl = fanControl
         self.batteryControl = batteryControl
