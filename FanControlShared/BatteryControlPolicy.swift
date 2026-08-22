@@ -30,8 +30,10 @@ public enum BatteryControlPolicy {
     /// call rate is set by whatever is calling it rather than by the helper — and a re-assert is by
     /// construction a non-transitioning write, the one thing the SMC-traffic rule forbids doing in a
     /// loop. The real callers (an app launch, a wake, a settings edit) are minutes apart, so a floor
-    /// costs them nothing and bounds everything else. A skipped re-assert is harmless: the next one
-    /// covers it, and it is belt-and-braces over a register that usually survives sleep anyway.
+    /// costs them nothing and bounds everything else. A skipped re-assert is harmless: the next
+    /// launch, wake, or edit push covers it, as does the next hysteresis transition. Note the app's
+    /// reconcile pass is NOT what covers it — that compares an applied limit derived from
+    /// configuration, so a silently cleared register looks like perfect agreement to it.
     public static let reassertMinimumInterval = 60.0
 
     /// Whether enough time has passed since the last hardware re-assert to allow another.

@@ -142,7 +142,9 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
                 // After `configure`, not before: the engine's own guard reads the opt-in, and before
                 // `configure` that is still the OLD one — so a push that turns the limit off would
                 // write a fresh inhibit and then immediately release it. Throttled because this is
-                // an XPC entry point and a re-assert does not correspond to a state transition.
+                // an XPC entry point and a re-assert does not correspond to a state transition —
+                // the floor tracks this path only, since the wake observer's rate is set by real
+                // wake events rather than by a caller.
                 let nowSeconds = now()
                 if BatteryControlPolicy.shouldReassert(now: nowSeconds, lastReassertAt: lastReassertAt) {
                     lastReassertAt = nowSeconds

@@ -1595,7 +1595,7 @@ git add Wattly/Core/AppUninstaller.swift WattlyTests/AppUninstallerTests.swift &
 xcodegen generate && xcodebuild test -project Wattly.xcodeproj -scheme Wattly -destination 'platform=macOS'
 ```
 
-Baseline is 537 tests / 52 suites. This plan's eight tasks, plus the final whole-branch review's fixes (an added engine test and a replaced policy test), brought the suite to **580 tests / 54 suites**, all passing — the actual count the full-suite run reports, not the ~565 this section originally estimated.
+Baseline is 537 tests / 52 suites. This plan's eight tasks, plus the final whole-branch review's fixes (an added engine test and a replaced policy test), brought the suite to **581 tests / 54 suites**, all passing — the actual count the full-suite run reports, not the ~565 this section originally estimated.
 
 ### Manual, on-device — required before merge
 
