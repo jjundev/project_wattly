@@ -124,19 +124,25 @@ struct MemoryUsageTests {
 
     // MARK: topMemoryApps
 
+    /// Terse identity builder for the ranking tables below: bundle-id key, real display name,
+    /// and the `.app` path the row's icon comes from.
+    private func app(_ key: String, _ name: String, _ iconPath: String) -> AppIdentity {
+        AppIdentity(key: key, name: name, iconPath: iconPath)
+    }
+
     @Test func topMemoryAppsCoalescesHelpersAndUsesAppName() {
+        let codex = app("com.openai.codex", "Codex", "/Applications/Codex.app")
+        let chrome = app("com.google.Chrome", "Google Chrome", "/Applications/Google Chrome.app")
+        let xcode = app("com.apple.dt.Xcode", "Xcode", "/Applications/Xcode.app")
+
         let top = topMemoryApps(perProcess: [
-            (key: "/Applications/Codex.app", bytes: 50),
-            (key: "/Applications/Codex.app", bytes: 30),
-            (key: "/Applications/Google Chrome.app", bytes: 70),
-            (key: "/Applications/Xcode.app", bytes: 20),
+            (identity: codex, bytes: 50),
+            (identity: codex, bytes: 30),
+            (identity: chrome, bytes: 70),
+            (identity: xcode, bytes: 20),
         ], limit: 7)
 
-        #expect(top.map(\.id) == [
-            "/Applications/Codex.app",
-            "/Applications/Google Chrome.app",
-            "/Applications/Xcode.app",
-        ])
+        #expect(top.map(\.id) == ["com.openai.codex", "com.google.Chrome", "com.apple.dt.Xcode"])
         #expect(top.map(\.name) == ["Codex", "Google Chrome", "Xcode"])
         #expect(top.map(\.footprintBytes) == [80, 70, 20])
         #expect(top.map(\.iconPath) == [
@@ -146,37 +152,60 @@ struct MemoryUsageTests {
         ])
     }
 
+    /// The reported bug (2026-08-22): the list showed "Claude" and "claude" as two rows.
+    /// They ARE two different programs (the desktop app and the Claude Code CLI), so two rows
+    /// is correct — but the CLI must be labelled from its Info.plist ("Claude Code"), not from
+    /// its bundle DIRECTORY name ("claude"). And because the CLI's path carries its version,
+    /// two concurrently-running versions (an update lands while older sessions keep running)
+    /// must still coalesce into ONE row.
+    @Test func claudeDesktopAndClaudeCodeAreDistinctRowsWithRealNames() {
+        let desktop = app("com.anthropic.claudefordesktop", "Claude", "/Applications/Claude.app")
+        let cli237 = app("com.anthropic.claude-code", "Claude Code",
+                         "/Users/me/Library/Application Support/Claude/claude-code/2.1.237/claude.app")
+        let cli236 = app("com.anthropic.claude-code", "Claude Code",
+                         "/Users/me/Library/Application Support/Claude/claude-code/2.1.236/claude.app")
+
+        let top = topMemoryApps(perProcess: [
+            (identity: desktop, bytes: 300),   // main process + helpers
+            (identity: desktop, bytes: 200),
+            (identity: cli237, bytes: 400),    // several CLI sessions, two versions live
+            (identity: cli237, bytes: 300),
+            (identity: cli236, bytes: 100),
+        ], limit: 3)
+
+        #expect(top.count == 2)
+        #expect(top[0].id == "com.anthropic.claude-code")
+        #expect(top[0].name == "Claude Code")                 // not "claude"
+        #expect(top[0].footprintBytes == 800)                 // both versions in ONE row
+        #expect(top[0].iconPath                                // icon from the biggest member
+            == "/Users/me/Library/Application Support/Claude/claude-code/2.1.237/claude.app")
+        #expect(top[1].id == "com.anthropic.claudefordesktop")
+        #expect(top[1].name == "Claude")
+        #expect(top[1].footprintBytes == 500)
+    }
+
     @Test func topMemoryAppsRanksBySumThenStableKeyAndCaps() {
         let top = topMemoryApps(perProcess: [
-            (key: "/Applications/B.app", bytes: 40),
-            (key: "/Applications/A.app", bytes: 40),
-            (key: "/Applications/C.app", bytes: 20),
+            (identity: app("com.example.b", "B", "/Applications/B.app"), bytes: 40),
+            (identity: app("com.example.a", "A", "/Applications/A.app"), bytes: 40),
+            (identity: app("com.example.c", "C", "/Applications/C.app"), bytes: 20),
         ], limit: 2)
 
-        #expect(top.map(\.id) == ["/Applications/A.app", "/Applications/B.app", "/Applications/C.app"])
+        // limit 2 clamps up to the 3-row floor; equal sums order by key asc (no poll-to-poll jitter).
+        #expect(top.map(\.id) == ["com.example.a", "com.example.b", "com.example.c"])
         #expect(top.map(\.footprintBytes) == [40, 40, 20])
     }
 
     @Test func topMemoryAppsClampsDirectLimit() {
-        let processes = [
-            (key: "/Applications/A.app", bytes: UInt64(8)),
-            (key: "/Applications/B.app", bytes: UInt64(7)),
-            (key: "/Applications/C.app", bytes: UInt64(6)),
-            (key: "/Applications/D.app", bytes: UInt64(5)),
-            (key: "/Applications/E.app", bytes: UInt64(4)),
-            (key: "/Applications/F.app", bytes: UInt64(3)),
-            (key: "/Applications/G.app", bytes: UInt64(2)),
-            (key: "/Applications/H.app", bytes: UInt64(1)),
-        ]
+        let names = ["A", "B", "C", "D", "E", "F", "G", "H"]
+        let processes: [(identity: AppIdentity, bytes: UInt64)] = names.enumerated().map { index, name in
+            (identity: app("com.example.\(name.lowercased())", name, "/Applications/\(name).app"),
+             bytes: UInt64(8 - index))
+        }
 
-        #expect(topMemoryApps(perProcess: processes, limit: 1).map(\.id) == [
-            "/Applications/A.app", "/Applications/B.app", "/Applications/C.app",
-        ])
-        #expect(topMemoryApps(perProcess: processes, limit: 99).map(\.id) == [
-            "/Applications/A.app", "/Applications/B.app", "/Applications/C.app",
-            "/Applications/D.app", "/Applications/E.app", "/Applications/F.app",
-            "/Applications/G.app",
-        ])
+        #expect(topMemoryApps(perProcess: processes, limit: 1).map(\.name) == ["A", "B", "C"])
+        #expect(topMemoryApps(perProcess: processes, limit: 99).map(\.name)
+            == ["A", "B", "C", "D", "E", "F", "G"])
     }
 
     @Test func memoryProcessLimitClampsToSupportedRange() {
