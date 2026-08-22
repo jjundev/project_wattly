@@ -57,7 +57,16 @@ import Testing
         #expect(!BatteryControlPolicy.shouldRunInstaller(mode: .unsupported))
     }
 
-    @Test func reconcileIntervalIsSlowEnoughToBeFree() {
-        #expect(BatteryControlPolicy.reconcileInterval >= 60.0)
+    @Test func reconcileBacksOffWhenTheHelperKeepsRejectingTheWrite() {
+        // A healthy helper is re-checked every minute...
+        #expect(BatteryControlPolicy.reconcileInterval(consecutiveUnsupported: 0) == 60.0)
+        // ...but a Mac that will never accept the write must not have its write budget re-armed
+        // every minute forever.
+        #expect(BatteryControlPolicy.reconcileInterval(consecutiveUnsupported: 1) == 300.0)
+        #expect(BatteryControlPolicy.reconcileInterval(consecutiveUnsupported: 3) == 300.0)
+        #expect(BatteryControlPolicy.reconcileInterval(consecutiveUnsupported: 4) == 900.0)
+        #expect(BatteryControlPolicy.reconcileInterval(consecutiveUnsupported: 99) == 900.0)
+        // It backs off rather than giving up, so a transient failure still recovers unattended.
+        #expect(BatteryControlPolicy.reconcileInterval(consecutiveUnsupported: 99) < .infinity)
     }
 }

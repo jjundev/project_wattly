@@ -32,10 +32,19 @@ struct BatteryControlBridge: View {
             // otherwise a stale captured `limit` could be reconciled back over the new one.
             .task(id: "\(enabled)-\(limit)") {
                 guard enabled else { return }
+                var consecutiveUnsupported = 0
                 while !Task.isCancelled {
-                    try? await Task.sleep(for: .seconds(BatteryControlPolicy.reconcileInterval))
+                    try? await Task.sleep(
+                        for: .seconds(BatteryControlPolicy.reconcileInterval(
+                            consecutiveUnsupported: consecutiveUnsupported))
+                    )
                     guard !Task.isCancelled else { return }
                     await client.reconcile(enabled: enabled, limitPercentage: limit)
+                    // A Mac that rejects the write will keep rejecting it; back the cadence off
+                    // rather than re-arming its budget every minute forever.
+                    consecutiveUnsupported = client.status.mode == .unsupported
+                        ? consecutiveUnsupported + 1
+                        : 0
                 }
             }
     }

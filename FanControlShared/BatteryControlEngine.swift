@@ -64,17 +64,25 @@ public final class BatteryControlEngine: @unchecked Sendable {
     /// Only an active inhibit needs this. Nothing but this engine ever sets the register, so a
     /// belief of "not inhibiting" cannot silently drift into the opposite.
     ///
+    /// The opt-in is part of the condition too: if the user has switched the limit off and the
+    /// release write has not landed yet, re-asserting would push the hardware the wrong way while
+    /// the next tick is still trying to let go.
+    ///
     /// This deliberately does NOT route through `normalizeOnFirstUpdate`. That path exists for a
     /// cold start, where the belief is worthless, and it clears `isCurrentlyInhibited` as part of
     /// forcing a known baseline. On wake the belief is the very thing worth keeping: erasing it
     /// would drop a hold the hysteresis band still wants, and a battery resting at 84 % under an
     /// 85 % limit would resume charging on every lid-open.
     public func reassertHardwareState() {
-        guard isCurrentlyInhibited else { return }
+        guard config.enabled, isCurrentlyInhibited else { return }
         if !attemptWrite(inhibited: true, targetLimit: config.clampedLimitPercentage) {
             // The re-assert did not land, so the register's real state is now genuinely unknown.
             // Hand it to the normalization gate, which parks and reports honestly until a write
             // succeeds — and a nil applied limit is what makes the app re-push and re-arm the budget.
+            // Handing this to the normalization gate deliberately costs an in-band hold: the gate
+            // releases before re-deriving, so a battery resting between the resume and target
+            // thresholds recharges once. That is the price of never guessing at a register we could
+            // not write, and it is gated behind an SMC write failure rather than any normal path.
             hasInitializedState = false
         }
     }

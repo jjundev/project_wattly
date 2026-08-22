@@ -210,6 +210,6 @@ struct BatteryControlClientTests {
         await task.value
 
         let kinds = await recorder.kinds
-        #expect(!kinds.contains("configure"))
+        #expect(kinds == ["status"])
     }
 }

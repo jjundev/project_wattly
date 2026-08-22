@@ -131,6 +131,12 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
                     return
                 }
                 lastBatteryGeneration = request.generation
+                // The app pushes a configuration on launch, on wake, and on every edit — and its
+                // wake notification is the only one that reliably fires, since this daemon runs in
+                // the system domain where NSWorkspace notifications do not. So this is where a
+                // register cleared during sleep gets repaired: nothing else could detect it, because
+                // the applied limit we report is derived from configuration, not from the hardware.
+                batteryEngine.reassertHardwareState()
                 batteryEngine.configure(request.configuration)
                 sampleBatteryAndEvaluate(force: true)
                 reply.send((try BatteryControlCodec.encode(latestBatteryStatus), nil))
@@ -226,8 +232,9 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
             // Fans MUST go back to automatic before sleep. The charge limit must NOT: dropping the
             // inhibit here is what lets an overnight sleep charge straight to 100 %, which is the
             // exact case this feature exists to prevent. Whether the SMC register itself survives
-            // sleep is model-dependent, so the wake handler below re-establishes it rather than
-            // trusting it — nothing downstream could detect a register cleared behind our back.
+            // sleep is model-dependent, so the app re-asserts it through `configureBattery` on its
+            // own wake notification — this daemon runs in the system domain, where the wake observer
+            // below is not reliably delivered.
             self?.releaseSynchronously(reason: "system sleep", releaseBattery: false)
         }
 

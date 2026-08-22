@@ -4,12 +4,22 @@ import Foundation
 /// branch here is exercised by unit tests; the SwiftUI bridge and the settings screen only wire
 /// them up.
 public enum BatteryControlPolicy {
-    /// How often the always-mounted bridge re-checks that the helper still holds the user's limit.
-    /// The helper comes back from a `KeepAlive` relaunch, a `kickstart`, or a crash with an empty
-    /// configuration, and nothing else would notice: `onChange` needs a user edit and the wake
-    /// notification needs a sleep. One status round-trip a minute is the cost of never silently
-    /// losing the limit.
-    public static let reconcileInterval = 60.0
+    /// How long to wait before re-checking that the helper still holds the user's limit. The helper
+    /// comes back from a `KeepAlive` relaunch, a `kickstart`, or a crash with an empty configuration,
+    /// and nothing else would notice: `onChange` needs a user edit and the wake notification needs a
+    /// sleep. One status round-trip a minute is the cost of never silently losing the limit.
+    ///
+    /// A helper that keeps answering `.unsupported` is a different case: each re-push re-arms the
+    /// engine's write budget, so a flat cadence would mean three failed SMC writes a minute forever
+    /// on a Mac that will never accept one — exactly the loop the project forbids. Back off instead
+    /// of stopping, so a genuinely transient failure still recovers on its own.
+    public static func reconcileInterval(consecutiveUnsupported: Int) -> Double {
+        switch consecutiveUnsupported {
+        case ..<1: return 60.0
+        case 1...3: return 300.0
+        default: return 900.0
+        }
+    }
 
     /// How often the settings screen re-reads the helper's status while the limit is on. A one-shot
     /// read would freeze the status dot: the interesting moment — reaching the limit — happens

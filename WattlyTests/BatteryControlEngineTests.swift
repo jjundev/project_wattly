@@ -395,6 +395,7 @@ struct BatteryControlEngineTests {
 
         // Something cleared it while the Mac slept. No status field could reveal this.
         mockHW.chargingInhibited = false
+        mockHW.appliedLimit = 100
 
         engine.reassertHardwareState()
         #expect(mockHW.chargingInhibited)
@@ -427,5 +428,22 @@ struct BatteryControlEngineTests {
         let parked = engine.update(currentSoC: 90, isPluggedIn: true)
         #expect(parked.mode == .unsupported)
         #expect(parked.appliedLimitPercentage == nil)
+    }
+
+    @Test func reassertingDoesNotPushBackWhenTheUserHasSwitchedTheLimitOff() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+        _ = engine.update(currentSoC: 90, isPluggedIn: true)
+        #expect(mockHW.chargingInhibited)
+
+        // Disable while the release write keeps failing: the engine still believes it is inhibiting.
+        mockHW.writeShouldFail = true
+        engine.configure(BatteryControlConfiguration(enabled: false, limitPercentage: 85))
+        let writesBeforeWake = mockHW.writeCount
+
+        // A wake here must not push the hardware the wrong way while the release is still pending.
+        engine.reassertHardwareState()
+        #expect(mockHW.writeCount == writesBeforeWake)
     }
 }
