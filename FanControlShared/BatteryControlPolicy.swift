@@ -11,6 +11,11 @@ public enum BatteryControlPolicy {
     /// losing the limit.
     public static let reconcileInterval = 60.0
 
+    /// How often the settings screen re-reads the helper's status while the limit is on. A one-shot
+    /// read would freeze the status dot: the interesting moment — reaching the limit — happens
+    /// minutes after the window opens.
+    public static let statusPollInterval = 5.0
+
     /// True when the helper is reachable but is not enforcing the limit the user opted into.
     /// `.unavailable` is left alone on purpose — installing or connecting belongs to the settings
     /// screen, where the user can see an auth prompt, not to a background loop.

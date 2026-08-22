@@ -187,4 +187,29 @@ struct BatteryControlClientTests {
         let kinds = await recorder.kinds
         #expect(kinds == ["status"])
     }
+
+    @MainActor @Test func reconcileDoesNotWriteAfterItsTaskIsCancelled() async {
+        let forgetful = BatteryControlServiceStatus(
+            mode: .charging,
+            currentPercentage: 70,
+            isPowerAdapterConnected: true,
+            detail: "충전 제한 비활성화됨",
+            updatedAt: 1.0,
+            appliedLimitPercentage: nil
+        )
+        let recorder = RequestRecorder()
+        let client = BatteryControlClient { request in
+            await recorder.record(request)
+            return (try? BatteryControlCodec.encode(forgetful), nil)
+        }
+
+        // A status that disagrees with the opt-in would normally trigger a re-push. Cancellation
+        // must stop the write even though the status read still completes.
+        let task = Task { await client.reconcile(enabled: true, limitPercentage: 85) }
+        task.cancel()
+        await task.value
+
+        let kinds = await recorder.kinds
+        #expect(!kinds.contains("configure"))
+    }
 }

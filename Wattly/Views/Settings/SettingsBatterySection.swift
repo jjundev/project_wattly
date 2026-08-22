@@ -53,12 +53,11 @@ struct SettingsBatterySection: View {
                     .padding(EdgeInsets(top: 12, leading: 14, bottom: 14, trailing: 14))
                 }
             }
-            // A one-shot refresh freezes the dot: the interesting moment — reaching the limit —
-            // happens minutes after the window opens.
-            .task {
+            .task(id: batteryLimitEnabled) {
+                guard batteryLimitEnabled else { return }
                 while !Task.isCancelled {
                     await batteryControl.refreshStatus()
-                    try? await Task.sleep(for: .seconds(5))
+                    try? await Task.sleep(for: .seconds(BatteryControlPolicy.statusPollInterval))
                 }
             }
             // Turning the opt-in on installs the helper if it is missing (one macOS admin-auth

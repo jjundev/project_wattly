@@ -53,7 +53,12 @@ import AppKit
     /// so a healthy helper costs one status call and no SMC traffic at all.
     public func reconcile(enabled: Bool, limitPercentage: Int) async {
         await refreshStatus()
-        guard BatteryControlPolicy.shouldReapply(enabled: enabled,
+        // The caller's task may have been cancelled while that read was in flight, and a reconcile
+        // is a WRITE — unlike the fan heartbeat this loop is modelled on. Without this check a
+        // straggler iteration would re-enable a limit the user just switched off, carrying a higher
+        // generation than the disable that raced it, and nothing would ever repair it.
+        guard !Task.isCancelled,
+              BatteryControlPolicy.shouldReapply(enabled: enabled,
                                                  limitPercentage: limitPercentage,
                                                  status: status) else { return }
         await apply(enabled: enabled, limitPercentage: limitPercentage)
@@ -67,9 +72,19 @@ import AppKit
     public func installAndApply(enabled: Bool, limitPercentage: Int, window: NSWindow?) async -> Error? {
         isInstallingHelper = true
         defer { isInstallingHelper = false }
-        return await PrivilegedHelperInstallSession.run(window: window) {
+        if let failure = await PrivilegedHelperInstallSession.run(window: window, postInstall: {
             await self.apply(enabled: enabled, limitPercentage: limitPercentage)
+        }) {
+            return failure
         }
+        // Installing is only half of it — the configure push is what actually engages the limit.
+        // Reporting success here would leave the toggle ON over a helper that is doing nothing.
+        guard status.mode != .unavailable else {
+            return NSError(domain: "Wattly", code: 2, userInfo: [
+                NSLocalizedDescriptionKey: "도우미는 설치했지만 충전 제한을 적용하지 못했습니다: \(status.detail)"
+            ])
+        }
+        return nil
     }
 
     @discardableResult
