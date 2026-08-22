@@ -59,7 +59,9 @@ import AppKit
         await refreshStatus()
     }
 
-    private static func sendXPC(_ block: @escaping (FanControlXPCService, @escaping (Data?, NSError?) -> Void) -> Void) async -> (Data?, NSError?) {
+    private nonisolated static func sendXPC(
+        _ block: @escaping @Sendable (any FanControlXPCService, @escaping (Data?, NSError?) -> Void) -> Void
+    ) async -> (Data?, NSError?) {
         await withCheckedContinuation { continuation in
             let connection = NSXPCConnection(machServiceName: FanControlXPC.machService, options: .privileged)
             let completion = XPCRequestCompletion(connection: connection, continuation: continuation)

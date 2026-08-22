@@ -6,6 +6,7 @@ import SwiftUI
 struct WattlyApp: App {
     @State private var monitor: SystemMonitor
     @State private var fanControl = FanControlClient()
+    @State private var batteryControl = BatteryControlClient()
 
     init() {
         FontRegistration.register()   // bundle Pretendard before any view renders (A17)
@@ -34,12 +35,13 @@ struct WattlyApp: App {
                 // The fan bridge is likewise always mounted. Closing a Settings window must
                 // never release control; only disabling the persisted opt-in may do that.
                 .background(FanControlBridge(client: fanControl))
+                .background(BatteryControlBridge(client: batteryControl))
         }
         .menuBarExtraStyle(.window)
 
         Settings {
             ThemedRoot {
-                SettingsView(monitor: monitor, fanControl: fanControl)
+                SettingsView(monitor: monitor, fanControl: fanControl, batteryControl: batteryControl)
             }
         }
         // Lock the prefs window to its 440-wide content (issue 13 §1) — a Settings NSWindow
