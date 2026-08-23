@@ -12,6 +12,7 @@ struct SettingsBatterySection: View {
     @AppStorage(StorageKey.batteryLimitPercentage) private var batteryLimitPercentage = Defaults.batteryLimitPercentage
     @State private var isInstallFailedAlertPresented = false
     @State private var installErrorMessage = ""
+    @State private var isHelpPopoverPresented = false
 
     private let presetLimits = [80, 85, 90, 95]
 
@@ -49,10 +50,18 @@ struct SettingsBatterySection: View {
                                 .font(WattlyFont.at(12, weight: .medium))
                                 .foregroundStyle(t.text)
                             Spacer()
-                            Text("\(batteryLimitPercentage)%")
-                                .font(WattlyFont.at(12, weight: .bold))
-                                .monospacedDigit()
-                                .foregroundStyle(t.text)
+                            Button {
+                                isHelpPopoverPresented = true
+                            } label: {
+                                Image(systemName: "exclamationmark.circle")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(t.faint)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("배터리 충전 최적화 안내 보기")
+                            .popover(isPresented: $isHelpPopoverPresented, arrowEdge: .bottom) {
+                                batteryHelpPopover
+                            }
                         }
                         .opacity(isLimitPickerEnabled ? 1 : 0.5)
 
@@ -66,8 +75,6 @@ struct SettingsBatterySection: View {
                         )
 
                         batteryStatusIndicator
-
-                        advisoryBanner
                     }
                     .padding(EdgeInsets(top: 12, leading: 14, bottom: 14, trailing: 14))
                 }
@@ -177,15 +184,54 @@ struct SettingsBatterySection: View {
         .accessibilityElement(children: .combine)
     }
 
-    private var advisoryBanner: some View {
-        HStack(alignment: .top, spacing: 6) {
-            Image(systemName: "info.circle")
-                .font(.system(size: 11))
-                .foregroundStyle(Tokens.statusOrange)
-            Text("원활한 동작을 위해 시스템 설정 > 배터리의 '최적화된 배터리 충전'을 꺼두는 것을 권장합니다.")
-                .font(WattlyFont.at(10.5, weight: .regular))
-                .foregroundStyle(t.faint)
+    private var batteryHelpPopover: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("배터리 충전 최적화 안내")
+                .font(WattlyFont.at(13, weight: .semibold))
+                .foregroundStyle(t.text)
+            Text("Wattly의 충전 제한 기능이 원활하게 작동하려면 macOS 시스템 설정의 '최적화된 배터리 충전'을 꺼두는 것을 권장합니다.")
+                .font(WattlyFont.at(11, weight: .regular))
+                .foregroundStyle(t.sub)
                 .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 5) {
+                Text("1. 아래 버튼으로 시스템 설정 > 배터리 이동")
+                Text("2. '충전' 항목 우측의 ⓘ (정보) 버튼 클릭")
+                Text("3. '최적화된 배터리 충전' 끄기")
+            }
+            .font(WattlyFont.at(10.5, weight: .regular))
+            .foregroundStyle(t.faint)
+            .fixedSize(horizontal: false, vertical: true)
+            Button {
+                isHelpPopoverPresented = false
+                openSystemBatterySettings()
+            } label: {
+                HStack(spacing: 5) {
+                    Text("시스템 배터리 설정 열기")
+                        .font(WattlyFont.at(11.5, weight: .medium))
+                        .foregroundStyle(t.text)
+                    Image(systemName: "arrow.up.forward.app")
+                        .font(.system(size: 10))
+                        .foregroundStyle(t.faint)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(RoundedRectangle(cornerRadius: 6).fill(t.segTrack))
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(t.rowBorder, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(14)
+        .frame(width: 270, alignment: .leading)
+        .background(t.cardBg)
+    }
+
+    private func openSystemBatterySettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.Battery-Settings.extension"),
+           NSWorkspace.shared.open(url) {
+            return
+        }
+        if let fallback = URL(string: "x-apple.systempreferences:com.apple.preference.battery") {
+            NSWorkspace.shared.open(fallback)
         }
     }
 
@@ -195,7 +241,7 @@ struct SettingsBatterySection: View {
     /// policy has exactly one place to change.
     private var isHardwareUnsupported: Bool { !areDetailsVisible }
 
-    /// 하위 항목(한도 선택기 · 상태 줄 · 안내 배너)을 그릴지. 토글의 ON/OFF와는 무관하다 —
+    /// 하위 항목(한도 선택기 · 상태 줄)을 그릴지. 토글의 ON/OFF와는 무관하다 —
     /// 꺼져 있어도 이 기능이 무엇을 하는지는 보여야 한다. 숨기는 경우는 이 Mac에 충전 제어
     /// 레지스터가 아예 없다고 도우미가 명시적으로 답했을 때뿐이다.
     private var areDetailsVisible: Bool {
