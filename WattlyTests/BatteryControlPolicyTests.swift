@@ -91,6 +91,30 @@ import Testing
         #expect(!BatteryControlPolicy.accepted(configuration: requested, by: status))
     }
 
+    @Test func enabledPolicyRejectsUnreadableActualGate() {
+        let requested = BatteryControlConfiguration(enabled: true, limitPercentage: 85)
+        let status = acceptedEnabledStatus(configuration: requested, gate: .unreadable)
+
+        #expect(!BatteryControlPolicy.accepted(configuration: requested, by: status))
+    }
+
+    @Test func enabledPolicyRejectsUnrecognizedActualGate() {
+        let requested = BatteryControlConfiguration(enabled: true, limitPercentage: 85)
+        let status = acceptedEnabledStatus(configuration: requested, gate: .init(
+            state: .unrecognized, appliedLimitPercentage: nil))
+
+        #expect(!BatteryControlPolicy.accepted(configuration: requested, by: status))
+    }
+
+    @Test func enabledPolicyRejectsFailedMaintenance() {
+        let requested = BatteryControlConfiguration(enabled: true, limitPercentage: 85)
+        var status = acceptedEnabledStatus(
+            configuration: requested, gate: .inhibited(appliedLimitPercentage: 85))
+        status.lastMaintenance?.result = .failed
+
+        #expect(!BatteryControlPolicy.accepted(configuration: requested, by: status))
+    }
+
     @Test func reapplyWhenHelperRestartedAndForgotTheLimit() {
         // A KeepAlive relaunch brings the helper back with an empty configuration.
         let forgotten = status(mode: .charging, applied: nil)
@@ -207,5 +231,24 @@ import Testing
         )
         #expect(BatteryControlPolicy.shouldReapply(
             configuration: .init(enabled: true, limitPercentage: 85), status: olderHelper))
+    }
+
+    private func acceptedEnabledStatus(
+        configuration: BatteryControlConfiguration,
+        gate: BatteryHardwareGate
+    ) -> BatteryControlServiceStatus {
+        BatteryControlServiceStatus(
+            mode: .inhibited,
+            currentPercentage: 85,
+            isPowerAdapterConnected: true,
+            detail: "OK",
+            updatedAt: 1,
+            desiredConfiguration: configuration,
+            actualGate: gate,
+            lastMaintenance: .init(
+                trigger: .clientConfiguration,
+                result: .applied,
+                occurredAt: 1,
+                reason: nil))
     }
 }
