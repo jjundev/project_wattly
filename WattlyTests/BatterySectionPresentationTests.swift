@@ -88,7 +88,11 @@ import Foundation
             (.inhibited, .orange),
             (.charging, .green),
             (.unavailable, .red),
-            (.unsupported, .faint),
+            // 켜짐 + `.unsupported`는 이 줄이 보이는 한(즉 `areDetailsVisible`을 통과한 한) 등록 자체가
+            // 없는 Mac일 수 없다 — 그런 Mac은 이 행을 아예 그리지 않는다. 그래서 여기서는 항상 실제
+            // 실패("이 Mac에서 충전 제어를 적용하지 못했습니다")이고, 가장 조용한 점(`.faint`)이 아니라
+            // 꺼짐 상태의 같은 모드와 일치하는 주황 점을 받는다.
+            (.unsupported, .orange),
         ]
         for (mode, dot) in cases {
             let s = BatterySectionPresentation.status(isLimitOn: true, isInstalling: false,
@@ -108,10 +112,29 @@ import Foundation
 
     // MARK: - 폴링
 
-    @Test func pollingRunsOnlyWhileTheLimitIsOn() {
-        // 꺼짐 상태의 문구는 상수라 폴링해도 바뀌지 않는다. 폴링 한 번은 데몬의 IOKit 전원 소스
-        // 읽기를 유발하므로, 바뀌지 않을 값을 위해 돌리지 않는다.
-        #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: true) == true)
-        #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false) == false)
+    // 꺼짐 상태의 문구가 전부 상수이던 시절의 전제는 `e311a7f` 이후로 더는 참이 아니다 —
+    // `.inhibited`/`.unsupported`는 이제 데몬의 살아있는 `detail`을 그대로 보여주므로, 그 값이
+    // 바뀔 수 있는 동안은 계속 다시 읽어야 한다. `.charging`/`.unavailable`만 여전히 상수라서
+    // 폴링해봐야 데몬의 IOKit 전원 소스 읽기만 유발하고 화면은 그대로다.
+
+    @Test func pollingRunsWhenOnRegardlessOfMode() {
+        for mode: BatteryControlServiceMode in [.inhibited, .charging, .unavailable, .unsupported] {
+            #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: true, mode: mode) == true)
+        }
+    }
+
+    @Test func pollingStopsWhenOffAndSettled() {
+        // `.charging` = 정상적으로 꺼짐, `.unavailable` = 도우미가 없어 물어봐야 답할 주체가 없음.
+        // 둘 다 문구가 상수라 다시 읽어도 바뀌지 않는다.
+        #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false, mode: .charging) == false)
+        #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false, mode: .unavailable) == false)
+    }
+
+    @Test func pollingContinuesWhenOffAndStillRecovering() {
+        // 껐는데 하드웨어가 아직 물고 있거나 해제 쓰기가 실패한 상태 — 데몬이 스스로 재시도해
+        // 풀어내므로, 여기서 폴링을 멈추면 사용자가 어댑터를 다시 꽂아 실제로 복구된 뒤에도 화면은
+        // 실패 문구에 얼어붙는다.
+        #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false, mode: .inhibited) == true)
+        #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false, mode: .unsupported) == true)
     }
 }

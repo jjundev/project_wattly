@@ -73,10 +73,17 @@ struct SettingsBatterySection: View {
             }
             .task(id: batteryLimitEnabled) {
                 // One read regardless of the opt-in: a Mac with no charge register has to disable
-                // its toggle before the user ever reaches for it.
+                // its toggle before the user ever reaches for it. This is also the read that
+                // decides `areDetailsVisible`.
                 await batteryControl.refreshStatus()
-                guard BatterySectionPresentation.shouldPollStatus(isLimitOn: batteryLimitEnabled) else { return }
-                while !Task.isCancelled {
+                // Re-checked every iteration, not just once up front: the gate depends on the mode
+                // the daemon just reported, and that mode can change out from under us — e.g. the
+                // daemon recovers from `.inhibited`/`.unsupported` back to `.charging` once the user
+                // reconnects the adapter. Re-evaluating here is what lets polling stop on its own
+                // once the state settles, instead of running forever or freezing on a failure.
+                while !Task.isCancelled,
+                      BatterySectionPresentation.shouldPollStatus(isLimitOn: batteryLimitEnabled,
+                                                                   mode: batteryControl.status.mode) {
                     try? await Task.sleep(for: .seconds(BatteryControlPolicy.statusPollInterval))
                     guard !Task.isCancelled else { return }
                     await batteryControl.refreshStatus()

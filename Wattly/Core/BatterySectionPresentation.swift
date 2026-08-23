@@ -71,8 +71,12 @@ enum BatterySectionPresentation {
             case .inhibited, .unsupported:
                 // 껐는데 하드웨어가 아직 물고 있거나 해제 쓰기가 실패한 상태. 회색 점 + "비활성화됨"으로
                 // 덮으면 충전을 멈춘 Mac을 두고 "정상적으로 꺼졌다"고 단언하는 셈이 된다.
-                // `detail`은 이때 "충전을 다시 시작하지 못했습니다 (전원 어댑터를 다시 연결해 보세요)"이며,
-                // 그게 사용자가 할 수 있는 유일한 복구 안내다.
+                // 주로는 `detail`이 "충전을 다시 시작하지 못했습니다 (전원 어댑터를 다시 연결해 보세요)"인
+                // 경우 — 사용자가 할 수 있는 유일한 복구 안내다. 다만 유일한 문구는 아니다:
+                // `WattlyFanDaemon/FanControlDaemon.swift`는 전원 소스 자체를 읽지 못했을 때
+                // `isHardwareSupported`가 참인 채로 `.unsupported` + "전원 소스를 읽을 수 없습니다"를
+                // 직접 만들어 돌려주기도 하며, 이 값도 `areDetailsVisible` 게이트를 통과해 여기로 온다.
+                // 어느 문구든 데몬이 실제로 겪고 있는 일이므로 그대로 보여준다.
                 return Status(dot: .orange, text: detail)
             }
         }
@@ -80,7 +84,13 @@ enum BatterySectionPresentation {
         case .inhibited: return Status(dot: .orange, text: detail)
         case .charging: return Status(dot: .green, text: detail)
         case .unavailable: return Status(dot: .red, text: detail)
-        case .unsupported: return Status(dot: .faint, text: detail)
+        case .unsupported:
+            // `.faint`가 아니라 `.orange`다: 켜짐 + 이 줄이 보이는 상태(`areDetailsVisible`을 통과한
+            // 상태)에서 `.unsupported`는 등록 자체가 없는 Mac일 수 없다 — 그런 Mac은 이 행을 아예
+            // 그리지 않는다. 그래서 여기서는 항상 실제 실패("이 Mac에서 충전 제어를 적용하지
+            // 못했습니다")이고, 꺼짐 상태의 같은 모드와 마찬가지로 조치가 필요하다는 뜻의 점을 받아야
+            // 한다. 가장 조용한 점(`.faint`)에 실패를 숨기는 것은 잘못이다.
+            return Status(dot: .orange, text: detail)
         }
     }
 
@@ -93,10 +103,19 @@ enum BatterySectionPresentation {
 
     /// 설정 화면이 상태를 주기적으로 다시 읽어야 하는지.
     ///
-    /// 꺼짐 상태의 문구는 상수라 폴링해도 절대 바뀌지 않는다. 반면 폴링 한 번은
-    /// `batteryStatus` XPC → 데몬의 `sampleBatteryAndEvaluate(force: true)` → IOKit 전원 소스
-    /// 읽기를 유발한다. 바뀌지 않을 값을 위해 그 비용을 낼 이유가 없다.
-    static func shouldPollStatus(isLimitOn: Bool) -> Bool {
-        isLimitOn
+    /// 켜져 있으면 항상 읽는다 — 관심 있는 순간(한도 도달)이 창을 연 뒤 몇 분 뒤에 온다.
+    ///
+    /// 꺼져 있을 때는 문구가 바뀔 수 있는 상태에서만 읽는다. `.charging`은 정상적으로 꺼진 상태라
+    /// 문구가 상수이고, `.unavailable`은 도우미가 없어 다시 물어봐야 답할 주체가 없다 — 둘 다
+    /// 폴링해봐야 `batteryStatus` XPC → 데몬의 IOKit 전원 소스 읽기만 유발한다. 반대로
+    /// `.inhibited`/`.unsupported`는 "껐는데 하드웨어가 아직 물고 있다"이고, 데몬이 스스로
+    /// 재시도해 풀어내는 상태다. 여기서 읽지 않으면 사용자가 안내대로 어댑터를 다시 꽂아 실제로
+    /// 복구된 뒤에도 화면은 실패 문구에 멈춰 있게 된다.
+    static func shouldPollStatus(isLimitOn: Bool, mode: BatteryControlServiceMode) -> Bool {
+        if isLimitOn { return true }
+        switch mode {
+        case .inhibited, .unsupported: return true
+        case .charging, .unavailable: return false
+        }
     }
 }
