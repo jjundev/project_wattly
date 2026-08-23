@@ -78,6 +78,21 @@ enum BatterySectionPresentation {
         isHardwareSupported != false
     }
 
+    /// 토글을 조작할 수 있는지.
+    ///
+    /// 불가능한 하드웨어에서는 켤 수 없다. 그러나 **이미 켜져 있는 값은 끌 수 있어야 한다.** 충전
+    /// 제어 레지스터는 기종이 아니라 펌웨어를 따라가므로(`BatteryControlKeys` 참고), 오늘 잘 쓰던
+    /// Mac이 macOS 업데이트 한 번으로 지원 대상에서 빠질 수 있다. 그때 저장된 `true`는 그대로 남아
+    /// 토글은 켜짐으로 표시된 채 조작 불가가 되고, 사용자에게는 전체 설정 초기화 말고 빠져나갈
+    /// 길이 없어진다.
+    ///
+    /// 렌더링이 저장값을 대신 꺼주지 않는 것은 의도다(`SettingsBatterySection` 상단 주석): 같은
+    /// 환경설정이 이 기능을 지원하는 Mac에 도달하는 순간 그 값은 틀린 값이 된다. 그래서 끄는 행위는
+    /// 사용자에게 남기고, 이 함수는 그 길만 열어 둔다.
+    static func isToggleEnabled(isHardwareSupported: Bool?, isLimitOn: Bool) -> Bool {
+        showsConfigurationControls(isHardwareSupported: isHardwareSupported) || isLimitOn
+    }
+
     /// 한도 선택기를 조작할 수 있는지. 꺼짐 상태에서는 보이되 만질 수 없다.
     static func isLimitPickerEnabled(isLimitOn: Bool) -> Bool {
         isLimitOn
@@ -96,6 +111,7 @@ enum BatterySectionPresentation {
                        detail: String,
                        locale: Locale,
                        activity: BatteryControlActivity? = nil,
+                       isHardwareSupported: Bool? = nil,
                        updatedAt: TimeInterval = 0,
                        now: TimeInterval = 0) -> Status {
         let effectiveReason = BatteryStatusText.resolve(reason: reason, detail: detail)
@@ -123,7 +139,9 @@ enum BatterySectionPresentation {
 
         // A zero timestamp is the client's initial state and means "no remote sample". Exactly
         // three polling intervals stays current; only a strictly older sample becomes stale.
-        if shouldPollStatus(isLimitOn: isLimitOn, mode: mode),
+        if shouldPollStatus(isLimitOn: isLimitOn,
+                            mode: mode,
+                            isHardwareSupported: isHardwareSupported),
            updatedAt > 0,
            now >= updatedAt,
            now - updatedAt > staleAfter {
@@ -173,6 +191,11 @@ enum BatterySectionPresentation {
 
     /// 설정 화면이 상태를 주기적으로 다시 읽어야 하는지.
     ///
+    /// 도우미가 "이 Mac은 불가능하다"고 명시적으로 답했다면 다시 묻지 않는다. 그 답은 영구적인
+    /// 사실이라 재질문으로 바뀔 수 없고, 그 상태에서는 설정 컨트롤도 숨겨진다. 이 확인이 없으면
+    /// 제한이 켜진 채로 지원되지 않는 Mac에 남은 사용자는 5초마다
+    /// XPC 왕복과 루트 데몬의 전원 소스 읽기를 영원히 유발한다.
+    ///
     /// 켜져 있으면 항상 읽는다 — 관심 있는 순간(한도 도달)이 창을 연 뒤 몇 분 뒤에 온다.
     ///
     /// 꺼져 있을 때는 문구가 바뀔 수 있는 상태에서만 읽는다. `.charging`은 정상적으로 꺼진 상태라
@@ -180,8 +203,13 @@ enum BatterySectionPresentation {
     /// 폴링해봐야 `batteryStatus` XPC → 데몬의 IOKit 전원 소스 읽기만 유발한다. 반대로
     /// `.inhibited`/`.unsupported`는 "껐는데 하드웨어가 아직 물고 있다"이고, 데몬이 스스로
     /// 재시도해 풀어내는 상태다. 여기서 읽지 않으면 사용자가 안내대로 어댑터를 다시 꽂아 실제로
-    /// 복구된 뒤에도 화면은 실패 문구에 멈춰 있게 된다.
-    static func shouldPollStatus(isLimitOn: Bool, mode: BatteryControlServiceMode) -> Bool {
+    /// 복구된 뒤에도 화면은 실패 문구에 멈춰 있게 된다. `.unsupported`가 두 가지(레지스터 없음 /
+    /// 쓰기 실패)를 함께 뜻하기 때문에, 영구적인 쪽을 걸러내는 일은 위의 `isHardwareSupported`
+    /// 확인이 맡는다.
+    static func shouldPollStatus(isLimitOn: Bool,
+                                 mode: BatteryControlServiceMode,
+                                 isHardwareSupported: Bool?) -> Bool {
+        if isHardwareSupported == false { return false }
         if isLimitOn { return true }
         switch mode {
         case .inhibited, .unsupported: return true

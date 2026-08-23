@@ -2,7 +2,8 @@ import Foundation
 
 public protocol BatteryControlHardwareProtocol: Sendable {
     /// Which charge-control register generation this Mac exposes, probed from the hardware rather
-    /// than inferred from the architecture.
+    /// than inferred from the architecture, the model or the macOS version — the generation tracks
+    /// the firmware, which moves under a machine that never changed.
     var registerSet: BatteryControlRegisterSet { get }
     func setChargingInhibited(_ inhibited: Bool, targetLimit: Int) -> Bool
 }
@@ -38,7 +39,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
     /// that status has to carry the same answer — otherwise the one machine class most likely to be
     /// unsupported is the one that never reports it.
     public var isHardwareSupported: Bool {
-        hardware.registerSet != .unsupported
+        hardware.registerSet.canDriveCharging
     }
 
     public init(hardware: BatteryControlHardwareProtocol, initialConfig: BatteryControlConfiguration = .init()) {

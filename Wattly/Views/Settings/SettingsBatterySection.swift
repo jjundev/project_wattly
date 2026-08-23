@@ -12,6 +12,7 @@ struct SettingsBatterySection: View {
     @AppStorage(StorageKey.batteryLimitPercentage) private var batteryLimitPercentage = Defaults.batteryLimitPercentage
     @State private var isInstallFailedAlertPresented = false
     @State private var installErrorMessage = ""
+    @State private var isHelpPopoverPresented = false
 
     private let presetLimits = [80, 85, 90, 95]
 
@@ -20,14 +21,17 @@ struct SettingsBatterySection: View {
             SettingsCard {
                 // Rendering never writes the stored value: flipping it off here would look like the
                 // app undoing the user's choice, and it would be wrong the moment the same
-                // preferences reach a Mac that does support the limit. The one exception is the
-                // opt-in the user just made in this session, which the toggle handler clears once
-                // the helper answers that this Mac has no register — otherwise the row would
-                // disable itself in the ON position with nothing left to switch it back.
+                // preferences reach a Mac that does support the limit. Two things keep that from
+                // stranding anyone. The toggle handler clears the opt-in the user just made once
+                // the helper answers that this Mac has no register; and `isToggleEnabled` leaves
+                // the row switchable while it reads ON, so a `true` that arrived some other way —
+                // a firmware update that took the register away under a working Mac — can still be
+                // switched off by hand. Turning it back on stays impossible, so the exit is
+                // one-way.
                 SettingsToggleRow(isOn: $batteryLimitEnabled,
                                   divider: true,
-                                  isEnabled: !isHardwareUnsupported,
-                                  disabledReason: isHardwareUnsupported ? "이 Mac은 충전 제어를 지원하지 않습니다" : nil) {
+                                  isEnabled: isToggleEnabled,
+                                  disabledReason: isToggleEnabled ? nil : "이 Mac은 충전 제어를 지원하지 않습니다") {
                     VStack(alignment: .leading, spacing: 2) {
                         SettingsRowTitle("배터리 충전 제한")
                         Text(isHardwareUnsupported
@@ -49,10 +53,18 @@ struct SettingsBatterySection: View {
                                 .font(WattlyFont.at(12, weight: .medium))
                                 .foregroundStyle(t.text)
                             Spacer()
-                            Text("\(batteryLimitPercentage)%")
-                                .font(WattlyFont.at(12, weight: .bold))
-                                .monospacedDigit()
-                                .foregroundStyle(t.text)
+                            Button {
+                                isHelpPopoverPresented = true
+                            } label: {
+                                Image(systemName: "exclamationmark.circle")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(t.faint)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("배터리 충전 최적화 안내 보기")
+                            .popover(isPresented: $isHelpPopoverPresented, arrowEdge: .bottom) {
+                                batteryHelpPopover
+                            }
                         }
                         .opacity(isLimitPickerEnabled ? 1 : 0.5)
 
@@ -69,10 +81,6 @@ struct SettingsBatterySection: View {
                     // Always visible: unsupported hardware must explain itself with the same
                     // icon-and-text status interface instead of making the entire status row vanish.
                     batteryStatusIndicator
-
-                    if showsConfigurationControls {
-                        advisoryBanner
-                    }
                 }
                 .padding(EdgeInsets(top: 12, leading: 14, bottom: 14, trailing: 14))
             }
@@ -88,7 +96,8 @@ struct SettingsBatterySection: View {
                 // once the state settles, instead of running forever or freezing on a failure.
                 while !Task.isCancelled,
                       BatterySectionPresentation.shouldPollStatus(isLimitOn: batteryLimitEnabled,
-                                                                   mode: batteryControl.status.mode) {
+                                                                   mode: batteryControl.status.mode,
+                                                                   isHardwareSupported: batteryControl.status.isHardwareSupported) {
                     try? await Task.sleep(for: .seconds(BatteryControlPolicy.statusPollInterval))
                     guard !Task.isCancelled else { return }
                     await batteryControl.refreshStatus()
@@ -137,7 +146,8 @@ struct SettingsBatterySection: View {
     @ViewBuilder
     private var batteryStatusIndicator: some View {
         if BatterySectionPresentation.shouldPollStatus(isLimitOn: batteryLimitEnabled,
-                                                       mode: batteryControl.status.mode) {
+                                                       mode: batteryControl.status.mode,
+                                                       isHardwareSupported: batteryControl.status.isHardwareSupported) {
             // XPC polling remains on its existing five-second task. This view-local clock only
             // invalidates the status row so an old sample crosses the stale deadline on screen.
             TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -197,15 +207,54 @@ struct SettingsBatterySection: View {
         .accessibilityElement(children: .combine)
     }
 
-    private var advisoryBanner: some View {
-        HStack(alignment: .top, spacing: 6) {
-            Image(systemName: "info.circle")
-                .font(.system(size: 11))
-                .foregroundStyle(Tokens.statusOrange)
-            Text("원활한 동작을 위해 시스템 설정 > 배터리의 '최적화된 배터리 충전'을 꺼두는 것을 권장합니다.")
-                .font(WattlyFont.at(10.5, weight: .regular))
-                .foregroundStyle(t.faint)
+    private var batteryHelpPopover: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("배터리 충전 최적화 안내")
+                .font(WattlyFont.at(13, weight: .semibold))
+                .foregroundStyle(t.text)
+            Text("Wattly의 충전 제한 기능이 원활하게 작동하려면 macOS 시스템 설정의 '최적화된 배터리 충전'을 꺼두는 것을 권장합니다.")
+                .font(WattlyFont.at(11, weight: .regular))
+                .foregroundStyle(t.sub)
                 .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 5) {
+                Text("1. 아래 버튼으로 시스템 설정 > 배터리 이동")
+                Text("2. '충전' 항목 우측의 ⓘ (정보) 버튼 클릭")
+                Text("3. '최적화된 배터리 충전' 끄기")
+            }
+            .font(WattlyFont.at(10.5, weight: .regular))
+            .foregroundStyle(t.faint)
+            .fixedSize(horizontal: false, vertical: true)
+            Button {
+                isHelpPopoverPresented = false
+                openSystemBatterySettings()
+            } label: {
+                HStack(spacing: 5) {
+                    Text("시스템 배터리 설정 열기")
+                        .font(WattlyFont.at(11.5, weight: .medium))
+                        .foregroundStyle(t.text)
+                    Image(systemName: "arrow.up.forward.app")
+                        .font(.system(size: 10))
+                        .foregroundStyle(t.faint)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(RoundedRectangle(cornerRadius: 6).fill(t.segTrack))
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(t.rowBorder, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(14)
+        .frame(width: 270, alignment: .leading)
+        .background(t.cardBg)
+    }
+
+    private func openSystemBatterySettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.Battery-Settings.extension"),
+           NSWorkspace.shared.open(url) {
+            return
+        }
+        if let fallback = URL(string: "x-apple.systempreferences:com.apple.preference.battery") {
+            NSWorkspace.shared.open(fallback)
         }
     }
 
@@ -216,6 +265,14 @@ struct SettingsBatterySection: View {
     private var showsConfigurationControls: Bool {
         BatterySectionPresentation.showsConfigurationControls(
             isHardwareSupported: batteryControl.status.isHardwareSupported)
+    }
+
+    /// 토글이 조작 가능한지. `isHardwareUnsupported`의 단순한 반대가 아니다 — 이미 켜져 있는 값을
+    /// 끌 수 있게 남겨두는 예외가 붙는다. 판단은 `BatterySectionPresentation`이 갖는다.
+    private var isToggleEnabled: Bool {
+        BatterySectionPresentation.isToggleEnabled(
+            isHardwareSupported: batteryControl.status.isHardwareSupported,
+            isLimitOn: batteryLimitEnabled)
     }
 
     private var isLimitPickerEnabled: Bool {
@@ -231,6 +288,7 @@ struct SettingsBatterySection: View {
             detail: batteryControl.status.detail,
             locale: locale,
             activity: batteryControl.status.activity,
+            isHardwareSupported: batteryControl.status.isHardwareSupported,
             updatedAt: batteryControl.status.updatedAt,
             now: date.timeIntervalSince1970)
     }

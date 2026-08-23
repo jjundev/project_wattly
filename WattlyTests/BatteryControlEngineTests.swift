@@ -459,6 +459,28 @@ struct BatteryControlEngineTests {
         #expect(status.appliedLimitPercentage == nil)
     }
 
+    @Test func firmwareManagedHardwareIsReportedAsUnsupportedAndNeverWritten() {
+        // macOS 27 firmware drives the limit itself. Until that ships and this can be implemented
+        // against a released OS, the engine reports the feature as unavailable and touches nothing.
+        let mockHW = MockBatteryHardware()
+        mockHW.registerSet = .firmwareManaged
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
+
+        for _ in 0..<6 { _ = engine.update(currentSoC: 90, isPluggedIn: true) }
+        let status = engine.update(currentSoC: 90, isPluggedIn: true)
+
+        #expect(mockHW.writeCount == 0)
+        #expect(status.mode == .unsupported)
+        #expect(status.isHardwareSupported == false)
+        #expect(status.appliedLimitPercentage == nil)
+        // The daemon must stop taking power-source snapshots for a Mac it will never act on, and the
+        // status has to carry the reason code the settings screen renders — same two properties the
+        // `.unsupported` tests pin, which is the point: the user-visible consequence is identical.
+        #expect(!engine.needsSampling)
+        #expect(status.detailReason?.kind == .hardwareUnsupported)
+    }
+
     @Test func unsupportedHardwareSpendsNoWriteBudgetAtAll() {
         // "No register" is a permanent fact, not a transient failure. Discovering it three times
         // over would be pure waste, and would report a retryable-looking state.

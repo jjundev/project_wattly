@@ -18,4 +18,13 @@ import Foundation
             #expect(defaults.integer(forKey: StorageKey.batteryLimitPercentage) == preset)
         }
     }
+
+    @Test func systemBatterySettingsURLIsValid() {
+        let primaryURL = URL(string: "x-apple.systempreferences:com.apple.Battery-Settings.extension")
+        let fallbackURL = URL(string: "x-apple.systempreferences:com.apple.preference.battery")
+        #expect(primaryURL != nil)
+        #expect(fallbackURL != nil)
+        #expect(primaryURL?.scheme == "x-apple.systempreferences")
+        #expect(fallbackURL?.scheme == "x-apple.systempreferences")
+    }
 }
