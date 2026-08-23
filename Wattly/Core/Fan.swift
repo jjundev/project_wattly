@@ -26,6 +26,22 @@ struct FanSample: Sendable, Equatable {
     var maxFanRPM: Double? {
         fans.map(\.maxRPM).filter { $0 > 0 }.max()
     }
+
+    /// Mean fan load as a percentage of each fan's **own** ceiling (0…100), or `nil` when no
+    /// fan reports a readable `maxRPM`. This is the threshold input (the warning band is
+    /// defined against the ceiling, not against raw RPM, so one default pair is correct on
+    /// every Mac — ceilings range roughly 4 000–7 000 RPM by model, and multi-fan Macs can
+    /// differ per fan). Averaging the per-fan ratios mirrors the card headline, which averages
+    /// actual RPM. Fans with `maxRPM <= 0` are *skipped*, not counted as 0 %: an unreadable
+    /// ceiling is missing data, and diluting the mean with it would mask a spinning fan.
+    /// Reuses `fanBarFraction` so the band and the expand-region bars share one clamp.
+    var loadPercent: Double? {
+        let ratios = fans
+            .filter { $0.maxRPM > 0 }
+            .map { CardPresentation.fanBarFraction(actual: $0.actualRPM, max: $0.maxRPM) }
+        guard !ratios.isEmpty else { return nil }
+        return ratios.reduce(0, +) / Double(ratios.count) * 100
+    }
 }
 
 /// The card headline — the mean actual RPM across all fans (per-fan detail lives in the

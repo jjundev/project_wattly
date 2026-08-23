@@ -1,7 +1,11 @@
 import SwiftUI
 
-/// Threshold settings section: CPU/GPU utilization and CPU/GPU temperature warning/critical sliders.
+/// Threshold settings section: CPU/GPU utilization, CPU/GPU temperature, and fan-speed
+/// warning/critical sliders. `showsFan` is false on fanless Macs (the fan block would edit a
+/// threshold nothing can ever cross), mirroring the fan-curve section's own gate.
 struct SettingsThresholdSection: View {
+    let showsFan: Bool
+
     @Environment(\.tokens) private var t
     @AppStorage(StorageKey.thresholds) private var thresholds = Defaults.thresholds
 
@@ -16,6 +20,13 @@ struct SettingsThresholdSection: View {
                     thresholdDivider
                     thresholdBlock(title: "CPU · GPU 온도 (°C)", keyPath: \.temp,
                                    warnRange: 40...100, critRange: 50...110, suffix: "°")
+                    if showsFan {
+                        thresholdDivider
+                        // % of the fan's own ceiling, so one pair is meaningful on every
+                        // model — see `FanSample.loadPercent`.
+                        thresholdBlock(title: "팬 속도 (최대 RPM 대비 %)", keyPath: \.fan,
+                                       warnRange: 30...95, critRange: 40...100, suffix: "%")
+                    }
                 }
             }
         }

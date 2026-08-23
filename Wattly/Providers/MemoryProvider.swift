@@ -22,6 +22,9 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
     private let host = mach_host_self()
     /// Gate the process sweep to when the expand is visible (issue 05 §M11).
     private var enumerating = false
+    /// Bundle-identity memo, actor-isolated (one per provider — `ProcessList`'s
+    /// no-shared-mutable-state rule). Warms on the first enumerating poll, then costs nothing.
+    private var bundleCache = BundleMetadataCache()
     /// Constants — read once, then cached (actor-isolated lazy).
     private lazy var memsize: UInt64 = Self.sysctlUInt64("hw.memsize") ?? 0
     private lazy var pageSize: UInt64 = hostPageSize()
@@ -37,7 +40,7 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
         if enumerating {
             processLimit = memoryProcessLimit(
                 UserDefaults.standard.object(forKey: StorageKey.memoryProcessLimit) as? Int)
-            procs = Self.topMemoryProcesses(limit: processLimit)
+            procs = topMemoryProcesses(limit: processLimit)
         } else {
             processLimit = memoryProcessLimit(nil)
             procs = []
@@ -119,16 +122,18 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
 
     // MARK: Top applications (libproc — no entitlement; own-user procs only, §M10)
 
-    private static func topMemoryProcesses(limit: Int) -> [ProcessUsage] {
-        // Resolve an application key for every readable PID before ranking: several helper
-        // processes can together outrank a single larger process. The pid list + path helper
-        // are shared with the power Top-N provider (`ProcessList`).
-        var perProcess: [(key: String, bytes: UInt64)] = []
+    private func topMemoryProcesses(limit: Int) -> [ProcessUsage] {
+        // Resolve an application identity for every readable PID before ranking: several
+        // helper processes can together outrank a single larger process. Keying by
+        // CFBundleIdentifier (not the bundle PATH) keeps an app in ONE row even when its
+        // install path carries a version — Claude Code lives at
+        // `…/Application Support/Claude/claude-code/<version>/claude.app` — and labels the row
+        // with the app's real name instead of its bundle directory name ("claude").
+        var perProcess: [(identity: AppIdentity, bytes: UInt64)] = []
         for pid in listPIDs() where pid > 0 {
-            guard let bytes = physFootprint(pid) else { continue }
-            let path = pidPath(pid)
-            let key = appBundlePath(forExecutable: path) ?? "PID \(pid)"
-            perProcess.append((key: key, bytes: bytes))
+            guard let bytes = Self.physFootprint(pid) else { continue }
+            perProcess.append((identity: bundleCache.identity(executablePath: pidPath(pid), pid: pid),
+                               bytes: bytes))
         }
         return topMemoryApps(perProcess: perProcess, limit: limit)
     }
