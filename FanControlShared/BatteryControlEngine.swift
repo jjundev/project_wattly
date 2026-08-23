@@ -21,6 +21,11 @@ public extension BatteryControlHardwareProtocol {
 }
 
 public final class BatteryControlEngine: @unchecked Sendable {
+    private enum FailureProvenance: Equatable {
+        case ordinary
+        case verifiedRelease
+    }
+
     /// Consecutive failed SMC writes before the engine stops trying. The global constraint forbids
     /// writing registers in a loop, and a machine that rejects the write would otherwise be written
     /// to on every tick forever. Recovery is deliberately slow rather than busy: `configure` clears
@@ -34,6 +39,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
     private var hasInitializedState: Bool = false
     private var lastWriteFailed: Bool = false
     private var consecutiveWriteFailures: Int = 0
+    private var failureProvenance: FailureProvenance?
     private var lastVerifiedGate: BatteryHardwareGate?
 
     private var isWriteLatched: Bool {
@@ -68,10 +74,12 @@ public final class BatteryControlEngine: @unchecked Sendable {
     public func beginRecoveryWindow() {
         consecutiveWriteFailures = 0
         lastWriteFailed = false
+        failureProvenance = nil
     }
 
     @discardableResult
     public func hydrateHardwareState() -> BatteryHardwareGate {
+        guard isHardwareSupported else { return .unreadable }
         let gate = hardware.readChargingGate(
             targetLimit: config.clampedLimitPercentage)
         lastVerifiedGate = gate
@@ -79,6 +87,9 @@ public final class BatteryControlEngine: @unchecked Sendable {
         case .allowed:
             isCurrentlyInhibited = false
             hasInitializedState = true
+            if failureProvenance == .verifiedRelease {
+                beginRecoveryWindow()
+            }
         case .inhibited:
             isCurrentlyInhibited = true
             hasInitializedState = true
@@ -97,6 +108,12 @@ public final class BatteryControlEngine: @unchecked Sendable {
         currentSoC: Int,
         isPluggedIn: Bool
     ) -> BatteryControlServiceStatus {
+        guard isHardwareSupported else {
+            return status(
+                currentSoC: currentSoC,
+                isPluggedIn: isPluggedIn,
+                target: config.clampedLimitPercentage)
+        }
         let gate = hydrateHardwareState()
         if gate.state == .inhibited {
             let staleIntelLimit = gate.appliedLimitPercentage.map {
@@ -188,9 +205,11 @@ public final class BatteryControlEngine: @unchecked Sendable {
         } else {
             // Nothing is due, so nothing is failing. Without this a single transient failure would
             // mislabel a perfectly healthy engine as unsupported until the next transition — which
-            // can be hours away, or never.
-            consecutiveWriteFailures = 0
-            lastWriteFailed = false
+            // can be hours away, or never. A verified-release failure is different: only verified
+            // hardware success or an explicit recovery boundary may reopen that shared budget.
+            if failureProvenance != .verifiedRelease {
+                beginRecoveryWindow()
+            }
         }
 
         return status(currentSoC: currentSoC, isPluggedIn: isPluggedIn, target: target)
@@ -224,8 +243,9 @@ public final class BatteryControlEngine: @unchecked Sendable {
         guard isCurrentlyInhibited || !hasInitializedState else { return }
         if hardware.setChargingInhibited(false, targetLimit: 100) {
             isCurrentlyInhibited = false
-            consecutiveWriteFailures = 0
-            lastWriteFailed = false
+            if failureProvenance != .verifiedRelease {
+                beginRecoveryWindow()
+            }
         }
     }
 
@@ -235,6 +255,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
         guard verdict.isSafeToRemove else {
             consecutiveWriteFailures += 1
             lastWriteFailed = true
+            failureProvenance = .verifiedRelease
             return verdict
         }
         isCurrentlyInhibited = false
@@ -263,18 +284,23 @@ public final class BatteryControlEngine: @unchecked Sendable {
         guard hardware.setChargingInhibited(inhibited, targetLimit: targetLimit) else {
             consecutiveWriteFailures += 1
             lastWriteFailed = true
+            if failureProvenance == nil {
+                failureProvenance = .ordinary
+            }
             return false
         }
         let verified = hardware.readChargingGate(targetLimit: targetLimit)
         guard gateMatches(verified, inhibited: inhibited, targetLimit: targetLimit) else {
             consecutiveWriteFailures += 1
             lastWriteFailed = true
+            if failureProvenance == nil {
+                failureProvenance = .ordinary
+            }
             lastVerifiedGate = verified
             return false
         }
         lastVerifiedGate = verified
-        consecutiveWriteFailures = 0
-        lastWriteFailed = false
+        beginRecoveryWindow()
         return true
     }
 
