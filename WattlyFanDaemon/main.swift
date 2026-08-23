@@ -36,4 +36,10 @@ let daemon = FanControlDaemon(
     batteryCoordinator: batteryCoordinator
 )
 daemon.run()
+do {
+    try daemon.startPowerObservation()
+} catch {
+    fputs("Unable to register system power notifications\n", stderr)
+    exit(71)
+}
 RunLoop.main.run()

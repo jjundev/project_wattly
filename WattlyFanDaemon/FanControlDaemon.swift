@@ -1,4 +1,3 @@
-import AppKit
 import Darwin
 import Foundation
 import IOKit.ps
@@ -17,8 +16,7 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
     private var controlTimer: DispatchSourceTimer?
     private var watchdogTimer: DispatchSourceTimer?
     private var signalSources: [DispatchSourceSignal] = []
-    private var sleepObserver: NSObjectProtocol?
-    private var wakeObserver: NSObjectProtocol?
+    private var powerObserver: SystemPowerObserver?
     private var listenerResumed = false
 
     private final class Reply: @unchecked Sendable {
@@ -59,8 +57,15 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
         }
         guard batteryCoordinator.isSafeToServe else { exit(74) }
         startTimers()
-        observeSleep()
         observeTerminationSignals()
+    }
+
+    func startPowerObservation() throws {
+        let observer = SystemPowerObserver { [weak self] event in
+            self?.handlePowerEvent(event)
+        }
+        try observer.start()
+        powerObserver = observer
     }
 
     func listener(_ listener: NSXPCListener, shouldAcceptNewConnection connection: NSXPCConnection) -> Bool {
@@ -198,27 +203,13 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
         return timer
     }
 
-    private func observeSleep() {
-        sleepObserver = NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.willSleepNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            // Fans MUST go back to automatic before sleep. The charge limit must NOT: dropping the
-            // inhibit here is what lets an overnight sleep charge straight to 100 %, which is the
-            // exact case this feature exists to prevent. Whether the SMC register itself survives
-            // sleep is model-dependent, so the app re-asserts it through `configureBattery` on its
-            // own wake notification — this daemon runs in the system domain, where the wake observer
-            // below is not reliably delivered.
-            self?.releaseSynchronously(reason: "system sleep", releaseBattery: false)
+    private func handlePowerEvent(_ event: SystemPowerEvent) {
+        let action = SystemPowerEventPolicy.action(for: event)
+        if action.releaseFans {
+            _ = releaseSynchronously(reason: "system sleep", releaseBattery: false)
         }
-
-        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.didWakeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            self?.queue.async { [weak self] in
+        if action.reconcileBattery {
+            queue.async { [weak self] in
                 guard let self else { return }
                 _ = batteryControlService.reconcileAfterWake(
                     currentReading: readPowerSourceState())
