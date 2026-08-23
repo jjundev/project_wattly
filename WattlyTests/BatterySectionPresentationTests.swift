@@ -4,6 +4,9 @@ import Foundation
 
 @Suite struct BatterySectionPresentationTests {
 
+    private let en = Locale(identifier: "en")
+    private let ko = Locale(identifier: "ko")
+
     // MARK: - 하위 항목 노출
 
     @Test func detailsAreVisibleWhenHardwareSupportIsTrueOrUnknown() {
@@ -36,7 +39,9 @@ import Foundation
         // 설치 중에는 토글이 이미 ON이지만, 순서가 뒤집히면 설치 진행 표시가 사라진다.
         for isOn in [true, false] {
             let s = BatterySectionPresentation.status(isLimitOn: isOn, isInstalling: true,
-                                                     mode: .unavailable, detail: "도우미에 연결되지 않음")
+                                                     mode: .unavailable,
+                                                     reason: nil, detail: "도우미에 연결되지 않음",
+                                                     locale: ko)
             #expect(s == .init(dot: .orange, text: "도우미 설치 중…"))
         }
     }
@@ -53,15 +58,19 @@ import Foundation
         // 도우미가 아예 없는 것은 사용자가 끈 기능과 무관한 사실이다. 빨간 "도우미에 연결되지 않음"을
         // 여기 띄우면 고장으로 읽히므로, 이 한 가지 모드에서만 데몬의 detail을 상수로 덮는다.
         let s = BatterySectionPresentation.status(isLimitOn: false, isInstalling: false,
-                                                 mode: .unavailable, detail: "무시되어야 하는 문구")
-        #expect(s == .init(dot: .faint, text: BatterySectionPresentation.disabledStatusText))
+                                                 mode: .unavailable,
+                                                 reason: nil, detail: "무시되어야 하는 문구",
+                                                 locale: ko)
+        #expect(s == .init(dot: .faint, text: BatterySectionPresentation.disabledStatusText(locale: ko)))
     }
 
     @Test func offAndChargingPassesTheDaemonsDetailThrough() {
         // 정상적으로 꺼진 상태. 데몬이 이미 같은 뜻의 문구를 돌려주므로 상수로 다시 쓰지 않고
         // 그대로 통과시킨다 — 상수를 또 쓰면 두 곳이 조용히 어긋날 수 있다.
         let s = BatterySectionPresentation.status(isLimitOn: false, isInstalling: false,
-                                                 mode: .charging, detail: "충전 제한 비활성화됨")
+                                                 mode: .charging,
+                                                 reason: nil, detail: "충전 제한 비활성화됨",
+                                                 locale: ko)
         #expect(s == .init(dot: .faint, text: "충전 제한 비활성화됨"))
     }
 
@@ -71,7 +80,8 @@ import Foundation
         // 멈춘 사실을 감추게 되므로, 주황 점과 함께 사용자가 실제로 할 수 있는 복구 안내를 보여준다.
         let s = BatterySectionPresentation.status(
             isLimitOn: false, isInstalling: false, mode: .unsupported,
-            detail: "충전을 다시 시작하지 못했습니다 (전원 어댑터를 다시 연결해 보세요)")
+            reason: nil, detail: "충전을 다시 시작하지 못했습니다 (전원 어댑터를 다시 연결해 보세요)",
+            locale: ko)
         #expect(s == .init(dot: .orange, text: "충전을 다시 시작하지 못했습니다 (전원 어댑터를 다시 연결해 보세요)"))
     }
 
@@ -79,7 +89,9 @@ import Foundation
         // 꺼짐 + 여전히 억제 중. 아직 해제 쓰기가 반영되지 않은 과도기라도 회색 상수로 덮지 않고
         // 데몬의 실제 문구를 보여준다.
         let s = BatterySectionPresentation.status(isLimitOn: false, isInstalling: false,
-                                                 mode: .inhibited, detail: "데몬 문구")
+                                                 mode: .inhibited,
+                                                 reason: nil, detail: "데몬 문구",
+                                                 locale: ko)
         #expect(s == .init(dot: .orange, text: "데몬 문구"))
     }
 
@@ -96,7 +108,9 @@ import Foundation
         ]
         for (mode, dot) in cases {
             let s = BatterySectionPresentation.status(isLimitOn: true, isInstalling: false,
-                                                     mode: mode, detail: "데몬 문구")
+                                                     mode: mode,
+                                                     reason: nil, detail: "데몬 문구",
+                                                     locale: ko)
             #expect(s == .init(dot: dot, text: "데몬 문구"))
         }
     }
@@ -136,5 +150,52 @@ import Foundation
         // 실패 문구에 얼어붙는다.
         #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false, mode: .inhibited) == true)
         #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false, mode: .unsupported) == true)
+    }
+
+    // MARK: - 현지화 (plan 2026-08-23)
+
+    @Test func statusTextFollowsTheLocale() {
+        let s = BatterySectionPresentation.status(isLimitOn: true, isInstalling: false,
+                                                  mode: .charging,
+                                                  reason: .init(kind: .chargingToTarget, limitPercentage: 80),
+                                                  detail: "목표치(80%)까지 충전 중",
+                                                  locale: en)
+        #expect(s == .init(dot: .green, text: "Charging to 80%"))
+    }
+
+    @Test func installingTextIsLocalized() {
+        let s = BatterySectionPresentation.status(isLimitOn: true, isInstalling: true,
+                                                  mode: .unavailable, reason: nil, detail: "",
+                                                  locale: en)
+        #expect(s == .init(dot: .orange, text: "Installing helper…"))
+    }
+
+    /// 도우미가 없는데 기능도 꺼져 있으면 고장이 아니다 — 그 대체 문구도 번역돼야 한다.
+    @Test func disabledSubstituteTextIsLocalized() {
+        #expect(BatterySectionPresentation.disabledStatusText(locale: en) == "Charge limit off")
+        #expect(BatterySectionPresentation.disabledStatusText(locale: ko) == "충전 제한 비활성화됨")
+
+        let s = BatterySectionPresentation.status(isLimitOn: false, isInstalling: false,
+                                                  mode: .unavailable,
+                                                  reason: nil, detail: "도우미에 연결되지 않음",
+                                                  locale: en)
+        #expect(s == .init(dot: .faint, text: "Charge limit off"))
+    }
+
+    /// 껐는데 하드웨어가 아직 물고 있는 상태. 회복 안내가 사라지지도, 한국어로 남지도 않아야 한다.
+    @Test func stuckAfterTurningOffStaysLoudAndTranslated() {
+        let s = BatterySectionPresentation.status(isLimitOn: false, isInstalling: false,
+                                                  mode: .unsupported,
+                                                  reason: .init(kind: .releaseFailed),
+                                                  detail: "충전을 다시 시작하지 못했습니다 (전원 어댑터를 다시 연결해 보세요)",
+                                                  locale: en)
+        #expect(s == .init(dot: .orange,
+                           text: "Could not resume charging (try reconnecting the power adapter)"))
+    }
+
+    /// 한도 선택기의 사유는 **카탈로그 키**로 남는다. 뷰가 `LocalizedStringKey`로 푼다.
+    @Test func limitPickerReasonStaysAKey() {
+        #expect(BatterySectionPresentation.limitPickerDisabledReason(isLimitOn: false)
+                == "충전 제한을 켜면 한도를 조절할 수 있습니다.")
     }
 }

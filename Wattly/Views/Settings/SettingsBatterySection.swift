@@ -5,6 +5,7 @@ import AppKit
 /// live status indicator, and helper installation trigger.
 struct SettingsBatterySection: View {
     @Environment(\.tokens) private var t
+    @Environment(\.locale) private var locale
     let batteryControl: BatteryControlClient
 
     @AppStorage(StorageKey.batteryLimitEnabled) private var batteryLimitEnabled = Defaults.batteryLimitEnabled
@@ -204,10 +205,13 @@ struct SettingsBatterySection: View {
     }
 
     private var resolvedStatus: BatterySectionPresentation.Status {
-        BatterySectionPresentation.status(isLimitOn: batteryLimitEnabled,
-                                          isInstalling: batteryControl.isInstallingHelper,
-                                          mode: batteryControl.status.mode,
-                                          detail: batteryControl.status.detail)
+        BatterySectionPresentation.status(
+            isLimitOn: batteryLimitEnabled,
+            isInstalling: batteryControl.isInstallingHelper,
+            mode: batteryControl.status.mode,
+            reason: batteryControl.status.detailReason,
+            detail: batteryControl.status.detail,
+            locale: locale)
     }
 
     /// 의미 → 색. 색을 순수 타입에 넣지 않는 이유는 `t.faint`가 테마 토큰이라

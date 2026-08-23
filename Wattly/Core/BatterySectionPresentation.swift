@@ -21,9 +21,11 @@ enum BatterySectionPresentation {
 
     /// 도우미가 없어서 모드가 `.unavailable`일 때만 쓰는 대체 문구. 사용자가 일부러 끈 기능 옆에
     /// "도우미에 연결되지 않음"을 띄우면 고장으로 읽히기 때문이다. 정상적으로 꺼진 상태
-    /// (`.charging`)에서는 데몬이 이미 이것과 같은 문자열을 `detail`로 돌려주지만, 그 값 자체는
-    /// 그대로 통과시키므로 여기 상수와 반드시 같게 유지해야 하는 것은 아니다.
-    static let disabledStatusText = "충전 제한 비활성화됨"
+    /// (`.charging`)에서는 데몬이 이미 같은 사유를 돌려주지만, 그 값 자체는 그대로 통과시키므로
+    /// 여기 문구와 반드시 같게 유지해야 하는 것은 아니다.
+    static func disabledStatusText(locale: Locale) -> String {
+        BatteryStatusText.text(reason: .init(kind: .limitDisabled), detail: "", locale: locale)
+    }
 
     /// 하위 항목(한도 선택기 · 상태 줄 · 안내 배너)을 그릴지 여부.
     ///
@@ -56,41 +58,42 @@ enum BatterySectionPresentation {
     static func status(isLimitOn: Bool,
                        isInstalling: Bool,
                        mode: BatteryControlServiceMode,
-                       detail: String) -> Status {
-        if isInstalling { return Status(dot: .orange, text: "도우미 설치 중…") }
+                       reason: BatteryControlStatusReason?,
+                       detail: String,
+                       locale: Locale) -> Status {
+        // 데몬의 사유/문장을 사용자 언어로 푼 것. 아래 모든 분기가 이 값을 쓴다.
+        let resolved = BatteryStatusText.text(reason: reason, detail: detail, locale: locale)
+
+        if isInstalling {
+            return Status(dot: .orange, text: String(localized: "도우미 설치 중…", locale: locale))
+        }
         if !isLimitOn {
             switch mode {
             case .unavailable:
                 // 도우미가 없다는 사실은 사용자가 일부러 끈 기능과 무관하다. 빨간 점 +
                 // "도우미에 연결되지 않음"을 여기 띄우면 고장으로 읽힌다.
-                return Status(dot: .faint, text: disabledStatusText)
+                return Status(dot: .faint, text: disabledStatusText(locale: locale))
             case .charging:
-                // 정상적으로 꺼진 상태. 데몬의 `detail`이 이미 `disabledStatusText`와 같은
-                // 문자열이므로 그대로 통과시킨다 — 상수를 다시 쓰면 두 곳이 조용히 어긋난다.
-                return Status(dot: .faint, text: detail)
+                // 정상적으로 꺼진 상태. 데몬의 사유가 이미 `limitDisabled`이므로 그대로 통과시킨다.
+                return Status(dot: .faint, text: resolved)
             case .inhibited, .unsupported:
                 // 껐는데 하드웨어가 아직 물고 있거나 해제 쓰기가 실패한 상태. 회색 점 + "비활성화됨"으로
                 // 덮으면 충전을 멈춘 Mac을 두고 "정상적으로 꺼졌다"고 단언하는 셈이 된다.
-                // 주로는 `detail`이 "충전을 다시 시작하지 못했습니다 (전원 어댑터를 다시 연결해 보세요)"인
-                // 경우 — 사용자가 할 수 있는 유일한 복구 안내다. 다만 유일한 문구는 아니다:
-                // `WattlyFanDaemon/FanControlDaemon.swift`는 전원 소스 자체를 읽지 못했을 때
-                // `isHardwareSupported`가 참인 채로 `.unsupported` + "전원 소스를 읽을 수 없습니다"를
-                // 직접 만들어 돌려주기도 하며, 이 값도 `areDetailsVisible` 게이트를 통과해 여기로 온다.
-                // 어느 문구든 데몬이 실제로 겪고 있는 일이므로 그대로 보여준다.
-                return Status(dot: .orange, text: detail)
+                // 이때 사유는 `releaseFailed`이며, 그게 사용자가 할 수 있는 유일한 복구 안내다.
+                return Status(dot: .orange, text: resolved)
             }
         }
         switch mode {
-        case .inhibited: return Status(dot: .orange, text: detail)
-        case .charging: return Status(dot: .green, text: detail)
-        case .unavailable: return Status(dot: .red, text: detail)
+        case .inhibited: return Status(dot: .orange, text: resolved)
+        case .charging: return Status(dot: .green, text: resolved)
+        case .unavailable: return Status(dot: .red, text: resolved)
         case .unsupported:
             // `.faint`가 아니라 `.orange`다: 켜짐 + 이 줄이 보이는 상태(`areDetailsVisible`을 통과한
             // 상태)에서 `.unsupported`는 등록 자체가 없는 Mac일 수 없다 — 그런 Mac은 이 행을 아예
             // 그리지 않는다. 그래서 여기서는 항상 실제 실패("이 Mac에서 충전 제어를 적용하지
             // 못했습니다")이고, 꺼짐 상태의 같은 모드와 마찬가지로 조치가 필요하다는 뜻의 점을 받아야
             // 한다. 가장 조용한 점(`.faint`)에 실패를 숨기는 것은 잘못이다.
-            return Status(dot: .orange, text: detail)
+            return Status(dot: .orange, text: resolved)
         }
     }
 
