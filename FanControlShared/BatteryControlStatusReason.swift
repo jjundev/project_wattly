@@ -35,6 +35,8 @@ public struct BatteryControlStatusReason: Codable, Equatable, Sendable {
         case chargingToTarget
         /// Unplugged.
         case onBatteryPower
+        /// In natural discharge band between charge limit and lower hysteresis threshold. Carries `limitPercentage` and `resumePercentage`.
+        case sailing
         /// A token this build does not know — a newer daemon talking to an older app. Never
         /// produced locally; only ever decoded. The app falls back to the `detail` sentence.
         case unrecognized
@@ -55,16 +57,19 @@ public struct BatteryControlStatusReason: Codable, Equatable, Sendable {
     }
 
     public var kind: Kind
-    /// The limit in play, for the two kinds that name one. `nil` everywhere else.
+    /// The limit in play, for the kinds that name one. `nil` everywhere else.
     public var limitPercentage: Int?
+    /// The lower hysteresis threshold at which charging will resume. `nil` everywhere except `.sailing`.
+    public var resumePercentage: Int?
 
-    public init(kind: Kind, limitPercentage: Int? = nil) {
+    public init(kind: Kind, limitPercentage: Int? = nil, resumePercentage: Int? = nil) {
         self.kind = kind
         self.limitPercentage = limitPercentage
+        self.resumePercentage = resumePercentage
     }
 
     private enum CodingKeys: String, CodingKey {
-        case kind, limitPercentage
+        case kind, limitPercentage, resumePercentage
     }
 
     /// Decoding is lenient here for the same reason `Kind`'s own decode is lenient one level down:
@@ -77,12 +82,14 @@ public struct BatteryControlStatusReason: Codable, Equatable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         kind = (try? container.decode(Kind.self, forKey: .kind)) ?? .unrecognized
         limitPercentage = try? container.decodeIfPresent(Int.self, forKey: .limitPercentage)
+        resumePercentage = try? container.decodeIfPresent(Int.self, forKey: .resumePercentage)
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(kind, forKey: .kind)
         try container.encodeIfPresent(limitPercentage, forKey: .limitPercentage)
+        try container.encodeIfPresent(resumePercentage, forKey: .resumePercentage)
     }
 
     /// The Korean sentence this reason used to be, for an app too old to understand `kind`.
@@ -97,6 +104,7 @@ public struct BatteryControlStatusReason: Codable, Equatable, Sendable {
         // 100 is the no-op ceiling the engine uses when it has no configured target, so a reason
         // that arrives without a limit degrades to "no limit" rather than to a crash.
         let target = limitPercentage ?? 100
+        let resume = resumePercentage ?? max(45, target - 2)
         switch kind {
         case .initializing: return "초기화 중"
         case .powerSourceUnreadable: return "전원 소스를 읽을 수 없습니다"
@@ -107,6 +115,7 @@ public struct BatteryControlStatusReason: Codable, Equatable, Sendable {
         case .limitDisabled: return "충전 제한 비활성화됨"
         case .chargingToTarget: return "목표치(\(target)%)까지 충전 중"
         case .onBatteryPower: return "배터리 전원으로 구동 중"
+        case .sailing: return "Sailing 중 (\(resume)% 도달 시 충전)"
         case .unrecognized: return ""
         }
     }

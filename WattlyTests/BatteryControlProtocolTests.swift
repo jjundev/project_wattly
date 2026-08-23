@@ -50,12 +50,26 @@ struct BatteryControlProtocolTests {
 
         let safe = decoded.normalized
         #expect(safe.limitPercentage == 100)
-        #expect(safe.lowerHysteresisDelta == 5)
-        #expect(safe.resumePercentage == 95)
+        #expect(safe.lowerHysteresisDelta == 10)
+        #expect(safe.resumePercentage == 90)
 
         // Even without normalizing, the derived values must stay inside their range.
         #expect(decoded.clampedLimitPercentage == 100)
-        #expect(decoded.resumePercentage == 95)
+        #expect(decoded.resumePercentage == 90)
+    }
+
+    @Test func deltaClampsUpToTenPercent() {
+        let configUnder = BatteryControlConfiguration(enabled: true, limitPercentage: 80, lowerHysteresisDelta: 0)
+        #expect(configUnder.normalized.lowerHysteresisDelta == 1)
+
+        let configStandard = BatteryControlConfiguration(enabled: true, limitPercentage: 80, lowerHysteresisDelta: 5)
+        #expect(configStandard.normalized.lowerHysteresisDelta == 5)
+
+        let configTen = BatteryControlConfiguration(enabled: true, limitPercentage: 80, lowerHysteresisDelta: 10)
+        #expect(configTen.normalized.lowerHysteresisDelta == 10)
+
+        let configOver = BatteryControlConfiguration(enabled: true, limitPercentage: 80, lowerHysteresisDelta: 15)
+        #expect(configOver.normalized.lowerHysteresisDelta == 10)
     }
 
     @Test func normalizationLeavesValidValuesAlone() {
