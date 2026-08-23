@@ -40,6 +40,9 @@ enum LegacyBatteryDetail {
         if let limit = number(in: detail, between: "목표치(", and: "%)까지 충전 중") {
             return .init(kind: .chargingToTarget, limitPercentage: limit)
         }
+        if let resume = number(in: detail, between: "Sailing 중 (", and: "% 도달 시 충전)") {
+            return .init(kind: .sailing, limitPercentage: nil, resumePercentage: resume)
+        }
         return nil
     }
 
