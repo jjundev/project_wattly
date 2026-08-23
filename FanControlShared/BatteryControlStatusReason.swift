@@ -60,6 +60,28 @@ public struct BatteryControlStatusReason: Codable, Equatable, Sendable {
         self.limitPercentage = limitPercentage
     }
 
+    private enum CodingKeys: String, CodingKey {
+        case kind, limitPercentage
+    }
+
+    /// Decoding is lenient here for the same reason `Kind`'s own decode is lenient one level down:
+    /// this struct is decoded out of `BatteryControlServiceStatus.detailReason`
+    /// (`decodeIfPresent`), and under the synthesized initializer a single malformed field — a
+    /// `kind` that isn't even a string, or a `limitPercentage` sent as the wrong JSON type — throws
+    /// and takes the *entire* status decode down with it, not just this optional field. Each field
+    /// falls back to its safe default instead of propagating the error.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        kind = (try? container.decode(Kind.self, forKey: .kind)) ?? .unrecognized
+        limitPercentage = try? container.decodeIfPresent(Int.self, forKey: .limitPercentage)
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(kind, forKey: .kind)
+        try container.encodeIfPresent(limitPercentage, forKey: .limitPercentage)
+    }
+
     /// The Korean sentence this reason used to be, for an app too old to understand `kind`.
     ///
     /// A current daemon keeps filling `BatteryControlServiceStatus.detail` with this so that a

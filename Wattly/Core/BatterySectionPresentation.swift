@@ -79,7 +79,11 @@ enum BatterySectionPresentation {
             case .inhibited, .unsupported:
                 // 껐는데 하드웨어가 아직 물고 있거나 해제 쓰기가 실패한 상태. 회색 점 + "비활성화됨"으로
                 // 덮으면 충전을 멈춘 Mac을 두고 "정상적으로 꺼졌다"고 단언하는 셈이 된다.
-                // 이때 사유는 `releaseFailed`이며, 그게 사용자가 할 수 있는 유일한 복구 안내다.
+                // 이때 사유는 대개 `releaseFailed`이지만 유일한 경우는 아니다 — `FanControlDaemon`의
+                // `sampleBatteryAndEvaluate`는 전원 소스를 아예 읽지 못하면 `isHardwareSupported`가
+                // `true`인 채로도 `.unsupported` + `powerSourceUnreadable`을 내보내며, 그 상태 역시
+                // `areDetailsVisible`을 통과해 여기로 온다. 어느 쪽이든 데몬이 실제로 정한 문구를
+                // 그대로 보여주는 것이 중요하다 — 그게 사용자가 할 수 있는 유일한 복구 안내다.
                 return Status(dot: .orange, text: resolved)
             }
         }

@@ -36,6 +36,24 @@ import Foundation
         #expect(BatteryControlStatusReason(kind: .limitDisabled).limitPercentage == nil)
     }
 
+    /// `kind`가 문자열조차 아닌 경우 (예: 숫자). `Kind`의 관대한 디코딩이 미치지 못하는, 한 단계
+    /// 위의 실패 모드다 — 이 필드 하나 때문에 구조체 전체 디코딩이 실패하면 안 된다.
+    @Test func garbledKindDecodesAsUnrecognizedRatherThanThrowing() throws {
+        let json = Data(#"{"kind":42,"limitPercentage":90}"#.utf8)
+        let decoded = try BatteryControlCodec.decode(BatteryControlStatusReason.self, from: json)
+        #expect(decoded.kind == .unrecognized)
+        #expect(decoded.limitPercentage == 90)
+    }
+
+    /// `limitPercentage`가 정수가 아니라 문자열로 온 경우. 키가 아예 없는 것과 달리, 있는데
+    /// 타입이 틀리면 합성된 `Codable`은 예외를 던진다 — 그 예외가 이 필드에서 멈추게 한다.
+    @Test func malformedLimitDecodesAsNilRatherThanThrowing() throws {
+        let json = Data(#"{"kind":"limitDisabled","limitPercentage":"80"}"#.utf8)
+        let decoded = try BatteryControlCodec.decode(BatteryControlStatusReason.self, from: json)
+        #expect(decoded.kind == .limitDisabled)
+        #expect(decoded.limitPercentage == nil)
+    }
+
     /// 이 문자열들은 구버전 **앱**이 읽는 값이다. 바꾸면 그 앱의 상태 줄이 깨진다.
     @Test func legacyKoreanDetailMatchesTheShippedWording() {
         #expect(BatteryControlStatusReason(kind: .initializing).legacyKoreanDetail == "초기화 중")

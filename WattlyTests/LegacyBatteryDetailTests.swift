@@ -19,8 +19,8 @@ import Foundation
         ]
         for (sentence, kind) in table {
             let parsed = LegacyBatteryDetail.reason(from: sentence)
-            #expect(parsed?.kind == kind)
-            #expect(parsed?.limitPercentage == nil)
+            #expect(parsed?.kind == kind, "\(sentence)")
+            #expect(parsed?.limitPercentage == nil, "\(sentence)")
         }
     }
 
@@ -29,12 +29,12 @@ import Foundation
         for limit in [50, 80, 85, 100] {
             let inhibited = LegacyBatteryDetail.reason(
                 from: "충전 제한 \(limit)% 도달 (전원 어댑터 바이패스 구동)")
-            #expect(inhibited?.kind == .inhibitedAtLimit)
-            #expect(inhibited?.limitPercentage == limit)
+            #expect(inhibited?.kind == .inhibitedAtLimit, "\(limit)")
+            #expect(inhibited?.limitPercentage == limit, "\(limit)")
 
             let charging = LegacyBatteryDetail.reason(from: "목표치(\(limit)%)까지 충전 중")
-            #expect(charging?.kind == .chargingToTarget)
-            #expect(charging?.limitPercentage == limit)
+            #expect(charging?.kind == .chargingToTarget, "\(limit)")
+            #expect(charging?.limitPercentage == limit, "\(limit)")
         }
     }
 
@@ -60,7 +60,7 @@ import Foundation
     @Test func coversEveryReasonTheCurrentDaemonEmits() {
         for kind in BatteryControlStatusReason.Kind.allCases where kind != .unrecognized {
             let sentence = BatteryControlStatusReason(kind: kind, limitPercentage: 80).legacyKoreanDetail
-            #expect(LegacyBatteryDetail.reason(from: sentence)?.kind == kind)
+            #expect(LegacyBatteryDetail.reason(from: sentence)?.kind == kind, "\(kind): \(sentence)")
         }
     }
 }
