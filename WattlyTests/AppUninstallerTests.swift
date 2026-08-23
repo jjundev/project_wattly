@@ -23,6 +23,20 @@ import Foundation
         var callCount = 0
     }
 
+    final class FailingLoginItem: LoginItemControlling, @unchecked Sendable {
+        enum Failure: LocalizedError {
+            case cannotDisable
+
+            var errorDescription: String? { "login item failure" }
+        }
+
+        var isEnabled: Bool { true }
+
+        func setEnabled(_ enabled: Bool) throws {
+            throw Failure.cannotDisable
+        }
+    }
+
     actor EventRecorder {
         private(set) var values: [String] = []
 
@@ -155,6 +169,28 @@ import Foundation
         }
 
         #expect(await events.values == ["release"])
+        #expect(defaults.bool(forKey: "stillHere"))
+    }
+
+    @Test @MainActor func loginItemFailureStopsBeforeReleaseOrDataRemoval() async {
+        let suiteName = "test.uninstall.login-failure.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.set(true, forKey: "stillHere")
+        let release = ReleaseSpy()
+        let remove = RemoveHelperSpy()
+
+        await #expect(throws: AppUninstaller.UninstallError.loginItemRemovalFailed("login item failure")) {
+            try await AppUninstaller.cleanUserData(
+                userDefaults: defaults,
+                loginItem: FailingLoginItem(),
+                homeDirectory: FileManager.default.temporaryDirectory,
+                bundleID: suiteName,
+                releaseBatteryLimit: { release.callCount += 1 },
+                removeHelper: { remove.callCount += 1 })
+        }
+
+        #expect(release.callCount == 0)
+        #expect(remove.callCount == 0)
         #expect(defaults.bool(forKey: "stillHere"))
     }
 

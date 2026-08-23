@@ -6,6 +6,7 @@ import AppKit
 /// and spawns a background shell script to delete the app bundle after termination.
 enum AppUninstaller: Sendable {
     enum UninstallError: LocalizedError, Equatable {
+        case loginItemRemovalFailed(String)
         case helperUnavailable
         case persistenceRejected
         case releaseUnverified
@@ -13,6 +14,8 @@ enum AppUninstaller: Sendable {
 
         var errorDescription: String? {
             switch self {
+            case .loginItemRemovalFailed(let detail):
+                "로그인 시 자동 실행 해제를 완료하지 못해 Wattly 삭제를 중단했습니다: \(detail)"
             case .helperUnavailable:
                 "도우미에 연결할 수 없어 충전 허용 상태를 확인하지 못했습니다."
             case .persistenceRejected:
@@ -97,7 +100,11 @@ enum AppUninstaller: Sendable {
         }
     ) async throws {
         // 1. Unregister login item
-        try? loginItem.setEnabled(false)
+        do {
+            try loginItem.setEnabled(false)
+        } catch {
+            throw UninstallError.loginItemRemovalFailed(error.localizedDescription)
+        }
 
         // 2. Hand the battery back before the helper goes away. `bootout` below SIGTERMs the
         // daemon, which releases on its own — but a helper that was SIGKILLed earlier would leave
