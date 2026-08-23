@@ -12,6 +12,7 @@ struct SettingsBatterySection: View {
     @AppStorage(StorageKey.batteryLimitPercentage) private var batteryLimitPercentage = Defaults.batteryLimitPercentage
     @State private var isInstallFailedAlertPresented = false
     @State private var installErrorMessage = ""
+    @State private var isHelpPopoverPresented = false
 
     private let presetLimits = [80, 85, 90, 95]
 
@@ -50,15 +51,17 @@ struct SettingsBatterySection: View {
                                 .foregroundStyle(t.text)
                             Spacer()
                             Button {
-                                openSystemBatterySettings()
+                                isHelpPopoverPresented = true
                             } label: {
                                 Image(systemName: "questionmark.circle")
                                     .font(.system(size: 13, weight: .medium))
                                     .foregroundStyle(t.faint)
                             }
                             .buttonStyle(.plain)
-                            .help("시스템 설정의 배터리 설정 열기")
-                            .accessibilityLabel("시스템 설정의 배터리 설정 열기")
+                            .accessibilityLabel("배터리 충전 최적화 안내 보기")
+                            .popover(isPresented: $isHelpPopoverPresented, arrowEdge: .bottom) {
+                                batteryHelpPopover
+                            }
                         }
                         .opacity(isLimitPickerEnabled ? 1 : 0.5)
 
@@ -179,6 +182,39 @@ struct SettingsBatterySection: View {
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
+    }
+
+    private var batteryHelpPopover: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("배터리 충전 최적화 안내")
+                .font(WattlyFont.at(13, weight: .semibold))
+                .foregroundStyle(t.text)
+            Text("Wattly의 충전 제한 기능이 원활하게 작동하려면 macOS 시스템 설정의 '최적화된 배터리 충전'을 꺼두는 것을 권장합니다.")
+                .font(WattlyFont.at(11, weight: .regular))
+                .foregroundStyle(t.sub)
+                .fixedSize(horizontal: false, vertical: true)
+            Button {
+                isHelpPopoverPresented = false
+                openSystemBatterySettings()
+            } label: {
+                HStack(spacing: 5) {
+                    Text("시스템 배터리 설정 열기")
+                        .font(WattlyFont.at(11.5, weight: .medium))
+                        .foregroundStyle(t.text)
+                    Image(systemName: "arrow.up.forward.app")
+                        .font(.system(size: 10))
+                        .foregroundStyle(t.faint)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(RoundedRectangle(cornerRadius: 6).fill(t.segTrack))
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(t.rowBorder, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(14)
+        .frame(width: 260, alignment: .leading)
+        .background(t.cardBg)
     }
 
     private func openSystemBatterySettings() {
