@@ -186,6 +186,19 @@ struct LocalizationTests {
         #expect(String(localized: "충전을 다시 시작하지 못했습니다 (전원 어댑터를 다시 연결해 보세요)",
                        locale: Locale(identifier: "en"))
                 == "Could not resume charging (try reconnecting the power adapter)")
+
+        #expect(BatteryStatusText.text(
+            reason: .init(kind: .persistenceReadFailed), detail: "", locale: Locale(identifier: "en"))
+                == "Stored charge policy could not be read; charging will be restored")
+        #expect(BatteryStatusText.text(
+            reason: .init(kind: .persistenceWriteFailed), detail: "", locale: Locale(identifier: "en"))
+                == "Charge policy could not be saved safely")
+        #expect(BatteryStatusText.text(
+            reason: .init(kind: .policyOwnerMismatch), detail: "", locale: Locale(identifier: "en"))
+                == "Another user manages this Mac's charge policy")
+        #expect(BatteryStatusText.text(
+            reason: .init(kind: .hardwareReadbackFailed), detail: "", locale: Locale(identifier: "en"))
+                == "Charge-control hardware state could not be verified")
     }
 
     /// 서식 지정자가 어긋나면 조회는 조용히 실패하고 한국어로 되돌아간다. 지정자 자체를 못박아 둔다.
@@ -257,4 +270,3 @@ struct LocalizationTests {
         #expect(String(localized: "도우미 응답 오류", locale: Locale(identifier: "en")) == "Helper response error")
     }
 }
-

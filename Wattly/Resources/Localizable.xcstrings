@@ -36632,6 +36632,74 @@
         }
       }
     },
+    "저장된 충전 정책을 읽지 못해 충전 허용 상태로 복구합니다": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "저장된 충전 정책을 읽지 못해 충전 허용 상태로 복구합니다"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stored charge policy could not be read; charging will be restored"
+          }
+        }
+      }
+    },
+    "충전 정책을 안전하게 저장하지 못했습니다": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "충전 정책을 안전하게 저장하지 못했습니다"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Charge policy could not be saved safely"
+          }
+        }
+      }
+    },
+    "다른 사용자가 이 Mac의 충전 정책을 관리하고 있습니다": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다른 사용자가 이 Mac의 충전 정책을 관리하고 있습니다"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another user manages this Mac's charge policy"
+          }
+        }
+      }
+    },
+    "충전 제어 하드웨어 상태를 확인하지 못했습니다": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "충전 제어 하드웨어 상태를 확인하지 못했습니다"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Charge-control hardware state could not be verified"
+          }
+        }
+      }
+    },
     "이 Mac은 충전 제어를 지원하지 않습니다": {
       "extractionState": "manual",
       "localizations": {

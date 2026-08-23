@@ -72,6 +72,14 @@ enum BatteryStatusText {
             let resume = Int64(resolved.resumePercentage ?? max(45, Int(target) - 2))
             return String(format: String(localized: "Sailing 중 (%lld%% 도달 시 재충전)", locale: locale),
                           locale: locale, resume)
+        case .persistenceReadFailed:
+            return String(localized: "저장된 충전 정책을 읽지 못해 충전 허용 상태로 복구합니다", locale: locale)
+        case .persistenceWriteFailed:
+            return String(localized: "충전 정책을 안전하게 저장하지 못했습니다", locale: locale)
+        case .policyOwnerMismatch:
+            return String(localized: "다른 사용자가 이 Mac의 충전 정책을 관리하고 있습니다", locale: locale)
+        case .hardwareReadbackFailed:
+            return String(localized: "충전 제어 하드웨어 상태를 확인하지 못했습니다", locale: locale)
         case .unrecognized:
             // `resolve` never returns this, but the switch has to be total. Falling back to the
             // sentence is what the caller would want anyway.

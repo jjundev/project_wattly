@@ -204,4 +204,104 @@ struct BatteryControlProtocolTests {
         #expect(futureDecoded.currentPercentage == 70)
         #expect(malformedDecoded.currentPercentage == 70)
     }
+
+    @Test func persistenceMaintenanceFieldsRoundTrip() throws {
+        let desired = BatteryControlConfiguration(
+            enabled: true, limitPercentage: 85, lowerHysteresisDelta: 5)
+        let maintenance = BatteryMaintenanceRecord(
+            trigger: .wake,
+            result: .verified,
+            occurredAt: 1234,
+            reason: nil)
+        let input = BatteryControlServiceStatus(
+            mode: .inhibited,
+            currentPercentage: 85,
+            isPowerAdapterConnected: true,
+            detail: "충전 제한 85% 도달 (전원 어댑터 바이패스 구동)",
+            updatedAt: 1234,
+            appliedLimitPercentage: 85,
+            isHardwareSupported: true,
+            detailReason: .init(kind: .inhibitedAtLimit, limitPercentage: 85),
+            activity: .holdingAtLimit,
+            desiredConfiguration: desired,
+            actualGate: .inhibited(appliedLimitPercentage: nil),
+            lastMaintenance: maintenance,
+            capabilities: [.persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1])
+
+        let decoded = try BatteryControlCodec.decode(
+            BatteryControlServiceStatus.self,
+            from: BatteryControlCodec.encode(input))
+
+        #expect(decoded.desiredConfiguration == desired)
+        #expect(decoded.actualGate == .inhibited(appliedLimitPercentage: nil))
+        #expect(decoded.lastMaintenance == maintenance)
+        #expect(decoded.capabilities == [
+            .persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1
+        ])
+    }
+
+    @Test func currentAppDecodesLegacyHelperStatusWithoutPersistenceFields() throws {
+        let legacy = Data(#"""
+        {
+          "mode":"charging",
+          "currentPercentage":70,
+          "isPowerAdapterConnected":true,
+          "detail":"목표치(80%)까지 충전 중",
+          "updatedAt":1
+        }
+        """#.utf8)
+
+        let decoded = try BatteryControlCodec.decode(
+            BatteryControlServiceStatus.self, from: legacy)
+
+        #expect(decoded.desiredConfiguration == nil)
+        #expect(decoded.actualGate == nil)
+        #expect(decoded.lastMaintenance == nil)
+        #expect(decoded.capabilities == nil)
+    }
+
+    @Test func unknownCapabilityDoesNotBreakTheWholeStatus() throws {
+        let payload = Data(#"""
+        {
+          "mode":"charging",
+          "currentPercentage":70,
+          "isPowerAdapterConnected":true,
+          "detail":"OK",
+          "updatedAt":1,
+          "capabilities":["future-capability"]
+        }
+        """#.utf8)
+        let decoded = try BatteryControlCodec.decode(
+            BatteryControlServiceStatus.self, from: payload)
+        #expect(decoded.capabilities == [.unrecognized])
+    }
+
+    @Test func futureSafetyValuesDecodeAsUnrecognizedWithoutBreakingStatus() throws {
+        let payload = Data(#"""
+        {
+          "mode":"charging",
+          "currentPercentage":70,
+          "isPowerAdapterConnected":true,
+          "detail":"OK",
+          "updatedAt":1,
+          "actualGate":{"state":"future-state"},
+          "releaseVerdict":"future-verdict",
+          "lastMaintenance":{
+            "trigger":"future-trigger",
+            "result":"future-result",
+            "occurredAt":1
+          }
+        }
+        """#.utf8)
+
+        let decoded = try BatteryControlCodec.decode(
+            BatteryControlServiceStatus.self, from: payload)
+
+        #expect(decoded.actualGate?.state == .unrecognized)
+        #expect(decoded.releaseVerdict == .unrecognized)
+        #expect(decoded.releaseVerdict?.isSafeToRemove == false)
+        #expect(decoded.lastMaintenance?.trigger == .unrecognized)
+        #expect(decoded.lastMaintenance?.result == .unrecognized)
+        #expect(decoded.currentPercentage == 70)
+    }
 }

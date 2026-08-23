@@ -41,7 +41,9 @@ public enum BatteryControlActivity: String, Codable, Equatable, Sendable, CaseIt
         case .some(.sailing): return .sailing
         case .some(.initializing), .some(.powerSourceUnreadable),
              .some(.hardwareUnsupported), .some(.releaseFailed),
-             .some(.applyFailed), .some(.unrecognized), .none:
+             .some(.applyFailed), .some(.persistenceReadFailed),
+             .some(.persistenceWriteFailed), .some(.policyOwnerMismatch),
+             .some(.hardwareReadbackFailed), .some(.unrecognized), .none:
             return nil
         }
     }
