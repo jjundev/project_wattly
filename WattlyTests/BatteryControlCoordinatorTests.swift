@@ -97,6 +97,95 @@ struct BatteryControlCoordinatorTests {
         #expect(hardware.chargingInhibited == false)
     }
 
+    @Test func missingPolicyUsesDedicatedFirmwareManagedRelease() {
+        let hardware = MockBatteryHardware()
+        hardware.registerSet = .firmwareManaged
+        hardware.releaseVerdict = .verifiedAllowed
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501,
+            store: PolicyStoreSpy(),
+            engine: BatteryControlEngine(hardware: hardware),
+            now: { 100 })
+
+        let status = coordinator.restore(currentSoC: 80, isPluggedIn: true)
+
+        #expect(hardware.readCount == 0)
+        #expect(hardware.writeCount == 0)
+        #expect(hardware.releaseAttemptCount == 1)
+        #expect(status.desiredConfiguration?.enabled == false)
+        #expect(status.releaseVerdict == .verifiedAllowed)
+        #expect(status.actualGate == .allowed)
+        #expect(status.lastMaintenance?.result == .released)
+    }
+
+    @Test func storedDisabledPolicyUsesDedicatedFirmwareManagedRelease() {
+        let hardware = MockBatteryHardware()
+        hardware.registerSet = .firmwareManaged
+        hardware.releaseVerdict = .notControllable
+        let store = PolicyStoreSpy()
+        store.stored = .init(
+            ownerUID: 501,
+            configuration: .init(enabled: false, limitPercentage: 80),
+            updatedAt: 10)
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501,
+            store: store,
+            engine: BatteryControlEngine(hardware: hardware),
+            now: { 100 })
+
+        let status = coordinator.restore(currentSoC: 80, isPluggedIn: true)
+
+        #expect(hardware.readCount == 0)
+        #expect(hardware.writeCount == 0)
+        #expect(hardware.releaseAttemptCount == 1)
+        #expect(status.releaseVerdict == .notControllable)
+        #expect(status.actualGate == .unreadable)
+        #expect(status.lastMaintenance?.result == .released)
+    }
+
+    @Test func missingPolicyReportsDedicatedReleaseFailure() {
+        let hardware = MockBatteryHardware()
+        hardware.registerSet = .firmwareManaged
+        hardware.releaseVerdict = .failed
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501,
+            store: PolicyStoreSpy(),
+            engine: BatteryControlEngine(hardware: hardware),
+            now: { 100 })
+
+        let status = coordinator.restore(currentSoC: 80, isPluggedIn: true)
+
+        #expect(hardware.releaseAttemptCount == 1)
+        #expect(status.releaseVerdict == .failed)
+        #expect(status.lastMaintenance?.result == .failed)
+        #expect(status.lastMaintenance?.reason?.kind == .releaseFailed)
+    }
+
+    @Test func wrongOwnerPreservesOwnershipFailureWhenDedicatedReleaseFails() {
+        let hardware = MockBatteryHardware()
+        hardware.registerSet = .firmwareManaged
+        hardware.releaseVerdict = .failed
+        let store = PolicyStoreSpy()
+        store.stored = .init(
+            ownerUID: 502,
+            configuration: .init(enabled: true, limitPercentage: 80),
+            updatedAt: 10)
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501,
+            store: store,
+            engine: BatteryControlEngine(hardware: hardware),
+            now: { 100 })
+
+        let status = coordinator.restore(currentSoC: 80, isPluggedIn: true)
+
+        #expect(hardware.readCount == 0)
+        #expect(hardware.writeCount == 0)
+        #expect(hardware.releaseAttemptCount == 1)
+        #expect(status.releaseVerdict == .failed)
+        #expect(status.lastMaintenance?.result == .failed)
+        #expect(status.lastMaintenance?.reason?.kind == .policyOwnerMismatch)
+    }
+
     @Test func startupWithoutPowerReadingPreservesAReadableEnabledHold() {
         let hardware = MockBatteryHardware()
         hardware.reportedGate = .inhibited(appliedLimitPercentage: nil)
@@ -393,6 +482,51 @@ struct BatteryControlCoordinatorTests {
             reason: .init(kind: .hardwareReadbackFailed)))
     }
 
+    @Test func enabledUnsupportedConfigurePublishesPermanentHardwareFailure() {
+        let hardware = MockBatteryHardware()
+        hardware.registerSet = .unsupported
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501,
+            store: PolicyStoreSpy(),
+            engine: BatteryControlEngine(hardware: hardware),
+            now: { 100 })
+
+        let status = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80),
+            trigger: .clientConfiguration,
+            currentSoC: 80,
+            isPluggedIn: true)
+
+        #expect(status.isHardwareSupported == false)
+        #expect(status.actualGate == nil)
+        #expect(status.detailReason?.kind == .hardwareUnsupported)
+        #expect(status.lastMaintenance?.result == .failed)
+        #expect(status.lastMaintenance?.reason?.kind == .hardwareUnsupported)
+    }
+
+    @Test func enabledUnsupportedRestoreIsNeverPublishedAsVerified() {
+        let hardware = MockBatteryHardware()
+        hardware.registerSet = .unsupported
+        let store = PolicyStoreSpy()
+        store.stored = .init(
+            ownerUID: 501,
+            configuration: .init(enabled: true, limitPercentage: 80),
+            updatedAt: 10)
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501,
+            store: store,
+            engine: BatteryControlEngine(hardware: hardware),
+            now: { 100 })
+
+        let status = coordinator.restore(currentSoC: 80, isPluggedIn: true)
+
+        #expect(status.isHardwareSupported == false)
+        #expect(status.actualGate == nil)
+        #expect(status.detailReason?.kind == .hardwareUnsupported)
+        #expect(status.lastMaintenance?.result == .failed)
+        #expect(status.lastMaintenance?.reason?.kind == .hardwareUnsupported)
+    }
+
     @Test func corruptStoreReleasesAndReportsPersistenceReadFailure() {
         let hardware = MockBatteryHardware()
         hardware.reportedGate = .inhibited(appliedLimitPercentage: nil)
@@ -409,6 +543,8 @@ struct BatteryControlCoordinatorTests {
 
         #expect(status.desiredConfiguration?.enabled == false)
         #expect(status.actualGate?.state == .allowed)
+        #expect(hardware.writeCount == 0)
+        #expect(hardware.releaseAttemptCount == 1)
         #expect(coordinator.isSafeToServe)
         #expect(status.lastMaintenance == .init(
             trigger: .startup,
@@ -566,6 +702,8 @@ struct BatteryControlCoordinatorTests {
 
         #expect(coordinator.isSafeToServe)
         #expect(status.desiredConfiguration?.enabled == false)
+        #expect(hardware.writeCount == 0)
+        #expect(hardware.releaseAttemptCount == 1)
         #expect(status.lastMaintenance?.reason?.kind == .persistenceReadFailed)
     }
 

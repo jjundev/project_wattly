@@ -49,6 +49,12 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         do {
             let (desired, ownershipFailure) = try resolvedStoredPolicy()
             engine.configure(desired)
+            if !desired.enabled {
+                return publishDisabledRestore(
+                    currentSoC: currentSoC,
+                    isPluggedIn: isPluggedIn,
+                    resolutionFailure: ownershipFailure)
+            }
             let status = engine.verifyAndUpdate(
                 currentSoC: currentSoC,
                 isPluggedIn: isPluggedIn)
@@ -69,14 +75,10 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
                     result: .failed,
                     reason: .init(kind: .persistenceReadFailed))
             }
-            let status = engine.verifyAndUpdate(
+            return publishDisabledRestore(
                 currentSoC: currentSoC,
-                isPluggedIn: isPluggedIn)
-            return publish(
-                status,
-                trigger: .startup,
-                result: .failed,
-                reason: .init(kind: .persistenceReadFailed))
+                isPluggedIn: isPluggedIn,
+                resolutionFailure: .init(kind: .persistenceReadFailed))
         }
     }
 
@@ -317,6 +319,30 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         return (stored.configuration, nil)
     }
 
+    private func publishDisabledRestore(
+        currentSoC: Int,
+        isPluggedIn: Bool,
+        resolutionFailure: BatteryControlStatusReason?
+    ) -> BatteryControlServiceStatus {
+        let verdict = engine.releaseVerified()
+        var status = engine.statusForCurrentBelief(
+            currentSoC: currentSoC,
+            isPluggedIn: isPluggedIn)
+        status.releaseVerdict = verdict
+        if verdict == .verifiedAllowed {
+            status.actualGate = .allowed
+        }
+        let releaseFailure = verdict.isSafeToRemove
+            ? nil : BatteryControlStatusReason(kind: .releaseFailed)
+        return publish(
+            status,
+            trigger: .startup,
+            result: resolutionFailure != nil
+                ? .failed
+                : (verdict.isSafeToRemove ? .released : .failed),
+            reason: resolutionFailure ?? releaseFailure)
+    }
+
     private func isRollbackFailure(_ error: any Error) -> Bool {
         guard let storeError = error as? BatteryPolicyStoreError else {
             return false
@@ -364,8 +390,13 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         switch status.detailReason?.kind {
         case .applyFailed, .releaseFailed, .hardwareReadbackFailed:
             return status.detailReason
+        case .hardwareUnsupported where engine.configuration.enabled:
+            return status.detailReason
         default:
             break
+        }
+        if engine.configuration.enabled, status.actualGate == nil {
+            return .init(kind: .hardwareReadbackFailed)
         }
         guard status.actualGate?.state != .unreadable,
               status.actualGate?.state != .unrecognized
