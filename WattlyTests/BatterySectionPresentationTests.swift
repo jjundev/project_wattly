@@ -171,6 +171,12 @@ import Foundation
         // 껐는데 하드웨어가 아직 물고 있거나 해제 쓰기가 실패한 상태 — 데몬이 스스로 재시도해
         // 풀어내므로, 여기서 폴링을 멈추면 사용자가 어댑터를 다시 꽂아 실제로 복구된 뒤에도 화면은
         // 실패 문구에 얼어붙는다.
+        //
+        // `.unsupported` 모드는 두 가지를 뜻한다 — 레지스터가 아예 없거나(영구), 쓰기가 계속
+        // 실패하거나(`BatteryControlEngine`의 `!isHardwareSupported || hasActionableFailure`, 일시적).
+        // 전자는 `isHardwareSupported == false`로 걸러져 폴링이 멎지만, 후자는 데몬이 재시도로
+        // 빠져나올 수 있는 상태이므로 여기서는 `isHardwareSupported: true`로 두어 폴링이 계속돼야
+        // 한다.
         #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false, mode: .inhibited,
                                                             isHardwareSupported: true) == true)
         #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false, mode: .unsupported,
@@ -196,16 +202,6 @@ import Foundation
                                                             isHardwareSupported: nil) == true)
         #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false, mode: .unsupported,
                                                             isHardwareSupported: nil) == true)
-    }
-
-    @Test func pollingContinuesWhileSupportedHardwareIsStillFailingItsWrites() {
-        // `.unsupported` 모드는 두 가지를 뜻한다 — 레지스터가 아예 없거나, 쓰기가 계속 실패하거나
-        // (`BatteryControlEngine`의 `!isHardwareSupported || hasActionableFailure`). 후자는 데몬이
-        // 재시도로 빠져나올 수 있는 일시적 상태이므로, 이 커밋이 그 폴링까지 끄면 안 된다.
-        #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false, mode: .unsupported,
-                                                            isHardwareSupported: true) == true)
-        #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: true, mode: .unsupported,
-                                                            isHardwareSupported: true) == true)
     }
 
     // MARK: - 현지화 (plan 2026-08-23)
