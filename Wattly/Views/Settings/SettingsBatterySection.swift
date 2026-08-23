@@ -83,51 +83,6 @@ struct SettingsBatterySection: View {
                             disabledReason: BatterySectionPresentation
                                 .limitPickerDisabledReason(isLimitOn: batteryLimitEnabled)
                         )
-
-                        Divider()
-                            .overlay(t.rowBorder)
-                            .padding(.vertical, 4)
-
-                        SettingsToggleRow(isOn: $batterySailingEnabled,
-                                          divider: false,
-                                          isEnabled: isLimitPickerEnabled,
-                                          disabledReason: BatterySectionPresentation
-                                              .limitPickerDisabledReason(isLimitOn: batteryLimitEnabled)) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                SettingsRowTitle("Sailing 모드")
-                                Text("충전 상한에 도달한 후 배터리가 하한까지 자연 방전될 때까지 충전을 재개하지 않습니다.")
-                                    .font(WattlyFont.at(10.5, weight: .regular))
-                                    .foregroundStyle(t.faint)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-
-                        if batterySailingEnabled {
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Text("Sailing 범위")
-                                        .font(WattlyFont.at(12, weight: .medium))
-                                        .foregroundStyle(t.text)
-                                    Spacer()
-                                    Text(BatterySectionPresentation.sailingRangeDescription(
-                                        limit: batteryLimitPercentage,
-                                        delta: batterySailingDelta,
-                                        locale: locale))
-                                        .font(WattlyFont.at(10.5, weight: .medium))
-                                        .foregroundStyle(t.sub)
-                                }
-                                .opacity(isLimitPickerEnabled ? 1 : 0.5)
-
-                                WattlySegment(
-                                    selection: $batterySailingDelta,
-                                    options: sailingPresets.map { ($0, "\($0)%") },
-                                    pillVPadding: 6,
-                                    isEnabled: isLimitPickerEnabled,
-                                    disabledReason: BatterySectionPresentation
-                                        .limitPickerDisabledReason(isLimitOn: batteryLimitEnabled)
-                                )
-                            }
-                        }
                     }
 
                     // Always visible: unsupported hardware must explain itself with the same
@@ -135,6 +90,52 @@ struct SettingsBatterySection: View {
                     batteryStatusIndicator
                 }
                 .padding(EdgeInsets(top: 12, leading: 14, bottom: 14, trailing: 14))
+
+                if showsConfigurationControls {
+                    Rectangle().fill(t.line).frame(height: 1)
+
+                    SettingsToggleRow(isOn: $batterySailingEnabled,
+                                      divider: false,
+                                      isEnabled: isLimitPickerEnabled,
+                                      disabledReason: BatterySectionPresentation
+                                          .limitPickerDisabledReason(isLimitOn: batteryLimitEnabled)) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            SettingsRowTitle("Sailing 모드")
+                            Text("충전 상한에 도달한 후 배터리가 하한까지 자연 방전될 때까지 충전을 재개하지 않습니다.")
+                                .font(WattlyFont.at(10.5, weight: .regular))
+                                .foregroundStyle(t.faint)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+
+                    if batterySailingEnabled {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("Sailing 범위")
+                                    .font(WattlyFont.at(12, weight: .medium))
+                                    .foregroundStyle(t.text)
+                                Spacer()
+                                Text(BatterySectionPresentation.sailingRangeDescription(
+                                    limit: batteryLimitPercentage,
+                                    delta: batterySailingDelta,
+                                    locale: locale))
+                                    .font(WattlyFont.at(10.5, weight: .medium))
+                                    .foregroundStyle(t.sub)
+                            }
+                            .opacity(isLimitPickerEnabled ? 1 : 0.5)
+
+                            WattlySegment(
+                                selection: $batterySailingDelta,
+                                options: sailingPresets.map { ($0, "\($0)%") },
+                                pillVPadding: 6,
+                                isEnabled: isLimitPickerEnabled,
+                                disabledReason: BatterySectionPresentation
+                                    .limitPickerDisabledReason(isLimitOn: batteryLimitEnabled)
+                            )
+                        }
+                        .padding(EdgeInsets(top: 0, leading: 14, bottom: 14, trailing: 14))
+                    }
+                }
             }
             .task(id: batteryLimitEnabled) {
                 // One read regardless of the opt-in: a Mac with no charge register has to disable
