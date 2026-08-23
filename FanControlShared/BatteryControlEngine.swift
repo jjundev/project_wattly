@@ -5,7 +5,19 @@ public protocol BatteryControlHardwareProtocol: Sendable {
     /// than inferred from the architecture, the model or the macOS version — the generation tracks
     /// the firmware, which moves under a machine that never changed.
     var registerSet: BatteryControlRegisterSet { get }
+    func readChargingGate(targetLimit: Int) -> BatteryHardwareGate
     func setChargingInhibited(_ inhibited: Bool, targetLimit: Int) -> Bool
+    func releaseChargingControlAndVerify() -> BatteryReleaseVerdict
+}
+
+public extension BatteryControlHardwareProtocol {
+    /// Production parsing is supplied by the hardware adapter. Until an adapter implements
+    /// readback, the only safe answer is that the gate could not be verified.
+    func readChargingGate(targetLimit: Int) -> BatteryHardwareGate { .unreadable }
+
+    /// Production verified release is supplied by the hardware adapter in the generation parser
+    /// slice. An adapter without that implementation cannot prove that it is safe to stop.
+    func releaseChargingControlAndVerify() -> BatteryReleaseVerdict { .failed }
 }
 
 public final class BatteryControlEngine: @unchecked Sendable {
@@ -22,6 +34,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
     private var hasInitializedState: Bool = false
     private var lastWriteFailed: Bool = false
     private var consecutiveWriteFailures: Int = 0
+    private var lastVerifiedGate: BatteryHardwareGate?
 
     private var isWriteLatched: Bool {
         consecutiveWriteFailures >= Self.maxConsecutiveWriteFailures
@@ -42,9 +55,71 @@ public final class BatteryControlEngine: @unchecked Sendable {
         hardware.registerSet.canDriveCharging
     }
 
-    public init(hardware: BatteryControlHardwareProtocol, initialConfig: BatteryControlConfiguration = .init()) {
+    public init(
+        hardware: BatteryControlHardwareProtocol,
+        initialConfig: BatteryControlConfiguration = .init()
+    ) {
         self.hardware = hardware
         self.config = initialConfig.normalized
+    }
+
+    public var configuration: BatteryControlConfiguration { config }
+
+    public func beginRecoveryWindow() {
+        consecutiveWriteFailures = 0
+        lastWriteFailed = false
+    }
+
+    @discardableResult
+    public func hydrateHardwareState() -> BatteryHardwareGate {
+        let gate = hardware.readChargingGate(
+            targetLimit: config.clampedLimitPercentage)
+        lastVerifiedGate = gate
+        switch gate.state {
+        case .allowed:
+            isCurrentlyInhibited = false
+            hasInitializedState = true
+        case .inhibited:
+            isCurrentlyInhibited = true
+            hasInitializedState = true
+        case .unreadable, .unrecognized:
+            if attemptWrite(inhibited: false, targetLimit: 100) {
+                isCurrentlyInhibited = false
+                hasInitializedState = true
+            } else {
+                hasInitializedState = false
+            }
+        }
+        return lastVerifiedGate ?? .unreadable
+    }
+
+    public func verifyAndUpdate(
+        currentSoC: Int,
+        isPluggedIn: Bool
+    ) -> BatteryControlServiceStatus {
+        let gate = hydrateHardwareState()
+        if gate.state == .inhibited {
+            let staleIntelLimit = gate.appliedLimitPercentage.map {
+                $0 != config.clampedLimitPercentage
+            } ?? false
+            if staleIntelLimit {
+                guard attemptWrite(inhibited: false, targetLimit: 100) else {
+                    hasInitializedState = false
+                    return status(
+                        currentSoC: currentSoC,
+                        isPluggedIn: isPluggedIn,
+                        target: config.clampedLimitPercentage)
+                }
+                isCurrentlyInhibited = false
+                hasInitializedState = true
+            }
+        }
+        guard hasInitializedState else {
+            return verificationFailureStatus(
+                currentSoC: currentSoC,
+                isPluggedIn: isPluggedIn)
+        }
+        return update(currentSoC: currentSoC, isPluggedIn: isPluggedIn)
     }
 
     /// True while the engine still has something a fresh power reading could change. With the
@@ -61,44 +136,18 @@ public final class BatteryControlEngine: @unchecked Sendable {
     }
 
     public func configure(_ newConfig: BatteryControlConfiguration) {
-        let normalized = newConfig.normalized
         // A new configuration is the user — or the app's reconcile pass — asking again, so clear
         // the latch and let the next tick spend a fresh set of attempts.
-        consecutiveWriteFailures = 0
-        lastWriteFailed = false
-        if config.enabled && !normalized.enabled && isCurrentlyInhibited {
-            if attemptWrite(inhibited: false, targetLimit: 100) { isCurrentlyInhibited = false }
-        }
-        config = normalized
+        beginRecoveryWindow()
+        config = newConfig.normalized
     }
 
-    /// Re-writes the charge-inhibit register to what the engine already believes, rather than
-    /// trusting that a sleep cycle preserved it. Nothing downstream could detect a register cleared
-    /// behind the engine's back: the reported applied limit is derived from configuration, not from
-    /// the register, so the app's reconcile pass would see perfect agreement and do nothing.
-    ///
-    /// Only an active inhibit needs this. Nothing but this engine ever sets the register, so a
-    /// belief of "not inhibiting" cannot silently drift into the opposite.
-    ///
-    /// The opt-in is part of the condition too: if the user has switched the limit off and the
-    /// release write has not landed yet, re-asserting would push the hardware the wrong way while
-    /// the next tick is still trying to let go.
-    ///
-    /// This deliberately does NOT route through `normalizeOnFirstUpdate`. That path exists for a
-    /// cold start, where the belief is worthless, and it clears `isCurrentlyInhibited` as part of
-    /// forcing a known baseline. On wake the belief is the very thing worth keeping: erasing it
-    /// would drop a hold the hysteresis band still wants, and a battery resting at 84 % under an
-    /// 85 % limit would resume charging on every lid-open.
+    /// Legacy wake entry point retained until the daemon moves to `verifyAndUpdate`. It reasserts
+    /// only a believed active hold and still verifies the write through `attemptWrite`.
     public func reassertHardwareState() {
         guard config.enabled, isCurrentlyInhibited else { return }
         if !attemptWrite(inhibited: true, targetLimit: config.clampedLimitPercentage) {
-            // The re-assert did not land, so the register's real state is now genuinely unknown.
-            // Hand it to the normalization gate, which parks and reports honestly until a write
-            // succeeds — and a nil applied limit is what makes the app re-push and re-arm the budget.
-            // Handing this to the normalization gate deliberately costs an in-band hold: the gate
-            // releases before re-deriving, so a battery resting between the resume and target
-            // thresholds recharges once. That is the price of never guessing at a register we could
-            // not write, and it is gated behind an SMC write failure rather than any normal path.
+            // The reassertion did not verify, so the next update must rebuild a known baseline.
             hasInitializedState = false
         }
     }
@@ -169,11 +218,8 @@ public final class BatteryControlEngine: @unchecked Sendable {
         return true
     }
 
-    /// The last chance to hand the battery back before the daemon exits, so it bypasses the failure
-    /// latch on purpose: leaving the register set would stop the Mac charging with no helper left
-    /// to ever clear it. An engine that never confirmed the hardware state is included — that is
-    /// precisely the crashed-daemon case, where the register may well be latched and this is the
-    /// only remaining chance to clear it. Worst case is one extra failed write per daemon exit.
+    /// Legacy shutdown entry point retained until daemon coordination uses `releaseVerified`.
+    /// Unlike all new paths, it preserves the installed helper's one unverified last-chance write.
     public func release() {
         guard isCurrentlyInhibited || !hasInitializedState else { return }
         if hardware.setChargingInhibited(false, targetLimit: 100) {
@@ -183,17 +229,53 @@ public final class BatteryControlEngine: @unchecked Sendable {
         }
     }
 
-    /// Every routine hardware write goes through here, so the failure latch has exactly one home.
+    public func releaseVerified() -> BatteryReleaseVerdict {
+        guard !isWriteLatched else { return .failed }
+        let verdict = hardware.releaseChargingControlAndVerify()
+        guard verdict.isSafeToRemove else {
+            consecutiveWriteFailures += 1
+            lastWriteFailed = true
+            return verdict
+        }
+        isCurrentlyInhibited = false
+        hasInitializedState = true
+        beginRecoveryWindow()
+        lastVerifiedGate = verdict == .verifiedAllowed ? .allowed : .unreadable
+        return verdict
+    }
+
+    private func gateMatches(
+        _ gate: BatteryHardwareGate,
+        inhibited: Bool,
+        targetLimit: Int
+    ) -> Bool {
+        if inhibited {
+            guard gate.state == .inhibited else { return false }
+            return gate.appliedLimitPercentage.map { $0 == targetLimit } ?? true
+        }
+        return gate.state == .allowed
+    }
+
+    /// Every routine hardware write and its readback go through here, so the failure latch has
+    /// exactly one home and a write acknowledgement is never mistaken for verified hardware state.
     private func attemptWrite(inhibited: Bool, targetLimit: Int) -> Bool {
         guard !isWriteLatched else { return false }
-        if hardware.setChargingInhibited(inhibited, targetLimit: targetLimit) {
-            consecutiveWriteFailures = 0
-            lastWriteFailed = false
-            return true
+        guard hardware.setChargingInhibited(inhibited, targetLimit: targetLimit) else {
+            consecutiveWriteFailures += 1
+            lastWriteFailed = true
+            return false
         }
-        consecutiveWriteFailures += 1
-        lastWriteFailed = true
-        return false
+        let verified = hardware.readChargingGate(targetLimit: targetLimit)
+        guard gateMatches(verified, inhibited: inhibited, targetLimit: targetLimit) else {
+            consecutiveWriteFailures += 1
+            lastWriteFailed = true
+            lastVerifiedGate = verified
+            return false
+        }
+        lastVerifiedGate = verified
+        consecutiveWriteFailures = 0
+        lastWriteFailed = false
+        return true
     }
 
     private func detailReason(isPluggedIn: Bool, target: Int, currentSoC: Int) -> BatteryControlStatusReason {
@@ -242,8 +324,26 @@ public final class BatteryControlEngine: @unchecked Sendable {
             detailReason: reason,
             // The reason is already the single authoritative decision for this sample. Deriving
             // activity here keeps the new app, the legacy sentence, and the hardware mode aligned.
-            activity: BatteryControlActivity.inferred(from: reason)
+            activity: BatteryControlActivity.inferred(from: reason),
+            actualGate: lastVerifiedGate
         )
     }
-}
 
+    private func verificationFailureStatus(
+        currentSoC: Int,
+        isPluggedIn: Bool
+    ) -> BatteryControlServiceStatus {
+        let reason = BatteryControlStatusReason(kind: .hardwareReadbackFailed)
+        return BatteryControlServiceStatus(
+            mode: .unsupported,
+            currentPercentage: currentSoC,
+            isPowerAdapterConnected: isPluggedIn,
+            detail: reason.legacyKoreanDetail,
+            updatedAt: Date().timeIntervalSince1970,
+            appliedLimitPercentage: nil,
+            isHardwareSupported: isHardwareSupported,
+            detailReason: reason,
+            activity: nil,
+            actualGate: lastVerifiedGate ?? .unreadable)
+    }
+}
