@@ -117,7 +117,7 @@ struct FanControlProtocolTests {
         #expect(oneShot.lowerBound < uidValidation.lowerBound)
     }
 
-    @Test func batteryConfigurationXPCUsesSerializedCoordinatorTransactions() throws {
+    @Test func batteryConfigurationXPCDelegatesInsideSerializedQueue() throws {
         let source = try daemonSource(named: "FanControlDaemon.swift")
         let start = try #require(source.range(of: "func configureBattery("))
         let end = try #require(source.range(
@@ -126,11 +126,11 @@ struct FanControlProtocolTests {
         let method = source[start.lowerBound..<end.lowerBound]
 
         #expect(method.contains("queue.async"))
-        #expect(method.contains("request.generation > lastBatteryGeneration"))
-        #expect(method.contains("readPowerSourceState() ?? lastPowerReading"))
-        #expect(method.contains("batteryCoordinator.configureWithoutPowerReading("))
-        #expect(method.contains("batteryCoordinator.configure("))
-        #expect(!method.contains("batteryEngine.configure("))
+        #expect(method.contains("batteryControlService.configure("))
+        #expect(method.contains("encodedStatus"))
+        #expect(!method.contains("BatteryControlCodec.decode("))
+        #expect(!method.contains("lastBatteryGeneration"))
+        #expect(!method.contains("batteryCoordinator.configure"))
     }
 
     private static let testCurve = FanCurve(rpms: [800, 900, 1000, 1200, 1500,

@@ -8,11 +8,10 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
     private let allowedUID: uid_t
     private let engine: FanControlEngine
     private let batteryCoordinator: BatteryControlCoordinator
-    private var lastBatteryGeneration: UInt64 = 0
+    private let batteryControlService: BatteryDaemonControlService
     private var latestBatteryStatus: BatteryControlServiceStatus {
         batteryCoordinator.latestStatus
     }
-    private var lastPowerReading: (soc: Int, plugged: Bool)?
     private let listener: NSXPCListener
     private let queue = DispatchQueue(label: "dev.jjundev.WattlyFanDaemon.control")
     private var controlTimer: DispatchSourceTimer?
@@ -42,6 +41,8 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
         self.allowedUID = allowedUID
         self.engine = FanControlEngine(hardware: hardware)
         self.batteryCoordinator = batteryCoordinator
+        self.batteryControlService = BatteryDaemonControlService(
+            coordinator: batteryCoordinator)
         self.listener = NSXPCListener(machServiceName: FanControlXPC.machService)
         super.init()
     }
@@ -52,14 +53,8 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
         // mode. If an acknowledgement fails, the timer below retains and retries that fan.
         queue.sync { [self] in
             engine.resetAllFansToAutomatic(now: now())
-            if let reading = readPowerSourceState() {
-                lastPowerReading = reading
-                _ = batteryCoordinator.restore(
-                    currentSoC: reading.soc,
-                    isPluggedIn: reading.plugged)
-            } else {
-                _ = batteryCoordinator.restoreWithoutPowerReading()
-            }
+            _ = batteryControlService.restore(
+                currentReading: readPowerSourceState())
             resumeListenerIfSafe()
         }
         guard batteryCoordinator.isSafeToServe else { exit(74) }
@@ -126,26 +121,10 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
         queue.async { [weak self] in
             guard let self else { return }
             do {
-                let request = try BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data)
-                guard request.generation > lastBatteryGeneration else {
-                    reply.send((try BatteryControlCodec.encode(latestBatteryStatus), nil))
-                    return
-                }
-                lastBatteryGeneration = request.generation
-                guard let reading = readPowerSourceState() ?? lastPowerReading else {
-                    let status = batteryCoordinator.configureWithoutPowerReading(
-                        request.configuration,
-                        trigger: .clientConfiguration)
-                    reply.send((try BatteryControlCodec.encode(status), nil))
-                    return
-                }
-                lastPowerReading = reading
-                let status = batteryCoordinator.configure(
-                    request.configuration,
-                    trigger: .clientConfiguration,
-                    currentSoC: reading.soc,
-                    isPluggedIn: reading.plugged)
-                reply.send((try BatteryControlCodec.encode(status), nil))
+                let encodedStatus = try batteryControlService.configure(
+                    encodedRequest: data,
+                    currentReading: readPowerSourceState())
+                reply.send((encodedStatus, nil))
             } catch {
                 reply.send((nil, error as NSError))
             }
@@ -168,25 +147,12 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
     /// `force` is for the XPC entry points and startup, where a caller is waiting on a fresh
     /// answer. The timers pass `false` so an idle machine with the limit off does no IOKit work.
     private func sampleBatteryAndEvaluate(force: Bool = false) {
-        guard force || batteryCoordinator.needsSampling else { return }
-        guard let reading = readPowerSourceState() ?? lastPowerReading else {
-            return
-        }
-        let adapterChanged = lastPowerReading?.plugged != reading.plugged
-        lastPowerReading = reading
-        if adapterChanged {
-            _ = batteryCoordinator.reconcile(
-                trigger: .adapterTransition,
-                currentSoC: reading.soc,
-                isPluggedIn: reading.plugged)
-        } else {
-            _ = batteryCoordinator.sample(
-                currentSoC: reading.soc,
-                isPluggedIn: reading.plugged)
-        }
+        _ = batteryControlService.sample(
+            currentReading: readPowerSourceState(),
+            force: force)
     }
 
-    private func readPowerSourceState() -> (soc: Int, plugged: Bool)? {
+    private func readPowerSourceState() -> BatteryPowerSourceReading? {
         guard let snapshot = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
               let list = IOPSCopyPowerSourcesList(snapshot)?.takeRetainedValue() as? [CFTypeRef] else {
             return nil
@@ -204,7 +170,9 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
         let maxCap = desc[kIOPSMaxCapacityKey] as? Int ?? 100
         let soc = maxCap > 0 ? Int((Double(current) / Double(maxCap) * 100.0).rounded()) : current
         let isPlugged = (desc[kIOPSPowerSourceStateKey] as? String) == kIOPSACPowerValue
-        return (soc, isPlugged)
+        return BatteryPowerSourceReading(
+            stateOfCharge: soc,
+            isPluggedIn: isPlugged)
     }
 
     private func startTimers() {
@@ -252,12 +220,8 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
         ) { [weak self] _ in
             self?.queue.async { [weak self] in
                 guard let self else { return }
-                guard let reading = readPowerSourceState() ?? lastPowerReading else { return }
-                lastPowerReading = reading
-                _ = batteryCoordinator.reconcile(
-                    trigger: .wake,
-                    currentSoC: reading.soc,
-                    isPluggedIn: reading.plugged)
+                _ = batteryControlService.reconcileAfterWake(
+                    currentReading: readPowerSourceState())
             }
         }
     }
