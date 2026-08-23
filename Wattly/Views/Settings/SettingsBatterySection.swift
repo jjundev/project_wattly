@@ -24,7 +24,7 @@ struct SettingsBatterySection: View {
                 // the helper answers that this Mac has no register — otherwise the row would
                 // disable itself in the ON position with nothing left to switch it back.
                 SettingsToggleRow(isOn: $batteryLimitEnabled,
-                                  divider: batteryLimitEnabled && !isHardwareUnsupported,
+                                  divider: areDetailsVisible,
                                   isEnabled: !isHardwareUnsupported,
                                   disabledReason: isHardwareUnsupported ? "이 Mac은 충전 제어를 지원하지 않습니다" : nil) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -38,7 +38,7 @@ struct SettingsBatterySection: View {
                     }
                 }
 
-                if batteryLimitEnabled && !isHardwareUnsupported {
+                if areDetailsVisible {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text("최대 충전 한도")
@@ -50,11 +50,18 @@ struct SettingsBatterySection: View {
                                 .monospacedDigit()
                                 .foregroundStyle(t.text)
                         }
+                        // 헤더와 세그먼트는 같은 컨트롤로 읽히므로 같은 값(0.5)으로 함께 흐려진다.
+                        // 세그먼트 자신의 불투명도는 `isEnabled`가 처리하므로 여기서 또 곱하면
+                        // 0.25가 되어 너무 어두워진다 — 그래서 딤은 헤더에만 건다.
+                        .opacity(isLimitPickerEnabled ? 1 : 0.5)
 
                         WattlySegment(
                             selection: $batteryLimitPercentage,
                             options: presetLimits.map { ($0, "\($0)%") },
-                            pillVPadding: 6
+                            pillVPadding: 6,
+                            isEnabled: isLimitPickerEnabled,
+                            disabledReason: BatterySectionPresentation
+                                .limitPickerDisabledReason(isLimitOn: batteryLimitEnabled)
                         )
 
                         batteryStatusIndicator
@@ -68,7 +75,7 @@ struct SettingsBatterySection: View {
                 // One read regardless of the opt-in: a Mac with no charge register has to disable
                 // its toggle before the user ever reaches for it.
                 await batteryControl.refreshStatus()
-                guard batteryLimitEnabled else { return }
+                guard BatterySectionPresentation.shouldPollStatus(isLimitOn: batteryLimitEnabled) else { return }
                 while !Task.isCancelled {
                     try? await Task.sleep(for: .seconds(BatteryControlPolicy.statusPollInterval))
                     guard !Task.isCancelled else { return }
@@ -114,16 +121,18 @@ struct SettingsBatterySection: View {
     }
 
     private var batteryStatusIndicator: some View {
-        HStack(spacing: 8) {
+        let resolved = resolvedStatus
+        return HStack(spacing: 8) {
             Circle()
-                .fill(statusDotColor)
+                .fill(dotColor(for: resolved.dot))
                 .frame(width: 7, height: 7)
-            Text(statusText)
+            Text(resolved.text)
                 .font(WattlyFont.at(11, weight: .regular))
                 .foregroundStyle(t.sub)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer()
-            if batteryControl.status.mode == .unavailable {
+            if BatterySectionPresentation.isInstallButtonVisible(isLimitOn: batteryLimitEnabled,
+                                                                 mode: batteryControl.status.mode) {
                 Button {
                     let window = NSApp.keyWindow
                     let limit = batteryLimitPercentage
@@ -175,26 +184,33 @@ struct SettingsBatterySection: View {
         batteryControl.status.isHardwareSupported == false
     }
 
-    private var statusDotColor: Color {
-        if batteryControl.isInstallingHelper {
-            return Tokens.statusOrange
-        }
-        switch batteryControl.status.mode {
-        case .inhibited:
-            return Tokens.statusOrange
-        case .charging:
-            return Tokens.statusGreen
-        case .unavailable:
-            return Tokens.statusRed
-        case .unsupported:
-            return t.faint
-        }
+    /// 하위 항목(한도 선택기 · 상태 줄 · 안내 배너)을 그릴지. 토글의 ON/OFF와는 무관하다 —
+    /// 꺼져 있어도 이 기능이 무엇을 하는지는 보여야 한다. 숨기는 경우는 이 Mac에 충전 제어
+    /// 레지스터가 아예 없다고 도우미가 명시적으로 답했을 때뿐이다.
+    private var areDetailsVisible: Bool {
+        BatterySectionPresentation.areDetailsVisible(
+            isHardwareSupported: batteryControl.status.isHardwareSupported)
     }
 
-    private var statusText: String {
-        if batteryControl.isInstallingHelper {
-            return "도우미 설치 중…"
+    private var isLimitPickerEnabled: Bool {
+        BatterySectionPresentation.isLimitPickerEnabled(isLimitOn: batteryLimitEnabled)
+    }
+
+    private var resolvedStatus: BatterySectionPresentation.Status {
+        BatterySectionPresentation.status(isLimitOn: batteryLimitEnabled,
+                                          isInstalling: batteryControl.isInstallingHelper,
+                                          mode: batteryControl.status.mode,
+                                          detail: batteryControl.status.detail)
+    }
+
+    /// 의미 → 색. 색을 순수 타입에 넣지 않는 이유는 `t.faint`가 테마 토큰이라
+    /// `@Environment`에서만 읽히기 때문이다.
+    private func dotColor(for dot: BatterySectionPresentation.Dot) -> Color {
+        switch dot {
+        case .green: return Tokens.statusGreen
+        case .orange: return Tokens.statusOrange
+        case .red: return Tokens.statusRed
+        case .faint: return t.faint
         }
-        return batteryControl.status.detail
     }
 }
