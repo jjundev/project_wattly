@@ -193,6 +193,14 @@ struct SettingsBatterySection: View {
                 .font(WattlyFont.at(11, weight: .regular))
                 .foregroundStyle(t.sub)
                 .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 5) {
+                Text("1. 아래 버튼으로 시스템 설정 > 배터리 이동")
+                Text("2. '충전' 항목 우측의 ⓘ (정보) 버튼 클릭")
+                Text("3. '최적화된 배터리 충전' 끄기")
+            }
+            .font(WattlyFont.at(10.5, weight: .regular))
+            .foregroundStyle(t.faint)
+            .fixedSize(horizontal: false, vertical: true)
             Button {
                 isHelpPopoverPresented = false
                 openSystemBatterySettings()
@@ -213,7 +221,7 @@ struct SettingsBatterySection: View {
             .buttonStyle(.plain)
         }
         .padding(14)
-        .frame(width: 260, alignment: .leading)
+        .frame(width: 270, alignment: .leading)
         .background(t.cardBg)
     }
 
