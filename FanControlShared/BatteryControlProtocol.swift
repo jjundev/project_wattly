@@ -74,6 +74,9 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
     /// `detail` is kept rather than replaced so the reverse pairing also works: a current helper
     /// talking to an older app still fills the sentence that app knows how to read.
     public var detailReason: BatteryControlStatusReason?
+    /// The product policy the helper has actually verified. Optional for an older installed helper;
+    /// `nil` means unknown, not inactive. `detailReason` remains the diagnostic/text channel.
+    public var activity: BatteryControlActivity?
 
     public init(
         mode: BatteryControlServiceMode,
@@ -83,7 +86,8 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
         updatedAt: TimeInterval,
         appliedLimitPercentage: Int? = nil,
         isHardwareSupported: Bool? = nil,
-        detailReason: BatteryControlStatusReason? = nil
+        detailReason: BatteryControlStatusReason? = nil,
+        activity: BatteryControlActivity? = nil
     ) {
         self.mode = mode
         self.currentPercentage = currentPercentage
@@ -93,6 +97,7 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
         self.appliedLimitPercentage = appliedLimitPercentage
         self.isHardwareSupported = isHardwareSupported
         self.detailReason = detailReason
+        self.activity = activity
     }
 }
 

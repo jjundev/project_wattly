@@ -26,7 +26,17 @@ enum BatteryStatusText {
     static func text(reason: BatteryControlStatusReason?,
                      detail: String,
                      locale: Locale) -> String {
-        guard let resolved = resolve(reason: reason, detail: detail) else {
+        text(resolvedReason: resolve(reason: reason, detail: detail),
+             detail: detail,
+             locale: locale)
+    }
+
+    /// Renders a reason the caller has already resolved. This keeps presentation code from
+    /// independently interpreting the same legacy payload for its icon and its text.
+    static func text(resolvedReason: BatteryControlStatusReason?,
+                     detail: String,
+                     locale: Locale) -> String {
+        guard let resolved = resolvedReason else {
             // Not a status of ours. A catalog lookup still gets the app's own `detail` literals
             // translated, and returns anything else — system error text, already localized by
             // macOS — untouched.

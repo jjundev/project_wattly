@@ -234,7 +234,10 @@ public final class BatteryControlEngine: @unchecked Sendable {
             appliedLimitPercentage: (isHardwareSupported && config.enabled && !hasActionableFailure)
                 ? config.clampedLimitPercentage : nil,
             isHardwareSupported: isHardwareSupported,
-            detailReason: reason
+            detailReason: reason,
+            // The reason is already the single authoritative decision for this sample. Deriving
+            // activity here keeps the new app, the legacy sentence, and the hardware mode aligned.
+            activity: BatteryControlActivity.inferred(from: reason)
         )
     }
 }
