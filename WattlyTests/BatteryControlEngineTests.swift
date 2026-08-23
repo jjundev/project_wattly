@@ -334,6 +334,31 @@ struct BatteryControlEngineTests {
         #expect(status.mode == .unsupported)
     }
 
+    @Test func currentBeliefSnapshotPerformsNoIOAndOnlyExposesTheLastVerifiedGate() {
+        let hardware = MockBatteryHardware()
+        hardware.reportedGate = .inhibited(appliedLimitPercentage: nil)
+        let engine = BatteryControlEngine(
+            hardware: hardware,
+            initialConfig: .init(enabled: true, limitPercentage: 85))
+
+        let unknown = engine.statusForCurrentBelief(
+            currentSoC: 80,
+            isPluggedIn: true)
+        #expect(unknown.actualGate == nil)
+        #expect(hardware.readCount == 0)
+        #expect(hardware.writeCount == 0)
+
+        _ = engine.hydrateHardwareState()
+        let readsAfterHydration = hardware.readCount
+        let known = engine.statusForCurrentBelief(
+            currentSoC: 80,
+            isPluggedIn: true)
+
+        #expect(known.actualGate == .inhibited(appliedLimitPercentage: nil))
+        #expect(hardware.readCount == readsAfterHydration)
+        #expect(hardware.writeCount == 0)
+    }
+
     @Test func hysteresisTransitionStopsAtLimitAndResumesBelowThreshold() {
         let mockHW = MockBatteryHardware()
         let engine = BatteryControlEngine(hardware: mockHW)

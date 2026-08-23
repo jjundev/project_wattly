@@ -61,6 +61,16 @@ public final class BatteryControlEngine: @unchecked Sendable {
 
     public var configuration: BatteryControlConfiguration { config }
 
+    func statusForCurrentBelief(
+        currentSoC: Int,
+        isPluggedIn: Bool
+    ) -> BatteryControlServiceStatus {
+        status(
+            currentSoC: currentSoC,
+            isPluggedIn: isPluggedIn,
+            target: config.clampedLimitPercentage)
+    }
+
     public func beginRecoveryWindow() {
         consecutiveWriteFailures = 0
         lastWriteFailed = false
