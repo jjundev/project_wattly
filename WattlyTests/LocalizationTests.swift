@@ -252,6 +252,23 @@ struct LocalizationTests {
                 == "Turn on the charge limit to adjust the maximum.")
     }
 
+    @Test func batteryMaintenanceTranslations() {
+        let en = Locale(identifier: "en")
+        #expect(String(localized: "마지막 확인: %@ · 성공 · %@", locale: en)
+                == "Last check: %@ · succeeded · %@")
+        #expect(String(localized: "충전 정책 확인 전", locale: en) == "Charge policy not checked yet")
+        #expect(String(localized: "앱 종료·Sleep 유지를 사용하려면 도우미 업데이트가 필요합니다.", locale: en)
+                == "Update the helper to keep charge control active after app exit and during sleep.")
+        #expect(String(localized: "도우미 업데이트", locale: en) == "Update Helper")
+        #expect(String(localized: "다시 확인", locale: en) == "Check Again")
+        #expect(String(localized: "다른 사용자의 충전 정책을 해제하고 이 사용자로 소유권을 이전합니다.", locale: en)
+                == "Release the other user's charge policy and transfer ownership to this user.")
+        #expect(String(localized: "소유권 이전", locale: en) == "Transfer Ownership")
+        #expect(String(localized: "Wattly 삭제 중단", locale: en) == "Wattly Removal Stopped")
+        #expect(String(localized: "설치된 도우미의 소유자 정보를 확인할 수 없습니다.", locale: en)
+                == "Could not verify the installed helper's ownership.")
+    }
+
     @Test func sharedControlAccessibilityTranslations() {
         #expect(String(localized: "켜짐", locale: Locale(identifier: "en")) == "On")
         #expect(String(localized: "꺼짐", locale: Locale(identifier: "en")) == "Off")

@@ -13,6 +13,18 @@ enum BatterySectionPresentation {
         case green, orange, red, faint
     }
 
+    enum MaintenanceAction: Equatable {
+        case retry
+        case updateHelper
+        case transferOwnership
+    }
+
+    struct MaintenanceStatus: Equatable {
+        let tone: Tone
+        let text: String
+        let action: MaintenanceAction?
+    }
+
     enum Indicator: String, Equatable, CaseIterable {
         case installing
         case stale
@@ -64,6 +76,94 @@ enum BatterySectionPresentation {
     }
 
     static let staleAfter = 15.0
+
+    static func maintenanceStatus(
+        ownership: FanHelperInstaller.InstalledOwnership,
+        currentUID: UInt32,
+        capabilities: [BatteryControlCapability]?,
+        record: BatteryMaintenanceRecord?,
+        locale: Locale,
+        timestampText: ((Date) -> String)? = nil
+    ) -> MaintenanceStatus? {
+        switch ownership {
+        case .owner(let ownerUID) where ownerUID != currentUID:
+            return MaintenanceStatus(
+                tone: .red,
+                text: BatteryStatusText.text(
+                    reason: .init(kind: .policyOwnerMismatch), detail: "", locale: locale),
+                action: .transferOwnership)
+        case .invalidMetadata:
+            return MaintenanceStatus(
+                tone: .red,
+                text: String(localized: "설치된 도우미의 소유자 정보를 확인할 수 없습니다.", locale: locale),
+                action: .transferOwnership)
+        case .notInstalled, .owner:
+            break
+        }
+        let requiredCapabilities: [BatteryControlCapability] = [
+            .persistedPolicyV1,
+            .hardwareGateReadbackV1,
+            .systemPowerEventsV1,
+        ]
+        guard requiredCapabilities.allSatisfy({ capabilities?.contains($0) == true }) else {
+            return MaintenanceStatus(
+                tone: .orange,
+                text: String(localized: "앱 종료·Sleep 유지를 사용하려면 도우미 업데이트가 필요합니다.", locale: locale),
+                action: .updateHelper)
+        }
+        if let record, record.result == .failed || record.result == .unrecognized {
+            return MaintenanceStatus(
+                tone: .red,
+                text: BatteryStatusText.text(
+                    reason: record.reason,
+                    detail: String(localized: "알 수 없음", locale: locale),
+                    locale: locale),
+                action: .retry)
+        }
+        guard let record else {
+            return MaintenanceStatus(
+                tone: .faint,
+                text: String(localized: "충전 정책 확인 전", locale: locale),
+                action: nil)
+        }
+        let trigger = maintenanceTriggerText(record.trigger, locale: locale)
+        let resolvedTimestampText = timestampText ?? { defaultMaintenanceTimestamp($0, locale: locale) }
+        let timestamp = resolvedTimestampText(Date(timeIntervalSince1970: record.occurredAt))
+        return MaintenanceStatus(
+            tone: .faint,
+            text: String(format: String(localized: "마지막 확인: %@ · 성공 · %@", locale: locale),
+                         locale: locale, trigger, timestamp),
+            action: nil)
+    }
+
+    private static func maintenanceTriggerText(_ trigger: BatteryMaintenanceTrigger,
+                                               locale: Locale) -> String {
+        switch trigger {
+        case .startup: String(localized: "시작", locale: locale)
+        case .wake: "Wake"
+        case .clientConfiguration: String(localized: "설정 변경", locale: locale)
+        case .adapterTransition: String(localized: "전원 전환", locale: locale)
+        case .termination: String(localized: "종료", locale: locale)
+        case .unrecognized: String(localized: "알 수 없음", locale: locale)
+        }
+    }
+
+    static func maintenanceActionLabel(_ action: MaintenanceAction, locale: Locale) -> String {
+        switch action {
+        case .retry: String(localized: "다시 확인", locale: locale)
+        case .updateHelper: String(localized: "도우미 업데이트", locale: locale)
+        case .transferOwnership: String(localized: "소유권 이전", locale: locale)
+        }
+    }
+
+    private static func defaultMaintenanceTimestamp(_ date: Date, locale: Locale) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.timeZone = .autoupdatingCurrent
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
 
     /// 구버전 도우미가 activity와 인식 가능한 reason을 모두 보내지 않은 경우에만 쓰는 꺼짐 문구.
     static func disabledStatusText(locale: Locale) -> String {
