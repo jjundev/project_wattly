@@ -557,4 +557,36 @@ struct BatteryControlEngineTests {
         let status = engine.update(currentSoC: 70, isPluggedIn: false)
         #expect(status.detailReason?.kind == .onBatteryPower)
     }
+
+    @Test func normalStatesReportVerifiedBaseActivities() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+
+        let inactive = engine.update(currentSoC: 70, isPluggedIn: true)
+        #expect(inactive.activity == .inactive)
+
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 80))
+        let charging = engine.update(currentSoC: 70, isPluggedIn: true)
+        #expect(charging.activity == .chargingToLimit)
+
+        let holding = engine.update(currentSoC: 80, isPluggedIn: true)
+        #expect(holding.activity == .holdingAtLimit)
+
+        let unplugged = engine.update(currentSoC: 79, isPluggedIn: false)
+        #expect(unplugged.activity == .onBatteryPower)
+    }
+
+    @Test func failuresAndUnsupportedHardwareDoNotClaimANormalActivity() {
+        let unsupportedHardware = MockBatteryHardware()
+        unsupportedHardware.registerSet = .unsupported
+        let unsupportedEngine = BatteryControlEngine(hardware: unsupportedHardware)
+        unsupportedEngine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 80))
+        #expect(unsupportedEngine.update(currentSoC: 70, isPluggedIn: true).activity == nil)
+
+        let failingHardware = MockBatteryHardware()
+        failingHardware.writeShouldFail = true
+        let failingEngine = BatteryControlEngine(hardware: failingHardware)
+        failingEngine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 80))
+        #expect(failingEngine.update(currentSoC: 70, isPluggedIn: true).activity == nil)
+    }
 }
