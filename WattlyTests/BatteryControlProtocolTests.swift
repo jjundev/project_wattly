@@ -151,4 +151,43 @@ struct BatteryControlProtocolTests {
         #expect(decoded.detailReason?.kind == .unrecognized)
         #expect(decoded.currentPercentage == 70)
     }
+
+    @Test func statusFromOlderHelperLeavesActivityUnknown() throws {
+        let legacy = Data(#"{"mode":"charging","currentPercentage":70,"isPowerAdapterConnected":true,"detail":"충전 중","updatedAt":1.0}"#.utf8)
+        let decoded = try BatteryControlCodec.decode(BatteryControlServiceStatus.self, from: legacy)
+        #expect(decoded.activity == nil)
+    }
+
+    @Test func statusRoundTripsAnActivity() throws {
+        let status = BatteryControlServiceStatus(
+            mode: .inhibited,
+            currentPercentage: 80,
+            isPowerAdapterConnected: true,
+            detail: "충전 제한 80% 도달 (전원 어댑터 바이패스 구동)",
+            updatedAt: 12.0,
+            appliedLimitPercentage: 80,
+            isHardwareSupported: true,
+            detailReason: .init(kind: .inhibitedAtLimit, limitPercentage: 80),
+            activity: .holdingAtLimit)
+
+        let decoded = try BatteryControlCodec.decode(
+            BatteryControlServiceStatus.self,
+            from: BatteryControlCodec.encode(status))
+
+        #expect(decoded == status)
+        #expect(decoded.activity == .holdingAtLimit)
+    }
+
+    @Test func statusSurvivesUnknownAndMalformedActivityTokens() throws {
+        let future = Data(#"{"mode":"charging","currentPercentage":70,"isPowerAdapterConnected":true,"detail":"충전 중","updatedAt":1.0,"activity":"futureActivity"}"#.utf8)
+        let malformed = Data(#"{"mode":"charging","currentPercentage":70,"isPowerAdapterConnected":true,"detail":"충전 중","updatedAt":1.0,"activity":42}"#.utf8)
+
+        let futureDecoded = try BatteryControlCodec.decode(BatteryControlServiceStatus.self, from: future)
+        let malformedDecoded = try BatteryControlCodec.decode(BatteryControlServiceStatus.self, from: malformed)
+
+        #expect(futureDecoded.activity == .unrecognized)
+        #expect(malformedDecoded.activity == .unrecognized)
+        #expect(futureDecoded.currentPercentage == 70)
+        #expect(malformedDecoded.currentPercentage == 70)
+    }
 }
