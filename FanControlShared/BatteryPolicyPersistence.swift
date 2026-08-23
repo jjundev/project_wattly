@@ -98,6 +98,7 @@ public final class BatteryPolicyFileStore: BatteryPolicyStoring, @unchecked Send
             updatedAt: policy.updatedAt
         )
         let directory = fileURL.deletingLastPathComponent()
+        let directoryExisted = fileManager.fileExists(atPath: directory.path)
         try fileManager.createDirectory(
             at: directory,
             withIntermediateDirectories: true,
@@ -105,6 +106,9 @@ public final class BatteryPolicyFileStore: BatteryPolicyStoring, @unchecked Send
         )
         guard chmod(directory.path, 0o755) == 0 else {
             throw BatteryPolicyStoreError.fileOperation(errno: errno)
+        }
+        if !directoryExisted {
+            try synchronizeDirectory(directory.deletingLastPathComponent())
         }
         try synchronizeDirectory(directory)
 
@@ -139,9 +143,18 @@ public final class BatteryPolicyFileStore: BatteryPolicyStoring, @unchecked Send
     }
 
     public func remove() throws {
-        guard fileManager.fileExists(atPath: fileURL.path) else { return }
-        try fileManager.removeItem(at: fileURL)
-        try synchronizeDirectory(fileURL.deletingLastPathComponent())
+        let directory = fileURL.deletingLastPathComponent()
+        let policyURLs = [
+            fileURL,
+            directory.appendingPathComponent(".battery-control.previous"),
+            directory.appendingPathComponent(".battery-control.stale")
+        ]
+        let existingURLs = policyURLs.filter { fileManager.fileExists(atPath: $0.path) }
+        guard !existingURLs.isEmpty else { return }
+        for url in existingURLs {
+            try fileManager.removeItem(at: url)
+        }
+        try synchronizeDirectory(directory)
     }
 
     private static func fsyncDirectory(_ directory: URL) throws {
@@ -160,6 +173,8 @@ public final class BatteryPolicyFileStore: BatteryPolicyStoring, @unchecked Send
         directory: URL
     ) throws {
         let previousURL = directory.appendingPathComponent(".battery-control.previous")
+        let staleURL = directory.appendingPathComponent(".battery-control.stale")
+        try? fileManager.removeItem(at: staleURL)
         try? fileManager.removeItem(at: previousURL)
         let hadPrevious = fileManager.fileExists(atPath: fileURL.path)
         if hadPrevious {
@@ -185,6 +200,24 @@ public final class BatteryPolicyFileStore: BatteryPolicyStoring, @unchecked Send
             try synchronizeDirectory(directory)
             throw error
         }
-        try? fileManager.removeItem(at: previousURL)
+        guard hadPrevious else { return }
+        guard rename(previousURL.path, staleURL.path) == 0 else {
+            let finalizationErrno = errno
+            guard rename(previousURL.path, fileURL.path) == 0 else {
+                throw BatteryPolicyStoreError.rollbackFailed(errno: errno)
+            }
+            try synchronizeDirectory(directory)
+            throw BatteryPolicyStoreError.fileOperation(errno: finalizationErrno)
+        }
+        do {
+            try synchronizeDirectory(directory)
+        } catch {
+            guard rename(staleURL.path, fileURL.path) == 0 else {
+                throw BatteryPolicyStoreError.rollbackFailed(errno: errno)
+            }
+            try synchronizeDirectory(directory)
+            throw error
+        }
+        try? fileManager.removeItem(at: staleURL)
     }
 }
