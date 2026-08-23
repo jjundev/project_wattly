@@ -15,6 +15,8 @@ struct SettingsBatterySection: View {
     @State private var isInstallFailedAlertPresented = false
     @State private var installErrorMessage = ""
     @State private var isHelpPopoverPresented = false
+    @State private var installedOwnership = FanHelperInstaller.InstalledOwnership.notInstalled
+    @State private var isOwnershipTransferConfirmationPresented = false
 
     private let presetLimits = [80, 85, 90, 95]
     private let sailingPresets = BatterySectionPresentation.sailingDeltaPresets
@@ -88,6 +90,10 @@ struct SettingsBatterySection: View {
                     // Always visible: unsupported hardware must explain itself with the same
                     // icon-and-text status interface instead of making the entire status row vanish.
                     batteryStatusIndicator
+
+                    if let maintenance = resolvedMaintenanceStatus {
+                        maintenanceStatusRow(maintenance)
+                    }
                 }
                 .padding(EdgeInsets(top: 12, leading: 14, bottom: 14, trailing: 14))
 
@@ -142,6 +148,7 @@ struct SettingsBatterySection: View {
                 // its toggle before the user ever reaches for it. This is also the read that
                 // decides whether the configuration controls remain visible.
                 await batteryControl.refreshStatus()
+                installedOwnership = FanHelperInstaller.installedOwnership()
                 // Re-checked every iteration, not just once up front: the gate depends on the mode
                 // the daemon just reported, and that mode can change out from under us — e.g. the
                 // daemon recovers from `.inhibited`/`.unsupported` back to `.charging` once the user
@@ -214,6 +221,14 @@ struct SettingsBatterySection: View {
             // 감싸면 두 번 조회하게 되고, 보간된 문장은 키가 없어 그대로 통과할 뿐이다.
             Text(verbatim: installErrorMessage)
         }
+        .alert("소유권 이전", isPresented: $isOwnershipTransferConfirmationPresented) {
+            Button("소유권 이전", role: .destructive) {
+                installCurrentConfiguration(transferringOwnership: true)
+            }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("다른 사용자의 충전 정책을 해제하고 이 사용자로 소유권을 이전합니다.")
+        }
     }
 
     @ViewBuilder
@@ -279,6 +294,95 @@ struct SettingsBatterySection: View {
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
+    }
+
+    private var resolvedMaintenanceStatus: BatterySectionPresentation.MaintenanceStatus? {
+        BatterySectionPresentation.maintenanceStatus(
+            ownership: installedOwnership,
+            currentUID: UInt32(getuid()),
+            capabilities: batteryControl.status.capabilities,
+            record: batteryControl.status.lastMaintenance,
+            locale: locale)
+    }
+
+    private func maintenanceStatusRow(_ maintenance: BatterySectionPresentation.MaintenanceStatus) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: maintenance.tone == .red
+                  ? "exclamationmark.triangle.fill"
+                  : "clock.arrow.circlepath")
+                .accessibilityHidden(true)
+            Text(verbatim: maintenance.text)
+                .font(WattlyFont.at(10.5, weight: .regular))
+                .foregroundStyle(statusColor(for: maintenance.tone))
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer()
+            maintenanceActionButton(maintenance.action)
+        }
+        .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private func maintenanceActionButton(_ action: BatterySectionPresentation.MaintenanceAction?) -> some View {
+        if let action {
+            let label = BatterySectionPresentation.maintenanceActionLabel(action, locale: locale)
+            Button {
+                switch action {
+                case .retry:
+                    reapplyCurrentConfiguration()
+                case .updateHelper:
+                    installCurrentConfiguration(transferringOwnership: false)
+                case .transferOwnership:
+                    isOwnershipTransferConfirmationPresented = true
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    if batteryControl.isInstallingHelper {
+                        ProgressView()
+                            .scaleEffect(0.5)
+                            .frame(width: 10, height: 10)
+                    }
+                    Text(verbatim: label)
+                        .font(WattlyFont.at(11.5, weight: .medium))
+                        .foregroundStyle(t.text)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(RoundedRectangle(cornerRadius: 6).fill(t.segTrack))
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(t.rowBorder, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text(verbatim: label))
+            .disabled(batteryControl.isInstallingHelper)
+        }
+    }
+
+    private func reapplyCurrentConfiguration() {
+        let limit = batteryLimitPercentage
+        let delta = effectiveDelta
+        Task {
+            await batteryControl.apply(enabled: batteryLimitEnabled,
+                                       limitPercentage: limit,
+                                       lowerHysteresisDelta: delta)
+        }
+    }
+
+    private func installCurrentConfiguration(transferringOwnership: Bool) {
+        let window = NSApp.keyWindow
+        let limit = batteryLimitPercentage
+        let delta = effectiveDelta
+        Task {
+            if let failure = await batteryControl.installAndApply(
+                enabled: batteryLimitEnabled,
+                limitPercentage: limit,
+                lowerHysteresisDelta: delta,
+                transferringOwnership: transferringOwnership,
+                window: window) {
+                installErrorMessage = Self.message(for: failure, locale: locale)
+                isInstallFailedAlertPresented = true
+            }
+            installedOwnership = FanHelperInstaller.installedOwnership()
+        }
     }
 
     private var batteryHelpPopover: some View {

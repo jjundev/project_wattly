@@ -8,6 +8,123 @@ import AppKit
     private let en = Locale(identifier: "en")
     private let ko = Locale(identifier: "ko")
 
+    // MARK: - 유지보수 증거
+
+    @Test func persistentHelperShowsLastWakeVerification() {
+        let record = BatteryMaintenanceRecord(
+            trigger: .wake, result: .verified, occurredAt: 100, reason: nil)
+        let status = BatterySectionPresentation.maintenanceStatus(
+            ownership: .owner(UInt32(getuid())),
+            currentUID: UInt32(getuid()),
+            capabilities: [.persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1],
+            record: record,
+            locale: ko,
+            timestampText: { _ in "21:04" })
+        #expect(status == .init(
+            tone: .faint,
+            text: "마지막 확인: Wake · 성공 · 21:04",
+            action: nil))
+    }
+
+    @Test func missingCapabilitiesOfferHelperUpdate() {
+        let status = BatterySectionPresentation.maintenanceStatus(
+            ownership: .owner(UInt32(getuid())),
+            currentUID: UInt32(getuid()),
+            capabilities: nil,
+            record: nil,
+            locale: ko,
+            timestampText: { _ in "21:04" })
+        #expect(status?.action == .updateHelper)
+        #expect(status?.text == "앱 종료·Sleep 유지를 사용하려면 도우미 업데이트가 필요합니다.")
+    }
+
+    @Test func failedMaintenanceOffersRetry() {
+        let record = BatteryMaintenanceRecord(
+            trigger: .wake,
+            result: .failed,
+            occurredAt: 100,
+            reason: .init(kind: .hardwareReadbackFailed))
+        let status = BatterySectionPresentation.maintenanceStatus(
+            ownership: .owner(UInt32(getuid())),
+            currentUID: UInt32(getuid()),
+            capabilities: BatteryControlCoordinator.capabilities,
+            record: record,
+            locale: ko,
+            timestampText: { _ in "21:04" })
+        #expect(status?.tone == .red)
+        #expect(status?.action == .retry)
+    }
+
+    @Test func skippedMaintenanceDoesNotClaimASuccessfulCheck() {
+        let record = BatteryMaintenanceRecord(
+            trigger: .wake,
+            result: .skipped,
+            occurredAt: 100,
+            reason: .init(kind: .powerSourceUnreadable))
+        let status = BatterySectionPresentation.maintenanceStatus(
+            ownership: .owner(UInt32(getuid())),
+            currentUID: UInt32(getuid()),
+            capabilities: BatteryControlCoordinator.capabilities,
+            record: record,
+            locale: ko,
+            timestampText: { _ in "21:04" })
+        #expect(status?.tone == .red)
+        #expect(status?.text == "전원 소스를 읽을 수 없습니다")
+        #expect(status?.action == .retry)
+    }
+
+    @Test func foreignOwnershipOutranksMissingCapabilities() {
+        let status = BatterySectionPresentation.maintenanceStatus(
+            ownership: .owner(502),
+            currentUID: 501,
+            capabilities: nil,
+            record: nil,
+            locale: ko,
+            timestampText: { _ in "21:04" })
+        #expect(status?.tone == .red)
+        #expect(status?.action == .transferOwnership)
+    }
+
+    @Test func invalidOwnershipOffersTransfer() {
+        let status = BatterySectionPresentation.maintenanceStatus(
+            ownership: .invalidMetadata,
+            currentUID: 501,
+            capabilities: BatteryControlCoordinator.capabilities,
+            record: nil,
+            locale: ko,
+            timestampText: { _ in "21:04" })
+        #expect(status?.action == .transferOwnership)
+    }
+
+    @Test func capableHelperWithoutEvidenceShowsPendingCheck() {
+        let status = BatterySectionPresentation.maintenanceStatus(
+            ownership: .owner(501),
+            currentUID: 501,
+            capabilities: BatteryControlCoordinator.capabilities,
+            record: nil,
+            locale: ko,
+            timestampText: { _ in "21:04" })
+        #expect(status == .init(tone: .faint, text: "충전 정책 확인 전", action: nil))
+    }
+
+    @Test func successfulConfigurationShowsItsTrigger() {
+        let status = BatterySectionPresentation.maintenanceStatus(
+            ownership: .owner(501),
+            currentUID: 501,
+            capabilities: BatteryControlCoordinator.capabilities,
+            record: .init(trigger: .clientConfiguration, result: .applied, occurredAt: 100, reason: nil),
+            locale: ko,
+            timestampText: { _ in "21:04" })
+        #expect(status?.text == "마지막 확인: 설정 변경 · 성공 · 21:04")
+    }
+
+    @Test func maintenanceActionsHaveLocalizedVoiceOverLabels() {
+        #expect(BatterySectionPresentation.maintenanceActionLabel(.retry, locale: en) == "Check Again")
+        #expect(BatterySectionPresentation.maintenanceActionLabel(.updateHelper, locale: en) == "Update Helper")
+        #expect(BatterySectionPresentation.maintenanceActionLabel(.transferOwnership, locale: en)
+                == "Transfer Ownership")
+    }
+
     // MARK: - 하위 항목 노출
 
     @Test func configurationControlsAreVisibleWhenSupportIsTrueOrUnknown() {

@@ -36632,6 +36632,74 @@
         }
       }
     },
+    "저장된 충전 정책을 읽지 못해 충전 허용 상태로 복구합니다": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "저장된 충전 정책을 읽지 못해 충전 허용 상태로 복구합니다"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stored charge policy could not be read; charging will be restored"
+          }
+        }
+      }
+    },
+    "충전 정책을 안전하게 저장하지 못했습니다": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "충전 정책을 안전하게 저장하지 못했습니다"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Charge policy could not be saved safely"
+          }
+        }
+      }
+    },
+    "다른 사용자가 이 Mac의 충전 정책을 관리하고 있습니다": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다른 사용자가 이 Mac의 충전 정책을 관리하고 있습니다"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another user manages this Mac's charge policy"
+          }
+        }
+      }
+    },
+    "충전 제어 하드웨어 상태를 확인하지 못했습니다": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "충전 제어 하드웨어 상태를 확인하지 못했습니다"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Charge-control hardware state could not be verified"
+          }
+        }
+      }
+    },
     "이 Mac은 충전 제어를 지원하지 않습니다": {
       "extractionState": "manual",
       "localizations": {
@@ -42920,6 +42988,69 @@
             "value": "सेलिंग रेंज"
           }
         }
+      }
+    },
+    "마지막 확인: %@ · 성공 · %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": { "stringUnit": { "state": "translated", "value": "마지막 확인: %@ · 성공 · %@" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Last check: %@ · succeeded · %@" } }
+      }
+    },
+    "충전 정책 확인 전": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": { "stringUnit": { "state": "translated", "value": "충전 정책 확인 전" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Charge policy not checked yet" } }
+      }
+    },
+    "앱 종료·Sleep 유지를 사용하려면 도우미 업데이트가 필요합니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": { "stringUnit": { "state": "translated", "value": "앱 종료·Sleep 유지를 사용하려면 도우미 업데이트가 필요합니다." } },
+        "en": { "stringUnit": { "state": "translated", "value": "Update the helper to keep charge control active after app exit and during sleep." } }
+      }
+    },
+    "도우미 업데이트": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": { "stringUnit": { "state": "translated", "value": "도우미 업데이트" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Update Helper" } }
+      }
+    },
+    "다시 확인": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": { "stringUnit": { "state": "translated", "value": "다시 확인" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Check Again" } }
+      }
+    },
+    "다른 사용자의 충전 정책을 해제하고 이 사용자로 소유권을 이전합니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": { "stringUnit": { "state": "translated", "value": "다른 사용자의 충전 정책을 해제하고 이 사용자로 소유권을 이전합니다." } },
+        "en": { "stringUnit": { "state": "translated", "value": "Release the other user's charge policy and transfer ownership to this user." } }
+      }
+    },
+    "소유권 이전": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": { "stringUnit": { "state": "translated", "value": "소유권 이전" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Transfer Ownership" } }
+      }
+    },
+    "Wattly 삭제 중단": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": { "stringUnit": { "state": "translated", "value": "Wattly 삭제 중단" } },
+        "en": { "stringUnit": { "state": "translated", "value": "Wattly Removal Stopped" } }
+      }
+    },
+    "설치된 도우미의 소유자 정보를 확인할 수 없습니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": { "stringUnit": { "state": "translated", "value": "설치된 도우미의 소유자 정보를 확인할 수 없습니다." } },
+        "en": { "stringUnit": { "state": "translated", "value": "Could not verify the installed helper's ownership." } }
       }
     }
   }

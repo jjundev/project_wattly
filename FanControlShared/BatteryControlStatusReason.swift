@@ -37,6 +37,10 @@ public struct BatteryControlStatusReason: Codable, Equatable, Sendable {
         case onBatteryPower
         /// In natural discharge band between charge limit and lower hysteresis threshold. Carries `limitPercentage` and `resumePercentage`.
         case sailing
+        case persistenceReadFailed
+        case persistenceWriteFailed
+        case policyOwnerMismatch
+        case hardwareReadbackFailed
         /// A token this build does not know — a newer daemon talking to an older app. Never
         /// produced locally; only ever decoded. The app falls back to the `detail` sentence.
         case unrecognized
@@ -116,6 +120,10 @@ public struct BatteryControlStatusReason: Codable, Equatable, Sendable {
         case .chargingToTarget: return "목표치(\(target)%)까지 충전 중"
         case .onBatteryPower: return "배터리 전원으로 구동 중"
         case .sailing: return "Sailing 중 (\(resume)% 도달 시 충전)"
+        case .persistenceReadFailed: return "저장된 충전 정책을 읽지 못해 충전 허용 상태로 복구합니다"
+        case .persistenceWriteFailed: return "충전 정책을 안전하게 저장하지 못했습니다"
+        case .policyOwnerMismatch: return "다른 사용자가 이 Mac의 충전 정책을 관리하고 있습니다"
+        case .hardwareReadbackFailed: return "충전 제어 하드웨어 상태를 확인하지 못했습니다"
         case .unrecognized: return ""
         }
     }

@@ -50,6 +50,167 @@ public enum BatteryControlServiceMode: String, Codable, Equatable, Sendable {
     case unsupported
 }
 
+public enum BatteryControlCapability: String, Codable, Equatable, Sendable {
+    case persistedPolicyV1 = "persisted-policy-v1"
+    case hardwareGateReadbackV1 = "hardware-gate-readback-v1"
+    case systemPowerEventsV1 = "system-power-events-v1"
+    case unrecognized
+
+    public init(from decoder: any Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = Self(rawValue: raw) ?? .unrecognized
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public struct BatteryHardwareGate: Codable, Equatable, Sendable {
+    public enum State: String, Codable, Equatable, Sendable {
+        case allowed
+        case inhibited
+        case unreadable
+        case unrecognized
+
+        public init(from decoder: any Decoder) throws {
+            let raw = try decoder.singleValueContainer().decode(String.self)
+            self = Self(rawValue: raw) ?? .unrecognized
+        }
+
+        public func encode(to encoder: any Encoder) throws {
+            var container = encoder.singleValueContainer()
+            try container.encode(rawValue)
+        }
+    }
+
+    public var state: State
+    public var appliedLimitPercentage: Int?
+
+    public static let allowed = Self(state: .allowed, appliedLimitPercentage: nil)
+    public static let unreadable = Self(state: .unreadable, appliedLimitPercentage: nil)
+
+    public static func inhibited(appliedLimitPercentage: Int?) -> Self {
+        Self(state: .inhibited, appliedLimitPercentage: appliedLimitPercentage)
+    }
+}
+
+public enum BatteryMaintenanceTrigger: String, Codable, Equatable, Sendable {
+    case startup
+    case wake
+    case clientConfiguration
+    case adapterTransition
+    case termination
+    case unrecognized
+
+    public init(from decoder: any Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = Self(rawValue: raw) ?? .unrecognized
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public enum BatteryMaintenanceResult: String, Codable, Equatable, Sendable {
+    case verified
+    case applied
+    case released
+    case failed
+    case skipped
+    case unrecognized
+
+    public init(from decoder: any Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = Self(rawValue: raw) ?? .unrecognized
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public enum BatteryReleaseVerdict: String, Codable, Equatable, Sendable {
+    case verifiedAllowed
+    case notControllable
+    case failed
+    case unrecognized
+
+    public var isSafeToRemove: Bool {
+        // A bare `.notControllable` came from older helpers and has no evidence that the runtime
+        // actually probed every Wattly-controllable latch. It must never authorize removal by
+        // itself; current helpers attach `BatteryReleaseVerification.proof` below.
+        self == .verifiedAllowed
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = Self(rawValue: raw) ?? .unrecognized
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+/// The evidence carried with a release verdict. A write/readback is the normal success path; the
+/// only readback-free success is a completed runtime probe that found no register Wattly can drive.
+public enum BatteryReleaseProof: String, Codable, Equatable, Sendable {
+    case noDrivableRegisterAtRuntime = "no-drivable-register-at-runtime"
+    case unrecognized
+
+    public init(from decoder: any Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = Self(rawValue: raw) ?? .unrecognized
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+/// A release result that cannot accidentally turn an unsupported verdict into a generic success.
+/// `notControllable` is safe only with the narrow, explicit runtime-probe proof.
+public struct BatteryReleaseVerification: Codable, Equatable, Sendable {
+    public var verdict: BatteryReleaseVerdict
+    public var proof: BatteryReleaseProof?
+
+    public init(verdict: BatteryReleaseVerdict, proof: BatteryReleaseProof? = nil) {
+        self.verdict = verdict
+        self.proof = proof
+    }
+
+    public var isSafeToRemove: Bool {
+        verdict == .verifiedAllowed
+            || (verdict == .notControllable && proof == .noDrivableRegisterAtRuntime)
+    }
+}
+
+public struct BatteryMaintenanceRecord: Codable, Equatable, Sendable {
+    public var trigger: BatteryMaintenanceTrigger
+    public var result: BatteryMaintenanceResult
+    public var occurredAt: TimeInterval
+    public var reason: BatteryControlStatusReason?
+
+    public init(
+        trigger: BatteryMaintenanceTrigger,
+        result: BatteryMaintenanceResult,
+        occurredAt: TimeInterval,
+        reason: BatteryControlStatusReason?
+    ) {
+        self.trigger = trigger
+        self.result = result
+        self.occurredAt = occurredAt
+        self.reason = reason
+    }
+}
+
 public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
     public var mode: BatteryControlServiceMode
     public var currentPercentage: Int
@@ -77,6 +238,14 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
     /// The product policy the helper has actually verified. Optional for an older installed helper;
     /// `nil` means unknown, not inactive. `detailReason` remains the diagnostic/text channel.
     public var activity: BatteryControlActivity?
+    public var desiredConfiguration: BatteryControlConfiguration?
+    public var actualGate: BatteryHardwareGate?
+    public var releaseVerdict: BatteryReleaseVerdict?
+    /// The evidence for a release verdict from a current helper. `nil` is intentionally unsafe for
+    /// `notControllable`, preserving fail-safe behavior when paired with an older helper.
+    public var releaseVerification: BatteryReleaseVerification?
+    public var lastMaintenance: BatteryMaintenanceRecord?
+    public var capabilities: [BatteryControlCapability]?
 
     public init(
         mode: BatteryControlServiceMode,
@@ -87,7 +256,13 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
         appliedLimitPercentage: Int? = nil,
         isHardwareSupported: Bool? = nil,
         detailReason: BatteryControlStatusReason? = nil,
-        activity: BatteryControlActivity? = nil
+        activity: BatteryControlActivity? = nil,
+        desiredConfiguration: BatteryControlConfiguration? = nil,
+        actualGate: BatteryHardwareGate? = nil,
+        releaseVerdict: BatteryReleaseVerdict? = nil,
+        releaseVerification: BatteryReleaseVerification? = nil,
+        lastMaintenance: BatteryMaintenanceRecord? = nil,
+        capabilities: [BatteryControlCapability]? = nil
     ) {
         self.mode = mode
         self.currentPercentage = currentPercentage
@@ -98,6 +273,12 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
         self.isHardwareSupported = isHardwareSupported
         self.detailReason = detailReason
         self.activity = activity
+        self.desiredConfiguration = desiredConfiguration
+        self.actualGate = actualGate
+        self.releaseVerdict = releaseVerdict
+        self.releaseVerification = releaseVerification
+        self.lastMaintenance = lastMaintenance
+        self.capabilities = capabilities
     }
 }
 

@@ -10,6 +10,9 @@ import AppKit
     }
 
     public typealias RequestHandler = @Sendable (BatteryControlClientRequest) async -> (Data?, NSError?)
+    typealias InstallHandler = @MainActor (
+        NSWindow?, Bool, @escaping @MainActor () async -> Void
+    ) async -> Error?
 
     /// Why enabling the limit did not take. Kept structured rather than pre-rendered: the message
     /// embeds the helper's status, and only the view knows what language to build it in.
@@ -21,7 +24,14 @@ import AppKit
         case configureRejected(reason: BatteryControlStatusReason?, detail: String)
     }
 
+    public enum DisableFailure: Error, Equatable {
+        case helperUnavailable
+        case persistenceRejected
+        case releaseUnverified
+    }
+
     private let requestHandler: RequestHandler
+    private let installHandler: InstallHandler
     public private(set) var status = BatteryControlServiceStatus(
         mode: .unavailable,
         currentPercentage: 0,
@@ -32,7 +42,11 @@ import AppKit
     public private(set) var isInstallingHelper = false
     private var commandGeneration = UInt64(Date().timeIntervalSince1970 * 1_000_000)
 
-    public init(requestHandler: RequestHandler? = nil) {
+    public convenience init(requestHandler: RequestHandler? = nil) {
+        self.init(requestHandler: requestHandler, installHandler: nil)
+    }
+
+    init(requestHandler: RequestHandler?, installHandler: InstallHandler?) {
         self.requestHandler = requestHandler ?? { req in
             switch req {
             case .configure(let data):
@@ -41,17 +55,64 @@ import AppKit
                 return await Self.sendXPC { svc, reply in svc.batteryStatus(withReply: reply) }
             }
         }
+        self.installHandler = installHandler ?? { window, transferringOwnership, postInstall in
+            await PrivilegedHelperInstallSession.run(
+                window: window,
+                transferringOwnership: transferringOwnership,
+                postInstall: postInstall)
+        }
     }
 
-    public func apply(enabled: Bool, limitPercentage: Int, lowerHysteresisDelta: Int = 2) async {
+    @discardableResult
+    public func apply(
+        enabled: Bool,
+        limitPercentage: Int,
+        lowerHysteresisDelta: Int = 2
+    ) async -> BatteryControlServiceStatus? {
         commandGeneration &+= 1
         let config = BatteryControlConfiguration(enabled: enabled, limitPercentage: limitPercentage, lowerHysteresisDelta: lowerHysteresisDelta)
         let request = BatteryControlConfigurationRequest(configuration: config, generation: commandGeneration)
         guard let data = try? BatteryControlCodec.encode(request) else {
             updateUnavailable("충전 제한 설정을 인코딩할 수 없음")
-            return
+            return nil
         }
-        await send(.configure(data))
+        return await send(.configure(data))
+    }
+
+    public func disableAndConfirm(
+        limitPercentage: Int = 100,
+        lowerHysteresisDelta: Int = 2
+    ) async -> DisableFailure? {
+        guard let acknowledged = await apply(
+            enabled: false,
+            limitPercentage: limitPercentage,
+            lowerHysteresisDelta: lowerHysteresisDelta) else {
+            return .helperUnavailable
+        }
+        guard acknowledged.desiredConfiguration?.enabled == false else {
+            return .persistenceRejected
+        }
+        let safe = acknowledged.actualGate?.state == .allowed
+            || acknowledged.releaseVerification?.isSafeToRemove == true
+        return safe ? nil : .releaseUnverified
+    }
+
+    /// Full uninstall is the one explicit flow allowed to replace a legacy or missing helper.
+    /// A healthy persistent helper is left in place until its confirmed release succeeds; a
+    /// foreign helper remains blocked by the non-transfer install path.
+    public func prepareForRemoval(window: NSWindow?) async -> DisableFailure? {
+        await refreshStatus()
+        if !BatteryControlPolicy.supportsPersistentPolicy(status: status) {
+            if await installAndApply(
+                enabled: false,
+                limitPercentage: 100,
+                lowerHysteresisDelta: 2,
+                transferringOwnership: false,
+                window: window) != nil {
+                return .helperUnavailable
+            }
+        }
+        return await disableAndConfirm()
     }
 
     @discardableResult
@@ -68,10 +129,22 @@ import AppKit
         // straggler iteration would re-enable a limit the user just switched off, carrying a higher
         // generation than the disable that raced it, and nothing would ever repair it.
         guard !Task.isCancelled,
-              BatteryControlPolicy.shouldReapply(enabled: enabled,
-                                                 limitPercentage: limitPercentage,
-                                                 status: status) else { return }
-        await apply(enabled: enabled, limitPercentage: limitPercentage, lowerHysteresisDelta: lowerHysteresisDelta)
+              BatteryControlPolicy.shouldReapply(
+                configuration: .init(
+                    enabled: enabled,
+                    limitPercentage: limitPercentage,
+                    lowerHysteresisDelta: lowerHysteresisDelta),
+                status: status) else { return }
+        if enabled {
+            await apply(
+                enabled: true,
+                limitPercentage: limitPercentage,
+                lowerHysteresisDelta: lowerHysteresisDelta)
+        } else {
+            _ = await disableAndConfirm(
+                limitPercentage: limitPercentage,
+                lowerHysteresisDelta: lowerHysteresisDelta)
+        }
     }
 
     /// Installs the privileged helper with one admin-auth prompt and immediately pushes the user's
@@ -79,17 +152,27 @@ import AppKit
     /// reads ON. `enabled` is the caller's real opt-in rather than an assumption, so installing from
     /// a recovery button can never switch the limit on behind the user's back.
     /// Returns `nil` only when both halves landed.
-    public func installAndApply(enabled: Bool, limitPercentage: Int, lowerHysteresisDelta: Int = 2, window: NSWindow?) async -> InstallFailure? {
+    public func installAndApply(
+        enabled: Bool,
+        limitPercentage: Int,
+        lowerHysteresisDelta: Int = 2,
+        transferringOwnership: Bool = false,
+        window: NSWindow?
+    ) async -> InstallFailure? {
         isInstallingHelper = true
         defer { isInstallingHelper = false }
-        if let failure = await PrivilegedHelperInstallSession.run(window: window, postInstall: {
+        if let failure = await installHandler(window, transferringOwnership, {
             await self.apply(enabled: enabled, limitPercentage: limitPercentage, lowerHysteresisDelta: lowerHysteresisDelta)
         }) {
             return .install(failure)
         }
         // Installing is only half of it — the configure push is what actually engages the limit.
         // Reporting success here would leave the toggle ON over a helper that is doing nothing.
-        guard status.mode != .unavailable else {
+        let configuration = BatteryControlConfiguration(
+            enabled: enabled,
+            limitPercentage: limitPercentage,
+            lowerHysteresisDelta: lowerHysteresisDelta)
+        guard BatteryControlPolicy.accepted(configuration: configuration, by: status) else {
             return .configureRejected(reason: status.detailReason, detail: status.detail)
         }
         return nil
@@ -121,7 +204,8 @@ import AppKit
             appliedLimitPercentage: nil,
             // Capability is a fact about this Mac, not about the connection — dropping it would
             // flicker the settings toggle back to enabled on every transient failure.
-            isHardwareSupported: status.isHardwareSupported
+            isHardwareSupported: status.isHardwareSupported,
+            capabilities: status.capabilities
         )
     }
 

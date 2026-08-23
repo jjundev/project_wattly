@@ -1,5 +1,12 @@
 import Foundation
 
+if CommandLine.arguments.contains("--verify-battery-release") {
+    guard let verifierSMC = SMCControlConnection() else { exit(74) }
+    let verifierHardware = SMCBatteryControlHardware(smc: verifierSMC)
+    let verification = verifierHardware.releaseChargingControlAndVerify()
+    exit(verification.isSafeToRemove ? 0 : 74)
+}
+
 let rawUID = ProcessInfo.processInfo.environment["WATTLY_ALLOWED_UID"] ?? ""
 guard let uid = UInt32(rawUID), uid > 0 else {
     fputs("WATTLY_ALLOWED_UID is required\n", stderr)
@@ -14,11 +21,25 @@ guard let hardware = SMCFanControlHardware(smc: smc) else {
     exit(69)
 }
 let batteryHardware = SMCBatteryControlHardware(smc: smc)
+let batteryEngine = BatteryControlEngine(hardware: batteryHardware)
+let batteryStore = BatteryPolicyFileStore()
+let batteryCoordinator = BatteryControlCoordinator(
+    ownerUID: uid,
+    store: batteryStore,
+    engine: batteryEngine,
+    now: { Date().timeIntervalSince1970 }
+)
 
 let daemon = FanControlDaemon(
     allowedUID: uid_t(uid),
     hardware: hardware,
-    batteryHardware: batteryHardware
+    batteryCoordinator: batteryCoordinator
 )
 daemon.run()
+do {
+    try daemon.startPowerObservation()
+} catch {
+    fputs("Unable to register system power notifications\n", stderr)
+    exit(71)
+}
 RunLoop.main.run()

@@ -3,6 +3,49 @@ import Testing
 @testable import Wattly
 
 @Suite struct BatteryControlKeysTests {
+    @Test func modernReadbackUsesTheFourByteCHTEGate() {
+        let gate = BatteryControlKeys.readGate(registerSet: .modern) { key in
+            key == "CHTE" ? (type: "ui32", bytes: [1, 0, 0, 0]) : nil
+        }
+        #expect(gate == .inhibited(appliedLimitPercentage: nil))
+    }
+
+    @Test func modernReadbackRequiresExactFourByteCHTEPayloads() {
+        let allowed = BatteryControlKeys.readGate(registerSet: .modern) { _ in
+            (type: "ui32", bytes: [0, 0, 0, 0])
+        }
+        let malformedHighByte = BatteryControlKeys.readGate(registerSet: .modern) { _ in
+            (type: "ui32", bytes: [0, 0, 0, 1])
+        }
+        #expect(allowed == .allowed)
+        #expect(malformedHighByte == .unreadable)
+    }
+
+    @Test func legacyReadbackUsesCH0BAndRejectsUnknownBytes() {
+        let allowed = BatteryControlKeys.readGate(registerSet: .legacy) { _ in
+            (type: "ui8 ", bytes: [0])
+        }
+        let malformed = BatteryControlKeys.readGate(registerSet: .legacy) { _ in
+            (type: "ui8 ", bytes: [7])
+        }
+        #expect(allowed == .allowed)
+        #expect(malformed == .unreadable)
+    }
+
+    @Test func intelReadbackCarriesTheAppliedBCLMLimit() {
+        let gate = BatteryControlKeys.readGate(registerSet: .intel) { _ in
+            (type: "ui8 ", bytes: [85])
+        }
+        #expect(gate == .inhibited(appliedLimitPercentage: 85))
+    }
+
+    @Test func handsOffRegisterSetsHaveNoReadableGate() {
+        for registerSet: BatteryControlRegisterSet in [.firmwareManaged, .unsupported] {
+            #expect(BatteryControlKeys.readGate(registerSet: registerSet) { _ in nil }
+                    == .unreadable)
+        }
+    }
+
     @Test func modernMacsWriteTheFourByteCHTEFlag() {
         let inhibit = BatteryControlKeys.writes(inhibited: true, registerSet: .modern, targetLimit: 85)
         #expect(inhibit == [BatteryControlKeyWrite(key: "CHTE",
@@ -15,11 +58,10 @@ import Testing
                                                    isRequired: true)])
     }
 
-    @Test func modernReleaseAtFullTargetIsThePayloadTheStartupUnlatchSends() {
-        // `SMCBatteryControlHardware.init` fires exactly this call — `inhibited: false`, `targetLimit:
-        // 100` — as the one-shot release on a `.firmwareManaged` Mac that still exposes CHTE. Pinning
-        // it here means the daemon's startup write is verified even though `WattlyFanDaemon` itself
-        // has no test host.
+    @Test func modernReleaseAtFullTargetIsThePayloadTheSafetyUnlatchSends() {
+        // `releaseChargingControlAndVerify` uses exactly this call — `inhibited: false`,
+        // `targetLimit: 100` — for a `.firmwareManaged` Mac that still exposes CHTE. Pinning the pure
+        // register table here covers the payload even though `WattlyFanDaemon` has no test host.
         let release = BatteryControlKeys.writes(inhibited: false, registerSet: .modern, targetLimit: 100)
         #expect(release == [BatteryControlKeyWrite(key: "CHTE",
                                                    bytes: [0x00, 0x00, 0x00, 0x00],
@@ -186,12 +228,12 @@ import Testing
     }
 
     @Test func drivableRegisterSetSurvivesTheFirmwareManagedVerdictOnModernHardware() {
-        // This is the exact pair `SMCBatteryControlHardware.init` needs on a Mac that took a macOS 27
+        // This is the exact pair `SMCBatteryControlHardware` needs on a Mac that took a macOS 27
         // firmware update while `CHTE == 1` was still latched from the old firmware: `registerSet`
         // must say `.firmwareManaged` (so the engine never drives it again), while
-        // `drivableRegisterSet` must still say `.modern` (so init knows CHTE is the register to send
-        // the one release write through). Losing either half of this pair is the bug — the firmware
-        // verdict swallowing the drivable answer is what left `CHTE` with nobody to clear it.
+        // `drivableRegisterSet` must still say `.modern` (so the dedicated verified-release path
+        // retains CHTE as its safety register). Losing either half of this pair is the bug — the
+        // firmware verdict swallowing the drivable answer would leave `CHTE` with nobody to clear it.
         func probe(_ key: String) -> (type: String, size: Int)? {
             switch key {
             case "bfF0", "bfE0": return ("ui32", 4)
@@ -206,7 +248,7 @@ import Testing
     @Test func drivableRegisterSetSurvivesTheFirmwareManagedVerdictOnLegacyHardware() {
         // Same pairing, on a pre-Tahoe Mac that somehow already picked up the firmware-managed keys:
         // `.firmwareManaged` for the policy question, `.legacy` for the mechanical one, so the
-        // startup release goes out through CH0B instead of CHTE.
+        // dedicated verified release goes out through CH0B instead of CHTE.
         func probe(_ key: String) -> (type: String, size: Int)? {
             switch key {
             case "bfF0", "bfE0": return ("ui32", 4)
@@ -219,10 +261,10 @@ import Testing
     }
 
     @Test func drivableRegisterSetIsUnsupportedWhenFirmwareManagedHasNoDrivableRegisterUnderneath() {
-        // A firmware-managed Mac that exposes none of CHTE/CH0B/BCLM has nothing for the startup
-        // release to write through — `drivableRegisterSet` must say `.unsupported` so
-        // `SMCBatteryControlHardware.init` skips the write entirely rather than sending it to a key
-        // that was never there.
+        // A firmware-managed Mac that exposes none of CHTE/CH0B/BCLM has nothing for the dedicated
+        // verified release to write through — `drivableRegisterSet` must say `.unsupported` so
+        // `SMCBatteryControlHardware` reports the verified release as not controllable rather than
+        // sending it to a key that was never there.
         func probe(_ key: String) -> (type: String, size: Int)? {
             switch key {
             case "bfF0", "bfE0": return ("ui32", 4)
@@ -231,6 +273,47 @@ import Testing
         }
         #expect(BatteryControlKeys.registerSet(probing: probe) == .firmwareManaged)
         #expect(BatteryControlKeys.drivableRegisterSet(probing: probe) == .unsupported)
+    }
+
+    @Test func runtimeNoLatchProofRequiresConfirmedAbsenceForEveryCandidate() throws {
+        // A failed key-info transport and a reachable key with a shape we do not recognise are
+        // fundamentally different from proof that a latch key is absent. Neither may mint the
+        // readback-free no-latch release proof.
+        let absent = BatteryControlKeys.runtimeDrivableRegisterProbe { _ in .confirmedAbsent }
+        let transportFailure = BatteryControlKeys.runtimeDrivableRegisterProbe { key in
+            key == "CH0B" ? .uncertain : .confirmedAbsent
+        }
+        let unexpectedSize = BatteryControlKeys.runtimeDrivableRegisterProbe { key in
+            key == "CHTE" ? .readable(type: "ui32", size: 1) : .confirmedAbsent
+        }
+        let unexpectedType = BatteryControlKeys.runtimeDrivableRegisterProbe { key in
+            key == "CHTE" ? .readable(type: "flt ", size: 4) : .confirmedAbsent
+        }
+
+        #expect(absent == .noDrivableRegisterAtRuntime)
+        #expect(transportFailure == .unsafeToRelease)
+        #expect(unexpectedSize == .unsafeToRelease)
+        #expect(unexpectedType == .unsafeToRelease)
+    }
+
+    @Test func runtimeReleaseProbeKeepsTheNormalGenerationCandidate() {
+        let candidate = BatteryControlKeys.runtimeDrivableRegisterProbe { key in
+            key == "CHTE" ? .readable(type: "ui32", size: 4) : .confirmedAbsent
+        }
+        #expect(candidate == .drivable(.modern))
+    }
+
+    @Test func runtimeReleaseProbeFailsClosedWhenAnotherLatchProbeIsUncertain() {
+        // A known CHTE does not prove that a different reachable latch is clear. Release must not
+        // skip that uncertainty merely because it has one familiar key it could write.
+        let candidate = BatteryControlKeys.runtimeDrivableRegisterProbe { key in
+            switch key {
+            case "CHTE": return .readable(type: "ui32", size: 4)
+            case "CH0B": return .uncertain
+            default: return .confirmedAbsent
+            }
+        }
+        #expect(candidate == .unsafeToRelease)
     }
 
     @Test func drivableRegisterSetIgnoresTheFirmwareKeysEntirely() {

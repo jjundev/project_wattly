@@ -27,6 +27,14 @@ enum LegacyBatteryDetail {
         case "이 Mac에서 충전 제어를 적용하지 못했습니다": return .init(kind: .applyFailed)
         case "충전 제한 비활성화됨": return .init(kind: .limitDisabled)
         case "배터리 전원으로 구동 중": return .init(kind: .onBatteryPower)
+        case "저장된 충전 정책을 읽지 못해 충전 허용 상태로 복구합니다":
+            return .init(kind: .persistenceReadFailed)
+        case "충전 정책을 안전하게 저장하지 못했습니다":
+            return .init(kind: .persistenceWriteFailed)
+        case "다른 사용자가 이 Mac의 충전 정책을 관리하고 있습니다":
+            return .init(kind: .policyOwnerMismatch)
+        case "충전 제어 하드웨어 상태를 확인하지 못했습니다":
+            return .init(kind: .hardwareReadbackFailed)
         default: break
         }
 

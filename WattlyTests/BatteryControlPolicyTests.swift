@@ -14,40 +14,162 @@ import Testing
         )
     }
 
+    @Test func reapplyWhenPersistedHysteresisDiffers() {
+        let requested = BatteryControlConfiguration(
+            enabled: true, limitPercentage: 85, lowerHysteresisDelta: 5)
+        let current = BatteryControlServiceStatus(
+            mode: .charging,
+            currentPercentage: 80,
+            isPowerAdapterConnected: true,
+            detail: "OK",
+            updatedAt: 1,
+            desiredConfiguration: .init(
+                enabled: true, limitPercentage: 85, lowerHysteresisDelta: 2),
+            capabilities: [.persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1])
+
+        #expect(BatteryControlPolicy.shouldReapply(configuration: requested, status: current))
+    }
+
+    @Test func persistentHelperWithExactConfigurationNeedsOnlyStatusRead() {
+        let requested = BatteryControlConfiguration(
+            enabled: true, limitPercentage: 85, lowerHysteresisDelta: 5)
+        let current = BatteryControlServiceStatus(
+            mode: .inhibited,
+            currentPercentage: 85,
+            isPowerAdapterConnected: true,
+            detail: "OK",
+            updatedAt: 1,
+            desiredConfiguration: requested,
+            capabilities: [.persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1])
+
+        #expect(!BatteryControlPolicy.shouldReapply(configuration: requested, status: current))
+    }
+
+    @Test func persistenceClaimsRequireEveryDurabilityCapability() {
+        let incomplete = BatteryControlServiceStatus(
+            mode: .charging, currentPercentage: 80, isPowerAdapterConnected: true,
+            detail: "OK", updatedAt: 1,
+            capabilities: [.persistedPolicyV1, .hardwareGateReadbackV1])
+        #expect(!BatteryControlPolicy.supportsPersistentPolicy(status: incomplete))
+    }
+
+    @Test func legacyHelperFallsBackToAppliedLimitComparison() {
+        let requested = BatteryControlConfiguration(
+            enabled: true, limitPercentage: 85, lowerHysteresisDelta: 5)
+        #expect(!BatteryControlPolicy.shouldReapply(
+            configuration: requested, status: status(mode: .charging, applied: 85)))
+    }
+
+    @Test func disabledPolicyIsNotAcceptedUntilTheGateIsReleased() {
+        let requested = BatteryControlConfiguration(enabled: false, limitPercentage: 85)
+        let status = BatteryControlServiceStatus(
+            mode: .charging, currentPercentage: 70, isPowerAdapterConnected: true,
+            detail: "release failed", updatedAt: 1, desiredConfiguration: requested,
+            actualGate: .inhibited(appliedLimitPercentage: 85), releaseVerdict: .failed)
+
+        #expect(!BatteryControlPolicy.accepted(configuration: requested, by: status))
+    }
+
+    @Test func enabledPolicyIsNotAcceptedWithoutActualGateEvidence() {
+        let requested = BatteryControlConfiguration(enabled: true, limitPercentage: 85)
+        let status = BatteryControlServiceStatus(
+            mode: .charging, currentPercentage: 80, isPowerAdapterConnected: true,
+            detail: "OK", updatedAt: 1, desiredConfiguration: requested,
+            lastMaintenance: .init(
+                trigger: .clientConfiguration, result: .applied, occurredAt: 1, reason: nil))
+
+        #expect(!BatteryControlPolicy.accepted(configuration: requested, by: status))
+    }
+
+    @Test func enabledPolicyIsNotAcceptedWithoutMaintenanceEvidence() {
+        let requested = BatteryControlConfiguration(enabled: true, limitPercentage: 85)
+        let status = BatteryControlServiceStatus(
+            mode: .charging, currentPercentage: 80, isPowerAdapterConnected: true,
+            detail: "OK", updatedAt: 1, desiredConfiguration: requested,
+            actualGate: .inhibited(appliedLimitPercentage: 85))
+
+        #expect(!BatteryControlPolicy.accepted(configuration: requested, by: status))
+    }
+
+    @Test func enabledPolicyRejectsUnreadableActualGate() {
+        let requested = BatteryControlConfiguration(enabled: true, limitPercentage: 85)
+        let status = acceptedEnabledStatus(configuration: requested, gate: .unreadable)
+
+        #expect(!BatteryControlPolicy.accepted(configuration: requested, by: status))
+    }
+
+    @Test func enabledPolicyRejectsUnrecognizedActualGate() {
+        let requested = BatteryControlConfiguration(enabled: true, limitPercentage: 85)
+        let status = acceptedEnabledStatus(configuration: requested, gate: .init(
+            state: .unrecognized, appliedLimitPercentage: nil))
+
+        #expect(!BatteryControlPolicy.accepted(configuration: requested, by: status))
+    }
+
+    @Test func enabledPolicyRejectsFailedMaintenance() {
+        let requested = BatteryControlConfiguration(enabled: true, limitPercentage: 85)
+        var status = acceptedEnabledStatus(
+            configuration: requested, gate: .inhibited(appliedLimitPercentage: 85))
+        status.lastMaintenance?.result = .failed
+
+        #expect(!BatteryControlPolicy.accepted(configuration: requested, by: status))
+    }
+
     @Test func reapplyWhenHelperRestartedAndForgotTheLimit() {
         // A KeepAlive relaunch brings the helper back with an empty configuration.
         let forgotten = status(mode: .charging, applied: nil)
-        #expect(BatteryControlPolicy.shouldReapply(enabled: true, limitPercentage: 85, status: forgotten))
+        #expect(BatteryControlPolicy.shouldReapply(
+            configuration: .init(enabled: true, limitPercentage: 85), status: forgotten))
     }
 
     @Test func reapplyWhenHelperHoldsADifferentLimit() {
         let stale = status(mode: .charging, applied: 80)
-        #expect(BatteryControlPolicy.shouldReapply(enabled: true, limitPercentage: 85, status: stale))
+        #expect(BatteryControlPolicy.shouldReapply(
+            configuration: .init(enabled: true, limitPercentage: 85), status: stale))
     }
 
     @Test func doNotReapplyWhenHelperAlreadyAgrees() {
-        #expect(!BatteryControlPolicy.shouldReapply(enabled: true, limitPercentage: 85,
-                                                    status: status(mode: .charging, applied: 85)))
-        #expect(!BatteryControlPolicy.shouldReapply(enabled: true, limitPercentage: 85,
-                                                    status: status(mode: .inhibited, applied: 85)))
+        #expect(!BatteryControlPolicy.shouldReapply(
+            configuration: .init(enabled: true, limitPercentage: 85),
+            status: status(mode: .charging, applied: 85)))
+        #expect(!BatteryControlPolicy.shouldReapply(
+            configuration: .init(enabled: true, limitPercentage: 85),
+            status: status(mode: .inhibited, applied: 85)))
     }
 
-    @Test func doNotReapplyWhenTheUserOptedOut() {
-        #expect(!BatteryControlPolicy.shouldReapply(enabled: false, limitPercentage: 85,
-                                                    status: status(mode: .charging, applied: nil)))
+    @Test func settledDisabledHelperNeedsNoWrite() {
+        let disabled = BatteryControlConfiguration(enabled: false, limitPercentage: 85)
+        let settled = BatteryControlServiceStatus(
+            mode: .charging, currentPercentage: 70, isPowerAdapterConnected: true,
+            detail: "OK", updatedAt: 0, appliedLimitPercentage: nil,
+            desiredConfiguration: disabled,
+            capabilities: [.persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1])
+        #expect(!BatteryControlPolicy.shouldReapply(configuration: disabled, status: settled))
+    }
+
+    @Test func disabledRequestReplacesPersistedEnabledPolicy() {
+        let disabled = BatteryControlConfiguration(enabled: false, limitPercentage: 85)
+        let current = BatteryControlServiceStatus(
+            mode: .charging, currentPercentage: 70, isPowerAdapterConnected: true,
+            detail: "OK", updatedAt: 0,
+            desiredConfiguration: .init(enabled: true, limitPercentage: 85),
+            capabilities: [.persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1])
+        #expect(BatteryControlPolicy.shouldReapply(configuration: disabled, status: current))
     }
 
     @Test func doNotReapplyIntoAnUnreachableHelper() {
         // Connecting or installing is the settings screen's job, not a background loop's.
-        #expect(!BatteryControlPolicy.shouldReapply(enabled: true, limitPercentage: 85,
-                                                    status: status(mode: .unavailable, applied: nil)))
+        #expect(!BatteryControlPolicy.shouldReapply(
+            configuration: .init(enabled: true, limitPercentage: 85),
+            status: status(mode: .unavailable, applied: nil)))
     }
 
     @Test func reapplyEvenWhenTheHardwareRejectedTheWrite() {
         // `.unsupported` still means the helper is answering; re-pushing is how a transient
         // failure gets another chance.
-        #expect(BatteryControlPolicy.shouldReapply(enabled: true, limitPercentage: 85,
-                                                   status: status(mode: .unsupported, applied: nil)))
+        #expect(BatteryControlPolicy.shouldReapply(
+            configuration: .init(enabled: true, limitPercentage: 85),
+            status: status(mode: .unsupported, applied: nil)))
     }
 
     @Test func installerRunsOnlyWhenTheHelperIsUnreachable() {
@@ -91,7 +213,8 @@ import Testing
             appliedLimitPercentage: nil,
             isHardwareSupported: false
         )
-        #expect(!BatteryControlPolicy.shouldReapply(enabled: true, limitPercentage: 85, status: noRegister))
+        #expect(!BatteryControlPolicy.shouldReapply(
+            configuration: .init(enabled: true, limitPercentage: 85), status: noRegister))
     }
 
     @Test func stillReapplyWhenCapabilityIsUnknown() {
@@ -106,6 +229,26 @@ import Testing
             appliedLimitPercentage: nil,
             isHardwareSupported: nil
         )
-        #expect(BatteryControlPolicy.shouldReapply(enabled: true, limitPercentage: 85, status: olderHelper))
+        #expect(BatteryControlPolicy.shouldReapply(
+            configuration: .init(enabled: true, limitPercentage: 85), status: olderHelper))
+    }
+
+    private func acceptedEnabledStatus(
+        configuration: BatteryControlConfiguration,
+        gate: BatteryHardwareGate
+    ) -> BatteryControlServiceStatus {
+        BatteryControlServiceStatus(
+            mode: .inhibited,
+            currentPercentage: 85,
+            isPowerAdapterConnected: true,
+            detail: "OK",
+            updatedAt: 1,
+            desiredConfiguration: configuration,
+            actualGate: gate,
+            lastMaintenance: .init(
+                trigger: .clientConfiguration,
+                result: .applied,
+                occurredAt: 1,
+                reason: nil))
     }
 }

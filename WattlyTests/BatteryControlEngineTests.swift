@@ -4,22 +4,398 @@ import Testing
 
 final class MockBatteryHardware: BatteryControlHardwareProtocol, @unchecked Sendable {
     var registerSet: BatteryControlRegisterSet = .modern
+    var reportedGate: BatteryHardwareGate = .allowed
     var chargingInhibited: Bool = false
     var appliedLimit: Int = 100
     /// Counts EVERY call, including a redundant one — a retry has to be visible to the tests.
     var writeCount: Int = 0
+    var readCount: Int = 0
     var writeShouldFail: Bool = false
+    var onWrite: (() -> Void)?
+    var holdReportedGateAfterWrite = false
+    var releaseVerification = BatteryReleaseVerification(verdict: .verifiedAllowed)
+    var releaseVerdict: BatteryReleaseVerdict {
+        get { releaseVerification.verdict }
+        set { releaseVerification = .init(verdict: newValue) }
+    }
+    var releaseAttemptCount = 0
+
+    func readChargingGate(targetLimit: Int) -> BatteryHardwareGate {
+        readCount += 1
+        return reportedGate
+    }
 
     func setChargingInhibited(_ inhibited: Bool, targetLimit: Int) -> Bool {
         writeCount += 1
+        onWrite?()
         if writeShouldFail { return false }
         chargingInhibited = inhibited
         appliedLimit = targetLimit
+        if !holdReportedGateAfterWrite {
+            reportedGate = inhibited
+                ? .inhibited(appliedLimitPercentage:
+                    registerSet == .intel ? targetLimit : nil)
+                : .allowed
+        }
         return true
+    }
+
+    func releaseChargingControlAndVerify() -> BatteryReleaseVerification {
+        releaseAttemptCount += 1
+        if releaseVerification.isSafeToRemove {
+            chargingInhibited = false
+            appliedLimit = 100
+            reportedGate = releaseVerification.verdict == .verifiedAllowed ? .allowed : .unreadable
+        }
+        return releaseVerification
     }
 }
 
 struct BatteryControlEngineTests {
+    @Test func noControllableLatchWithoutRuntimeProbeProofDoesNotPermitRelease() {
+        let hardware = MockBatteryHardware()
+        hardware.registerSet = .unsupported
+        hardware.releaseVerification = .init(verdict: .notControllable)
+        let engine = BatteryControlEngine(hardware: hardware)
+
+        let verification = engine.releaseVerified()
+
+        #expect(verification.verdict == .notControllable)
+        #expect(verification.isSafeToRemove == false)
+        #expect(engine.statusForCurrentBelief(
+            currentSoC: 80, isPluggedIn: true).actualGate == nil)
+    }
+
+    @Test func runtimeProofOfNoDrivableRegisterPermitsNoLatchRelease() {
+        let hardware = MockBatteryHardware()
+        hardware.registerSet = .firmwareManaged
+        hardware.releaseVerification = .init(
+            verdict: .notControllable,
+            proof: .noDrivableRegisterAtRuntime)
+        let engine = BatteryControlEngine(hardware: hardware)
+
+        let verification = engine.releaseVerified()
+
+        #expect(verification.verdict == .notControllable)
+        #expect(verification.proof == .noDrivableRegisterAtRuntime)
+        #expect(verification.isSafeToRemove)
+    }
+
+    @Test(arguments: [
+        BatteryControlRegisterSet.firmwareManaged,
+        .unsupported,
+    ])
+    func hydrationSkipsOrdinaryWritesForNonDrivableHardware(
+        registerSet: BatteryControlRegisterSet
+    ) {
+        let hardware = MockBatteryHardware()
+        hardware.registerSet = registerSet
+        hardware.reportedGate = .unreadable
+        let engine = BatteryControlEngine(
+            hardware: hardware,
+            initialConfig: .init(enabled: true, limitPercentage: 85))
+
+        #expect(engine.hydrateHardwareState() == .unreadable)
+        #expect(hardware.readCount == 0)
+        #expect(hardware.writeCount == 0)
+    }
+
+    @Test(arguments: [
+        BatteryControlRegisterSet.firmwareManaged,
+        .unsupported,
+    ])
+    func verifiedUpdatePreservesPermanentUnsupportedRouting(
+        registerSet: BatteryControlRegisterSet
+    ) {
+        let hardware = MockBatteryHardware()
+        hardware.registerSet = registerSet
+        hardware.reportedGate = .unreadable
+        let engine = BatteryControlEngine(
+            hardware: hardware,
+            initialConfig: .init(enabled: true, limitPercentage: 85))
+
+        let status = engine.verifyAndUpdate(currentSoC: 80, isPluggedIn: true)
+
+        #expect(hardware.readCount == 0)
+        #expect(hardware.writeCount == 0)
+        #expect(status.mode == .unsupported)
+        #expect(status.isHardwareSupported == false)
+        #expect(status.detailReason?.kind == .hardwareUnsupported)
+    }
+
+    @Test(arguments: [
+        BatteryControlRegisterSet.firmwareManaged,
+        .unsupported,
+    ])
+    func verifiedReleaseStillRoutesThroughNonDrivableHardware(
+        registerSet: BatteryControlRegisterSet
+    ) {
+        let hardware = MockBatteryHardware()
+        hardware.registerSet = registerSet
+        hardware.releaseVerification = .init(
+            verdict: .notControllable,
+            proof: .noDrivableRegisterAtRuntime)
+        let engine = BatteryControlEngine(hardware: hardware)
+
+        #expect(engine.releaseVerified().verdict == .notControllable)
+        #expect(hardware.releaseAttemptCount == 1)
+        #expect(hardware.writeCount == 0)
+    }
+
+    @Test func disabledNoOpSamplesDoNotClearVerifiedReleaseFailures() {
+        let hardware = MockBatteryHardware()
+        hardware.reportedGate = .allowed
+        hardware.releaseVerdict = .failed
+        let engine = BatteryControlEngine(hardware: hardware)
+        _ = engine.hydrateHardwareState()
+
+        for _ in 0..<5 {
+            _ = engine.releaseVerified()
+            _ = engine.update(currentSoC: 80, isPluggedIn: true)
+        }
+
+        #expect(hardware.releaseAttemptCount
+            == BatteryControlEngine.maxConsecutiveWriteFailures)
+        #expect(hardware.writeCount == 0)
+    }
+
+    @Test func wakeHydratesAnExistingHoldAndKeepsItInsideTheBand() {
+        let hardware = MockBatteryHardware()
+        hardware.reportedGate = .inhibited(appliedLimitPercentage: nil)
+        hardware.chargingInhibited = true
+        let engine = BatteryControlEngine(
+            hardware: hardware,
+            initialConfig: .init(
+                enabled: true, limitPercentage: 85, lowerHysteresisDelta: 2))
+
+        let status = engine.verifyAndUpdate(currentSoC: 84, isPluggedIn: true)
+
+        #expect(status.mode == .inhibited)
+        #expect(hardware.writeCount == 0)
+        #expect(status.actualGate == .inhibited(appliedLimitPercentage: nil))
+    }
+
+    @Test func wakeHydratesAllowedGateAndDoesNotInventAHoldInsideTheBand() {
+        let hardware = MockBatteryHardware()
+        hardware.reportedGate = .allowed
+        let engine = BatteryControlEngine(
+            hardware: hardware,
+            initialConfig: .init(
+                enabled: true, limitPercentage: 85, lowerHysteresisDelta: 2))
+
+        let status = engine.verifyAndUpdate(currentSoC: 84, isPluggedIn: true)
+
+        #expect(status.mode == .charging)
+        #expect(hardware.writeCount == 0)
+    }
+
+    @Test func unreadableGateBuildsAKnownAllowedBaselineBeforeEvaluation() {
+        let hardware = MockBatteryHardware()
+        hardware.reportedGate = .unreadable
+        let engine = BatteryControlEngine(
+            hardware: hardware,
+            initialConfig: .init(enabled: true, limitPercentage: 85))
+
+        _ = engine.verifyAndUpdate(currentSoC: 80, isPluggedIn: true)
+
+        #expect(hardware.writeCount == 1)
+        #expect(hardware.readCount == 2)
+        #expect(hardware.chargingInhibited == false)
+    }
+
+    @Test func verifiedReleaseReturnsFailedWhenReadbackStillSaysInhibited() {
+        let hardware = MockBatteryHardware()
+        hardware.reportedGate = .inhibited(appliedLimitPercentage: nil)
+        hardware.releaseVerdict = .failed
+        let engine = BatteryControlEngine(hardware: hardware)
+
+        #expect(engine.releaseVerified().verdict == .failed)
+        #expect(hardware.releaseAttemptCount == 1)
+    }
+
+    @Test func verifiedAllowedReleaseLeavesAKnownAllowedState() {
+        let hardware = MockBatteryHardware()
+        hardware.reportedGate = .inhibited(appliedLimitPercentage: nil)
+        hardware.chargingInhibited = true
+        let engine = BatteryControlEngine(hardware: hardware)
+
+        #expect(engine.releaseVerified().verdict == .verifiedAllowed)
+        let status = engine.update(currentSoC: 80, isPluggedIn: true)
+
+        #expect(hardware.releaseAttemptCount == 1)
+        #expect(hardware.writeCount == 0)
+        #expect(status.actualGate == .allowed)
+    }
+
+    @Test func noControllableLatchWithRuntimeProofIsSafeWithoutInventingReadableHardware() {
+        let hardware = MockBatteryHardware()
+        hardware.registerSet = .unsupported
+        hardware.reportedGate = .unreadable
+        hardware.releaseVerification = .init(
+            verdict: .notControllable,
+            proof: .noDrivableRegisterAtRuntime)
+        let engine = BatteryControlEngine(hardware: hardware)
+
+        #expect(engine.releaseVerified().verdict == .notControllable)
+        let status = engine.update(currentSoC: 80, isPluggedIn: true)
+
+        #expect(hardware.releaseAttemptCount == 1)
+        #expect(hardware.writeCount == 0)
+        #expect(status.actualGate == .unreadable)
+    }
+
+    @Test func staleIntelLimitIsReleasedBeforeEvaluatingTheCurrentPolicy() {
+        let hardware = MockBatteryHardware()
+        hardware.registerSet = .intel
+        hardware.reportedGate = .inhibited(appliedLimitPercentage: 80)
+        hardware.chargingInhibited = true
+        hardware.appliedLimit = 80
+        let engine = BatteryControlEngine(
+            hardware: hardware,
+            initialConfig: .init(enabled: true, limitPercentage: 85))
+
+        let status = engine.verifyAndUpdate(currentSoC: 84, isPluggedIn: true)
+
+        #expect(hardware.writeCount == 1)
+        #expect(hardware.readCount == 2)
+        #expect(hardware.chargingInhibited == false)
+        #expect(hardware.appliedLimit == 100)
+        #expect(status.mode == .charging)
+        #expect(status.actualGate == .allowed)
+    }
+
+    @Test func unreadableGateReportsReadbackFailureWhenReleaseCannotBeVerified() {
+        let hardware = MockBatteryHardware()
+        hardware.reportedGate = .unreadable
+        hardware.holdReportedGateAfterWrite = true
+        hardware.onWrite = {
+            #expect(hardware.readCount == 1)
+        }
+        let engine = BatteryControlEngine(
+            hardware: hardware,
+            initialConfig: .init(enabled: true, limitPercentage: 85))
+
+        let status = engine.verifyAndUpdate(currentSoC: 80, isPluggedIn: true)
+
+        #expect(hardware.writeCount == 1)
+        #expect(hardware.readCount == 2)
+        #expect(status.mode == .unsupported)
+        #expect(status.appliedLimitPercentage == nil)
+        #expect(status.detailReason?.kind == .hardwareReadbackFailed)
+        #expect(status.actualGate == .unreadable)
+    }
+
+    @Test func acknowledgedTransitionRequiresMatchingReadback() {
+        let hardware = MockBatteryHardware()
+        let engine = BatteryControlEngine(
+            hardware: hardware,
+            initialConfig: .init(enabled: true, limitPercentage: 85))
+        _ = engine.update(currentSoC: 70, isPluggedIn: true)
+        hardware.holdReportedGateAfterWrite = true
+        hardware.reportedGate = .allowed
+
+        let status = engine.update(currentSoC: 85, isPluggedIn: true)
+
+        #expect(status.mode == .unsupported)
+        #expect(status.appliedLimitPercentage == nil)
+        #expect(status.actualGate == .allowed)
+    }
+
+    @Test func ordinaryWritesAndVerifiedReleaseShareOneThreeFailureLatch() {
+        let hardware = MockBatteryHardware()
+        let engine = BatteryControlEngine(
+            hardware: hardware,
+            initialConfig: .init(enabled: true, limitPercentage: 85))
+        _ = engine.update(currentSoC: 70, isPluggedIn: true)
+        hardware.writeCount = 0
+        hardware.readCount = 0
+        hardware.holdReportedGateAfterWrite = true
+        hardware.reportedGate = .allowed
+
+        _ = engine.update(currentSoC: 85, isPluggedIn: true)
+        _ = engine.update(currentSoC: 85, isPluggedIn: true)
+        hardware.releaseVerdict = .failed
+        #expect(engine.releaseVerified().verdict == .failed)
+
+        _ = engine.update(currentSoC: 85, isPluggedIn: true)
+        #expect(engine.releaseVerified().verdict == .failed)
+        #expect(hardware.writeCount == 2)
+        #expect(hardware.releaseAttemptCount == 1)
+        #expect(hardware.writeCount + hardware.releaseAttemptCount
+            == BatteryControlEngine.maxConsecutiveWriteFailures)
+    }
+
+    @Test func recoveryWindowRearmsTheSharedFailureLatch() {
+        let hardware = MockBatteryHardware()
+        hardware.releaseVerdict = .failed
+        let engine = BatteryControlEngine(hardware: hardware)
+        for _ in 0..<5 { _ = engine.releaseVerified() }
+        #expect(hardware.releaseAttemptCount
+            == BatteryControlEngine.maxConsecutiveWriteFailures)
+
+        engine.beginRecoveryWindow()
+        hardware.releaseVerdict = .verifiedAllowed
+        #expect(engine.releaseVerified().verdict == .verifiedAllowed)
+        #expect(hardware.releaseAttemptCount
+            == BatteryControlEngine.maxConsecutiveWriteFailures + 1)
+    }
+
+    @Test func configureOnlyUpdatesDesiredStateAndNormalizesIt() {
+        let hardware = MockBatteryHardware()
+        hardware.reportedGate = .inhibited(appliedLimitPercentage: nil)
+        hardware.chargingInhibited = true
+        let engine = BatteryControlEngine(
+            hardware: hardware,
+            initialConfig: .init(enabled: true, limitPercentage: 85))
+        _ = engine.hydrateHardwareState()
+
+        engine.configure(.init(
+            enabled: false, limitPercentage: 999, lowerHysteresisDelta: 999))
+
+        #expect(hardware.writeCount == 0)
+        #expect(hardware.chargingInhibited)
+        #expect(engine.configuration == .init(
+            enabled: false, limitPercentage: 100, lowerHysteresisDelta: 10))
+    }
+
+    @Test func statusNeverSynthesizesAnActualGateWithoutARead() {
+        let hardware = MockBatteryHardware()
+        hardware.registerSet = .unsupported
+        let engine = BatteryControlEngine(
+            hardware: hardware,
+            initialConfig: .init(enabled: true, limitPercentage: 85))
+
+        let status = engine.update(currentSoC: 80, isPluggedIn: true)
+
+        #expect(status.actualGate == nil)
+        #expect(status.mode == .unsupported)
+    }
+
+    @Test func currentBeliefSnapshotPerformsNoIOAndOnlyExposesTheLastVerifiedGate() {
+        let hardware = MockBatteryHardware()
+        hardware.reportedGate = .inhibited(appliedLimitPercentage: nil)
+        let engine = BatteryControlEngine(
+            hardware: hardware,
+            initialConfig: .init(enabled: true, limitPercentage: 85))
+
+        let unknown = engine.statusForCurrentBelief(
+            currentSoC: 80,
+            isPluggedIn: true)
+        #expect(unknown.actualGate == nil)
+        #expect(hardware.readCount == 0)
+        #expect(hardware.writeCount == 0)
+
+        _ = engine.hydrateHardwareState()
+        let readsAfterHydration = hardware.readCount
+        let known = engine.statusForCurrentBelief(
+            currentSoC: 80,
+            isPluggedIn: true)
+
+        #expect(known.actualGate == .inhibited(appliedLimitPercentage: nil))
+        #expect(hardware.readCount == readsAfterHydration)
+        #expect(hardware.writeCount == 0)
+    }
+
     @Test func hysteresisTransitionStopsAtLimitAndResumesBelowThreshold() {
         let mockHW = MockBatteryHardware()
         let engine = BatteryControlEngine(hardware: mockHW)
@@ -667,4 +1043,3 @@ struct BatteryControlEngineTests {
         #expect(sUnplugged.detailReason?.kind == .onBatteryPower)
     }
 }
-
