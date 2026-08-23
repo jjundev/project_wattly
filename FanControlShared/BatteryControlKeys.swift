@@ -40,14 +40,13 @@ public enum BatteryControlRegisterSet: String, Codable, Equatable, Sendable {
     /// is that such a Mac may still expose `CHTE`, and driving that key underneath a firmware that
     /// owns the limit is worse than doing nothing.
     ///
-    /// "Stays out of the way" is not unconditional, though: at daemon startup, if the Mac also
-    /// exposes a drivable register (`drivableRegisterSet(probing:)` above), `SMCBatteryControlHardware.init`
-    /// issues exactly one release write (`inhibited: false`) through it before standing down for
-    /// good. That single write exists for the Mac that took a firmware update while `CHTE == 1` —
-    /// the release direction only ever says "charging is allowed", so it cannot contend with
-    /// whatever the firmware now does with the charger; it only clears a latch this app itself may
-    /// have set under the old firmware. After that one write, this case behaves exactly as before:
-    /// `canDriveCharging` is `false` and `writes(...)` returns `[]`.
+    /// "Stays out of the way" is not unconditional, though: if the Mac also exposes a drivable
+    /// register (`drivableRegisterSet(probing:)` below), the hardware adapter preserves that hidden
+    /// register for its explicit verified-release path. That path exists for the Mac that took a
+    /// firmware update while `CHTE == 1` — the release direction only ever says "charging is
+    /// allowed", so it cannot contend with whatever the firmware now does with the charger; it only
+    /// clears a latch this app itself may have set under the old firmware. Ordinary engine control
+    /// still stands down: `canDriveCharging` is `false` and `writes(...)` returns `[]`.
     case firmwareManaged
     /// None of the above are present. The charge limit cannot work on this Mac at all.
     case unsupported
@@ -128,9 +127,8 @@ public enum BatteryControlKeys {
     /// what `drivableRegisterSet` would have said, because *driving* the charger is off the table on
     /// such a Mac. Callers that need the other question — "which register, if any, could this Mac be
     /// driven through, ignoring whether the firmware currently owns it" — want
-    /// `drivableRegisterSet(probing:)` instead; that is what makes the one-shot release write in
-    /// `SMCBatteryControlHardware.init` possible on a `.firmwareManaged` Mac that also exposes `CHTE`
-    /// or `CH0B`.
+    /// `drivableRegisterSet(probing:)` instead; that is what makes the verified safety-release path
+    /// possible on a `.firmwareManaged` Mac that also exposes `CHTE` or `CH0B`.
     public static func registerSet(probing keyInfo: (String) -> (type: String, size: Int)?) -> BatteryControlRegisterSet {
         // Firmware-managed first, with no *additional* size check here, and over a deliberately small
         // key set. That is safe because absence is already detectable without one: the caller's
@@ -151,7 +149,7 @@ public enum BatteryControlKeys {
     /// drive this Mac"); this is the mechanical one underneath it, kept separate so a
     /// `.firmwareManaged` verdict does not erase the fact that a drivable register also exists.
     /// `SMCBatteryControlHardware.init` calls this a second time, only when `registerSet` came back
-    /// `.firmwareManaged`, to find the register it may still need to un-latch once at startup.
+    /// `.firmwareManaged`, to preserve the register an explicit safety release may need to un-latch.
     ///
     /// A key that answers with an unexpected size is treated as absent rather than trusted: writing
     /// a 4-byte payload at a 1-byte register is how a "supported" Mac would fail every write with no
@@ -168,6 +166,44 @@ public enum BatteryControlKeys {
             return candidate.registerSet
         }
         return .unsupported
+    }
+
+    /// Parses a raw SMC reply into the shared gate state without inferring success from zero-filled
+    /// storage. The binary generations report only allowed/inhibited, while Intel reports the
+    /// applied ceiling itself so the engine can compare it with the desired limit.
+    public static func readGate(
+        registerSet: BatteryControlRegisterSet,
+        read: (String) -> (type: String, bytes: [UInt8])?
+    ) -> BatteryHardwareGate {
+        switch registerSet {
+        case .modern:
+            guard let raw = read("CHTE"), raw.bytes.count == 4 else {
+                return .unreadable
+            }
+            switch raw.bytes[0] {
+            case 0: return .allowed
+            case 1: return .inhibited(appliedLimitPercentage: nil)
+            default: return .unreadable
+            }
+        case .legacy:
+            guard let byte = read("CH0B")?.bytes.first else {
+                return .unreadable
+            }
+            switch byte {
+            case 0: return .allowed
+            case 2: return .inhibited(appliedLimitPercentage: nil)
+            default: return .unreadable
+            }
+        case .intel:
+            guard let byte = read("BCLM")?.bytes.first else {
+                return .unreadable
+            }
+            if byte == 100 { return .allowed }
+            guard (50...99).contains(Int(byte)) else { return .unreadable }
+            return .inhibited(appliedLimitPercentage: Int(byte))
+        case .firmwareManaged, .unsupported:
+            return .unreadable
+        }
     }
 
     public static func writes(inhibited: Bool,

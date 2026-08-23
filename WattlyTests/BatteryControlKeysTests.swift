@@ -3,6 +3,38 @@ import Testing
 @testable import Wattly
 
 @Suite struct BatteryControlKeysTests {
+    @Test func modernReadbackUsesTheFourByteCHTEGate() {
+        let gate = BatteryControlKeys.readGate(registerSet: .modern) { key in
+            key == "CHTE" ? (type: "ui32", bytes: [1, 0, 0, 0]) : nil
+        }
+        #expect(gate == .inhibited(appliedLimitPercentage: nil))
+    }
+
+    @Test func legacyReadbackUsesCH0BAndRejectsUnknownBytes() {
+        let allowed = BatteryControlKeys.readGate(registerSet: .legacy) { _ in
+            (type: "ui8 ", bytes: [0])
+        }
+        let malformed = BatteryControlKeys.readGate(registerSet: .legacy) { _ in
+            (type: "ui8 ", bytes: [7])
+        }
+        #expect(allowed == .allowed)
+        #expect(malformed == .unreadable)
+    }
+
+    @Test func intelReadbackCarriesTheAppliedBCLMLimit() {
+        let gate = BatteryControlKeys.readGate(registerSet: .intel) { _ in
+            (type: "ui8 ", bytes: [85])
+        }
+        #expect(gate == .inhibited(appliedLimitPercentage: 85))
+    }
+
+    @Test func handsOffRegisterSetsHaveNoReadableGate() {
+        for registerSet: BatteryControlRegisterSet in [.firmwareManaged, .unsupported] {
+            #expect(BatteryControlKeys.readGate(registerSet: registerSet) { _ in nil }
+                    == .unreadable)
+        }
+    }
+
     @Test func modernMacsWriteTheFourByteCHTEFlag() {
         let inhibit = BatteryControlKeys.writes(inhibited: true, registerSet: .modern, targetLimit: 85)
         #expect(inhibit == [BatteryControlKeyWrite(key: "CHTE",
@@ -15,11 +47,10 @@ import Testing
                                                    isRequired: true)])
     }
 
-    @Test func modernReleaseAtFullTargetIsThePayloadTheStartupUnlatchSends() {
-        // `SMCBatteryControlHardware.init` fires exactly this call — `inhibited: false`, `targetLimit:
-        // 100` — as the one-shot release on a `.firmwareManaged` Mac that still exposes CHTE. Pinning
-        // it here means the daemon's startup write is verified even though `WattlyFanDaemon` itself
-        // has no test host.
+    @Test func modernReleaseAtFullTargetIsThePayloadTheSafetyUnlatchSends() {
+        // `releaseChargingControlAndVerify` uses exactly this call — `inhibited: false`,
+        // `targetLimit: 100` — for a `.firmwareManaged` Mac that still exposes CHTE. Pinning the pure
+        // register table here covers the payload even though `WattlyFanDaemon` has no test host.
         let release = BatteryControlKeys.writes(inhibited: false, registerSet: .modern, targetLimit: 100)
         #expect(release == [BatteryControlKeyWrite(key: "CHTE",
                                                    bytes: [0x00, 0x00, 0x00, 0x00],
@@ -186,7 +217,7 @@ import Testing
     }
 
     @Test func drivableRegisterSetSurvivesTheFirmwareManagedVerdictOnModernHardware() {
-        // This is the exact pair `SMCBatteryControlHardware.init` needs on a Mac that took a macOS 27
+        // This is the exact pair `SMCBatteryControlHardware` needs on a Mac that took a macOS 27
         // firmware update while `CHTE == 1` was still latched from the old firmware: `registerSet`
         // must say `.firmwareManaged` (so the engine never drives it again), while
         // `drivableRegisterSet` must still say `.modern` (so init knows CHTE is the register to send
@@ -221,8 +252,8 @@ import Testing
     @Test func drivableRegisterSetIsUnsupportedWhenFirmwareManagedHasNoDrivableRegisterUnderneath() {
         // A firmware-managed Mac that exposes none of CHTE/CH0B/BCLM has nothing for the startup
         // release to write through — `drivableRegisterSet` must say `.unsupported` so
-        // `SMCBatteryControlHardware.init` skips the write entirely rather than sending it to a key
-        // that was never there.
+        // `SMCBatteryControlHardware` reports the verified release as not controllable rather than
+        // sending it to a key that was never there.
         func probe(_ key: String) -> (type: String, size: Int)? {
             switch key {
             case "bfF0", "bfE0": return ("ui32", 4)

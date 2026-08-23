@@ -58,7 +58,9 @@ final class SMCControlConnection: @unchecked Sendable {
         guard (1...32).contains(size) else { return nil }
         var request = Param(); request.key = k; request.keyInfo = info.keyInfo; request.data8 = Self.cmdRead
         let readReply = callStruct(&request)
-        guard readReply.kernel == KERN_SUCCESS else { return nil }
+        guard readReply.kernel == KERN_SUCCESS,
+              readReply.output.result == 0
+        else { return nil }
         var tuple = readReply.output.bytes
         let bytes = withUnsafeBytes(of: &tuple) { Array($0.prefix(size)) }
         return (Self.string(info.keyInfo.dataType), bytes)

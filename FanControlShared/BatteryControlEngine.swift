@@ -10,16 +10,6 @@ public protocol BatteryControlHardwareProtocol: Sendable {
     func releaseChargingControlAndVerify() -> BatteryReleaseVerdict
 }
 
-public extension BatteryControlHardwareProtocol {
-    /// Production parsing is supplied by the hardware adapter. Until an adapter implements
-    /// readback, the only safe answer is that the gate could not be verified.
-    func readChargingGate(targetLimit: Int) -> BatteryHardwareGate { .unreadable }
-
-    /// Production verified release is supplied by the hardware adapter in the generation parser
-    /// slice. An adapter without that implementation cannot prove that it is safe to stop.
-    func releaseChargingControlAndVerify() -> BatteryReleaseVerdict { .failed }
-}
-
 public final class BatteryControlEngine: @unchecked Sendable {
     private enum FailureProvenance: Equatable {
         case ordinary
