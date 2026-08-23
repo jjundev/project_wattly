@@ -98,7 +98,6 @@ public final class BatteryPolicyFileStore: BatteryPolicyStoring, @unchecked Send
             updatedAt: policy.updatedAt
         )
         let directory = fileURL.deletingLastPathComponent()
-        let directoryExisted = fileManager.fileExists(atPath: directory.path)
         try fileManager.createDirectory(
             at: directory,
             withIntermediateDirectories: true,
@@ -107,9 +106,7 @@ public final class BatteryPolicyFileStore: BatteryPolicyStoring, @unchecked Send
         guard chmod(directory.path, 0o755) == 0 else {
             throw BatteryPolicyStoreError.fileOperation(errno: errno)
         }
-        if !directoryExisted {
-            try synchronizeDirectory(directory.deletingLastPathComponent())
-        }
+        try synchronizeDirectory(directory.deletingLastPathComponent())
         try synchronizeDirectory(directory)
 
         let temporaryURL = directory.appendingPathComponent(

@@ -31,6 +31,31 @@ import Testing
         }
     }
 
+    private final class FailOnceDirectorySynchronizer: @unchecked Sendable {
+        private let lock = NSLock()
+        private let failingDirectory: URL
+        private var failureDirectoryAttempts = 0
+
+        init(failingDirectory: URL) {
+            self.failingDirectory = failingDirectory
+        }
+
+        var attempts: Int {
+            lock.withLock { failureDirectoryAttempts }
+        }
+
+        func synchronize(_ directory: URL) throws {
+            let shouldFail = lock.withLock {
+                guard directory == failingDirectory else { return false }
+                failureDirectoryAttempts += 1
+                return failureDirectoryAttempts == 1
+            }
+            if shouldFail {
+                throw InjectedDirectorySyncError()
+            }
+        }
+    }
+
     private func temporaryStore(
         synchronizeDirectory: (@Sendable (URL) throws -> Void)? = nil
     ) throws -> (directory: URL, store: BatteryPolicyFileStore) {
@@ -109,6 +134,32 @@ import Testing
             try store.save(.init(ownerUID: 501, configuration: .init(), updatedAt: 10))
         }
         #expect(!FileManager.default.fileExists(atPath: store.fileURL.path))
+    }
+
+    @Test func retryAfterParentSyncFailureSynchronizesParentAgain() throws {
+        let (directory, initialStore) = try temporaryStore(synchronizeDirectory: { _ in })
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let synchronizer = FailOnceDirectorySynchronizer(
+            failingDirectory: directory.deletingLastPathComponent()
+        )
+        let store = BatteryPolicyFileStore(
+            fileURL: initialStore.fileURL,
+            synchronizeDirectory: synchronizer.synchronize
+        )
+
+        #expect(throws: InjectedDirectorySyncError.self) {
+            try store.save(.init(ownerUID: 501, configuration: .init(), updatedAt: 1))
+        }
+        try store.save(.init(
+            ownerUID: 501,
+            configuration: .init(enabled: true, limitPercentage: 90),
+            updatedAt: 2
+        ))
+
+        let loaded = try #require(try store.load())
+        #expect(loaded.configuration.limitPercentage == 90)
+        #expect(loaded.updatedAt == 2)
+        #expect(synchronizer.attempts == 2)
     }
 
     @Test func secondSaveAtomicallyReplacesTheFirstPayload() throws {
@@ -197,7 +248,7 @@ import Testing
             configuration: .init(enabled: true, limitPercentage: 80),
             updatedAt: 1
         ))
-        let probe = SynchronizationProbe(failureCall: 3)
+        let probe = SynchronizationProbe(failureCall: 4)
         let failingStore = BatteryPolicyFileStore(
             fileURL: initialStore.fileURL,
             synchronizeDirectory: probe.synchronize
@@ -223,7 +274,7 @@ import Testing
             configuration: .init(enabled: true, limitPercentage: 80),
             updatedAt: 1
         ))
-        let probe = SynchronizationProbe(failureCall: 4)
+        let probe = SynchronizationProbe(failureCall: 5)
         let failingStore = BatteryPolicyFileStore(
             fileURL: initialStore.fileURL,
             synchronizeDirectory: probe.synchronize
@@ -245,7 +296,7 @@ import Testing
         let (directory, initialStore) = try temporaryStore(synchronizeDirectory: { _ in })
         defer { try? FileManager.default.removeItem(at: directory) }
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let probe = SynchronizationProbe(failureCall: 2)
+        let probe = SynchronizationProbe(failureCall: 3)
         let failingStore = BatteryPolicyFileStore(
             fileURL: initialStore.fileURL,
             synchronizeDirectory: probe.synchronize
@@ -313,7 +364,7 @@ import Testing
             updatedAt: 1
         ))
         let previousURL = directory.appendingPathComponent(".battery-control.previous")
-        let probe = SynchronizationProbe(failureCall: 3) {
+        let probe = SynchronizationProbe(failureCall: 4) {
             try? FileManager.default.removeItem(at: previousURL)
         }
         let failingStore = BatteryPolicyFileStore(
