@@ -245,15 +245,20 @@ struct BatteryControlCoordinatorTests {
             now: { 100 })
 
         let status = coordinator.configureWithoutPowerReading(
-            .init(enabled: true, limitPercentage: 85),
+            .init(enabled: true, limitPercentage: 145, lowerHysteresisDelta: 0),
             trigger: .clientConfiguration)
 
         #expect(store.stored?.configuration == .init(
-            enabled: true, limitPercentage: 85))
+            enabled: true, limitPercentage: 100, lowerHysteresisDelta: 1))
         #expect(hardware.writeCount == 0)
+        #expect(hardware.releaseAttemptCount == 0)
         #expect(status.actualGate == .inhibited(appliedLimitPercentage: nil))
         #expect(status.detailReason?.kind == .powerSourceUnreadable)
-        #expect(status.lastMaintenance?.result == .skipped)
+        #expect(status.lastMaintenance == .init(
+            trigger: .clientConfiguration,
+            result: .skipped,
+            occurredAt: 100,
+            reason: .init(kind: .powerSourceUnreadable)))
     }
 
     @Test func disabledRestoreWithoutPowerReadingStillRequiresVerifiedRelease() {
@@ -602,13 +607,20 @@ struct BatteryControlCoordinatorTests {
     @Test func failedDisableAndLaterSamplesShareOneThreeAttemptBudget() {
         let hardware = MockBatteryHardware()
         hardware.reportedGate = .inhibited(appliedLimitPercentage: nil)
+        hardware.chargingInhibited = true
         hardware.releaseVerdict = .failed
         hardware.writeShouldFail = true
+        let store = PolicyStoreSpy()
+        store.stored = .init(
+            ownerUID: 501,
+            configuration: .init(enabled: true, limitPercentage: 80),
+            updatedAt: 10)
         let coordinator = BatteryControlCoordinator(
             ownerUID: 501,
-            store: PolicyStoreSpy(),
+            store: store,
             engine: BatteryControlEngine(hardware: hardware),
             now: { 100 })
+        _ = coordinator.restoreWithoutPowerReading()
 
         _ = coordinator.configure(
             .init(enabled: false),
@@ -621,6 +633,50 @@ struct BatteryControlCoordinatorTests {
 
         #expect(hardware.releaseAttemptCount + hardware.writeCount
             == BatteryControlEngine.maxConsecutiveWriteFailures)
+    }
+
+    @Test func adapterTransitionReopensRecoveryForFailedDisabledGate() {
+        let hardware = MockBatteryHardware()
+        hardware.reportedGate = .inhibited(appliedLimitPercentage: nil)
+        hardware.chargingInhibited = true
+        hardware.releaseVerdict = .failed
+        hardware.writeShouldFail = true
+        let store = PolicyStoreSpy()
+        store.stored = .init(
+            ownerUID: 501,
+            configuration: .init(enabled: true, limitPercentage: 80),
+            updatedAt: 10)
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501,
+            store: store,
+            engine: BatteryControlEngine(hardware: hardware),
+            now: { 100 })
+        _ = coordinator.restoreWithoutPowerReading()
+
+        _ = coordinator.configure(
+            .init(enabled: false),
+            trigger: .clientConfiguration,
+            currentSoC: 80,
+            isPluggedIn: true)
+        for _ in 0..<10 {
+            _ = coordinator.sample(currentSoC: 80, isPluggedIn: true)
+        }
+        let attemptsBeforeTransition = hardware.releaseAttemptCount
+            + hardware.writeCount
+
+        #expect(coordinator.needsSampling)
+        #expect(coordinator.latestStatus.actualGate?.state == .inhibited)
+
+        let status = coordinator.reconcile(
+            trigger: .adapterTransition,
+            currentSoC: 80,
+            isPluggedIn: false)
+
+        #expect(hardware.releaseAttemptCount + hardware.writeCount
+            == attemptsBeforeTransition + 1)
+        #expect(status.lastMaintenance?.trigger == .adapterTransition)
+        #expect(status.lastMaintenance?.result == .failed)
+        #expect(status.lastMaintenance?.reason?.kind == .releaseFailed)
     }
 
     @Test func ordinaryReconcileDoesNotOpenAnotherRecoveryWindow() {

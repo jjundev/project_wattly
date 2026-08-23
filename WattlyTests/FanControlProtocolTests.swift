@@ -107,11 +107,47 @@ struct FanControlProtocolTests {
         #expect(replyCalled)
     }
 
+    @Test func batteryReleaseVerificationDispatchesBeforeUIDValidation() throws {
+        let source = try daemonSource(named: "main.swift")
+        let oneShot = try #require(source.range(
+            of: "CommandLine.arguments.contains(\"--verify-battery-release\")"))
+        let uidValidation = try #require(source.range(
+            of: "WATTLY_ALLOWED_UID"))
+
+        #expect(oneShot.lowerBound < uidValidation.lowerBound)
+    }
+
+    @Test func batteryConfigurationXPCUsesSerializedCoordinatorTransactions() throws {
+        let source = try daemonSource(named: "FanControlDaemon.swift")
+        let start = try #require(source.range(of: "func configureBattery("))
+        let end = try #require(source.range(
+            of: "func batteryStatus(",
+            range: start.upperBound..<source.endIndex))
+        let method = source[start.lowerBound..<end.lowerBound]
+
+        #expect(method.contains("queue.async"))
+        #expect(method.contains("request.generation > lastBatteryGeneration"))
+        #expect(method.contains("readPowerSourceState() ?? lastPowerReading"))
+        #expect(method.contains("batteryCoordinator.configureWithoutPowerReading("))
+        #expect(method.contains("batteryCoordinator.configure("))
+        #expect(!method.contains("batteryEngine.configure("))
+    }
+
     private static let testCurve = FanCurve(rpms: [800, 900, 1000, 1200, 1500,
                                                      1900, 2400, 3000, 3600, 4200,
                                                      4800, 5500, 6200, 6800, 7400])
 
     private var testCurve: FanCurve { Self.testCurve }
+
+    private func daemonSource(named name: String) throws -> String {
+        let testsDirectory = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+        let sourceURL = testsDirectory
+            .deletingLastPathComponent()
+            .appendingPathComponent("WattlyFanDaemon")
+            .appendingPathComponent(name)
+        return try String(contentsOf: sourceURL, encoding: .utf8)
+    }
 }
 
 private final class FanControlRequestFake: @unchecked Sendable {
