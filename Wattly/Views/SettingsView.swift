@@ -9,10 +9,12 @@ struct SettingsView: View {
 
     let monitor: SystemMonitor
     let fanControl: FanControlClient
+    let batteryControl: BatteryControlClient
 
-    init(monitor: SystemMonitor, fanControl: FanControlClient) {
+    init(monitor: SystemMonitor, fanControl: FanControlClient, batteryControl: BatteryControlClient) {
         self.monitor = monitor
         self.fanControl = fanControl
+        self.batteryControl = batteryControl
     }
 
     @AppStorage(StorageKey.theme) private var theme = Defaults.theme
@@ -354,6 +356,9 @@ struct SettingsView: View {
             SettingsThresholdSection(showsFan: monitor.isPresent(.fan))
             if monitor.isPresent(.fan) {
                 SettingsFanCurveSection(monitor: monitor, fanControl: fanControl)
+            }
+            if monitor.isPresent(.battery) {
+                SettingsBatterySection(batteryControl: batteryControl)
             }
         }
     }

@@ -94,6 +94,12 @@ struct WattlySegment<T: Hashable>: View {
     let options: [(value: T, label: String)]
     var fontSize: CGFloat = 12.5
     var pillVPadding: CGFloat = 7
+    /// 비활성 상태: 보이되 조작·포커스·VoiceOver 액션이 모두 막힌다. `WattlyChip`/`WattlyToggle`과
+    /// 같은 모양이라, 상위 토글에 딸린 컨트롤을 숨기는 대신 딤 처리하는 앱 전반의 패턴을 따른다.
+    /// 새 프로퍼티는 `pillVPadding` 뒤에 있어야 한다 — 기존 호출부가 쓰는 멤버와이즈 이니셜라이저의
+    /// 인자 순서가 그 앞에서 고정되어 있다.
+    var isEnabled: Bool = true
+    var disabledReason: String? = nil
     @Environment(\.colorScheme) private var scheme
     @Environment(\.tokens) private var t
     @FocusState private var focusedValue: T?
@@ -106,6 +112,9 @@ struct WattlySegment<T: Hashable>: View {
         }
         .padding(3)
         .background(RoundedRectangle(cornerRadius: 8).fill(t.segTrack))
+        // 트랙까지 함께 흐려져야 "지금은 못 만진다"가 한 덩어리로 읽힌다.
+        // 0.5는 `WattlyToggle`의 비활성 불투명도와 같은 값.
+        .opacity(isEnabled ? 1 : 0.5)
     }
 
     private func pill(_ value: T, _ label: String) -> some View {
@@ -126,15 +135,22 @@ struct WattlySegment<T: Hashable>: View {
             )
             .contentShape(Rectangle())
             .onTapGesture {
+                guard isEnabled else { return }
                 selection = value
                 focusedValue = nil
             }
-            .focusable()
+            .focusable(isEnabled)
             .focused($focusedValue, equals: value)
-            .onKeyPress(.space) { selection = value; return .handled }
-            .onKeyPress(.return) { selection = value; return .handled }
+            .onKeyPress(.space) { guard isEnabled else { return .ignored }; selection = value; return .handled }
+            .onKeyPress(.return) { guard isEnabled else { return .ignored }; selection = value; return .handled }
             .wattlyFocusRing(focusedValue == value, cornerRadius: 6)
             .accessibilityAddTraits(active ? [.isButton, .isSelected] : .isButton)
+            // `disabledReason`은 호출부가 넘긴 **카탈로그 키**다 (예: "이 Mac은 충전 제어를
+            // 지원하지 않습니다"). `String` 오버로드는 조회 없이 그대로 읽으므로,
+            // 영어로 쓰는 VoiceOver 사용자에게 한국어가 들린다.
+            .accessibilityHint(isEnabled
+                               ? Text(verbatim: "")
+                               : Text(LocalizedStringKey(disabledReason ?? "사용할 수 없습니다")))
     }
 }
 
@@ -187,7 +203,12 @@ struct WattlyChip: View {
             .opacity(isEnabled ? 1 : 0.45)
             .wattlyFocusRing(focused, cornerRadius: 6)
             .accessibilityAddTraits(isOn ? [.isButton, .isSelected] : .isButton)
-            .accessibilityHint(isEnabled ? "" : (disabledReason ?? "사용할 수 없습니다"))
+            // `disabledReason`은 호출부가 넘긴 **카탈로그 키**다 (예: "이 Mac은 충전 제어를
+            // 지원하지 않습니다"). `String` 오버로드는 조회 없이 그대로 읽으므로,
+            // 영어로 쓰는 VoiceOver 사용자에게 한국어가 들린다.
+            .accessibilityHint(isEnabled
+                               ? Text(verbatim: "")
+                               : Text(LocalizedStringKey(disabledReason ?? "사용할 수 없습니다")))
             .accessibilityAction { guard isEnabled else { return }; action() }
     }
 }
@@ -314,9 +335,14 @@ struct SettingsToggleRow<Label: View>: View {
         // "선택됨", not "켜짐/꺼짐".
         .opacity(isEnabled ? 1 : 0.55)
         .accessibilityElement(children: .combine)
-        .accessibilityValue(isOn ? "켜짐" : "꺼짐")
+        .accessibilityValue(Text(LocalizedStringKey(isOn ? "켜짐" : "꺼짐")))
         .accessibilityAddTraits(isEnabled ? .isButton : .isStaticText)
-        .accessibilityHint(isEnabled ? "" : (disabledReason ?? "사용할 수 없습니다"))
+        // `disabledReason`은 호출부가 넘긴 **카탈로그 키**다 (예: "이 Mac은 충전 제어를
+        // 지원하지 않습니다"). `String` 오버로드는 조회 없이 그대로 읽으므로,
+        // 영어로 쓰는 VoiceOver 사용자에게 한국어가 들린다.
+        .accessibilityHint(isEnabled
+                           ? Text(verbatim: "")
+                           : Text(LocalizedStringKey(disabledReason ?? "사용할 수 없습니다")))
         .accessibilityAction { guard isEnabled else { return }; isOn.toggle() }
     }
 }

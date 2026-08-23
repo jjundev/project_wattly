@@ -15,6 +15,14 @@ import Foundation
         }
     }
 
+    final class ReleaseSpy: @unchecked Sendable {
+        var callCount = 0
+    }
+
+    final class RemoveHelperSpy: @unchecked Sendable {
+        var callCount = 0
+    }
+
     @Test func testTargetCleanupPathsIncludeExpectedLocations() {
         let home = URL(fileURLWithPath: "/Users/testuser")
         let bundleID = "dev.jjundev.Wattly"
@@ -60,11 +68,62 @@ import Foundation
             loginItem: mockLogin,
             fileManager: .default,
             homeDirectory: tempHome,
-            bundleID: suiteName
+            bundleID: suiteName,
+            releaseBatteryLimit: { },
+            removeHelper: { }
         )
 
         #expect(mockLogin.isEnabled == false)
         #expect(mockLogin.disabledCallCount == 1)
         #expect(testDefaults.string(forKey: "someTestKey") == nil)
+    }
+
+    @Test @MainActor func testCleanUserDataReleasesTheChargeLimit() async {
+        let mockLogin = MockLoginItem()
+        let spy = ReleaseSpy()
+        let suiteName = "test.uninstall.battery.\(UUID().uuidString)"
+        let testDefaults = UserDefaults(suiteName: suiteName)!
+        let tempHome = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempHome, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempHome) }
+
+        // Ordering (release before helper removal) is enforced by the source, not here — see
+        // testCleanUserDataInvokesRemoveHelper for proof the removal step itself is reached.
+        await AppUninstaller.cleanUserData(
+            userDefaults: testDefaults,
+            loginItem: mockLogin,
+            fileManager: .default,
+            homeDirectory: tempHome,
+            bundleID: suiteName,
+            releaseBatteryLimit: { spy.callCount += 1 },
+            removeHelper: { }
+        )
+
+        #expect(spy.callCount == 1)
+        #expect(mockLogin.disabledCallCount == 1)
+    }
+
+    @Test @MainActor func testCleanUserDataInvokesRemoveHelper() async {
+        let mockLogin = MockLoginItem()
+        let spy = RemoveHelperSpy()
+        let suiteName = "test.uninstall.helper.\(UUID().uuidString)"
+        let testDefaults = UserDefaults(suiteName: suiteName)!
+        let tempHome = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempHome, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempHome) }
+
+        // Proves the injection point itself is reached — this must never fall through to the
+        // default, which would touch the real /Library paths and the real helper.
+        await AppUninstaller.cleanUserData(
+            userDefaults: testDefaults,
+            loginItem: mockLogin,
+            fileManager: .default,
+            homeDirectory: tempHome,
+            bundleID: suiteName,
+            releaseBatteryLimit: { },
+            removeHelper: { spy.callCount += 1 }
+        )
+
+        #expect(spy.callCount == 1)
     }
 }

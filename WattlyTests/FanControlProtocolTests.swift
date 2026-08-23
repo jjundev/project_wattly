@@ -88,6 +88,25 @@ struct FanControlProtocolTests {
         #expect(client.isInstallingHelper == false)
     }
 
+    @Test func xpcServiceProtocolDeclaresAllMethods() {
+        let interface = NSXPCInterface(with: FanControlXPCService.self)
+        #expect(NSStringFromProtocol(interface.protocol) == "FanControlXPCService")
+
+        final class MockService: NSObject, FanControlXPCService {
+            func configure(_ data: Data, withReply reply: @escaping (Data?, NSError?) -> Void) { reply(nil, nil) }
+            func heartbeat(withReply reply: @escaping (Data?, NSError?) -> Void) { reply(nil, nil) }
+            func release(_ data: Data, withReply reply: @escaping (Data?, NSError?) -> Void) { reply(nil, nil) }
+            func status(withReply reply: @escaping (Data?, NSError?) -> Void) { reply(nil, nil) }
+            func configureBattery(_ data: Data, withReply reply: @escaping (Data?, NSError?) -> Void) { reply(nil, nil) }
+            func batteryStatus(withReply reply: @escaping (Data?, NSError?) -> Void) { reply(nil, nil) }
+        }
+
+        let mock: any FanControlXPCService = MockService()
+        var replyCalled = false
+        mock.configureBattery(Data()) { _, _ in replyCalled = true }
+        #expect(replyCalled)
+    }
+
     private static let testCurve = FanCurve(rpms: [800, 900, 1000, 1200, 1500,
                                                      1900, 2400, 3000, 3600, 4200,
                                                      4800, 5500, 6200, 6800, 7400])

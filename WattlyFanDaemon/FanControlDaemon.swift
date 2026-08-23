@@ -1,17 +1,24 @@
 import AppKit
 import Darwin
 import Foundation
+import IOKit.ps
 
-/// Owns the privileged XPC service and serializes every interaction with the fan engine.
+/// Owns the privileged XPC service and serializes every interaction with the fan and battery engines.
 final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCService, @unchecked Sendable {
     private let allowedUID: uid_t
     private let engine: FanControlEngine
+    private let batteryEngine: BatteryControlEngine
+    private var lastBatteryGeneration: UInt64 = 0
+    private var latestBatteryStatus: BatteryControlServiceStatus
+    private var lastPowerReading: (soc: Int, plugged: Bool)?
+    private var lastReassertAt: TimeInterval?
     private let listener: NSXPCListener
     private let queue = DispatchQueue(label: "dev.jjundev.WattlyFanDaemon.control")
     private var controlTimer: DispatchSourceTimer?
     private var watchdogTimer: DispatchSourceTimer?
     private var signalSources: [DispatchSourceSignal] = []
     private var sleepObserver: NSObjectProtocol?
+    private var wakeObserver: NSObjectProtocol?
     private var listenerResumed = false
 
     private final class Reply: @unchecked Sendable {
@@ -26,10 +33,23 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
         }
     }
 
-    init(allowedUID: uid_t, hardware: any FanControlHardware) {
+    init(
+        allowedUID: uid_t,
+        hardware: any FanControlHardware,
+        batteryHardware: any BatteryControlHardwareProtocol
+    ) {
         self.allowedUID = allowedUID
-        engine = FanControlEngine(hardware: hardware)
-        listener = NSXPCListener(machServiceName: FanControlXPC.machService)
+        self.engine = FanControlEngine(hardware: hardware)
+        self.batteryEngine = BatteryControlEngine(hardware: batteryHardware)
+        self.latestBatteryStatus = BatteryControlServiceStatus(
+            mode: .unavailable,
+            currentPercentage: 0,
+            isPowerAdapterConnected: false,
+            detail: BatteryControlStatusReason(kind: .initializing).legacyKoreanDetail,
+            updatedAt: 0,
+            detailReason: .init(kind: .initializing)
+        )
+        self.listener = NSXPCListener(machServiceName: FanControlXPC.machService)
         super.init()
     }
 
@@ -39,6 +59,9 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
         // mode. If an acknowledgement fails, the timer below retains and retries that fan.
         queue.sync { [self] in
             engine.resetAllFansToAutomatic(now: now())
+            // Startup normalization has to run whatever the gate says: a helper that was SIGKILLed
+            // while inhibiting leaves the SMC register latched, and this is what clears it.
+            sampleBatteryAndEvaluate(force: true)
             resumeListenerIfSafe()
         }
         startTimers()
@@ -99,19 +122,120 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
         }
     }
 
+    func configureBattery(_ data: Data, withReply reply: @escaping (Data?, NSError?) -> Void) {
+        let reply = Reply(reply)
+        queue.async { [weak self] in
+            guard let self else { return }
+            do {
+                let request = try BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data)
+                guard request.generation > lastBatteryGeneration else {
+                    reply.send((try BatteryControlCodec.encode(latestBatteryStatus), nil))
+                    return
+                }
+                lastBatteryGeneration = request.generation
+                batteryEngine.configure(request.configuration)
+                // The app pushes a configuration on launch, on wake, and on every edit — and its
+                // wake notification is the only one that reliably fires, since this daemon runs in
+                // the system domain where NSWorkspace notifications do not. So this is where a
+                // register cleared during sleep gets repaired: nothing else could detect it, because
+                // the applied limit we report is derived from configuration, not from the hardware.
+                //
+                // After `configure`, not before: the engine's own guard reads the opt-in, and before
+                // `configure` that is still the OLD one — so a push that turns the limit off would
+                // write a fresh inhibit and then immediately release it. Throttled because this is
+                // an XPC entry point and a re-assert does not correspond to a state transition —
+                // the floor tracks this path only, since the wake observer's rate is set by real
+                // wake events rather than by a caller.
+                let nowSeconds = now()
+                if BatteryControlPolicy.shouldReassert(now: nowSeconds, lastReassertAt: lastReassertAt) {
+                    lastReassertAt = nowSeconds
+                    batteryEngine.reassertHardwareState()
+                }
+                sampleBatteryAndEvaluate(force: true)
+                reply.send((try BatteryControlCodec.encode(latestBatteryStatus), nil))
+            } catch {
+                reply.send((nil, error as NSError))
+            }
+        }
+    }
+
+    func batteryStatus(withReply reply: @escaping (Data?, NSError?) -> Void) {
+        let reply = Reply(reply)
+        queue.async { [weak self] in
+            guard let self else { return }
+            sampleBatteryAndEvaluate(force: true)
+            do {
+                reply.send((try BatteryControlCodec.encode(latestBatteryStatus), nil))
+            } catch {
+                reply.send((nil, error as NSError))
+            }
+        }
+    }
+
+    /// `force` is for the XPC entry points and startup, where a caller is waiting on a fresh
+    /// answer. The timers pass `false` so an idle machine with the limit off does no IOKit work.
+    private func sampleBatteryAndEvaluate(force: Bool = false) {
+        guard force || batteryEngine.needsSampling else { return }
+        // Hold the last good reading rather than falling back to "0 %, unplugged": that reads as
+        // "on battery" and would make the engine release a limit it should be holding.
+        guard let reading = readPowerSourceState() ?? lastPowerReading else {
+            latestBatteryStatus = BatteryControlServiceStatus(
+                mode: .unsupported,
+                currentPercentage: 0,
+                isPowerAdapterConnected: false,
+                detail: BatteryControlStatusReason(kind: .powerSourceUnreadable).legacyKoreanDetail,
+                updatedAt: Date().timeIntervalSince1970,
+                appliedLimitPercentage: nil,
+                // A Mac whose power source cannot be read still knows whether it has a charge
+                // register. Without this the app cannot tell "no battery here, stop asking" from
+                // "read failed, try again", and re-pushes at the first one forever.
+                isHardwareSupported: batteryEngine.isHardwareSupported,
+                detailReason: .init(kind: .powerSourceUnreadable)
+            )
+            return
+        }
+        lastPowerReading = reading
+        latestBatteryStatus = batteryEngine.update(currentSoC: reading.soc, isPluggedIn: reading.plugged)
+    }
+
+    private func readPowerSourceState() -> (soc: Int, plugged: Bool)? {
+        guard let snapshot = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
+              let list = IOPSCopyPowerSourcesList(snapshot)?.takeRetainedValue() as? [CFTypeRef] else {
+            return nil
+        }
+        let descriptions = list.compactMap {
+            IOPSGetPowerSourceDescription(snapshot, $0)?.takeUnretainedValue() as? [String: Any]
+        }
+        // Prefer the internal battery — "whatever source is listed first" picks up an attached UPS
+        // — but fall back to the first source rather than reporting nothing, so a machine that does
+        // not tag its type still works exactly as it did before.
+        let battery = descriptions.first { ($0[kIOPSTypeKey] as? String) == kIOPSInternalBatteryType }
+        guard let desc = battery ?? descriptions.first else { return nil }
+
+        let current = desc[kIOPSCurrentCapacityKey] as? Int ?? 0
+        let maxCap = desc[kIOPSMaxCapacityKey] as? Int ?? 100
+        let soc = maxCap > 0 ? Int((Double(current) / Double(maxCap) * 100.0).rounded()) : current
+        let isPlugged = (desc[kIOPSPowerSourceStateKey] as? String) == kIOPSACPowerValue
+        return (soc, isPlugged)
+    }
+
     private func startTimers() {
         // This drives stateful manual/automatic retries at the policy cadence. The engine
         // independently limits successful target-RPM writes to `controlInterval`.
-        controlTimer = makeTimer(interval: FanControlPolicy.modeRetryDelay)
-        watchdogTimer = makeTimer(interval: FanControlPolicy.heartbeatCheckInterval)
+        controlTimer = makeTimer(interval: FanControlPolicy.modeRetryDelay, samplesBattery: false)
+        // The charge limit moves on the order of minutes, so it rides the 5 s watchdog only.
+        // Sampling it at the 0.5 s fan cadence meant two IOPS snapshot copies a second in a root
+        // daemon, forever, including for users who never enabled the feature.
+        watchdogTimer = makeTimer(interval: FanControlPolicy.heartbeatCheckInterval, samplesBattery: true)
     }
 
-    private func makeTimer(interval: TimeInterval) -> DispatchSourceTimer {
+    private func makeTimer(interval: TimeInterval, samplesBattery: Bool) -> DispatchSourceTimer {
         let timer = DispatchSource.makeTimerSource(queue: queue)
         timer.schedule(deadline: .now() + interval, repeating: interval)
         timer.setEventHandler { [weak self] in
             guard let self else { return }
             try? engine.tick(now: now())
+            if samplesBattery { sampleBatteryAndEvaluate() }
             resumeListenerIfSafe()
         }
         timer.resume()
@@ -124,7 +248,25 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.releaseSynchronously(reason: "system sleep")
+            // Fans MUST go back to automatic before sleep. The charge limit must NOT: dropping the
+            // inhibit here is what lets an overnight sleep charge straight to 100 %, which is the
+            // exact case this feature exists to prevent. Whether the SMC register itself survives
+            // sleep is model-dependent, so the app re-asserts it through `configureBattery` on its
+            // own wake notification — this daemon runs in the system domain, where the wake observer
+            // below is not reliably delivered.
+            self?.releaseSynchronously(reason: "system sleep", releaseBattery: false)
+        }
+
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.queue.async { [weak self] in
+                guard let self else { return }
+                batteryEngine.reassertHardwareState()
+                sampleBatteryAndEvaluate(force: true)
+            }
         }
     }
 
@@ -136,7 +278,7 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
                 // Do not terminate while a controlled fan lacks a confirmed mode-0 write. A
                 // bounded synchronous recovery gives shutdown a fast path; on failure, leave the
                 // daemon alive so its normal timer keeps retrying the retained fan ownership.
-                if self?.releaseSynchronously(reason: "daemon terminated") == true {
+                if self?.releaseSynchronously(reason: "daemon terminated", releaseBattery: true) == true {
                     exit(0)
                 }
             }
@@ -146,8 +288,9 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
     }
 
     @discardableResult
-    private func releaseSynchronously(reason: String) -> Bool {
+    private func releaseSynchronously(reason: String, releaseBattery: Bool) -> Bool {
         queue.sync { [self] in
+            if releaseBattery { batteryEngine.release() }
             engine.release(now: now(), reason: reason)
             let deadline = now() + FanControlPolicy.modeRetryDeadline
             while true {

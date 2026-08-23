@@ -159,5 +159,93 @@ struct LocalizationTests {
         #expect(String(localized: "버그 제보나 기능 제안 등 피드백을 보냅니다.", locale: Locale(identifier: "en")) == "Send feedback, report bugs, or suggest features.")
         #expect(String(localized: "버그 제보나 기능 제안 등 피드백을 보냅니다.", locale: Locale(identifier: "ja")) == "バグ報告や機能の提案などのフィードバックを送信します。")
     }
+
+    // MARK: - 배터리 충전 제한 (plan 2026-08-23)
+
+    @Test func batteryStatusReasonTranslations() {
+        #expect(String(localized: "이 Mac은 충전 제어를 지원하지 않습니다", locale: Locale(identifier: "en"))
+                == "This Mac does not support charge control")
+        #expect(String(localized: "이 Mac은 충전 제어를 지원하지 않습니다", locale: Locale(identifier: "ja"))
+                == "このMacは充電制御に対応していません")
+        #expect(String(localized: "이 Mac은 충전 제어를 지원하지 않습니다", locale: Locale(identifier: "de"))
+                == "Dieser Mac unterstützt keine Ladesteuerung")
+        #expect(String(localized: "이 Mac은 충전 제어를 지원하지 않습니다", locale: Locale(identifier: "zh-Hans"))
+                == "此 Mac 不支持充电控制")
+
+        #expect(String(localized: "충전 제한 비활성화됨", locale: Locale(identifier: "en")) == "Charge limit off")
+        #expect(String(localized: "충전 제한 비활성화됨", locale: Locale(identifier: "ja")) == "充電上限オフ")
+        #expect(String(localized: "충전 제한 비활성화됨", locale: Locale(identifier: "de")) == "Ladelimit aus")
+        #expect(String(localized: "충전 제한 비활성화됨", locale: Locale(identifier: "zh-Hans")) == "充电上限已关闭")
+
+        #expect(String(localized: "배터리 전원으로 구동 중", locale: Locale(identifier: "en")) == "Running on battery")
+        #expect(String(localized: "초기화 중", locale: Locale(identifier: "en")) == "Initializing")
+        #expect(String(localized: "전원 소스를 읽을 수 없습니다", locale: Locale(identifier: "en"))
+                == "Cannot read power source")
+        #expect(String(localized: "이 Mac에서 충전 제어를 적용하지 못했습니다", locale: Locale(identifier: "en"))
+                == "Could not apply charge control on this Mac")
+        #expect(String(localized: "충전을 다시 시작하지 못했습니다 (전원 어댑터를 다시 연결해 보세요)",
+                       locale: Locale(identifier: "en"))
+                == "Could not resume charging (try reconnecting the power adapter)")
+    }
+
+    /// 서식 지정자가 어긋나면 조회는 조용히 실패하고 한국어로 되돌아간다. 지정자 자체를 못박아 둔다.
+    @Test func batteryFormatKeysKeepTheirSpecifiers() {
+        for lang in ["ko", "en", "ja", "de", "fr", "zh-Hans", "ar", "he", "hi"] {
+            let inhibited = String(localized: "충전 제한 %lld%% 도달 (전원 어댑터 바이패스 구동)",
+                                   locale: Locale(identifier: lang))
+            #expect(inhibited.contains("%lld"), "\(lang): %lld 유실")
+            #expect(inhibited.contains("%%"), "\(lang): %% 유실")
+
+            let charging = String(localized: "목표치(%lld%%)까지 충전 중", locale: Locale(identifier: lang))
+            #expect(charging.contains("%lld"), "\(lang): %lld 유실")
+            #expect(charging.contains("%%"), "\(lang): %% 유실")
+
+            let installFailed = String(localized: "도우미는 설치했지만 충전 제한을 적용하지 못했습니다: %@",
+                                       locale: Locale(identifier: lang))
+            #expect(installFailed.contains("%@"), "\(lang): %@ 유실")
+        }
+
+        #expect(String(localized: "충전 제한 %lld%% 도달 (전원 어댑터 바이패스 구동)", locale: Locale(identifier: "en"))
+                == "Charge limit %lld%% reached (running on adapter bypass)")
+        #expect(String(localized: "목표치(%lld%%)까지 충전 중", locale: Locale(identifier: "en"))
+                == "Charging to %lld%%")
+    }
+
+    @Test func batterySettingsSectionTranslations() {
+        #expect(String(localized: "배터리 충전 제어", locale: Locale(identifier: "en")) == "Battery Charge Control")
+        #expect(String(localized: "배터리 충전 제어", locale: Locale(identifier: "ja")) == "バッテリー充電制御")
+        #expect(String(localized: "배터리 충전 제어", locale: Locale(identifier: "de")) == "Batterieladesteuerung")
+        #expect(String(localized: "배터리 충전 제어", locale: Locale(identifier: "zh-Hans")) == "电池充电控制")
+
+        #expect(String(localized: "배터리 충전 제한", locale: Locale(identifier: "en")) == "Battery Charge Limit")
+        #expect(String(localized: "배터리 충전 제한", locale: Locale(identifier: "fr"))
+                == "Limite de charge de la batterie")
+
+        #expect(String(localized: "최대 충전 한도", locale: Locale(identifier: "en")) == "Maximum Charge Limit")
+        #expect(String(localized: "도우미 설치", locale: Locale(identifier: "en")) == "Install Helper")
+        #expect(String(localized: "도우미 설치 실패", locale: Locale(identifier: "en")) == "Helper Installation Failed")
+        #expect(String(localized: "도우미 설치 중…", locale: Locale(identifier: "en")) == "Installing helper…")
+        #expect(String(localized: "확인", locale: Locale(identifier: "en")) == "OK")
+        #expect(String(localized: "충전 제한을 켜면 한도를 조절할 수 있습니다.", locale: Locale(identifier: "en"))
+                == "Turn on the charge limit to adjust the maximum.")
+    }
+
+    @Test func sharedControlAccessibilityTranslations() {
+        #expect(String(localized: "켜짐", locale: Locale(identifier: "en")) == "On")
+        #expect(String(localized: "꺼짐", locale: Locale(identifier: "en")) == "Off")
+        #expect(String(localized: "켜짐", locale: Locale(identifier: "de")) == "Ein")
+        #expect(String(localized: "꺼짐", locale: Locale(identifier: "de")) == "Aus")
+        #expect(String(localized: "사용할 수 없습니다", locale: Locale(identifier: "en")) == "Unavailable")
+    }
+
+    @Test func helperInstallErrorTranslations() {
+        #expect(String(localized: "앱 번들에서 도우미 실행 파일을 찾을 수 없습니다.", locale: Locale(identifier: "en"))
+                == "Could not find the helper executable in the app bundle.")
+        #expect(String(localized: "관리자 인증이 취소되었거나 실패했습니다.", locale: Locale(identifier: "en"))
+                == "Administrator authentication was cancelled or failed.")
+        #expect(String(localized: "도우미에 연결되지 않음", locale: Locale(identifier: "en"))
+                == "Not connected to helper")
+        #expect(String(localized: "도우미 응답 오류", locale: Locale(identifier: "en")) == "Helper response error")
+    }
 }
 
