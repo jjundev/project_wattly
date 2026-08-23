@@ -55,6 +55,24 @@ import AppKit
         #expect(status?.action == .retry)
     }
 
+    @Test func skippedMaintenanceDoesNotClaimASuccessfulCheck() {
+        let record = BatteryMaintenanceRecord(
+            trigger: .wake,
+            result: .skipped,
+            occurredAt: 100,
+            reason: .init(kind: .powerSourceUnreadable))
+        let status = BatterySectionPresentation.maintenanceStatus(
+            ownership: .owner(UInt32(getuid())),
+            currentUID: UInt32(getuid()),
+            capabilities: BatteryControlCoordinator.capabilities,
+            record: record,
+            locale: ko,
+            timestampText: { _ in "21:04" })
+        #expect(status?.tone == .red)
+        #expect(status?.text == "전원 소스를 읽을 수 없습니다")
+        #expect(status?.action == .retry)
+    }
+
     @Test func foreignOwnershipOutranksMissingCapabilities() {
         let status = BatterySectionPresentation.maintenanceStatus(
             ownership: .owner(502),

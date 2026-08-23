@@ -111,7 +111,8 @@ enum BatterySectionPresentation {
                 text: String(localized: "앱 종료·Sleep 유지를 사용하려면 도우미 업데이트가 필요합니다.", locale: locale),
                 action: .updateHelper)
         }
-        if let record, record.result == .failed || record.result == .unrecognized {
+        if let record,
+           record.result == .failed || record.result == .skipped || record.result == .unrecognized {
             return MaintenanceStatus(
                 tone: .red,
                 text: BatteryStatusText.text(
