@@ -69,6 +69,21 @@ import Foundation
         #expect(BatteryStatusText.text(reason: .init(kind: .chargingToTarget, limitPercentage: 85),
                                        detail: "", locale: ko)
                 == "목표치(85%)까지 충전 중")
+        #expect(BatteryStatusText.text(reason: .init(kind: .sailing, limitPercentage: 80, resumePercentage: 75),
+                                       detail: "", locale: en)
+                == "Sailing (recharging at 75%)")
+        #expect(BatteryStatusText.text(reason: .init(kind: .sailing, limitPercentage: 80, resumePercentage: 75),
+                                       detail: "", locale: ko)
+                == "Sailing 중 (75% 도달 시 재충전)")
+    }
+
+    @Test func sailingStatusTextFormatsCorrectlyInKoreanAndEnglish() {
+        let reason = BatteryControlStatusReason(kind: .sailing, limitPercentage: 80, resumePercentage: 75)
+        let koText = BatteryStatusText.text(reason: reason, detail: "", locale: ko)
+        #expect(koText == "Sailing 중 (75% 도달 시 재충전)")
+
+        let enText = BatteryStatusText.text(reason: reason, detail: "", locale: en)
+        #expect(enText == "Sailing (recharging at 75%)")
     }
 
     /// 구버전 도우미를 그대로 쓰는 사용자도 자기 언어로 봐야 한다 — 이 계획의 핵심 약속.
@@ -81,6 +96,8 @@ import Foundation
                 == "Charge limit 80% reached (running on adapter bypass)")
         #expect(BatteryStatusText.text(reason: nil, detail: "목표치(85%)까지 충전 중", locale: ja)
                 == "85% まで充電中")
+        #expect(BatteryStatusText.text(reason: nil, detail: "Sailing 중 (75% 도달 시 충전)", locale: en)
+                == "Sailing (recharging at 75%)")
     }
 
     /// 앱 자신이 쓰는 문구(`BatteryControlClient`)도 카탈로그 키다.

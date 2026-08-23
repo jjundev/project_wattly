@@ -203,12 +203,21 @@ struct LocalizationTests {
             let installFailed = String(localized: "도우미는 설치했지만 충전 제한을 적용하지 못했습니다: %@",
                                        locale: Locale(identifier: lang))
             #expect(installFailed.contains("%@"), "\(lang): %@ 유실")
+
+            let sailing = String(localized: "Sailing 중 (%lld%% 도달 시 재충전)",
+                                 locale: Locale(identifier: lang))
+            #expect(sailing.contains("%lld"), "\(lang): %lld 유실")
+            #expect(sailing.contains("%%"), "\(lang): %% 유실")
         }
 
         #expect(String(localized: "충전 제한 %lld%% 도달 (전원 어댑터 바이패스 구동)", locale: Locale(identifier: "en"))
                 == "Charge limit %lld%% reached (running on adapter bypass)")
         #expect(String(localized: "목표치(%lld%%)까지 충전 중", locale: Locale(identifier: "en"))
                 == "Charging to %lld%%")
+        #expect(String(localized: "Sailing 중 (%lld%% 도달 시 재충전)", locale: Locale(identifier: "en"))
+                == "Sailing (recharging at %lld%%)")
+        #expect(String(localized: "Sailing 중 (%lld%% 도달 시 재충전)", locale: Locale(identifier: "ko"))
+                == "Sailing 중 (%lld%% 도달 시 재충전)")
     }
 
     @Test func batterySettingsSectionTranslations() {
