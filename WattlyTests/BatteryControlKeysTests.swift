@@ -10,6 +10,17 @@ import Testing
         #expect(gate == .inhibited(appliedLimitPercentage: nil))
     }
 
+    @Test func modernReadbackRequiresExactFourByteCHTEPayloads() {
+        let allowed = BatteryControlKeys.readGate(registerSet: .modern) { _ in
+            (type: "ui32", bytes: [0, 0, 0, 0])
+        }
+        let malformedHighByte = BatteryControlKeys.readGate(registerSet: .modern) { _ in
+            (type: "ui32", bytes: [0, 0, 0, 1])
+        }
+        #expect(allowed == .allowed)
+        #expect(malformedHighByte == .unreadable)
+    }
+
     @Test func legacyReadbackUsesCH0BAndRejectsUnknownBytes() {
         let allowed = BatteryControlKeys.readGate(registerSet: .legacy) { _ in
             (type: "ui8 ", bytes: [0])
@@ -220,9 +231,9 @@ import Testing
         // This is the exact pair `SMCBatteryControlHardware` needs on a Mac that took a macOS 27
         // firmware update while `CHTE == 1` was still latched from the old firmware: `registerSet`
         // must say `.firmwareManaged` (so the engine never drives it again), while
-        // `drivableRegisterSet` must still say `.modern` (so init knows CHTE is the register to send
-        // the one release write through). Losing either half of this pair is the bug — the firmware
-        // verdict swallowing the drivable answer is what left `CHTE` with nobody to clear it.
+        // `drivableRegisterSet` must still say `.modern` (so the dedicated verified-release path
+        // retains CHTE as its safety register). Losing either half of this pair is the bug — the
+        // firmware verdict swallowing the drivable answer would leave `CHTE` with nobody to clear it.
         func probe(_ key: String) -> (type: String, size: Int)? {
             switch key {
             case "bfF0", "bfE0": return ("ui32", 4)
@@ -237,7 +248,7 @@ import Testing
     @Test func drivableRegisterSetSurvivesTheFirmwareManagedVerdictOnLegacyHardware() {
         // Same pairing, on a pre-Tahoe Mac that somehow already picked up the firmware-managed keys:
         // `.firmwareManaged` for the policy question, `.legacy` for the mechanical one, so the
-        // startup release goes out through CH0B instead of CHTE.
+        // dedicated verified release goes out through CH0B instead of CHTE.
         func probe(_ key: String) -> (type: String, size: Int)? {
             switch key {
             case "bfF0", "bfE0": return ("ui32", 4)
@@ -250,8 +261,8 @@ import Testing
     }
 
     @Test func drivableRegisterSetIsUnsupportedWhenFirmwareManagedHasNoDrivableRegisterUnderneath() {
-        // A firmware-managed Mac that exposes none of CHTE/CH0B/BCLM has nothing for the startup
-        // release to write through — `drivableRegisterSet` must say `.unsupported` so
+        // A firmware-managed Mac that exposes none of CHTE/CH0B/BCLM has nothing for the dedicated
+        // verified release to write through — `drivableRegisterSet` must say `.unsupported` so
         // `SMCBatteryControlHardware` reports the verified release as not controllable rather than
         // sending it to a key that was never there.
         func probe(_ key: String) -> (type: String, size: Int)? {

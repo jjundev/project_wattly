@@ -180,11 +180,11 @@ public enum BatteryControlKeys {
             guard let raw = read("CHTE"), raw.bytes.count == 4 else {
                 return .unreadable
             }
-            switch raw.bytes[0] {
-            case 0: return .allowed
-            case 1: return .inhibited(appliedLimitPercentage: nil)
-            default: return .unreadable
+            if raw.bytes == [0, 0, 0, 0] { return .allowed }
+            if raw.bytes == [1, 0, 0, 0] {
+                return .inhibited(appliedLimitPercentage: nil)
             }
+            return .unreadable
         case .legacy:
             guard let byte = read("CH0B")?.bytes.first else {
                 return .unreadable
