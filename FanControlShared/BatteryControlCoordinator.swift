@@ -143,6 +143,7 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         } catch {
             if isRollbackFailure(error) {
                 isSafeToServe = false
+                engine.configure(.init(enabled: false))
                 _ = releaseForTermination()
             }
             return publish(
@@ -193,6 +194,7 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         } catch {
             if isRollbackFailure(error) {
                 isSafeToServe = false
+                engine.configure(.init(enabled: false))
                 _ = releaseForTermination()
             }
             return publish(

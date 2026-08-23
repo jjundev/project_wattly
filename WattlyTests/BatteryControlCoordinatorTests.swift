@@ -285,6 +285,66 @@ struct BatteryControlCoordinatorTests {
         #expect(status.lastMaintenance?.reason?.kind == .persistenceWriteFailed)
     }
 
+    @Test func fatalSaveRollbackCannotReapplyAPreviouslyEnabledPolicy() {
+        let hardware = MockBatteryHardware()
+        let store = PolicyStoreSpy()
+        let engine = BatteryControlEngine(hardware: hardware)
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501,
+            store: store,
+            engine: engine,
+            now: { 100 })
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80),
+            trigger: .clientConfiguration,
+            currentSoC: 80,
+            isPluggedIn: true)
+        store.saveError = BatteryPolicyStoreError.rollbackFailed(errno: EIO)
+
+        let status = coordinator.configure(
+            .init(enabled: true, limitPercentage: 90),
+            trigger: .clientConfiguration,
+            currentSoC: 80,
+            isPluggedIn: true)
+        let writesAfterRelease = hardware.writeCount
+        _ = coordinator.sample(currentSoC: 80, isPluggedIn: true)
+
+        #expect(engine.configuration.enabled == false)
+        #expect(status.desiredConfiguration?.enabled == false)
+        #expect(status.releaseVerdict == .verifiedAllowed)
+        #expect(coordinator.needsSampling == false)
+        #expect(hardware.writeCount == writesAfterRelease)
+    }
+
+    @Test func fatalPowerlessSaveRollbackCannotReapplyAPreviouslyEnabledPolicy() {
+        let hardware = MockBatteryHardware()
+        let store = PolicyStoreSpy()
+        let engine = BatteryControlEngine(hardware: hardware)
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501,
+            store: store,
+            engine: engine,
+            now: { 100 })
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80),
+            trigger: .clientConfiguration,
+            currentSoC: 80,
+            isPluggedIn: true)
+        store.saveError = BatteryPolicyStoreError.rollbackFailed(errno: EIO)
+
+        let status = coordinator.configureWithoutPowerReading(
+            .init(enabled: true, limitPercentage: 90),
+            trigger: .clientConfiguration)
+        let writesAfterRelease = hardware.writeCount
+        _ = coordinator.sample(currentSoC: 80, isPluggedIn: true)
+
+        #expect(engine.configuration.enabled == false)
+        #expect(status.desiredConfiguration?.enabled == false)
+        #expect(status.releaseVerdict == .verifiedAllowed)
+        #expect(coordinator.needsSampling == false)
+        #expect(hardware.writeCount == writesAfterRelease)
+    }
+
     @Test func saveFailureLeavesTheOldConfigurationAndHardwareAlone() {
         let hardware = MockBatteryHardware()
         let store = PolicyStoreSpy()
