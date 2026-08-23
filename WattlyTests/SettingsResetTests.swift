@@ -179,6 +179,17 @@ struct SettingsResetTests {
         #expect(defaults.integer(forKey: StorageKey.batteryLimitPercentage) == Defaults.batteryLimitPercentage)
     }
 
+    @Test func batterySectionResetIncludesSailingSettings() {
+        let d = makeDefaults(#function)
+        d.set(true, forKey: StorageKey.batterySailingEnabled)
+        d.set(10, forKey: StorageKey.batterySailingDelta)
+
+        SettingsReset.applyDefaults(into: d)
+
+        #expect(d.bool(forKey: StorageKey.batterySailingEnabled) == Defaults.batterySailingEnabled)
+        #expect(d.integer(forKey: StorageKey.batterySailingDelta) == Defaults.batterySailingDelta)
+    }
+
     @Test func resetHidesBatteryEfficiency() {
         let defaults = makeDefaults(#function)
         defaults.set(true, forKey: StorageKey.showBatteryEfficiency)

@@ -61,6 +61,27 @@ struct BatteryControlClientTests {
         }
     }
 
+    @MainActor @Test func clientSendsConfiguredDeltaToDaemon() async throws {
+        let receiver = RequestReceiver()
+        let client = BatteryControlClient(requestHandler: { request in
+            await receiver.set(request)
+            let status = BatteryControlServiceStatus(mode: .charging, currentPercentage: 80, isPowerAdapterConnected: true, detail: "OK", updatedAt: Date().timeIntervalSince1970)
+            let data = try? BatteryControlCodec.encode(status)
+            return (data, nil)
+        })
+
+        await client.apply(enabled: true, limitPercentage: 85, lowerHysteresisDelta: 5)
+        let receivedRequest = await receiver.request
+        if case .configure(let data) = receivedRequest {
+            let req = try BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data)
+            #expect(req.configuration.enabled == true)
+            #expect(req.configuration.limitPercentage == 85)
+            #expect(req.configuration.lowerHysteresisDelta == 5)
+        } else {
+            Issue.record("Expected configure request")
+        }
+    }
+
     @MainActor @Test func clientInitialStateIsUnavailable() {
         let client = BatteryControlClient()
         #expect(client.status.mode == .unavailable)

@@ -47,11 +47,20 @@ import Foundation
         #expect(LegacyBatteryDetail.reason(from: "도우미에 연결되지 않음") == nil)
     }
 
+    @Test func parsesLegacySailingString() {
+        let parsed = LegacyBatteryDetail.reason(from: "Sailing 중 (75% 도달 시 충전)")
+        #expect(parsed?.kind == .sailing)
+        #expect(parsed?.resumePercentage == 75)
+        #expect(parsed?.limitPercentage == nil)
+    }
+
     /// 껍데기는 맞는데 가운데가 숫자가 아닌 경우. nil을 돌려 원문을 그대로 보여줘야 한다.
     @Test func rejectsAMalformedLimit() {
         #expect(LegacyBatteryDetail.reason(from: "충전 제한 팔십% 도달 (전원 어댑터 바이패스 구동)") == nil)
         #expect(LegacyBatteryDetail.reason(from: "목표치(%)까지 충전 중") == nil)
         #expect(LegacyBatteryDetail.reason(from: "충전 제한 % 도달 (전원 어댑터 바이패스 구동)") == nil)
+        #expect(LegacyBatteryDetail.reason(from: "Sailing 중 (% 도달 시 충전)") == nil)
+        #expect(LegacyBatteryDetail.reason(from: "Sailing 중 (칠십오% 도달 시 충전)") == nil)
     }
 
     /// 현재 데몬이 내보내는 모든 문장을 이 파서가 알아봐야 한다. 이 어서션은 두 표가

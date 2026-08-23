@@ -30,7 +30,7 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
     }
 
     private static func clampLimit(_ value: Int) -> Int { max(50, min(100, value)) }
-    private static func clampDelta(_ value: Int) -> Int { max(1, min(5, value)) }
+    private static func clampDelta(_ value: Int) -> Int { max(1, min(10, value)) }
 }
 
 public struct BatteryControlConfigurationRequest: Codable, Equatable, Sendable {

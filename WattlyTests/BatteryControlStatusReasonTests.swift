@@ -86,4 +86,14 @@ import Foundation
             #expect(!BatteryControlStatusReason(kind: kind).legacyKoreanDetail.isEmpty, "\(kind)")
         }
     }
+
+    @Test func sailingReasonEncodesAndDecodesWithResumePercentage() throws {
+        let reason = BatteryControlStatusReason(kind: .sailing, limitPercentage: 80, resumePercentage: 75)
+        let data = try JSONEncoder().encode(reason)
+        let decoded = try JSONDecoder().decode(BatteryControlStatusReason.self, from: data)
+        #expect(decoded.kind == .sailing)
+        #expect(decoded.limitPercentage == 80)
+        #expect(decoded.resumePercentage == 75)
+        #expect(decoded.legacyKoreanDetail == "Sailing 중 (75% 도달 시 충전)")
+    }
 }

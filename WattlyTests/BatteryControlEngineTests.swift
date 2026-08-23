@@ -611,4 +611,60 @@ struct BatteryControlEngineTests {
         failingEngine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 80))
         #expect(failingEngine.update(currentSoC: 70, isPluggedIn: true).activity == nil)
     }
+
+    @Test func engineReportsSailingStateWhileDischargingWithinHysteresisBand() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 80, lowerHysteresisDelta: 5))
+
+        // 1. Initial plugged in at 79% -> Charging to target
+        let s1 = engine.update(currentSoC: 79, isPluggedIn: true)
+        #expect(s1.mode == .charging)
+        #expect(s1.activity == .chargingToLimit)
+        #expect(s1.detailReason?.kind == .chargingToTarget)
+
+        // 2. Reaches limit (80%) -> Inhibited at limit
+        let s2 = engine.update(currentSoC: 80, isPluggedIn: true)
+        #expect(s2.mode == .inhibited)
+        #expect(s2.activity == .holdingAtLimit)
+        #expect(s2.detailReason?.kind == .inhibitedAtLimit)
+        #expect(s2.detailReason?.limitPercentage == 80)
+
+        // 3. Drops to 79% while still plugged in -> Sailing!
+        let s3 = engine.update(currentSoC: 79, isPluggedIn: true)
+        #expect(s3.mode == .inhibited)
+        #expect(s3.activity == .sailing)
+        #expect(s3.detailReason?.kind == .sailing)
+        #expect(s3.detailReason?.limitPercentage == 80)
+        #expect(s3.detailReason?.resumePercentage == 75)
+
+        // 4. Drops to 76% (above resume 75%) -> Still sailing!
+        let s4 = engine.update(currentSoC: 76, isPluggedIn: true)
+        #expect(s4.mode == .inhibited)
+        #expect(s4.activity == .sailing)
+        #expect(s4.detailReason?.kind == .sailing)
+        #expect(s4.detailReason?.resumePercentage == 75)
+
+        // 5. Drops to 75% (resume threshold: 80 - 5 = 75) -> Resumes charging to limit
+        let s5 = engine.update(currentSoC: 75, isPluggedIn: true)
+        #expect(s5.mode == .charging)
+        #expect(s5.activity == .chargingToLimit)
+        #expect(s5.detailReason?.kind == .chargingToTarget)
+    }
+
+    @Test func unpluggingFromSailingStateReportsOnBatteryPower() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 80, lowerHysteresisDelta: 5))
+
+        _ = engine.update(currentSoC: 80, isPluggedIn: true)
+        let sSailing = engine.update(currentSoC: 78, isPluggedIn: true)
+        #expect(sSailing.activity == .sailing)
+
+        let sUnplugged = engine.update(currentSoC: 78, isPluggedIn: false)
+        #expect(sUnplugged.mode == .charging)
+        #expect(sUnplugged.activity == .onBatteryPower)
+        #expect(sUnplugged.detailReason?.kind == .onBatteryPower)
+    }
 }
+

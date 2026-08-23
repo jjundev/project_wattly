@@ -10,11 +10,18 @@ struct SettingsBatterySection: View {
 
     @AppStorage(StorageKey.batteryLimitEnabled) private var batteryLimitEnabled = Defaults.batteryLimitEnabled
     @AppStorage(StorageKey.batteryLimitPercentage) private var batteryLimitPercentage = Defaults.batteryLimitPercentage
+    @AppStorage(StorageKey.batterySailingEnabled) private var batterySailingEnabled = Defaults.batterySailingEnabled
+    @AppStorage(StorageKey.batterySailingDelta) private var batterySailingDelta = Defaults.batterySailingDelta
     @State private var isInstallFailedAlertPresented = false
     @State private var installErrorMessage = ""
     @State private var isHelpPopoverPresented = false
 
     private let presetLimits = [80, 85, 90, 95]
+    private let sailingPresets = BatterySectionPresentation.sailingDeltaPresets
+
+    private var effectiveDelta: Int {
+        batterySailingEnabled ? batterySailingDelta : 2
+    }
 
     var body: some View {
         SettingsSection(title: "배터리 충전 제어") {
@@ -83,6 +90,52 @@ struct SettingsBatterySection: View {
                     batteryStatusIndicator
                 }
                 .padding(EdgeInsets(top: 12, leading: 14, bottom: 14, trailing: 14))
+
+                if showsConfigurationControls {
+                    Rectangle().fill(t.line).frame(height: 1)
+
+                    SettingsToggleRow(isOn: $batterySailingEnabled,
+                                      divider: false,
+                                      isEnabled: isLimitPickerEnabled,
+                                      disabledReason: BatterySectionPresentation
+                                          .limitPickerDisabledReason(isLimitOn: batteryLimitEnabled)) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            SettingsRowTitle("Sailing 모드")
+                            Text("충전 상한에 도달한 후 배터리가 하한까지 자연 방전될 때까지 충전을 재개하지 않습니다.")
+                                .font(WattlyFont.at(10.5, weight: .regular))
+                                .foregroundStyle(t.faint)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+
+                    if batterySailingEnabled {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("Sailing 범위")
+                                    .font(WattlyFont.at(12, weight: .medium))
+                                    .foregroundStyle(t.text)
+                                Spacer()
+                                Text(BatterySectionPresentation.sailingRangeDescription(
+                                    limit: batteryLimitPercentage,
+                                    delta: batterySailingDelta,
+                                    locale: locale))
+                                    .font(WattlyFont.at(10.5, weight: .medium))
+                                    .foregroundStyle(t.sub)
+                            }
+                            .opacity(isLimitPickerEnabled ? 1 : 0.5)
+
+                            WattlySegment(
+                                selection: $batterySailingDelta,
+                                options: sailingPresets.map { ($0, "\($0)%") },
+                                pillVPadding: 6,
+                                isEnabled: isLimitPickerEnabled,
+                                disabledReason: BatterySectionPresentation
+                                    .limitPickerDisabledReason(isLimitOn: batteryLimitEnabled)
+                            )
+                        }
+                        .padding(EdgeInsets(top: 0, leading: 14, bottom: 14, trailing: 14))
+                    }
+                }
             }
             .task(id: batteryLimitEnabled) {
                 // One read regardless of the opt-in: a Mac with no charge register has to disable
@@ -111,17 +164,18 @@ struct SettingsBatterySection: View {
                 guard isEnabled, !batteryControl.isInstallingHelper else { return }
                 let window = NSApp.keyWindow
                 let limit = batteryLimitPercentage
+                let delta = effectiveDelta
                 Task {
                     let mode = await batteryControl.refreshStatus()?.mode ?? .unavailable
                     if BatteryControlPolicy.shouldRunInstaller(mode: mode) {
-                        if let failure = await batteryControl.installAndApply(enabled: true, limitPercentage: limit, window: window) {
+                        if let failure = await batteryControl.installAndApply(enabled: true, limitPercentage: limit, lowerHysteresisDelta: delta, window: window) {
                             installErrorMessage = Self.message(for: failure, locale: locale)
                             isInstallFailedAlertPresented = true
                             batteryLimitEnabled = false
                         }
                     } else {
                         // The helper already answers — reuse it, no second admin prompt.
-                        await batteryControl.apply(enabled: true, limitPercentage: limit)
+                        await batteryControl.apply(enabled: true, limitPercentage: limit, lowerHysteresisDelta: delta)
                     }
                     // The helper has now answered. If it says this Mac has no charge register, undo
                     // the opt-in the user just made — otherwise the row disables itself in the ON
@@ -131,6 +185,25 @@ struct SettingsBatterySection: View {
                     if batteryControl.status.isHardwareSupported == false {
                         batteryLimitEnabled = false
                     }
+                }
+            }
+            .onChange(of: batteryLimitPercentage) { _, newLimit in
+                guard batteryLimitEnabled else { return }
+                Task {
+                    await batteryControl.apply(enabled: true, limitPercentage: newLimit, lowerHysteresisDelta: effectiveDelta)
+                }
+            }
+            .onChange(of: batterySailingEnabled) { _, isSailing in
+                guard batteryLimitEnabled else { return }
+                let delta = isSailing ? batterySailingDelta : 2
+                Task {
+                    await batteryControl.apply(enabled: true, limitPercentage: batteryLimitPercentage, lowerHysteresisDelta: delta)
+                }
+            }
+            .onChange(of: batterySailingDelta) { _, newDelta in
+                guard batteryLimitEnabled, batterySailingEnabled else { return }
+                Task {
+                    await batteryControl.apply(enabled: true, limitPercentage: batteryLimitPercentage, lowerHysteresisDelta: newDelta)
                 }
             }
         }
@@ -177,8 +250,9 @@ struct SettingsBatterySection: View {
                 Button {
                     let window = NSApp.keyWindow
                     let limit = batteryLimitPercentage
+                    let delta = effectiveDelta
                     Task {
-                        if let failure = await batteryControl.installAndApply(enabled: batteryLimitEnabled, limitPercentage: limit, window: window) {
+                        if let failure = await batteryControl.installAndApply(enabled: batteryLimitEnabled, limitPercentage: limit, lowerHysteresisDelta: delta, window: window) {
                             installErrorMessage = Self.message(for: failure, locale: locale)
                             isInstallFailedAlertPresented = true
                         }

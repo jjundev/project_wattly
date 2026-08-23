@@ -47,4 +47,10 @@ import Testing
         #expect(BatteryControlActivity.resolved(explicit: nil, reason: reason)
                 == .chargingToLimit)
     }
+
+    @Test func sailingReasonInfersSailingActivity() {
+        let reason = BatteryControlStatusReason(kind: .sailing, limitPercentage: 80, resumePercentage: 75)
+        #expect(BatteryControlActivity.inferred(from: reason) == .sailing)
+        #expect(BatteryControlActivity.resolved(explicit: nil, reason: reason) == .sailing)
+    }
 }

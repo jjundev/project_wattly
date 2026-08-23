@@ -196,14 +196,19 @@ public final class BatteryControlEngine: @unchecked Sendable {
         return false
     }
 
-    private func detailReason(isPluggedIn: Bool, target: Int) -> BatteryControlStatusReason {
+    private func detailReason(isPluggedIn: Bool, target: Int, currentSoC: Int) -> BatteryControlStatusReason {
         if !isHardwareSupported { return .init(kind: .hardwareUnsupported) }
         if hasActionableFailure {
             // A failed release is the opposite failure from a failed apply: control IS applied and
             // stuck on, so telling the user it could not be applied would be actively misleading.
             return .init(kind: isCurrentlyInhibited ? .releaseFailed : .applyFailed)
         }
-        if isCurrentlyInhibited { return .init(kind: .inhibitedAtLimit, limitPercentage: target) }
+        if isCurrentlyInhibited {
+            if currentSoC < target {
+                return .init(kind: .sailing, limitPercentage: target, resumePercentage: config.resumePercentage)
+            }
+            return .init(kind: .inhibitedAtLimit, limitPercentage: target)
+        }
         if !config.enabled { return .init(kind: .limitDisabled) }
         return isPluggedIn
             ? .init(kind: .chargingToTarget, limitPercentage: target)
@@ -211,7 +216,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
     }
 
     private func status(currentSoC: Int, isPluggedIn: Bool, target: Int) -> BatteryControlServiceStatus {
-        let reason = detailReason(isPluggedIn: isPluggedIn, target: target)
+        let reason = detailReason(isPluggedIn: isPluggedIn, target: target, currentSoC: currentSoC)
         let mode: BatteryControlServiceMode
         if !isHardwareSupported || hasActionableFailure {
             mode = .unsupported
@@ -241,3 +246,4 @@ public final class BatteryControlEngine: @unchecked Sendable {
         )
     }
 }
+

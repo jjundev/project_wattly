@@ -68,6 +68,10 @@ enum BatteryStatusText {
                           locale: locale, target)
         case .onBatteryPower:
             return String(localized: "배터리 전원으로 구동 중", locale: locale)
+        case .sailing:
+            let resume = Int64(resolved.resumePercentage ?? max(45, Int(target) - 2))
+            return String(format: String(localized: "Sailing 중 (%lld%% 도달 시 재충전)", locale: locale),
+                          locale: locale, resume)
         case .unrecognized:
             // `resolve` never returns this, but the switch has to be total. Falling back to the
             // sentence is what the caller would want anyway.
