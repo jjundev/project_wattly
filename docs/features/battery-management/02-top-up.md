@@ -1,0 +1,49 @@
+# Top Up
+
+## 상태
+
+- 단계: 기능 정의 초안
+- 구현 난이도: 쉬움
+- 권장 우선순위: 2
+
+## 목표
+
+평소 충전 한도를 유지하면서 외출이나 장시간 이동 전에 한 번만 100%까지 충전한다. 전원 어댑터를 한 번 분리하면 자동으로 기존 한도로 복귀한다.
+
+## 현재 Wattly 기반
+
+- 앱은 저장된 충전 한도를 helper에 적용할 수 있다.
+- 배터리 텔레메트리에서 어댑터 연결 여부를 확인한다.
+- 설정 변경과 wake 시 충전 구성을 다시 적용한다.
+
+관련 코드:
+
+- `Wattly/Views/BatteryControlBridge.swift`
+- `Wattly/Views/Settings/SettingsBatterySection.swift`
+- `FanControlShared/BatteryControlProtocol.swift`
+
+## 최소 기능 범위
+
+1. `한 번만 100% 충전` 실행 버튼
+2. 실행 전 원래 충전 한도 저장
+3. 100% 도달 상태 표시
+4. 어댑터 분리 시 Top Up 종료
+5. 다음 연결부터 원래 충전 한도 복원
+6. 사용자가 언제든 취소 가능
+
+## 안전·동작 규칙
+
+- Top Up은 영구 설정을 100%로 덮어쓰지 않는다.
+- 앱이나 helper가 재시작되어도 원래 한도와 임시 상태를 복원해야 한다.
+- Heat Protection이 발동하면 Top Up보다 온도 보호가 우선한다.
+- Calibration과 동시에 실행할 수 없다.
+
+## 미결정 사항
+
+- 100% 도달 즉시 종료할지, 어댑터 분리 전까지 100% 상태를 유지할지 결정해야 한다.
+- 메뉴바 팝오버와 설정 화면 중 어느 곳을 주 실행 위치로 할지 결정해야 한다.
+- 완료·취소 알림 제공 여부를 결정해야 한다.
+
+## 참고
+
+- [AlDente Top Up](https://apphousekitchen.com/aldente-overview/features/#top-up)
