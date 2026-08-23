@@ -35,6 +35,21 @@ enum BatterySectionPresentation {
         isHardwareSupported != false
     }
 
+    /// 토글을 조작할 수 있는지.
+    ///
+    /// 불가능한 하드웨어에서는 켤 수 없다. 그러나 **이미 켜져 있는 값은 끌 수 있어야 한다.** 충전
+    /// 제어 레지스터는 기종이 아니라 펌웨어를 따라가므로(`BatteryControlKeys` 참고), 오늘 잘 쓰던
+    /// Mac이 macOS 업데이트 한 번으로 지원 대상에서 빠질 수 있다. 그때 저장된 `true`는 그대로 남아
+    /// 토글은 켜짐으로 표시된 채 조작 불가가 되고, 사용자에게는 전체 설정 초기화 말고 빠져나갈
+    /// 길이 없어진다.
+    ///
+    /// 렌더링이 저장값을 대신 꺼주지 않는 것은 의도다(`SettingsBatterySection` 상단 주석): 같은
+    /// 환경설정이 이 기능을 지원하는 Mac에 도달하는 순간 그 값은 틀린 값이 된다. 그래서 끄는 행위는
+    /// 사용자에게 남기고, 이 함수는 그 길만 열어 둔다.
+    static func isToggleEnabled(isHardwareSupported: Bool?, isLimitOn: Bool) -> Bool {
+        areDetailsVisible(isHardwareSupported: isHardwareSupported) || isLimitOn
+    }
+
     /// 한도 선택기를 조작할 수 있는지. 꺼짐 상태에서는 보이되 만질 수 없다.
     static func isLimitPickerEnabled(isLimitOn: Bool) -> Bool {
         isLimitOn

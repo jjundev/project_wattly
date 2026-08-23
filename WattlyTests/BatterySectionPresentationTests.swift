@@ -20,6 +20,26 @@ import Foundation
         #expect(BatterySectionPresentation.areDetailsVisible(isHardwareSupported: false) == false)
     }
 
+    @Test func theToggleStaysUsableWhileItReadsOnEvenOnHardwareThatCannotDoIt() {
+        // 지원되는(또는 아직 모르는) 하드웨어에서는 언제나 조작할 수 있다.
+        for supported: Bool? in [true, nil] {
+            for isOn in [true, false] {
+                #expect(BatterySectionPresentation.isToggleEnabled(isHardwareSupported: supported,
+                                                                    isLimitOn: isOn) == true)
+            }
+        }
+
+        // 불가능한 하드웨어에서 꺼져 있으면 켤 수 없다 — 켜봐야 아무 일도 일어나지 않는다.
+        #expect(BatterySectionPresentation.isToggleEnabled(isHardwareSupported: false,
+                                                            isLimitOn: false) == false)
+
+        // ...그러나 이미 켜져 있다면 끌 수 있어야 한다. 펌웨어가 바뀌며 지원이 사라진 Mac에는 저장된
+        // `true`가 그대로 남는데, 그 값을 앱이 대신 꺼주지 않는 것은 의도된 설계다(SettingsBatterySection
+        // 상단 주석). 이 한 칸이 열려 있지 않으면 사용자에게는 전체 설정 초기화 말고 빠져나갈 길이 없다.
+        #expect(BatterySectionPresentation.isToggleEnabled(isHardwareSupported: false,
+                                                            isLimitOn: true) == true)
+    }
+
     // MARK: - 한도 선택기
 
     @Test func limitPickerFollowsTheToggle() {
