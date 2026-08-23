@@ -77,6 +77,28 @@ public struct BatteryControlKeyWrite: Equatable, Sendable {
     }
 }
 
+/// The result of probing one potential charge-control latch key. `keyInfo` used to collapse all
+/// non-values into `nil`, which made a transport failure indistinguishable from a proven missing
+/// key. That distinction is safety-critical for the one release outcome that performs no write.
+public enum BatteryControlKeyProbeResult: Equatable, Sendable {
+    /// The SMC explicitly reported that this named key does not exist.
+    case confirmedAbsent
+    /// The SMC returned a readable key-info record. The caller must still validate its shape.
+    case readable(type: String, size: Int)
+    /// Transport/SMC failure or an invalid reply shape; absence is not proved.
+    case uncertain
+}
+
+/// The runtime answer used only by the dedicated safety-release path.
+public enum BatteryControlRuntimeDrivableRegisterProbe: Equatable, Sendable {
+    /// A register with a safe release payload was identified.
+    case drivable(BatteryControlRegisterSet)
+    /// Every known latch key explicitly reported absence, so no release write is possible.
+    case noDrivableRegisterAtRuntime
+    /// A key could not be proved absent or had a reachable but unfamiliar shape.
+    case unsafeToRelease
+}
+
 /// Picks the SMC registers for a charge-limit transition. This lives in `FanControlShared` rather
 /// than beside the hardware because the `WattlyFanDaemon` target has no test host — keeping the
 /// register table here is what makes it verifiable at all.
@@ -166,6 +188,58 @@ public enum BatteryControlKeys {
             return candidate.registerSet
         }
         return .unsupported
+    }
+
+    /// The fail-closed counterpart to `drivableRegisterSet(probing:)`. It may return the
+    /// no-register proof only when *every* possible charge latch explicitly reported absence.
+    /// A transport failure and a key at an unexpected size/type are both unsafe, because either
+    /// could be a still-latched register we have failed to understand.
+    public static func runtimeDrivableRegisterProbe(
+        probing keyInfo: (String) -> BatteryControlKeyProbeResult
+    ) -> BatteryControlRuntimeDrivableRegisterProbe {
+        var allConfirmedAbsent = true
+        var drivableRegisterSet: BatteryControlRegisterSet?
+        var hasUnsafeCandidate = false
+
+        for candidate in probeOrder {
+            switch keyInfo(candidate.key) {
+            case .confirmedAbsent:
+                continue
+            case .readable(let type, let size):
+                allConfirmedAbsent = false
+                if isSafeReleaseShape(type: type, size: size, for: candidate) {
+                    drivableRegisterSet = drivableRegisterSet ?? candidate.registerSet
+                } else {
+                    hasUnsafeCandidate = true
+                }
+            case .uncertain:
+                allConfirmedAbsent = false
+                hasUnsafeCandidate = true
+            }
+        }
+
+        if hasUnsafeCandidate { return .unsafeToRelease }
+        if let drivableRegisterSet { return .drivable(drivableRegisterSet) }
+        return allConfirmedAbsent ? .noDrivableRegisterAtRuntime : .unsafeToRelease
+    }
+
+    /// Normal feature selection preserves the permissive historical rule (width selects the
+    /// generation). The release proof is narrower: an unexpected type is not evidence that a
+    /// key is absent and must not permit a readback-free release.
+    private static func isSafeReleaseShape(
+        type: String,
+        size: Int,
+        for candidate: (registerSet: BatteryControlRegisterSet, key: String, expectedSize: Int)
+    ) -> Bool {
+        guard size == candidate.expectedSize else { return false }
+        switch candidate.registerSet {
+        case .modern:
+            return type == "ui32"
+        case .legacy, .intel:
+            return ["ui8", "ui8 ", "hex_"].contains(type)
+        case .firmwareManaged, .unsupported:
+            return false
+        }
     }
 
     /// Parses a raw SMC reply into the shared gate state without inferring success from zero-filled

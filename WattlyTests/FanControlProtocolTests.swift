@@ -117,6 +117,24 @@ struct FanControlProtocolTests {
         #expect(oneShot.lowerBound < uidValidation.lowerBound)
     }
 
+    @Test func cliReplacementTransactionLocksOwnershipThroughKickstart() throws {
+        let testsDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+        let scriptURL = testsDirectory.deletingLastPathComponent()
+            .appendingPathComponent("scripts/install-fan-helper.sh")
+        let script = try String(contentsOf: scriptURL, encoding: .utf8)
+        let acquire = try #require(script.range(of: "/usr/bin/shlock -f \"$ownership_lock\" -p \"$$\""))
+        let finalCheck = try #require(script.range(of: "validate_installed_owner\n\"$daemon_path\" --verify-battery-release"))
+        let bootout = try #require(script.range(of: "launchctl bootout \"system/$daemon_label\""))
+        let kickstart = try #require(script.range(of: "launchctl kickstart -k \"system/$daemon_label\""))
+        let releaseTrap = try #require(script.range(of: "trap cleanup_ownership_lock EXIT"))
+
+        #expect(acquire.lowerBound < finalCheck.lowerBound)
+        #expect(finalCheck.lowerBound < bootout.lowerBound)
+        #expect(bootout.lowerBound < kickstart.lowerBound)
+        #expect(releaseTrap.lowerBound < finalCheck.lowerBound)
+        #expect(script.contains("Ownership replacement is already in progress."))
+    }
+
     @Test func batteryConfigurationXPCDelegatesInsideSerializedQueue() throws {
         let source = try daemonSource(named: "FanControlDaemon.swift")
         let start = try #require(source.range(of: "func configureBattery("))

@@ -5,17 +5,19 @@ public final class SMCBatteryControlHardware: BatteryControlHardwareProtocol, @u
     private let smc: SMCControlConnection
     /// Captures the runtime probe independently of the policy register set. This is the proof for
     /// the sole readback-free release outcome: no known Wattly latch was reachable at probe time.
-    private let runtimeDrivableRegisterSet: BatteryControlRegisterSet
+    private let runtimeDrivableRegisterProbe: BatteryControlRuntimeDrivableRegisterProbe
     public let registerSet: BatteryControlRegisterSet
 
     init(smc: SMCControlConnection) {
         self.smc = smc
         // Ask the hardware which generation it is instead of inferring it from the architecture.
-        // A `keyInfo` probe is read-only and costs at most three calls, once per process — and a
-        // key that does not answer here is a key that could only ever fail to be written.
+        // Normal driving retains its runtime generation selection. The release-only probe records
+        // whether every latch key was *explicitly* absent rather than treating unreadable as absent.
         let registerSet = BatteryControlKeys.registerSet { smc.keyInfo($0) }
         self.registerSet = registerSet
-        runtimeDrivableRegisterSet = BatteryControlKeys.drivableRegisterSet { smc.keyInfo($0) }
+        runtimeDrivableRegisterProbe = BatteryControlKeys.runtimeDrivableRegisterProbe {
+            smc.batteryKeyProbe($0)
+        }
     }
 
     public func readChargingGate(targetLimit: Int) -> BatteryHardwareGate {
@@ -45,18 +47,18 @@ public final class SMCBatteryControlHardware: BatteryControlHardwareProtocol, @u
 
     public func releaseChargingControlAndVerify() -> BatteryReleaseVerification {
         let releaseRegisterSet: BatteryControlRegisterSet
-        switch registerSet {
-        case .modern, .legacy, .intel:
-            releaseRegisterSet = registerSet
-        case .firmwareManaged, .unsupported:
-            releaseRegisterSet = runtimeDrivableRegisterSet
-        }
-        guard releaseRegisterSet.canDriveCharging else {
-            // `runtimeDrivableRegisterSet` was just obtained by probing every key in
-            // `BatteryControlKeys.probeOrder`; do not claim this for a policy-only verdict.
+        switch runtimeDrivableRegisterProbe {
+        case .drivable(let set):
+            releaseRegisterSet = set
+        case .noDrivableRegisterAtRuntime:
+            // A normal runtime selection and a later all-absent safety probe disagree. Treat that
+            // as an unreadable release, never as evidence that a potentially latched key vanished.
+            guard !registerSet.canDriveCharging else { return .init(verdict: .failed) }
             return .init(
                 verdict: .notControllable,
                 proof: .noDrivableRegisterAtRuntime)
+        case .unsafeToRelease:
+            return .init(verdict: .failed)
         }
 
         let writes = BatteryControlKeys.writes(

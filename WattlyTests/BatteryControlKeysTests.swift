@@ -275,6 +275,47 @@ import Testing
         #expect(BatteryControlKeys.drivableRegisterSet(probing: probe) == .unsupported)
     }
 
+    @Test func runtimeNoLatchProofRequiresConfirmedAbsenceForEveryCandidate() throws {
+        // A failed key-info transport and a reachable key with a shape we do not recognise are
+        // fundamentally different from proof that a latch key is absent. Neither may mint the
+        // readback-free no-latch release proof.
+        let absent = BatteryControlKeys.runtimeDrivableRegisterProbe { _ in .confirmedAbsent }
+        let transportFailure = BatteryControlKeys.runtimeDrivableRegisterProbe { key in
+            key == "CH0B" ? .uncertain : .confirmedAbsent
+        }
+        let unexpectedSize = BatteryControlKeys.runtimeDrivableRegisterProbe { key in
+            key == "CHTE" ? .readable(type: "ui32", size: 1) : .confirmedAbsent
+        }
+        let unexpectedType = BatteryControlKeys.runtimeDrivableRegisterProbe { key in
+            key == "CHTE" ? .readable(type: "flt ", size: 4) : .confirmedAbsent
+        }
+
+        #expect(absent == .noDrivableRegisterAtRuntime)
+        #expect(transportFailure == .unsafeToRelease)
+        #expect(unexpectedSize == .unsafeToRelease)
+        #expect(unexpectedType == .unsafeToRelease)
+    }
+
+    @Test func runtimeReleaseProbeKeepsTheNormalGenerationCandidate() {
+        let candidate = BatteryControlKeys.runtimeDrivableRegisterProbe { key in
+            key == "CHTE" ? .readable(type: "ui32", size: 4) : .confirmedAbsent
+        }
+        #expect(candidate == .drivable(.modern))
+    }
+
+    @Test func runtimeReleaseProbeFailsClosedWhenAnotherLatchProbeIsUncertain() {
+        // A known CHTE does not prove that a different reachable latch is clear. Release must not
+        // skip that uncertainty merely because it has one familiar key it could write.
+        let candidate = BatteryControlKeys.runtimeDrivableRegisterProbe { key in
+            switch key {
+            case "CHTE": return .readable(type: "ui32", size: 4)
+            case "CH0B": return .uncertain
+            default: return .confirmedAbsent
+            }
+        }
+        #expect(candidate == .unsafeToRelease)
+    }
+
     @Test func drivableRegisterSetIgnoresTheFirmwareKeysEntirely() {
         // `drivableRegisterSet` answers "which register could this Mac be driven through" and must
         // never consult `firmwareManagedKeys` — it stays true even when the app has decided not to

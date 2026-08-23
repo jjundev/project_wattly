@@ -65,6 +65,16 @@ helper_path="$4"
 daemon_path="$5"
 replacement_plist="$6"
 daemon_label="$7"
+ownership_lock='/var/run/Wattly/wattly-helper-install.lock'
+install -d -o root -g wheel -m 755 /var/run/Wattly
+if ! /usr/bin/shlock -f "$ownership_lock" -p "$$"; then
+  echo 'Ownership replacement is already in progress.' >&2
+  exit 75
+fi
+chmod 644 "$ownership_lock"
+cleanup_ownership_lock() { rm -f "$ownership_lock"; }
+trap cleanup_ownership_lock EXIT
+trap 'exit 75' HUP INT TERM
 
 validate_installed_owner() {
   if [ -e "$installed_plist" ]; then
