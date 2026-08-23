@@ -256,6 +256,30 @@ import AppKit
         #expect(fallback.indicator == .holdingAtLimit)
     }
 
+    @Test func reasonlessLegacyOnBatteryPayloadKeepsItsIconAndTextAligned() {
+        let legacyActivities: [BatteryControlActivity?] = [nil, .unrecognized]
+
+        for activity in legacyActivities {
+            let status = BatterySectionPresentation.status(
+                isLimitOn: true, isInstalling: false, mode: .charging,
+                reason: nil, detail: "배터리 전원으로 구동 중",
+                locale: en, activity: activity)
+
+            #expect(status == .init(indicator: .onBatteryPower, text: "Running on battery"))
+        }
+    }
+
+    @Test func legacyUnsupportedPayloadUsesTheSameResolvedReasonAsItsText() {
+        let status = BatterySectionPresentation.status(
+            isLimitOn: true, isInstalling: false, mode: .unsupported,
+            reason: .init(kind: .unrecognized),
+            detail: "이 Mac은 충전 제어를 지원하지 않습니다",
+            locale: en, activity: nil)
+
+        #expect(status == .init(indicator: .hardwareUnsupported,
+                                text: "This Mac does not support charge control"))
+    }
+
     @Test func verifiedInactiveActivityOutranksAnOptimisticLocalToggle() {
         let status = BatterySectionPresentation.status(
             isLimitOn: true, isInstalling: false, mode: .charging,
@@ -278,6 +302,29 @@ import AppKit
         #expect(atBoundary.indicator == .chargingToLimit)
         #expect(atBoundary.text == "목표치(80%)까지 충전 중")
         #expect(stale == .init(indicator: .stale, text: "확인 중..."))
+    }
+
+    @Test func recoveringStatusStillBecomesStaleWhilePollingContinues() {
+        let status = BatterySectionPresentation.status(
+            isLimitOn: false, isInstalling: false, mode: .inhibited,
+            reason: .init(kind: .inhibitedAtLimit, limitPercentage: 80),
+            detail: "충전 제한 80% 도달 (전원 어댑터 바이패스 구동)",
+            locale: ko, activity: .holdingAtLimit, updatedAt: 100, now: 115.001)
+
+        #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false,
+                                                            mode: .inhibited) == true)
+        #expect(status == .init(indicator: .stale, text: "확인 중..."))
+    }
+
+    @Test func offAndSettledStatusNeverBecomesStaleAfterPollingStops() {
+        let status = BatterySectionPresentation.status(
+            isLimitOn: false, isInstalling: false, mode: .charging,
+            reason: .init(kind: .limitDisabled), detail: "충전 제한 비활성화됨",
+            locale: ko, activity: .inactive, updatedAt: 100, now: 200)
+
+        #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false,
+                                                            mode: .charging) == false)
+        #expect(status == .init(indicator: .inactive, text: "충전 제한 비활성화됨"))
     }
 
     @Test func unavailableAndInstallingAreNeverRelabeledAsStale() {

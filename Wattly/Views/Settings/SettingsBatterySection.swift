@@ -134,9 +134,23 @@ struct SettingsBatterySection: View {
         }
     }
 
+    @ViewBuilder
     private var batteryStatusIndicator: some View {
-        let resolved = resolvedStatus
-        return HStack(spacing: 8) {
+        if BatterySectionPresentation.shouldPollStatus(isLimitOn: batteryLimitEnabled,
+                                                       mode: batteryControl.status.mode) {
+            // XPC polling remains on its existing five-second task. This view-local clock only
+            // invalidates the status row so an old sample crosses the stale deadline on screen.
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                batteryStatusRow(resolvedStatus(at: context.date))
+            }
+        } else {
+            // Settled-off states intentionally stop XPC polling and never age into a stale label.
+            batteryStatusRow(resolvedStatus(at: Date()))
+        }
+    }
+
+    private func batteryStatusRow(_ resolved: BatterySectionPresentation.Status) -> some View {
+        HStack(spacing: 8) {
             Image(systemName: resolved.indicator.symbolName)
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(statusColor(for: resolved.indicator.tone))
@@ -208,7 +222,7 @@ struct SettingsBatterySection: View {
         BatterySectionPresentation.isLimitPickerEnabled(isLimitOn: batteryLimitEnabled)
     }
 
-    private var resolvedStatus: BatterySectionPresentation.Status {
+    private func resolvedStatus(at date: Date) -> BatterySectionPresentation.Status {
         BatterySectionPresentation.status(
             isLimitOn: batteryLimitEnabled,
             isInstalling: batteryControl.isInstallingHelper,
@@ -218,7 +232,7 @@ struct SettingsBatterySection: View {
             locale: locale,
             activity: batteryControl.status.activity,
             updatedAt: batteryControl.status.updatedAt,
-            now: Date().timeIntervalSince1970)
+            now: date.timeIntervalSince1970)
     }
 
     /// 설치 실패 문구. `.install`은 설치기 자신의 오류(카탈로그 키이거나 macOS가 이미 현지화한

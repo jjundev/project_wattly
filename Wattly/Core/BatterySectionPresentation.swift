@@ -98,7 +98,10 @@ enum BatterySectionPresentation {
                        activity: BatteryControlActivity? = nil,
                        updatedAt: TimeInterval = 0,
                        now: TimeInterval = 0) -> Status {
-        let resolvedText = BatteryStatusText.text(reason: reason, detail: detail, locale: locale)
+        let effectiveReason = BatteryStatusText.resolve(reason: reason, detail: detail)
+        let resolvedText = BatteryStatusText.text(resolvedReason: effectiveReason,
+                                                  detail: detail,
+                                                  locale: locale)
 
         if isInstalling {
             return Status(indicator: .installing,
@@ -111,8 +114,7 @@ enum BatterySectionPresentation {
         case .unavailable:
             return Status(indicator: .unavailable, text: resolvedText)
         case .unsupported:
-            let resolvedReason = BatteryStatusText.resolve(reason: reason, detail: detail)
-            return Status(indicator: resolvedReason?.kind == .hardwareUnsupported
+            return Status(indicator: effectiveReason?.kind == .hardwareUnsupported
                           ? .hardwareUnsupported : .failure,
                           text: resolvedText)
         case .charging, .inhibited:
@@ -121,14 +123,16 @@ enum BatterySectionPresentation {
 
         // A zero timestamp is the client's initial state and means "no remote sample". Exactly
         // three polling intervals stays current; only a strictly older sample becomes stale.
-        if updatedAt > 0,
+        if shouldPollStatus(isLimitOn: isLimitOn, mode: mode),
+           updatedAt > 0,
            now >= updatedAt,
            now - updatedAt > staleAfter {
             return Status(indicator: .stale,
                           text: String(localized: "확인 중...", locale: locale))
         }
 
-        if let resolvedActivity = BatteryControlActivity.resolved(explicit: activity, reason: reason) {
+        if let resolvedActivity = BatteryControlActivity.resolved(explicit: activity,
+                                                                  reason: effectiveReason) {
             return Status(indicator: indicator(for: resolvedActivity), text: resolvedText)
         }
 
