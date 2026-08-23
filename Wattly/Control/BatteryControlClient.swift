@@ -66,8 +66,8 @@ import AppKit
 
     /// Installs the privileged helper with one admin-auth prompt and immediately pushes the user's
     /// configuration — without this the helper would sit at its disabled default while the toggle
-    /// reads ON. `enabled` is the caller's real opt-in rather than an assumption, so installing from
-    /// a recovery button can never switch the limit on behind the user's back.
+    /// reads ON. `enabled` is still the caller's real opt-in rather than an assumption, even though
+    /// the recovery button is only reachable while the toggle already reads ON.
     /// Returns `nil` only when both halves landed — otherwise the install failure, or a synthesized
     /// error for an install that succeeded while the configure push did not.
     public func installAndApply(enabled: Bool, limitPercentage: Int, window: NSWindow?) async -> Error? {
@@ -102,8 +102,8 @@ import AppKit
     }
 
     /// A dropped helper has to be visible: the settings screen gates its install button on
-    /// `.unavailable`, so silently keeping the last good status would hide the only recovery
-    /// action the user has.
+    /// `isLimitOn && mode == .unavailable`, so silently keeping the last good status would hide the
+    /// only recovery action the user has.
     private func updateUnavailable(_ detail: String) {
         status = BatteryControlServiceStatus(
             mode: .unavailable,

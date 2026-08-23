@@ -40,6 +40,9 @@ struct SettingsBatterySection: View {
 
                 if areDetailsVisible {
                     VStack(alignment: .leading, spacing: 12) {
+                        // 헤더와 세그먼트는 같은 컨트롤로 읽히므로 같은 값(0.5)으로 함께 흐려진다.
+                        // 세그먼트 자신의 불투명도는 `isEnabled`가 처리하므로 여기서 또 곱하면
+                        // 0.25가 되어 너무 어두워진다 — 그래서 딤은 헤더에만 건다.
                         HStack {
                             Text("최대 충전 한도")
                                 .font(WattlyFont.at(12, weight: .medium))
@@ -50,9 +53,6 @@ struct SettingsBatterySection: View {
                                 .monospacedDigit()
                                 .foregroundStyle(t.text)
                         }
-                        // 헤더와 세그먼트는 같은 컨트롤로 읽히므로 같은 값(0.5)으로 함께 흐려진다.
-                        // 세그먼트 자신의 불투명도는 `isEnabled`가 처리하므로 여기서 또 곱하면
-                        // 0.25가 되어 너무 어두워진다 — 그래서 딤은 헤더에만 건다.
                         .opacity(isLimitPickerEnabled ? 1 : 0.5)
 
                         WattlySegment(
@@ -180,9 +180,9 @@ struct SettingsBatterySection: View {
 
     /// Only an explicit `false` disables the control. `nil` means the helper has not answered yet —
     /// or is too old to say — and a Mac must never be declared incapable on a missing answer.
-    private var isHardwareUnsupported: Bool {
-        batteryControl.status.isHardwareSupported == false
-    }
+    /// Derived from `areDetailsVisible` rather than `isHardwareSupported` directly, so the `nil`
+    /// policy has exactly one place to change.
+    private var isHardwareUnsupported: Bool { !areDetailsVisible }
 
     /// 하위 항목(한도 선택기 · 상태 줄 · 안내 배너)을 그릴지. 토글의 ON/OFF와는 무관하다 —
     /// 꺼져 있어도 이 기능이 무엇을 하는지는 보여야 한다. 숨기는 경우는 이 Mac에 충전 제어
