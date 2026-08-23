@@ -124,7 +124,9 @@ struct SettingsBatterySection: View {
         .alert("도우미 설치 실패", isPresented: $isInstallFailedAlertPresented) {
             Button("확인", role: .cancel) {}
         } message: {
-            Text(installErrorMessage)
+            // 이미 `Self.message(for:locale:)`로 해석된 문자열이다. `LocalizedStringKey`로
+            // 감싸면 두 번 조회하게 되고, 보간된 문장은 키가 없어 그대로 통과할 뿐이다.
+            Text(verbatim: installErrorMessage)
         }
     }
 
@@ -134,7 +136,8 @@ struct SettingsBatterySection: View {
             Circle()
                 .fill(dotColor(for: resolved.dot))
                 .frame(width: 7, height: 7)
-            Text(resolved.text)
+            // `BatterySectionPresentation.status(…)`가 로케일까지 반영해 만든 최종 문자열이다.
+            Text(verbatim: resolved.text)
                 .font(WattlyFont.at(11, weight: .regular))
                 .foregroundStyle(t.sub)
                 .fixedSize(horizontal: false, vertical: true)
