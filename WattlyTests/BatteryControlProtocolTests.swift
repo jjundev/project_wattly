@@ -117,4 +117,38 @@ struct BatteryControlProtocolTests {
         let decoded = try BatteryControlCodec.decode(BatteryControlServiceStatus.self, from: legacy)
         #expect(decoded.isHardwareSupported == nil)
     }
+
+    /// 구버전 도우미의 페이로드에는 이 필드가 없다. 없다고 디코딩이 실패하면
+    /// 업데이트한 앱이 기존 도우미와 대화하지 못한다.
+    @Test func statusDecodesWithoutAReason() throws {
+        let json = Data(#"{"mode":"charging","currentPercentage":70,"isPowerAdapterConnected":true,"detail":"충전 중","updatedAt":1.0}"#.utf8)
+        let decoded = try BatteryControlCodec.decode(BatteryControlServiceStatus.self, from: json)
+        #expect(decoded.detailReason == nil)
+        #expect(decoded.detail == "충전 중")
+    }
+
+    @Test func statusRoundTripsAReason() throws {
+        let status = BatteryControlServiceStatus(
+            mode: .inhibited,
+            currentPercentage: 80,
+            isPowerAdapterConnected: true,
+            detail: "충전 제한 80% 도달 (전원 어댑터 바이패스 구동)",
+            updatedAt: 12.0,
+            appliedLimitPercentage: 80,
+            isHardwareSupported: true,
+            detailReason: .init(kind: .inhibitedAtLimit, limitPercentage: 80))
+        let decoded = try BatteryControlCodec.decode(
+            BatteryControlServiceStatus.self, from: BatteryControlCodec.encode(status))
+        #expect(decoded == status)
+        #expect(decoded.detailReason?.kind == .inhibitedAtLimit)
+        #expect(decoded.detailReason?.limitPercentage == 80)
+    }
+
+    /// 새 데몬 + 구버전 앱의 반대 방향: 모르는 종류 하나가 상태 전체를 못 읽게 만들면 안 된다.
+    @Test func statusSurvivesAnUnknownReasonKind() throws {
+        let json = Data(#"{"mode":"charging","currentPercentage":70,"isPowerAdapterConnected":true,"detail":"충전 중","updatedAt":1.0,"detailReason":{"kind":"aFutureKind"}}"#.utf8)
+        let decoded = try BatteryControlCodec.decode(BatteryControlServiceStatus.self, from: json)
+        #expect(decoded.detailReason?.kind == .unrecognized)
+        #expect(decoded.currentPercentage == 70)
+    }
 }

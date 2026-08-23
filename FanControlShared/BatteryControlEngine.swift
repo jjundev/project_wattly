@@ -195,21 +195,22 @@ public final class BatteryControlEngine: @unchecked Sendable {
         return false
     }
 
-    private func detailText(isPluggedIn: Bool, target: Int) -> String {
-        if !isHardwareSupported { return "이 Mac은 충전 제어를 지원하지 않습니다" }
+    private func detailReason(isPluggedIn: Bool, target: Int) -> BatteryControlStatusReason {
+        if !isHardwareSupported { return .init(kind: .hardwareUnsupported) }
         if hasActionableFailure {
             // A failed release is the opposite failure from a failed apply: control IS applied and
             // stuck on, so telling the user it could not be applied would be actively misleading.
-            return isCurrentlyInhibited
-                ? "충전을 다시 시작하지 못했습니다 (전원 어댑터를 다시 연결해 보세요)"
-                : "이 Mac에서 충전 제어를 적용하지 못했습니다"
+            return .init(kind: isCurrentlyInhibited ? .releaseFailed : .applyFailed)
         }
-        if isCurrentlyInhibited { return "충전 제한 \(target)% 도달 (전원 어댑터 바이패스 구동)" }
-        if !config.enabled { return "충전 제한 비활성화됨" }
-        return isPluggedIn ? "목표치(\(target)%)까지 충전 중" : "배터리 전원으로 구동 중"
+        if isCurrentlyInhibited { return .init(kind: .inhibitedAtLimit, limitPercentage: target) }
+        if !config.enabled { return .init(kind: .limitDisabled) }
+        return isPluggedIn
+            ? .init(kind: .chargingToTarget, limitPercentage: target)
+            : .init(kind: .onBatteryPower)
     }
 
     private func status(currentSoC: Int, isPluggedIn: Bool, target: Int) -> BatteryControlServiceStatus {
+        let reason = detailReason(isPluggedIn: isPluggedIn, target: target)
         let mode: BatteryControlServiceMode
         if !isHardwareSupported || hasActionableFailure {
             mode = .unsupported
@@ -222,14 +223,17 @@ public final class BatteryControlEngine: @unchecked Sendable {
             mode: mode,
             currentPercentage: currentSoC,
             isPowerAdapterConnected: isPluggedIn,
-            detail: detailText(isPluggedIn: isPluggedIn, target: target),
+            // Derived from the reason so the two can never disagree — an older app reads this
+            // sentence while a current one reads the code beside it.
+            detail: reason.legacyKoreanDetail,
             updatedAt: Date().timeIntervalSince1970,
             // Report the limit actually being enforced. A failed write means nothing is, and so
             // does a Mac with no register — reporting `nil` is what makes the app's reconcile pass
             // re-push and clear the latch in the one of those two cases that can recover.
             appliedLimitPercentage: (isHardwareSupported && config.enabled && !hasActionableFailure)
                 ? config.clampedLimitPercentage : nil,
-            isHardwareSupported: isHardwareSupported
+            isHardwareSupported: isHardwareSupported,
+            detailReason: reason
         )
     }
 }

@@ -516,4 +516,45 @@ struct BatteryControlEngineTests {
         engine.release()
         #expect(mockHW.writeCount == 1)
     }
+
+    /// `detail`과 `detailReason`은 같은 사실의 두 표현이다. 어긋나면 구버전 앱과 신버전 앱이
+    /// 서로 다른 이야기를 보게 된다.
+    @Test func statusReasonAgreesWithTheKoreanDetail() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 80))
+        let status = engine.update(currentSoC: 70, isPluggedIn: true)
+        #expect(status.detailReason?.kind == .chargingToTarget)
+        #expect(status.detailReason?.limitPercentage == 80)
+        #expect(status.detail == status.detailReason?.legacyKoreanDetail)
+    }
+
+    @Test func statusReasonReportsUnsupportedHardware() {
+        let mockHW = MockBatteryHardware()
+        mockHW.registerSet = .unsupported
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 80))
+        let status = engine.update(currentSoC: 70, isPluggedIn: true)
+        #expect(status.detailReason?.kind == .hardwareUnsupported)
+        #expect(status.detail == "이 Mac은 충전 제어를 지원하지 않습니다")
+    }
+
+    @Test func statusReasonReportsTheDisabledLimit() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: false, limitPercentage: 80))
+        let status = engine.update(currentSoC: 70, isPluggedIn: true)
+        #expect(status.detailReason?.kind == .limitDisabled)
+    }
+
+    @Test func statusReasonReportsBatteryPower() {
+        // Enabled but unplugged: `!config.enabled` is checked before `isPluggedIn`, so the limit
+        // has to be on for this branch to be reachable at all — with it off, `.limitDisabled` wins
+        // regardless of plug state.
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 80))
+        let status = engine.update(currentSoC: 70, isPluggedIn: false)
+        #expect(status.detailReason?.kind == .onBatteryPower)
+    }
 }

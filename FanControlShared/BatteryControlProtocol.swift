@@ -67,6 +67,13 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
     /// is a different thing from a write that failed: the settings screen disables its toggle
     /// instead of showing a state that looks like it is still retrying.
     public var isHardwareSupported: Bool?
+    /// The structured form of `detail`. `nil` from a helper too old to send one — which is the
+    /// common case right after an app update, since nothing replaces an installed helper that still
+    /// answers. The app falls back to parsing `detail` in that case.
+    ///
+    /// `detail` is kept rather than replaced so the reverse pairing also works: a current helper
+    /// talking to an older app still fills the sentence that app knows how to read.
+    public var detailReason: BatteryControlStatusReason?
 
     public init(
         mode: BatteryControlServiceMode,
@@ -75,7 +82,8 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
         detail: String,
         updatedAt: TimeInterval,
         appliedLimitPercentage: Int? = nil,
-        isHardwareSupported: Bool? = nil
+        isHardwareSupported: Bool? = nil,
+        detailReason: BatteryControlStatusReason? = nil
     ) {
         self.mode = mode
         self.currentPercentage = currentPercentage
@@ -84,6 +92,7 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
         self.updatedAt = updatedAt
         self.appliedLimitPercentage = appliedLimitPercentage
         self.isHardwareSupported = isHardwareSupported
+        self.detailReason = detailReason
     }
 }
 

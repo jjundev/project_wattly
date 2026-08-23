@@ -45,8 +45,9 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
             mode: .unavailable,
             currentPercentage: 0,
             isPowerAdapterConnected: false,
-            detail: "초기화 중",
-            updatedAt: 0
+            detail: BatteryControlStatusReason(kind: .initializing).legacyKoreanDetail,
+            updatedAt: 0,
+            detailReason: .init(kind: .initializing)
         )
         self.listener = NSXPCListener(machServiceName: FanControlXPC.machService)
         super.init()
@@ -182,13 +183,14 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
                 mode: .unsupported,
                 currentPercentage: 0,
                 isPowerAdapterConnected: false,
-                detail: "전원 소스를 읽을 수 없습니다",
+                detail: BatteryControlStatusReason(kind: .powerSourceUnreadable).legacyKoreanDetail,
                 updatedAt: Date().timeIntervalSince1970,
                 appliedLimitPercentage: nil,
                 // A Mac whose power source cannot be read still knows whether it has a charge
                 // register. Without this the app cannot tell "no battery here, stop asking" from
                 // "read failed, try again", and re-pushes at the first one forever.
-                isHardwareSupported: batteryEngine.isHardwareSupported
+                isHardwareSupported: batteryEngine.isHardwareSupported,
+                detailReason: .init(kind: .powerSourceUnreadable)
             )
             return
         }
