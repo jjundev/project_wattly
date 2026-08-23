@@ -84,7 +84,8 @@ struct SettingsBatterySection: View {
                 // once the state settles, instead of running forever or freezing on a failure.
                 while !Task.isCancelled,
                       BatterySectionPresentation.shouldPollStatus(isLimitOn: batteryLimitEnabled,
-                                                                   mode: batteryControl.status.mode) {
+                                                                   mode: batteryControl.status.mode,
+                                                                   isHardwareSupported: batteryControl.status.isHardwareSupported) {
                     try? await Task.sleep(for: .seconds(BatteryControlPolicy.statusPollInterval))
                     guard !Task.isCancelled else { return }
                     await batteryControl.refreshStatus()

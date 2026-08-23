@@ -110,6 +110,11 @@ enum BatterySectionPresentation {
 
     /// 설정 화면이 상태를 주기적으로 다시 읽어야 하는지.
     ///
+    /// 도우미가 "이 Mac은 불가능하다"고 명시적으로 답했다면 다시 묻지 않는다. 그 답은 영구적인
+    /// 사실이라 재질문으로 바뀔 수 없고, 그 상태에서는 `areDetailsVisible == false`라 갱신할 화면
+    /// 자체가 없다. 이 확인이 없으면 제한이 켜진 채로 지원되지 않는 Mac에 남은 사용자는 5초마다
+    /// XPC 왕복과 루트 데몬의 전원 소스 읽기를 영원히 유발한다.
+    ///
     /// 켜져 있으면 항상 읽는다 — 관심 있는 순간(한도 도달)이 창을 연 뒤 몇 분 뒤에 온다.
     ///
     /// 꺼져 있을 때는 문구가 바뀔 수 있는 상태에서만 읽는다. `.charging`은 정상적으로 꺼진 상태라
@@ -117,8 +122,13 @@ enum BatterySectionPresentation {
     /// 폴링해봐야 `batteryStatus` XPC → 데몬의 IOKit 전원 소스 읽기만 유발한다. 반대로
     /// `.inhibited`/`.unsupported`는 "껐는데 하드웨어가 아직 물고 있다"이고, 데몬이 스스로
     /// 재시도해 풀어내는 상태다. 여기서 읽지 않으면 사용자가 안내대로 어댑터를 다시 꽂아 실제로
-    /// 복구된 뒤에도 화면은 실패 문구에 멈춰 있게 된다.
-    static func shouldPollStatus(isLimitOn: Bool, mode: BatteryControlServiceMode) -> Bool {
+    /// 복구된 뒤에도 화면은 실패 문구에 멈춰 있게 된다. `.unsupported`가 두 가지(레지스터 없음 /
+    /// 쓰기 실패)를 함께 뜻하기 때문에, 영구적인 쪽을 걸러내는 일은 위의 `isHardwareSupported`
+    /// 확인이 맡는다.
+    static func shouldPollStatus(isLimitOn: Bool,
+                                 mode: BatteryControlServiceMode,
+                                 isHardwareSupported: Bool?) -> Bool {
+        if isHardwareSupported == false { return false }
         if isLimitOn { return true }
         switch mode {
         case .inhibited, .unsupported: return true
