@@ -423,4 +423,21 @@ import AppKit
         #expect(BatterySectionPresentation.limitPickerDisabledReason(isLimitOn: false)
                 == "충전 제한을 켜면 한도를 조절할 수 있습니다.")
     }
+
+    // MARK: - Sailing Mode
+
+    @Test func sailingRangeDescriptionShowsStopAndResumePercentages() {
+        let ko = Locale(identifier: "ko")
+        let en = Locale(identifier: "en")
+
+        let koDesc = BatterySectionPresentation.sailingRangeDescription(limit: 80, delta: 5, locale: ko)
+        #expect(koDesc == "80% 도달 시 충전 정지, 75%에서 재충전")
+
+        let enDesc = BatterySectionPresentation.sailingRangeDescription(limit: 80, delta: 5, locale: en)
+        #expect(enDesc == "Stops at 80%, recharges at 75%")
+    }
+
+    @Test func sailingPresetsAreValid() {
+        #expect(BatterySectionPresentation.sailingDeltaPresets == [2, 5, 10])
+    }
 }

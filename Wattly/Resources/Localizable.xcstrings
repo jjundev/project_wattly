@@ -42181,6 +42181,746 @@
           }
         }
       }
+    },
+    "%lld%% 도달 시 충전 정지, %lld%%에서 재충전": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld%% 도달 시 충전 정지, %lld%%에서 재충전"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stops at %lld%%, recharges at %lld%%"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld%% で充電停止、%lld%% で再充電"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "达到 %lld%% 时停止充电，降至 %lld%% 时重新充电"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "達到 %lld%% 時停止充電，降至 %lld%% 時重新充電"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stoppt bei %lld %%, lädt wieder ab %lld %%"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "S'arrête à %lld %%, recharge à %lld %%"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se detiene al %lld %%, se recarga al %lld %%"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si ferma al %lld%%, ricarica al %lld%%"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para em %lld%%, recarrega em %lld%%"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pára a %lld%%, recarrega a %lld%%"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stopt bij %lld%%, hervat bij %lld%%"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stoppar vid %lld %%, återupptar vid %lld %%"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stopper ved %lld %%, genoplader ved %lld %%"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pysähtyy tasolla %lld %%, lataus alkaa tasolla %lld %%"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stopper ved %lld %%, lader igjen ved %lld %%"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zatrzymuje przy %lld%%, wznawia przy %lld%%"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zastaví na %lld %%, dobije od %lld %%"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leállás %lld%%-nál, újratöltés %lld%%-nál"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se oprește la %lld%%, reîncarcă la %lld%%"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Διακοπή στο %lld%%, επαναφόρτιση στο %lld%%"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Остановка на %lld%%, возобновление при %lld%%"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зупинка на %lld%%, відновлення при %lld%%"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld%% seviyesinde durur, %lld%% seviyesinde yeniden şarj eder"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يتوقف عند %lld%%، ويعيد الشحن عند %lld%%"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "עוצר ב-%lld%%, נטען מחדש ב-%lld%%"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "หยุดชาร์จที่ %lld%% ชาร์จต่อที่ %lld%%"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dừng ở mức %lld%%, sạc lại ở mức %lld%%"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Berhenti di %lld%%, mengisi ulang di %lld%%"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld%% पर रुकता है, %lld%% पर पुनः चार्ज होता है"
+          }
+        }
+      }
+    },
+    "Sailing 모드": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sailing 모드"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sailing Mode"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "セーリングモード"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "航行模式"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "航行模式"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Segelmodus"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mode Navigation"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modo Navegación"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modalità Veleggio"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modo de Navegação"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modo de Navegação"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeilmodus"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seglingsläge"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sejltilstand"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Purjehdustila"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seilemodus"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryb żeglowania"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Režim plachtění"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vitorlázó mód"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mod navigație"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Λειτουργία πλεύσης"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Режим плавания"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Режим вітрильного плавання"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yelken Modu"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "وضع الإبحار"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "מצב שיוט"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "โหมด Sailing"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chế độ Sailing"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mode Berlayar"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सेलिंग मोड"
+          }
+        }
+      }
+    },
+    "충전 상한에 도달한 후 배터리가 하한까지 자연 방전될 때까지 충전을 재개하지 않습니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "충전 상한에 도달한 후 배터리가 하한까지 자연 방전될 때까지 충전을 재개하지 않습니다."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After reaching the limit, charging will not resume until the battery naturally discharges to the lower threshold."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "充電上限に達した後は、バッテリーが下限まで自然放電するまで充電を再開しません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "达到充电上限后，在电池自然放电至下限前不会恢复充电。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "達到充電上限後，在電池自然放電至下限前不會恢復充電。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach Erreichen des Limits wird der Ladevorgang erst fortgesetzt, wenn sich der Akku auf den unteren Schwellenwert entlädt."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une fois la limite atteinte, la charge ne reprendra pas tant que la batterie ne sera pas naturellement déchargée jusqu'au seuil inférieur."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tras alcanzar el límite, la carga no se reanudará hasta que la batería se descargue naturalmente hasta el umbral inferior."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dopo aver raggiunto il limite, la ricarica non riprenderà fino a quando la batteria non si sarà scaricata naturalmente fino alla soglia inferiore."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Após atingir o limite, o carregamento não será retomado até que a bateria descarregue naturalmente até o limite inferior."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Após atingir o limite, o carregamento não será retomado até que a bateria descarregue naturalmente até ao limite inferior."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Na het bereiken van de limiet wordt het opladen pas hervat als de batterij op natuurlijke wijze ontlaadt tot de ondergrens."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Efter att gränsen har nåtts återupptas inte laddningen förrän batteriet naturligt laddas ur till den nedre tröskeln."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Efter at grænsen er nået, genoptages opladningen ikke, før batteriet naturligt aflades til den nedre tærskel."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kun raja on saavutettu, lataus jatkuu vasta, kun akku on luonnollisesti purkautunut alemmalle kynnykselle."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etter at grensen er nådd, gjenopptas ikke ladingen før batteriet lades naturlig ut til den nedre grensen."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Po osiągnięciu limitu ładowanie nie zostanie wznowione, dopóki bateria nie rozładuje się naturalnie do dolnego progu."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Po dosažení limitu se nabíjení neobnoví, dokud se baterie přirozeně nevybije na dolní mez."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A limit elérése után a töltés nem indul újra, amíg az akkumulátor magától le nem merül az alsó küszöbértékre."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "După atingerea limitei, încărcarea nu se va relua până când bateria nu se descarcă natural la pragul inferior."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Μετά την επίτευξη του ορίου, η φόρτιση δεν θα συνεχιστεί μέχρι η μπαταρία να αποφορτιστεί φυσικά στο κατώτερο όριο."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "После достижения предела зарядка не возобновится, пока аккумулятор естественным образом не разрядится до нижнего порога."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Після досягнення ліміту заряджання не відновиться, доки акумулятор природним шляхом не розрядиться до нижнього порогу."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limite ulaşıldıktan sonra, pil doğal olarak alt eşiğe kadar boşalana kadar şarj işlemi devam etmez."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "بعد الوصول إلى الحد، لن يُستأنف الشحن حتى تفرغ البطارية بشكل طبيعي إلى الحد الأدنى."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "לאחר הגעה למגבלה, הטעינה לא תחודש עד שהסוללה תתרוקן באופן טבעי לסף התחתון."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "หลังจากถึงขีดจำกัดแล้ว การชาร์จจะไม่ดำเนินต่อจนกว่าแบตเตอรี่จะคายประจุตามธรรมชาติถึงเกณฑ์ล่าง"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sau khi đạt đến giới hạn, quá trình sạc sẽ không tiếp tục cho đến khi pin tự nhiên xả xuống ngưỡng dưới."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Setelah mencapai batas, pengisian daya tidak akan dilanjutkan sampai baterai habis secara alami ke ambang batas bawah."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सीमा तक पहुंचने के बाद, जब तक बैटरी स्वाभाविक रूप से निचली सीमा तक डिस्चार्ज नहीं हो जाती, तब तक चार्जिंग फिर से शुरू नहीं होगी।"
+          }
+        }
+      }
+    },
+    "Sailing 범위": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sailing 범위"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sailing Range"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "セーリング範囲"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "航行范围"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "航行範圍"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Segelbereich"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plage de navigation"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rango de navegación"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intervallo di veleggio"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faixa de Navegação"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intervalo de navegação"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeilbereik"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seglingsintervall"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sejlinterval"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Purjehdusalue"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seilingsområde"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zakres żeglowania"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rozsah plachtění"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vitorlázási tartomány"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interval de navigație"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Εύρος πλεύσης"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Диапазон плавания"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Діапазон вітрильного плавання"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yelken Aralığı"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نطاق الإبحار"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "טווח שיוט"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ช่วง Sailing"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phạm vi Sailing"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rentang Berlayar"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सेलिंग रेंज"
+          }
+        }
+      }
     }
   }
 }

@@ -43,9 +43,9 @@ import AppKit
         }
     }
 
-    public func apply(enabled: Bool, limitPercentage: Int) async {
+    public func apply(enabled: Bool, limitPercentage: Int, lowerHysteresisDelta: Int = 2) async {
         commandGeneration &+= 1
-        let config = BatteryControlConfiguration(enabled: enabled, limitPercentage: limitPercentage)
+        let config = BatteryControlConfiguration(enabled: enabled, limitPercentage: limitPercentage, lowerHysteresisDelta: lowerHysteresisDelta)
         let request = BatteryControlConfigurationRequest(configuration: config, generation: commandGeneration)
         guard let data = try? BatteryControlCodec.encode(request) else {
             updateUnavailable("충전 제한 설정을 인코딩할 수 없음")
@@ -61,7 +61,7 @@ import AppKit
 
     /// Repairs a helper that restarted and lost its configuration. Reads the helper's state first,
     /// so a healthy helper costs one status call and no SMC traffic at all.
-    public func reconcile(enabled: Bool, limitPercentage: Int) async {
+    public func reconcile(enabled: Bool, limitPercentage: Int, lowerHysteresisDelta: Int = 2) async {
         await refreshStatus()
         // The caller's task may have been cancelled while that read was in flight, and a reconcile
         // is a WRITE — unlike the fan heartbeat this loop is modelled on. Without this check a
@@ -71,7 +71,7 @@ import AppKit
               BatteryControlPolicy.shouldReapply(enabled: enabled,
                                                  limitPercentage: limitPercentage,
                                                  status: status) else { return }
-        await apply(enabled: enabled, limitPercentage: limitPercentage)
+        await apply(enabled: enabled, limitPercentage: limitPercentage, lowerHysteresisDelta: lowerHysteresisDelta)
     }
 
     /// Installs the privileged helper with one admin-auth prompt and immediately pushes the user's
@@ -79,11 +79,11 @@ import AppKit
     /// reads ON. `enabled` is the caller's real opt-in rather than an assumption, so installing from
     /// a recovery button can never switch the limit on behind the user's back.
     /// Returns `nil` only when both halves landed.
-    public func installAndApply(enabled: Bool, limitPercentage: Int, window: NSWindow?) async -> InstallFailure? {
+    public func installAndApply(enabled: Bool, limitPercentage: Int, lowerHysteresisDelta: Int = 2, window: NSWindow?) async -> InstallFailure? {
         isInstallingHelper = true
         defer { isInstallingHelper = false }
         if let failure = await PrivilegedHelperInstallSession.run(window: window, postInstall: {
-            await self.apply(enabled: enabled, limitPercentage: limitPercentage)
+            await self.apply(enabled: enabled, limitPercentage: limitPercentage, lowerHysteresisDelta: lowerHysteresisDelta)
         }) {
             return .install(failure)
         }

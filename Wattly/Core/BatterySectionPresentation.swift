@@ -103,6 +103,26 @@ enum BatterySectionPresentation {
         isLimitOn ? nil : "충전 제한을 켜면 한도를 조절할 수 있습니다."
     }
 
+    // MARK: - Sailing Mode Helpers
+
+    static let sailingDeltaPresets: [Int] = [2, 5, 10]
+
+    static func resumePercentage(limit: Int, delta: Int) -> Int {
+        max(45, limit - delta)
+    }
+
+    static func sailingRangeDescription(target: Int, resume: Int, locale: Locale) -> String {
+        let target64 = Int64(target)
+        let resume64 = Int64(resume)
+        return String(format: String(localized: "%lld%% 도달 시 충전 정지, %lld%%에서 재충전", locale: locale),
+                      locale: locale, target64, resume64)
+    }
+
+    static func sailingRangeDescription(limit: Int, delta: Int, locale: Locale) -> String {
+        let resume = resumePercentage(limit: limit, delta: delta)
+        return sailingRangeDescription(target: limit, resume: resume, locale: locale)
+    }
+
     /// 상태 아이콘 + 문구. 설치 → 오류/미지원 → stale → 검증된 activity → 로컬 fallback 순이다.
     static func status(isLimitOn: Bool,
                        isInstalling: Bool,

@@ -37,6 +37,8 @@ enum SettingsReset {
         defaults.set(Defaults.fanControlEnabled, forKey: StorageKey.fanControlEnabled)
         defaults.set(Defaults.batteryLimitEnabled, forKey: StorageKey.batteryLimitEnabled)
         defaults.set(Defaults.batteryLimitPercentage, forKey: StorageKey.batteryLimitPercentage)
+        defaults.set(Defaults.batterySailingEnabled, forKey: StorageKey.batterySailingEnabled)
+        defaults.set(Defaults.batterySailingDelta, forKey: StorageKey.batterySailingDelta)
         defaults.set("", forKey: StorageKey.expandedCards)        // collapse all cards (가정 C)
         defaults.set(Defaults.loginItem, forKey: StorageKey.loginItem)
 
