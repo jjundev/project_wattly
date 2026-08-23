@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import AppKit
 @testable import Wattly
 
 @Suite struct BatterySectionPresentationTests {
@@ -9,15 +10,15 @@ import Foundation
 
     // MARK: - 하위 항목 노출
 
-    @Test func detailsAreVisibleWhenHardwareSupportIsTrueOrUnknown() {
+    @Test func configurationControlsAreVisibleWhenSupportIsTrueOrUnknown() {
         // nil = 도우미가 아직 답하지 않았거나 구버전이라 말해줄 수 없는 상태.
         // "모른다"를 "불가능하다"로 취급하면 정상 Mac에서 UI가 사라진다.
-        #expect(BatterySectionPresentation.areDetailsVisible(isHardwareSupported: true) == true)
-        #expect(BatterySectionPresentation.areDetailsVisible(isHardwareSupported: nil) == true)
+        #expect(BatterySectionPresentation.showsConfigurationControls(isHardwareSupported: true))
+        #expect(BatterySectionPresentation.showsConfigurationControls(isHardwareSupported: nil))
     }
 
-    @Test func detailsAreHiddenOnlyOnAnExplicitNo() {
-        #expect(BatterySectionPresentation.areDetailsVisible(isHardwareSupported: false) == false)
+    @Test func configurationControlsHideOnlyOnExplicitlyUnsupportedHardware() {
+        #expect(!BatterySectionPresentation.showsConfigurationControls(isHardwareSupported: false))
     }
 
     // MARK: - 한도 선택기
@@ -42,7 +43,7 @@ import Foundation
                                                      mode: .unavailable,
                                                      reason: nil, detail: "도우미에 연결되지 않음",
                                                      locale: ko)
-            #expect(s == .init(dot: .orange, text: "도우미 설치 중…"))
+            #expect(s == .init(indicator: .installing, text: "도우미 설치 중…"))
         }
     }
 
@@ -54,14 +55,13 @@ import Foundation
     // 꺼졌다"고 거짓말하는 셈이 되고, `shouldPollStatus(isLimitOn: false) == false`라 다음 폴링이
     // 없으니 절대 스스로 바로잡히지 않는다.
 
-    @Test func offAndUnavailableShowsTheFaintConstant() {
-        // 도우미가 아예 없는 것은 사용자가 끈 기능과 무관한 사실이다. 빨간 "도우미에 연결되지 않음"을
-        // 여기 띄우면 고장으로 읽히므로, 이 한 가지 모드에서만 데몬의 detail을 상수로 덮는다.
+    @Test func offAndUnavailableStillReportsTheConnectionFailure() {
+        // 연결 실패는 토글과 무관한 현재 상태이므로 꺼짐 문구로 덮지 않는다.
         let s = BatterySectionPresentation.status(isLimitOn: false, isInstalling: false,
                                                  mode: .unavailable,
                                                  reason: nil, detail: "무시되어야 하는 문구",
                                                  locale: ko)
-        #expect(s == .init(dot: .faint, text: BatterySectionPresentation.disabledStatusText(locale: ko)))
+        #expect(s == .init(indicator: .unavailable, text: "무시되어야 하는 문구"))
     }
 
     @Test func offAndChargingPassesTheDaemonsDetailThrough() {
@@ -71,7 +71,7 @@ import Foundation
                                                  mode: .charging,
                                                  reason: nil, detail: "충전 제한 비활성화됨",
                                                  locale: ko)
-        #expect(s == .init(dot: .faint, text: "충전 제한 비활성화됨"))
+        #expect(s == .init(indicator: .inactive, text: "충전 제한 비활성화됨"))
     }
 
     @Test func offAndUnsupportedSurfacesTheActionableFailure() {
@@ -82,36 +82,36 @@ import Foundation
             isLimitOn: false, isInstalling: false, mode: .unsupported,
             reason: nil, detail: "충전을 다시 시작하지 못했습니다 (전원 어댑터를 다시 연결해 보세요)",
             locale: ko)
-        #expect(s == .init(dot: .orange, text: "충전을 다시 시작하지 못했습니다 (전원 어댑터를 다시 연결해 보세요)"))
+        #expect(s == .init(indicator: .failure,
+                           text: "충전을 다시 시작하지 못했습니다 (전원 어댑터를 다시 연결해 보세요)"))
     }
 
-    @Test func offAndInhibitedSurfacesTheDaemonsDetail() {
+    @Test func offAndInhibitedSurfacesTheVerifiedHardwareState() {
         // 꺼짐 + 여전히 억제 중. 아직 해제 쓰기가 반영되지 않은 과도기라도 회색 상수로 덮지 않고
         // 데몬의 실제 문구를 보여준다.
         let s = BatterySectionPresentation.status(isLimitOn: false, isInstalling: false,
                                                  mode: .inhibited,
-                                                 reason: nil, detail: "데몬 문구",
+                                                 reason: .init(kind: .inhibitedAtLimit,
+                                                               limitPercentage: 80),
+                                                 detail: "충전 제한 80% 도달 (전원 어댑터 바이패스 구동)",
                                                  locale: ko)
-        #expect(s == .init(dot: .orange, text: "데몬 문구"))
+        #expect(s == .init(indicator: .holdingAtLimit,
+                           text: "충전 제한 80% 도달 (전원 어댑터 바이패스 구동)"))
     }
 
-    @Test func onStateMapsModeToDotAndPassesDetailThrough() {
-        let cases: [(BatteryControlServiceMode, BatterySectionPresentation.Dot)] = [
-            (.inhibited, .orange),
-            (.charging, .green),
-            (.unavailable, .red),
-            // 켜짐 + `.unsupported`는 이 줄이 보이는 한(즉 `areDetailsVisible`을 통과한 한) 등록 자체가
-            // 없는 Mac일 수 없다 — 그런 Mac은 이 행을 아예 그리지 않는다. 그래서 여기서는 항상 실제
-            // 실패("이 Mac에서 충전 제어를 적용하지 못했습니다")이고, 가장 조용한 점(`.faint`)이 아니라
-            // 꺼짐 상태의 같은 모드와 일치하는 주황 점을 받는다.
-            (.unsupported, .orange),
+    @Test func onStateMapsModeToFallbackIndicatorAndPassesDetailThrough() {
+        let cases: [(BatteryControlServiceMode, BatterySectionPresentation.Indicator)] = [
+            (.inhibited, .holdingAtLimit),
+            (.charging, .chargingToLimit),
+            (.unavailable, .unavailable),
+            (.unsupported, .failure),
         ]
-        for (mode, dot) in cases {
+        for (mode, indicator) in cases {
             let s = BatterySectionPresentation.status(isLimitOn: true, isInstalling: false,
                                                      mode: mode,
                                                      reason: nil, detail: "데몬 문구",
                                                      locale: ko)
-            #expect(s == .init(dot: dot, text: "데몬 문구"))
+            #expect(s == .init(indicator: indicator, text: "데몬 문구"))
         }
     }
 
@@ -160,26 +160,20 @@ import Foundation
                                                   reason: .init(kind: .chargingToTarget, limitPercentage: 80),
                                                   detail: "목표치(80%)까지 충전 중",
                                                   locale: en)
-        #expect(s == .init(dot: .green, text: "Charging to 80%"))
+        #expect(s == .init(indicator: .chargingToLimit, text: "Charging to 80%"))
     }
 
     @Test func installingTextIsLocalized() {
         let s = BatterySectionPresentation.status(isLimitOn: true, isInstalling: true,
                                                   mode: .unavailable, reason: nil, detail: "",
                                                   locale: en)
-        #expect(s == .init(dot: .orange, text: "Installing helper…"))
+        #expect(s == .init(indicator: .installing, text: "Installing helper…"))
     }
 
-    /// 도우미가 없는데 기능도 꺼져 있으면 고장이 아니다 — 그 대체 문구도 번역돼야 한다.
+    /// 구버전 도우미용 로컬 fallback도 번역돼야 한다.
     @Test func disabledSubstituteTextIsLocalized() {
         #expect(BatterySectionPresentation.disabledStatusText(locale: en) == "Charge limit off")
         #expect(BatterySectionPresentation.disabledStatusText(locale: ko) == "충전 제한 비활성화됨")
-
-        let s = BatterySectionPresentation.status(isLimitOn: false, isInstalling: false,
-                                                  mode: .unavailable,
-                                                  reason: nil, detail: "도우미에 연결되지 않음",
-                                                  locale: en)
-        #expect(s == .init(dot: .faint, text: "Charge limit off"))
     }
 
     /// 껐는데 하드웨어가 아직 물고 있는 상태. 회복 안내가 사라지지도, 한국어로 남지도 않아야 한다.
@@ -189,8 +183,138 @@ import Foundation
                                                   reason: .init(kind: .releaseFailed),
                                                   detail: "충전을 다시 시작하지 못했습니다 (전원 어댑터를 다시 연결해 보세요)",
                                                   locale: en)
-        #expect(s == .init(dot: .orange,
+        #expect(s == .init(indicator: .failure,
                            text: "Could not resume charging (try reconnecting the power adapter)"))
+    }
+
+    @Test func everyActivityHasAStableSemanticIndicator() {
+        let cases: [(BatteryControlActivity, BatterySectionPresentation.Indicator)] = [
+            (.inactive, .inactive),
+            (.chargingToLimit, .chargingToLimit),
+            (.holdingAtLimit, .holdingAtLimit),
+            (.onBatteryPower, .onBatteryPower),
+            (.sailing, .sailing),
+            (.heatProtection, .heatProtection),
+            (.topUp, .topUp),
+            (.discharging, .discharging),
+            (.calibration, .calibration),
+        ]
+
+        for (activity, indicator) in cases {
+            let status = BatterySectionPresentation.status(
+                isLimitOn: true,
+                isInstalling: false,
+                mode: .charging,
+                // Future helpers keep `detail` for an app that knows this activity token but does
+                // not yet know their newer reason token. The indicator and prose stay independent.
+                reason: .init(kind: .unrecognized),
+                detail: "상태 문구",
+                locale: ko,
+                activity: activity)
+            #expect(status == .init(indicator: indicator, text: "상태 문구"))
+        }
+    }
+
+    @Test func helperErrorsOutrankToggleActivityAndFreshness() {
+        let unavailable = BatterySectionPresentation.status(
+            isLimitOn: false, isInstalling: false, mode: .unavailable,
+            reason: nil, detail: "도우미에 연결되지 않음", locale: ko,
+            activity: .topUp, updatedAt: 100, now: 200)
+        let failed = BatterySectionPresentation.status(
+            isLimitOn: false, isInstalling: false, mode: .unsupported,
+            reason: .init(kind: .applyFailed), detail: "이 Mac에서 충전 제어를 적용하지 못했습니다",
+            locale: ko, activity: .topUp, updatedAt: 100, now: 200)
+
+        #expect(unavailable.indicator == .unavailable)
+        #expect(failed.indicator == .failure)
+    }
+
+    @Test func hardwareUnsupportedHasItsOwnReachableIndicator() {
+        let status = BatterySectionPresentation.status(
+            isLimitOn: false, isInstalling: false, mode: .unsupported,
+            reason: .init(kind: .hardwareUnsupported),
+            detail: "이 Mac은 충전 제어를 지원하지 않습니다",
+            locale: ko, activity: nil)
+
+        #expect(status == .init(indicator: .hardwareUnsupported,
+                               text: "이 Mac은 충전 제어를 지원하지 않습니다"))
+        #expect(BatterySectionPresentation.showsConfigurationControls(
+            isHardwareSupported: false) == false)
+    }
+
+    @Test func explicitActivityWinsAndOlderHelperFallsBackToReason() {
+        let explicit = BatterySectionPresentation.status(
+            isLimitOn: false, isInstalling: false, mode: .inhibited,
+            reason: .init(kind: .inhibitedAtLimit, limitPercentage: 80), detail: "상태 문구",
+            locale: ko, activity: .heatProtection)
+        let fallback = BatterySectionPresentation.status(
+            isLimitOn: false, isInstalling: false, mode: .inhibited,
+            reason: .init(kind: .inhibitedAtLimit, limitPercentage: 80), detail: "상태 문구",
+            locale: ko, activity: nil)
+
+        #expect(explicit.indicator == .heatProtection)
+        #expect(fallback.indicator == .holdingAtLimit)
+    }
+
+    @Test func verifiedInactiveActivityOutranksAnOptimisticLocalToggle() {
+        let status = BatterySectionPresentation.status(
+            isLimitOn: true, isInstalling: false, mode: .charging,
+            reason: .init(kind: .limitDisabled), detail: "충전 제한 비활성화됨",
+            locale: ko, activity: .inactive)
+
+        #expect(status == .init(indicator: .inactive, text: "충전 제한 비활성화됨"))
+    }
+
+    @Test func statusBecomesStaleOnlyAfterThreePollIntervals() {
+        let atBoundary = BatterySectionPresentation.status(
+            isLimitOn: true, isInstalling: false, mode: .charging,
+            reason: .init(kind: .chargingToTarget, limitPercentage: 80), detail: "상태 문구",
+            locale: ko, activity: .chargingToLimit, updatedAt: 100, now: 115)
+        let stale = BatterySectionPresentation.status(
+            isLimitOn: true, isInstalling: false, mode: .charging,
+            reason: .init(kind: .chargingToTarget, limitPercentage: 80), detail: "상태 문구",
+            locale: ko, activity: .chargingToLimit, updatedAt: 100, now: 115.001)
+
+        #expect(atBoundary.indicator == .chargingToLimit)
+        #expect(atBoundary.text == "목표치(80%)까지 충전 중")
+        #expect(stale == .init(indicator: .stale, text: "확인 중..."))
+    }
+
+    @Test func unavailableAndInstallingAreNeverRelabeledAsStale() {
+        let unavailable = BatterySectionPresentation.status(
+            isLimitOn: true, isInstalling: false, mode: .unavailable,
+            reason: nil, detail: "도우미에 연결되지 않음", locale: ko,
+            activity: nil, updatedAt: 100, now: 200)
+        let installing = BatterySectionPresentation.status(
+            isLimitOn: true, isInstalling: true, mode: .charging,
+            reason: nil, detail: "상태 문구", locale: ko,
+            activity: .chargingToLimit, updatedAt: 100, now: 200)
+
+        #expect(unavailable.indicator == .unavailable)
+        #expect(installing.indicator == .installing)
+    }
+
+    @Test func indicatorsExposeStableSymbolsAndNonColorMeaning() {
+        #expect(BatterySectionPresentation.Indicator.chargingToLimit.symbolName == "bolt.circle.fill")
+        #expect(BatterySectionPresentation.Indicator.holdingAtLimit.symbolName == "pause.circle.fill")
+        #expect(BatterySectionPresentation.Indicator.heatProtection.symbolName == "thermometer")
+        #expect(BatterySectionPresentation.Indicator.failure.symbolName == "exclamationmark.triangle.fill")
+        #expect(BatterySectionPresentation.Indicator.hardwareUnsupported.symbolName == "nosign")
+        #expect(BatterySectionPresentation.Indicator.stale.symbolName == "clock.fill")
+
+        #expect(BatterySectionPresentation.Indicator.chargingToLimit.tone == .green)
+        #expect(BatterySectionPresentation.Indicator.failure.tone == .orange)
+        #expect(BatterySectionPresentation.Indicator.unavailable.tone == .red)
+        #expect(BatterySectionPresentation.Indicator.hardwareUnsupported.tone == .red)
+        #expect(BatterySectionPresentation.Indicator.inactive.tone == .faint)
+    }
+
+    @Test func everyIndicatorSymbolExistsOnTheRunningMacOS() {
+        for indicator in BatterySectionPresentation.Indicator.allCases {
+            #expect(NSImage(systemSymbolName: indicator.symbolName,
+                            accessibilityDescription: nil) != nil,
+                    "Missing SF Symbol: \(indicator.symbolName)")
+        }
     }
 
     /// 한도 선택기의 사유는 **카탈로그 키**로 남는다. 뷰가 `LocalizedStringKey`로 푼다.

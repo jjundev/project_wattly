@@ -25,7 +25,7 @@ struct SettingsBatterySection: View {
                 // the helper answers that this Mac has no register — otherwise the row would
                 // disable itself in the ON position with nothing left to switch it back.
                 SettingsToggleRow(isOn: $batteryLimitEnabled,
-                                  divider: areDetailsVisible,
+                                  divider: true,
                                   isEnabled: !isHardwareUnsupported,
                                   disabledReason: isHardwareUnsupported ? "이 Mac은 충전 제어를 지원하지 않습니다" : nil) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -39,8 +39,8 @@ struct SettingsBatterySection: View {
                     }
                 }
 
-                if areDetailsVisible {
-                    VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 12) {
+                    if showsConfigurationControls {
                         // 헤더와 세그먼트는 같은 컨트롤로 읽히므로 같은 값(0.5)으로 함께 흐려진다.
                         // 세그먼트 자신의 불투명도는 `isEnabled`가 처리하므로 여기서 또 곱하면
                         // 0.25가 되어 너무 어두워진다 — 그래서 딤은 헤더에만 건다.
@@ -64,18 +64,22 @@ struct SettingsBatterySection: View {
                             disabledReason: BatterySectionPresentation
                                 .limitPickerDisabledReason(isLimitOn: batteryLimitEnabled)
                         )
+                    }
 
-                        batteryStatusIndicator
+                    // Always visible: unsupported hardware must explain itself with the same
+                    // icon-and-text status interface instead of making the entire status row vanish.
+                    batteryStatusIndicator
 
+                    if showsConfigurationControls {
                         advisoryBanner
                     }
-                    .padding(EdgeInsets(top: 12, leading: 14, bottom: 14, trailing: 14))
                 }
+                .padding(EdgeInsets(top: 12, leading: 14, bottom: 14, trailing: 14))
             }
             .task(id: batteryLimitEnabled) {
                 // One read regardless of the opt-in: a Mac with no charge register has to disable
                 // its toggle before the user ever reaches for it. This is also the read that
-                // decides `areDetailsVisible`.
+                // decides whether the configuration controls remain visible.
                 await batteryControl.refreshStatus()
                 // Re-checked every iteration, not just once up front: the gate depends on the mode
                 // the daemon just reported, and that mode can change out from under us — e.g. the
@@ -133,10 +137,12 @@ struct SettingsBatterySection: View {
     private var batteryStatusIndicator: some View {
         let resolved = resolvedStatus
         return HStack(spacing: 8) {
-            Circle()
-                .fill(dotColor(for: resolved.dot))
-                .frame(width: 7, height: 7)
-            // `BatterySectionPresentation.status(…)`가 로케일까지 반영해 만든 최종 문자열이다.
+            Image(systemName: resolved.indicator.symbolName)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(statusColor(for: resolved.indicator.tone))
+                // The localized status text carries the meaning; hiding the decorative symbol
+                // prevents VoiceOver from reading an English SF Symbol name before it.
+                .accessibilityHidden(true)
             Text(verbatim: resolved.text)
                 .font(WattlyFont.at(11, weight: .regular))
                 .foregroundStyle(t.sub)
@@ -189,17 +195,12 @@ struct SettingsBatterySection: View {
         }
     }
 
-    /// Only an explicit `false` disables the control. `nil` means the helper has not answered yet —
-    /// or is too old to say — and a Mac must never be declared incapable on a missing answer.
-    /// Derived from `areDetailsVisible` rather than `isHardwareSupported` directly, so the `nil`
-    /// policy has exactly one place to change.
-    private var isHardwareUnsupported: Bool { !areDetailsVisible }
+    private var isHardwareUnsupported: Bool {
+        batteryControl.status.isHardwareSupported == false
+    }
 
-    /// 하위 항목(한도 선택기 · 상태 줄 · 안내 배너)을 그릴지. 토글의 ON/OFF와는 무관하다 —
-    /// 꺼져 있어도 이 기능이 무엇을 하는지는 보여야 한다. 숨기는 경우는 이 Mac에 충전 제어
-    /// 레지스터가 아예 없다고 도우미가 명시적으로 답했을 때뿐이다.
-    private var areDetailsVisible: Bool {
-        BatterySectionPresentation.areDetailsVisible(
+    private var showsConfigurationControls: Bool {
+        BatterySectionPresentation.showsConfigurationControls(
             isHardwareSupported: batteryControl.status.isHardwareSupported)
     }
 
@@ -214,7 +215,10 @@ struct SettingsBatterySection: View {
             mode: batteryControl.status.mode,
             reason: batteryControl.status.detailReason,
             detail: batteryControl.status.detail,
-            locale: locale)
+            locale: locale,
+            activity: batteryControl.status.activity,
+            updatedAt: batteryControl.status.updatedAt,
+            now: Date().timeIntervalSince1970)
     }
 
     /// 설치 실패 문구. `.install`은 설치기 자신의 오류(카탈로그 키이거나 macOS가 이미 현지화한
@@ -232,8 +236,8 @@ struct SettingsBatterySection: View {
 
     /// 의미 → 색. 색을 순수 타입에 넣지 않는 이유는 `t.faint`가 테마 토큰이라
     /// `@Environment`에서만 읽히기 때문이다.
-    private func dotColor(for dot: BatterySectionPresentation.Dot) -> Color {
-        switch dot {
+    private func statusColor(for tone: BatterySectionPresentation.Tone) -> Color {
+        switch tone {
         case .green: return Tokens.statusGreen
         case .orange: return Tokens.statusOrange
         case .red: return Tokens.statusRed
