@@ -12,6 +12,28 @@ import Foundation
 enum FanHelperInstaller {
     static let label = "dev.jjundev.WattlyFanDaemon"
 
+    typealias PrivilegedRunner = @Sendable (String) async throws -> Void
+
+    enum InstalledOwnership: Equatable {
+        case notInstalled
+        case owner(UInt32)
+        case invalidMetadata
+    }
+
+    enum OwnershipError: LocalizedError, Equatable {
+        case ownedByDifferentUser(UInt32)
+        case invalidInstalledMetadata
+
+        var errorDescription: String? {
+            switch self {
+            case .ownedByDifferentUser:
+                "다른 사용자가 이 Mac의 충전 정책을 관리하고 있습니다."
+            case .invalidInstalledMetadata:
+                "설치된 도우미의 소유자 정보를 확인할 수 없습니다."
+            }
+        }
+    }
+
     enum InstallError: LocalizedError {
         case daemonMissing
         case scriptWriteFailed
@@ -29,26 +51,81 @@ enum FanHelperInstaller {
     /// Installs the daemon + LaunchDaemon and kickstarts it. Runs off the main actor (the auth
     /// prompt blocks). Throws on a missing bundled daemon, a temp-write failure, or a
     /// cancelled/failed authorization.
-    static func install() async throws {
-        let daemon = bundledDaemonURL
+    static func installedOwnership(
+        plistURL: URL = URL(fileURLWithPath: "/Library/LaunchDaemons/\(label).plist")
+    ) -> InstalledOwnership {
+        guard FileManager.default.fileExists(atPath: plistURL.path) else { return .notInstalled }
+        guard let data = try? Data(contentsOf: plistURL),
+              let plist = try? PropertyListSerialization.propertyList(
+                from: data, format: nil) as? [String: Any],
+              let environment = plist["EnvironmentVariables"] as? [String: String],
+              let raw = environment["WATTLY_ALLOWED_UID"],
+              let uid = UInt32(raw), uid > 0 else { return .invalidMetadata }
+        return .owner(uid)
+    }
+
+    static func validateOwnership(
+        installedOwnership: InstalledOwnership,
+        currentUID: UInt32,
+        transferringOwnership: Bool
+    ) throws {
+        switch installedOwnership {
+        case .notInstalled, .owner(currentUID):
+            return
+        case .owner(let uid):
+            guard transferringOwnership else { throw OwnershipError.ownedByDifferentUser(uid) }
+        case .invalidMetadata:
+            guard transferringOwnership else { throw OwnershipError.invalidInstalledMetadata }
+        }
+    }
+
+    static func install(
+        transferringOwnership: Bool = false,
+        daemonURL: URL = bundledDaemonURL,
+        installedPlistURL: URL = URL(fileURLWithPath: "/Library/LaunchDaemons/\(label).plist"),
+        currentUID: UInt32 = UInt32(getuid()),
+        privilegedRunner: PrivilegedRunner? = nil
+    ) async throws {
+        try validateOwnership(
+            installedOwnership: installedOwnership(plistURL: installedPlistURL),
+            currentUID: currentUID,
+            transferringOwnership: transferringOwnership)
+        let daemon = daemonURL
         guard FileManager.default.isExecutableFile(atPath: daemon.path) else {
             throw InstallError.daemonMissing
         }
-        let plist = plistTemplate.replacingOccurrences(of: "__WATTLY_ALLOWED_UID__", with: "\(getuid())")
+        let plist = plistTemplate.replacingOccurrences(of: "__WATTLY_ALLOWED_UID__", with: "\(currentUID)")
         let plistPath = FileManager.default.temporaryDirectory.appendingPathComponent("\(label).plist")
         do {
             try plist.write(to: plistPath, atomically: true, encoding: .utf8)
         } catch {
             throw InstallError.scriptWriteFailed
         }
-        try await runPrivileged("""
-        launchctl bootout system/\(label) 2>/dev/null || true
+        try await (privilegedRunner ?? runPrivileged)(makeInstallScript(
+            daemonPath: daemon.path, plistPath: plistPath.path))
+    }
+
+    static func makeInstallScript(daemonPath: String, plistPath: String) -> String {
+        """
+        set -eu
+        '\(daemonPath)' --verify-battery-release
+        was_running=false
+        if launchctl print system/\(label) >/dev/null 2>&1; then
+          was_running=true
+          launchctl bootout system/\(label)
+        fi
+        if ! '\(daemonPath)' --verify-battery-release; then
+          if $was_running; then
+            launchctl bootstrap system '/Library/LaunchDaemons/\(label).plist'
+          fi
+          exit 74
+        fi
         install -d -o root -g wheel -m 755 /Library/PrivilegedHelperTools /Library/LaunchDaemons
-        install -o root -g wheel -m 755 '\(daemon.path)' '/Library/PrivilegedHelperTools/\(label)'
-        install -o root -g wheel -m 644 '\(plistPath.path)' '/Library/LaunchDaemons/\(label).plist'
+        install -o root -g wheel -m 755 '\(daemonPath)' '/Library/PrivilegedHelperTools/\(label)'
+        install -o root -g wheel -m 644 '\(plistPath)' '/Library/LaunchDaemons/\(label).plist'
         launchctl bootstrap system '/Library/LaunchDaemons/\(label).plist'
         launchctl kickstart -k system/\(label)
-        """)
+        """
     }
 
     /// Boots out and removes the daemon + LaunchDaemon (one auth prompt).

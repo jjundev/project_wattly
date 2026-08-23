@@ -24,6 +24,12 @@ private actor RequestRecorder {
     }
 }
 
+private actor ScriptRecorder {
+    private var script = ""
+    func record(_ script: String) { self.script = script }
+    var value: String { script }
+}
+
 struct BatteryControlClientTests {
     @MainActor @Test func clientAppliesConfigurationAndUpdatesStatus() async throws {
         let expectedStatus = BatteryControlServiceStatus(
@@ -46,7 +52,8 @@ struct BatteryControlClientTests {
             }
         }
 
-        await client.apply(enabled: true, limitPercentage: 85)
+        let acknowledged = await client.apply(enabled: true, limitPercentage: 85)
+        #expect(acknowledged == expectedStatus)
         #expect(client.status.mode == .inhibited)
         #expect(client.status.currentPercentage == 85)
         #expect(client.status.isPowerAdapterConnected == true)
@@ -80,6 +87,129 @@ struct BatteryControlClientTests {
         } else {
             Issue.record("Expected configure request")
         }
+    }
+
+    @MainActor @Test func disableFailsWhenTheHelperDoesNotAcknowledge() async {
+        let client = BatteryControlClient(requestHandler: { _ in (nil, nil) })
+        #expect(await client.disableAndConfirm() == .helperUnavailable)
+    }
+
+    @MainActor @Test func disableFailsWhenPersistenceIsNotAcknowledged() async throws {
+        let status = BatteryControlServiceStatus(
+            mode: .charging, currentPercentage: 70, isPowerAdapterConnected: true,
+            detail: "OK", updatedAt: 1,
+            desiredConfiguration: .init(enabled: true, limitPercentage: 85),
+            actualGate: .allowed)
+        let client = BatteryControlClient(requestHandler: { _ in
+            (try? BatteryControlCodec.encode(status), nil)
+        })
+        #expect(await client.disableAndConfirm() == .persistenceRejected)
+    }
+
+    @MainActor @Test func disableFailsWhenReleaseCannotBeVerified() async throws {
+        let status = BatteryControlServiceStatus(
+            mode: .charging, currentPercentage: 70, isPowerAdapterConnected: true,
+            detail: "OK", updatedAt: 1,
+            desiredConfiguration: .init(enabled: false, limitPercentage: 100),
+            actualGate: .inhibited(appliedLimitPercentage: 85), releaseVerdict: .failed)
+        let client = BatteryControlClient(requestHandler: { _ in
+            (try? BatteryControlCodec.encode(status), nil)
+        })
+        #expect(await client.disableAndConfirm() == .releaseUnverified)
+    }
+
+    @MainActor @Test func disableSucceedsOnlyWithVerifiedRelease() async throws {
+        let status = BatteryControlServiceStatus(
+            mode: .charging, currentPercentage: 70, isPowerAdapterConnected: true,
+            detail: "OK", updatedAt: 1,
+            desiredConfiguration: .init(enabled: false, limitPercentage: 100),
+            actualGate: .allowed, releaseVerdict: .verifiedAllowed)
+        let client = BatteryControlClient(requestHandler: { _ in
+            (try? BatteryControlCodec.encode(status), nil)
+        })
+        #expect(await client.disableAndConfirm() == nil)
+        #expect(client.status.actualGate?.state == .allowed)
+    }
+
+    @MainActor @Test func disableAcknowledgesTheRequestedFullConfiguration() async throws {
+        let requested = BatteryControlConfiguration(
+            enabled: false, limitPercentage: 85, lowerHysteresisDelta: 5)
+        let status = BatteryControlServiceStatus(
+            mode: .charging, currentPercentage: 70, isPowerAdapterConnected: true,
+            detail: "OK", updatedAt: 1, desiredConfiguration: requested,
+            actualGate: .allowed)
+        let receiver = RequestReceiver()
+        let client = BatteryControlClient(requestHandler: { request in
+            await receiver.set(request)
+            return (try? BatteryControlCodec.encode(status), nil)
+        })
+
+        #expect(await client.disableAndConfirm(
+            limitPercentage: 85, lowerHysteresisDelta: 5) == nil)
+        guard case .configure(let data) = await receiver.request else {
+            Issue.record("Expected configure request")
+            return
+        }
+        let sent = try BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data)
+        #expect(sent.configuration == requested)
+    }
+
+    @Test func differentInstalledOwnerIsBlockedWithoutTransfer() throws {
+        #expect(throws: FanHelperInstaller.OwnershipError.self) {
+            try FanHelperInstaller.validateOwnership(
+                installedOwnership: .owner(UInt32(getuid()) + 1),
+                currentUID: UInt32(getuid()), transferringOwnership: false)
+        }
+    }
+
+    @Test func explicitTransferAllowsTheNewOwner() throws {
+        try FanHelperInstaller.validateOwnership(
+            installedOwnership: .owner(UInt32(getuid()) + 1),
+            currentUID: UInt32(getuid()), transferringOwnership: true)
+    }
+
+    @Test func installedOwnershipReadsTheLaunchDaemonEnvironment() throws {
+        let fixture = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(UUID().uuidString).plist")
+        defer { try? FileManager.default.removeItem(at: fixture) }
+        let object: [String: Any] = ["EnvironmentVariables": ["WATTLY_ALLOWED_UID": "502"]]
+        let data = try PropertyListSerialization.data(
+            fromPropertyList: object, format: .xml, options: 0)
+        try data.write(to: fixture)
+        #expect(FanHelperInstaller.installedOwnership(plistURL: fixture) == .owner(502))
+    }
+
+    @Test func malformedInstalledPlistRequiresExplicitTransfer() throws {
+        #expect(throws: FanHelperInstaller.OwnershipError.self) {
+            try FanHelperInstaller.validateOwnership(
+                installedOwnership: .invalidMetadata, currentUID: 501,
+                transferringOwnership: false)
+        }
+        try FanHelperInstaller.validateOwnership(
+            installedOwnership: .invalidMetadata, currentUID: 501,
+            transferringOwnership: true)
+    }
+
+    @Test func injectedRunnerReceivesTheCompleteInstallScript() async throws {
+        let recorder = ScriptRecorder()
+        let executable = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        FileManager.default.createFile(
+            atPath: executable.path, contents: Data(),
+            attributes: [.posixPermissions: 0o700])
+        defer { try? FileManager.default.removeItem(at: executable) }
+        try await FanHelperInstaller.install(
+            transferringOwnership: true,
+            daemonURL: executable,
+            installedPlistURL: executable.deletingLastPathComponent()
+                .appendingPathComponent("missing-\(UUID().uuidString).plist"),
+            currentUID: 501,
+            privilegedRunner: { script in await recorder.record(script) })
+        let script = await recorder.value
+        #expect(script.contains("launchctl bootstrap system"))
+        #expect(script.contains("launchctl kickstart -k"))
+        #expect(script.contains("--verify-battery-release"))
+        #expect(!script.contains("bootout system/\(FanHelperInstaller.label) 2>/dev/null || true"))
     }
 
     @MainActor @Test func clientInitialStateIsUnavailable() {

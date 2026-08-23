@@ -14,7 +14,11 @@ import AppKit
 enum PrivilegedHelperInstallSession {
     /// Installs the helper, runs `postInstall` before handing the window back, and returns `nil` on
     /// success or the failure (including a cancelled auth prompt).
-    static func run(window: NSWindow?, postInstall: @MainActor () async -> Void) async -> Error? {
+    static func run(
+        window: NSWindow?,
+        transferringOwnership: Bool = false,
+        postInstall: @MainActor () async -> Void
+    ) async -> Error? {
         let priorPolicy = NSApp.activationPolicy()
         let raised = priorPolicy != .regular
         if raised { NSApp.setActivationPolicy(.regular) }
@@ -31,7 +35,7 @@ enum PrivilegedHelperInstallSession {
 
         var failure: Error?
         do {
-            try await FanHelperInstaller.install()
+            try await FanHelperInstaller.install(transferringOwnership: transferringOwnership)
         } catch {
             failure = error
         }

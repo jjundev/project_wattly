@@ -8,10 +8,32 @@ plist="/Library/LaunchDaemons/$label.plist"
 plist_template="$root/Resources/com.dev.jjundev.WattlyFanDaemon.plist"
 uid="$(id -u)"
 
+transfer_ownership=false
+if [[ "$#" -gt 1 ]] || { [[ "$#" -eq 1 ]] && [[ "$1" != "--transfer-ownership" ]]; }; then
+  print -u2 "Usage: $0 [--transfer-ownership]"
+  exit 64
+fi
+[[ "$#" -eq 1 ]] && transfer_ownership=true
+
 [[ "$uid" -gt 0 ]] || {
   print -u2 "Run as the login user, not root."
   exit 64
 }
+
+if [[ -e "$plist" ]]; then
+  installed_uid=$(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:WATTLY_ALLOWED_UID' "$plist" 2>/dev/null) || installed_uid=""
+  if [[ "$installed_uid" != <-> ]] || [[ "$installed_uid" -le 0 ]]; then
+    $transfer_ownership || {
+      print -u2 "Installed helper owner metadata is invalid; rerun with --transfer-ownership."
+      exit 65
+    }
+  elif [[ "$installed_uid" -ne "$uid" ]]; then
+    $transfer_ownership || {
+      print -u2 "Helper is owned by UID $installed_uid; rerun with --transfer-ownership."
+      exit 65
+    }
+  fi
+fi
 
 if pgrep -x "Macs Fan Control" >/dev/null || \
   launchctl print system/com.crystalidea.macsfancontrol.smcwrite >/dev/null 2>&1; then
@@ -31,7 +53,16 @@ tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 sed "s/__WATTLY_ALLOWED_UID__/$uid/g" "$plist_template" > "$tmp"
 
-sudo launchctl bootout "system/$label" 2>/dev/null || true
+sudo "$dir/WattlyFanDaemon" --verify-battery-release
+was_running=false
+if sudo launchctl print "system/$label" >/dev/null 2>&1; then
+  was_running=true
+  sudo launchctl bootout "system/$label"
+fi
+if ! sudo "$dir/WattlyFanDaemon" --verify-battery-release; then
+  $was_running && sudo launchctl bootstrap system "$plist"
+  exit 74
+fi
 sudo install -d -o root -g wheel -m 755 /Library/PrivilegedHelperTools /Library/LaunchDaemons
 sudo install -o root -g wheel -m 755 "$dir/WattlyFanDaemon" "$helper"
 sudo install -o root -g wheel -m 644 "$tmp" "$plist"
