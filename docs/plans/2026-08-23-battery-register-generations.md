@@ -1,5 +1,24 @@
 # Battery Charge Limit — Register Generations Implementation Plan
 
+> **[2026-08-23 정정] 이 계획서의 "칩 세대" 서술은 틀렸습니다.**
+>
+> 본문은 "애플이 ~2023년경 **기종**을 기준으로 레지스터를 바꿨고 M1–M3는 `CH0B`, 그 이후는 `CHTE`"라고 설명하지만, 실제 축은 **펌웨어 버전**입니다. 같은 기계가 macOS 26(Tahoe) 펌웨어를 받으면 `CH0B`를 잃고 `CHTE`로 바뀝니다.
+> - 근거 1: `charlie0129/batt` — 키 표가 펌웨어 버전 기준이며 "Do NOT rely on macOS version", 코드 주석에 "ChargingKey3 is used for **Tahoe firmware** versions". 억제/해제 바이트 값은 이 계획서와 일치.
+> - 근거 2: `lslqtz/bclm_loop#5` — Tahoe 26.0 업데이트 이후 기존 키 쓰기가 전부 SMC result 135(키 없음)로 실패.
+> - 근거 3: 이 개발 장비(M5, 펌웨어 `18000.161.10`)는 batt 호환표의 macOS 26 행에 해당.
+>
+> 계획서가 지시한 **런타임 프로브 방식 자체는 옳고**(오히려 batt도 같은 방식), 구현된 코드도 그대로 동작합니다. 틀린 것은 원인에 대한 설명뿐이며, 실제 주석은 `FanControlShared/BatteryControlKeys.swift`에서 이미 정정했습니다.
+>
+> 같은 조사에서 **macOS 27 계열 펌웨어(`20xxx`)가 `bfF0`/`bfD0`/`bfE0`로 또 한 번 바뀌고 펌웨어가 제한을 직접 관리한다**는 사실도 확인됐습니다. macOS 27이 정식 출시되기 전까지는 지원하지 않기로 했고, 대신 `bfF0`·`bfE0` **두** 키가 모두 있으면 `.firmwareManaged`로 판정해 아무것도 쓰지 않습니다. `bfD0`는 판정에서 제외됩니다 — Tahoe 펌웨어에도 그 키 혼자 2바이트 읽기전용으로 나타나서(이 M5, 펌웨어 `18000.161.10`에서 재확인), 투표에 넣으면 오늘 작동하는 기계에서 기능이 꺼지기 때문입니다(2026-08-23 구현, 테스트 6건 추가).
+>
+> **macOS 27이 정식 출시되면 함께 처리할 것** (2026-08-23 독립 검증 에이전트가 찾은 항목 중 아직 남은 것 — 전부 27 펌웨어가 실제로 도착해야 도달하는 상태라 지금은 보류):
+> - **거짓말하는 부제**: `SettingsBatterySection.swift`의 부제가 "이 기능이 사용하는 SMC 레지스터가 없습니다"라고 말하지만, `.firmwareManaged` Mac은 레지스터가 없는 게 아니라 펌웨어가 그 레지스터를 쥐고 있을 뿐이다 — 그 기기에서는 거짓 문장이다. 문구를 분리하려면 30개 언어 번역이 필요해 지금은 보류한다.
+> - **`release()`의 미보장 불변식**: `BatteryControlEngine.release()`만 `isHardwareSupported`를 확인하지 않는다. 지금은 데몬 어댑터의 `guard !writes.isEmpty`가 막아주지만, `.firmwareManaged`에 실제 쓰기 테이블이 생기는 순간 데몬 종료마다 해제 쓰기가 나간다. 단순히 가드를 넣으면 `.unsupported`에서 `release()`가 정확히 한 번 쓰기를 시도하도록 **의도적으로** 고정해둔 기존 테스트가 깨지므로, 그 의도를 먼저 정리해야 한다.
+>
+> 이미 닫힌 항목: **헛도는 5초 폴링**은 `3204d75`가 `shouldPollStatus`에 `isHardwareSupported`를 반영해 닫았습니다. **켜진 채 잠기는 토글**도 `b2a4a38`가 토글을 ON으로 읽는 동안에도 끌 수 있게 열어 대부분 닫았고, 남은 것은 위 부제 문구뿐입니다.
+>
+> 이 문서의 나머지 본문은 당시 기록으로 그대로 둡니다.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make the charge limit work on Apple Silicon Macs from ~2023 onward, which expose `CHTE` instead of the `CH0B`/`CH0C` pair the current code writes, and tell the user honestly when a Mac has no charge-control register at all.

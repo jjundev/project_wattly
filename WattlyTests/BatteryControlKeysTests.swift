@@ -15,6 +15,17 @@ import Testing
                                                    isRequired: true)])
     }
 
+    @Test func modernReleaseAtFullTargetIsThePayloadTheStartupUnlatchSends() {
+        // `SMCBatteryControlHardware.init` fires exactly this call — `inhibited: false`, `targetLimit:
+        // 100` — as the one-shot release on a `.firmwareManaged` Mac that still exposes CHTE. Pinning
+        // it here means the daemon's startup write is verified even though `WattlyFanDaemon` itself
+        // has no test host.
+        let release = BatteryControlKeys.writes(inhibited: false, registerSet: .modern, targetLimit: 100)
+        #expect(release == [BatteryControlKeyWrite(key: "CHTE",
+                                                   bytes: [0x00, 0x00, 0x00, 0x00],
+                                                   isRequired: true)])
+    }
+
     @Test func theModernFlagIgnoresTheTargetBecauseChargingIsBinary() {
         // CHTE is a gate, not a ceiling. The engine holds the target by flipping the gate at the
         // threshold — if this row ever encoded the percentage it would be lying about the hardware.
@@ -55,6 +66,21 @@ import Testing
         #expect(BatteryControlKeys.writes(inhibited: false, registerSet: .unsupported, targetLimit: 85).isEmpty)
     }
 
+    @Test func firmwareManagedHardwareHasNothingToWrite() {
+        // macOS 27 firmware owns the limit. Writing anything here is worse than doing nothing, so
+        // the table hands back the same empty list it uses for a Mac with no register at all.
+        #expect(BatteryControlKeys.writes(inhibited: true, registerSet: .firmwareManaged, targetLimit: 85).isEmpty)
+        #expect(BatteryControlKeys.writes(inhibited: false, registerSet: .firmwareManaged, targetLimit: 85).isEmpty)
+    }
+
+    @Test func onlyTheDrivableGenerationsMayBeWritten() {
+        #expect(BatteryControlRegisterSet.modern.canDriveCharging)
+        #expect(BatteryControlRegisterSet.legacy.canDriveCharging)
+        #expect(BatteryControlRegisterSet.intel.canDriveCharging)
+        #expect(!BatteryControlRegisterSet.firmwareManaged.canDriveCharging)
+        #expect(!BatteryControlRegisterSet.unsupported.canDriveCharging)
+    }
+
     @Test func probeOrderPrefersTheNewerRegisterSet() {
         // A preference, not a measured requirement — see the doc comment on `probeOrder`.
         #expect(BatteryControlKeys.probeOrder.map(\.key) == ["CHTE", "CH0B", "BCLM"])
@@ -62,14 +88,85 @@ import Testing
     }
 
     @Test func selectionPicksTheGenerationTheHardwareActuallyAnswers() {
-        // An M5: CHTE present at 4 bytes, the legacy pair absent.
+        // Tahoe-era firmware: CHTE present at 4 bytes, the older pair absent.
         #expect(BatteryControlKeys.registerSet { $0 == "CHTE" ? ("ui32", 4) : nil } == .modern)
-        // An M1–M3: CH0B present at one byte.
+        // Pre-Tahoe firmware: CH0B present at one byte.
         #expect(BatteryControlKeys.registerSet { $0 == "CH0B" ? ("hex_", 1) : nil } == .legacy)
         // An Intel Mac.
         #expect(BatteryControlKeys.registerSet { $0 == "BCLM" ? ("ui8", 1) : nil } == .intel)
         // A desktop with no charge control at all.
         #expect(BatteryControlKeys.registerSet { _ in nil } == .unsupported)
+    }
+
+    @Test func firmwareManagedKeysWinOverEveryDrivableRegister() {
+        // macOS 27 firmware can sit on a machine that still answers to one of the drivable
+        // registers. Taking that register would drive it out from under the firmware that owns the
+        // charger, so the firmware keys win over every one of them — not just over CHTE.
+        func probe(alongside key: String, size: Int) -> BatteryControlRegisterSet {
+            BatteryControlKeys.registerSet {
+                switch $0 {
+                case "bfF0", "bfD0", "bfE0": return ("ui32", 4)
+                case key: return ("ui32", size)
+                default: return nil
+                }
+            }
+        }
+        #expect(probe(alongside: "CHTE", size: 4) == .firmwareManaged)
+        #expect(probe(alongside: "CH0B", size: 1) == .firmwareManaged)
+        #expect(probe(alongside: "BCLM", size: 1) == .firmwareManaged)
+
+        // Size is deliberately not checked on these, so an unfamiliar payload width still switches
+        // the feature off rather than falling through to a drivable register.
+        let oddWidths = BatteryControlKeys.registerSet {
+            ["bfF0", "bfD0", "bfE0"].contains($0) ? ("hex_", 2) : ("ui32", 4)
+        }
+        #expect(oddWidths == .firmwareManaged)
+    }
+
+    @Test func theDecidingFirmwareKeysAreEnoughWithoutTheThird() {
+        // `bfD0` is excluded from the test on purpose, so a macOS 27 Mac that names its upper-limit
+        // key something else still stands the feature down instead of being driven through CHTE.
+        let withoutUpper = BatteryControlKeys.registerSet {
+            switch $0 {
+            case "bfF0", "bfE0": return ("ui32", 4)
+            case "CHTE": return ("ui32", 4)
+            default: return nil
+            }
+        }
+        #expect(withoutUpper == .firmwareManaged)
+
+        // ...and firmware-managed is reported even when no drivable register is present at all,
+        // rather than collapsing into the "this Mac has no charge control" answer.
+        let firmwareOnly = BatteryControlKeys.registerSet {
+            ["bfF0", "bfE0"].contains($0) ? ("ui32", 4) : nil
+        }
+        #expect(firmwareOnly == .firmwareManaged)
+    }
+
+    @Test func aLoneFirmwareKeyDoesNotDisableWorkingHardware() {
+        // Tahoe firmware exposes bfD0 on its own as a 2-byte read-only key — measured on the M5 this
+        // feature was developed on, where the charge limit works through CHTE. A check that let a
+        // single unfamiliar key vote would turn the limit off on every machine that works today.
+        let m5 = BatteryControlKeys.registerSet {
+            switch $0 {
+            case "bfD0": return ("hex_", 2)
+            case "CHTE": return ("ui32", 4)
+            default: return nil
+            }
+        }
+        #expect(m5 == .modern)
+
+        // The same holds for either deciding key on its own: two are required together.
+        for lone in ["bfF0", "bfE0"] {
+            let onlyOne = BatteryControlKeys.registerSet {
+                switch $0 {
+                case lone: return ("ui32", 4)
+                case "CHTE": return ("ui32", 4)
+                default: return nil
+                }
+            }
+            #expect(onlyOne == .modern)
+        }
     }
 
     @Test func aKeyOfTheWrongSizeIsTreatedAsAbsent() {
@@ -86,5 +183,70 @@ import Testing
             }
         }
         #expect(bothButModernIsWrong == .legacy)
+    }
+
+    @Test func drivableRegisterSetSurvivesTheFirmwareManagedVerdictOnModernHardware() {
+        // This is the exact pair `SMCBatteryControlHardware.init` needs on a Mac that took a macOS 27
+        // firmware update while `CHTE == 1` was still latched from the old firmware: `registerSet`
+        // must say `.firmwareManaged` (so the engine never drives it again), while
+        // `drivableRegisterSet` must still say `.modern` (so init knows CHTE is the register to send
+        // the one release write through). Losing either half of this pair is the bug — the firmware
+        // verdict swallowing the drivable answer is what left `CHTE` with nobody to clear it.
+        func probe(_ key: String) -> (type: String, size: Int)? {
+            switch key {
+            case "bfF0", "bfE0": return ("ui32", 4)
+            case "CHTE": return ("ui32", 4)
+            default: return nil
+            }
+        }
+        #expect(BatteryControlKeys.registerSet(probing: probe) == .firmwareManaged)
+        #expect(BatteryControlKeys.drivableRegisterSet(probing: probe) == .modern)
+    }
+
+    @Test func drivableRegisterSetSurvivesTheFirmwareManagedVerdictOnLegacyHardware() {
+        // Same pairing, on a pre-Tahoe Mac that somehow already picked up the firmware-managed keys:
+        // `.firmwareManaged` for the policy question, `.legacy` for the mechanical one, so the
+        // startup release goes out through CH0B instead of CHTE.
+        func probe(_ key: String) -> (type: String, size: Int)? {
+            switch key {
+            case "bfF0", "bfE0": return ("ui32", 4)
+            case "CH0B": return ("hex_", 1)
+            default: return nil
+            }
+        }
+        #expect(BatteryControlKeys.registerSet(probing: probe) == .firmwareManaged)
+        #expect(BatteryControlKeys.drivableRegisterSet(probing: probe) == .legacy)
+    }
+
+    @Test func drivableRegisterSetIsUnsupportedWhenFirmwareManagedHasNoDrivableRegisterUnderneath() {
+        // A firmware-managed Mac that exposes none of CHTE/CH0B/BCLM has nothing for the startup
+        // release to write through — `drivableRegisterSet` must say `.unsupported` so
+        // `SMCBatteryControlHardware.init` skips the write entirely rather than sending it to a key
+        // that was never there.
+        func probe(_ key: String) -> (type: String, size: Int)? {
+            switch key {
+            case "bfF0", "bfE0": return ("ui32", 4)
+            default: return nil
+            }
+        }
+        #expect(BatteryControlKeys.registerSet(probing: probe) == .firmwareManaged)
+        #expect(BatteryControlKeys.drivableRegisterSet(probing: probe) == .unsupported)
+    }
+
+    @Test func drivableRegisterSetIgnoresTheFirmwareKeysEntirely() {
+        // `drivableRegisterSet` answers "which register could this Mac be driven through" and must
+        // never consult `firmwareManagedKeys` — it stays true even when the app has decided not to
+        // drive the Mac. This is this M5's actual measured shape: `bfD0` present read-only at 2
+        // bytes, no `bfF0`/`bfE0`, `CHTE` present at 4 bytes. `registerSet` and `drivableRegisterSet`
+        // agree here (both `.modern`), which is the ordinary case this feature has shipped on.
+        func probe(_ key: String) -> (type: String, size: Int)? {
+            switch key {
+            case "bfD0": return ("hex_", 2)
+            case "CHTE": return ("ui32", 4)
+            default: return nil
+            }
+        }
+        #expect(BatteryControlKeys.registerSet(probing: probe) == .modern)
+        #expect(BatteryControlKeys.drivableRegisterSet(probing: probe) == .modern)
     }
 }
