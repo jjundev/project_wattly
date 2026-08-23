@@ -17,7 +17,10 @@ public struct BatteryControlStatusReason: Codable, Equatable, Sendable {
         case initializing
         /// IOKit would not hand over a power source snapshot, and there is no cached one.
         case powerSourceUnreadable
-        /// This Mac exposes no charge-control register at all (`BatteryControlRegisterSet.unsupported`).
+        /// The engine will not drive this Mac: it exposes no charge-control register at all
+        /// (`BatteryControlRegisterSet.unsupported`), or its firmware owns the limit itself and this
+        /// build stays out of the way (`.firmwareManaged`). One sentence covers both because the
+        /// user-visible consequence is identical — the limit is off and no setting changes that.
         case hardwareUnsupported
         /// Charging is inhibited and the write that would release it keeps failing — the Mac is
         /// stuck not charging. The most user-actionable state there is.

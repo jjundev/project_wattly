@@ -20,6 +20,26 @@ import Foundation
         #expect(BatterySectionPresentation.areDetailsVisible(isHardwareSupported: false) == false)
     }
 
+    @Test func theToggleStaysUsableWhileItReadsOnEvenOnHardwareThatCannotDoIt() {
+        // 지원되는(또는 아직 모르는) 하드웨어에서는 언제나 조작할 수 있다.
+        for supported: Bool? in [true, nil] {
+            for isOn in [true, false] {
+                #expect(BatterySectionPresentation.isToggleEnabled(isHardwareSupported: supported,
+                                                                    isLimitOn: isOn) == true)
+            }
+        }
+
+        // 불가능한 하드웨어에서 꺼져 있으면 켤 수 없다 — 켜봐야 아무 일도 일어나지 않는다.
+        #expect(BatterySectionPresentation.isToggleEnabled(isHardwareSupported: false,
+                                                            isLimitOn: false) == false)
+
+        // ...그러나 이미 켜져 있다면 끌 수 있어야 한다. 펌웨어가 바뀌며 지원이 사라진 Mac에는 저장된
+        // `true`가 그대로 남는데, 그 값을 앱이 대신 꺼주지 않는 것은 의도된 설계다(SettingsBatterySection
+        // 상단 주석). 이 한 칸이 열려 있지 않으면 사용자에게는 전체 설정 초기화 말고 빠져나갈 길이 없다.
+        #expect(BatterySectionPresentation.isToggleEnabled(isHardwareSupported: false,
+                                                            isLimitOn: true) == true)
+    }
+
     // MARK: - 한도 선택기
 
     @Test func limitPickerFollowsTheToggle() {
@@ -133,23 +153,55 @@ import Foundation
 
     @Test func pollingRunsWhenOnRegardlessOfMode() {
         for mode: BatteryControlServiceMode in [.inhibited, .charging, .unavailable, .unsupported] {
-            #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: true, mode: mode) == true)
+            #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: true, mode: mode,
+                                                                isHardwareSupported: true) == true)
         }
     }
 
     @Test func pollingStopsWhenOffAndSettled() {
         // `.charging` = 정상적으로 꺼짐, `.unavailable` = 도우미가 없어 물어봐야 답할 주체가 없음.
         // 둘 다 문구가 상수라 다시 읽어도 바뀌지 않는다.
-        #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false, mode: .charging) == false)
-        #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false, mode: .unavailable) == false)
+        #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false, mode: .charging,
+                                                            isHardwareSupported: true) == false)
+        #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false, mode: .unavailable,
+                                                            isHardwareSupported: true) == false)
     }
 
     @Test func pollingContinuesWhenOffAndStillRecovering() {
         // 껐는데 하드웨어가 아직 물고 있거나 해제 쓰기가 실패한 상태 — 데몬이 스스로 재시도해
         // 풀어내므로, 여기서 폴링을 멈추면 사용자가 어댑터를 다시 꽂아 실제로 복구된 뒤에도 화면은
         // 실패 문구에 얼어붙는다.
-        #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false, mode: .inhibited) == true)
-        #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false, mode: .unsupported) == true)
+        //
+        // `.unsupported` 모드는 두 가지를 뜻한다 — 레지스터가 아예 없거나(영구), 쓰기가 계속
+        // 실패하거나(`BatteryControlEngine`의 `!isHardwareSupported || hasActionableFailure`, 일시적).
+        // 전자는 `isHardwareSupported == false`로 걸러져 폴링이 멎지만, 후자는 데몬이 재시도로
+        // 빠져나올 수 있는 상태이므로 여기서는 `isHardwareSupported: true`로 두어 폴링이 계속돼야
+        // 한다.
+        #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false, mode: .inhibited,
+                                                            isHardwareSupported: true) == true)
+        #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false, mode: .unsupported,
+                                                            isHardwareSupported: true) == true)
+    }
+
+    @Test func pollingStopsOnHardwareThatCanNeverChangeItsAnswer() {
+        // 영구적인 사실에는 재질문이 없다. 이 상태에서는 `areDetailsVisible == false`라 갱신할
+        // 화면조차 없는데, 5초마다 XPC 왕복과 루트 데몬의 IOKit 전원 소스 읽기가 무한히 돈다.
+        // 한도가 켜져 있어도 마찬가지다 — 켜짐은 사용자의 저장값일 뿐, 하드웨어의 답을 바꾸지 못한다.
+        for isOn in [true, false] {
+            for mode: BatteryControlServiceMode in [.inhibited, .charging, .unavailable, .unsupported] {
+                #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: isOn, mode: mode,
+                                                                    isHardwareSupported: false) == false)
+            }
+        }
+    }
+
+    @Test func pollingSurvivesAnUnansweredHelper() {
+        // `nil`은 "아직 답이 없다"이지 "불가능하다"가 아니다. 여기서 폴링을 멈추면 도우미가 처음
+        // 답하기 전에 창을 연 사용자는 영영 답을 못 받는다 — 다시 물어볼 유일한 주체가 이 루프다.
+        #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: true, mode: .unavailable,
+                                                            isHardwareSupported: nil) == true)
+        #expect(BatterySectionPresentation.shouldPollStatus(isLimitOn: false, mode: .unsupported,
+                                                            isHardwareSupported: nil) == true)
     }
 
     // MARK: - 현지화 (plan 2026-08-23)

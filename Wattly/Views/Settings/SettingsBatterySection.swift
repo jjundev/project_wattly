@@ -21,14 +21,17 @@ struct SettingsBatterySection: View {
             SettingsCard {
                 // Rendering never writes the stored value: flipping it off here would look like the
                 // app undoing the user's choice, and it would be wrong the moment the same
-                // preferences reach a Mac that does support the limit. The one exception is the
-                // opt-in the user just made in this session, which the toggle handler clears once
-                // the helper answers that this Mac has no register — otherwise the row would
-                // disable itself in the ON position with nothing left to switch it back.
+                // preferences reach a Mac that does support the limit. Two things keep that from
+                // stranding anyone. The toggle handler clears the opt-in the user just made once
+                // the helper answers that this Mac has no register; and `isToggleEnabled` leaves
+                // the row switchable while it reads ON, so a `true` that arrived some other way —
+                // a firmware update that took the register away under a working Mac — can still be
+                // switched off by hand. Turning it back on stays impossible, so the exit is
+                // one-way.
                 SettingsToggleRow(isOn: $batteryLimitEnabled,
                                   divider: areDetailsVisible,
-                                  isEnabled: !isHardwareUnsupported,
-                                  disabledReason: isHardwareUnsupported ? "이 Mac은 충전 제어를 지원하지 않습니다" : nil) {
+                                  isEnabled: isToggleEnabled,
+                                  disabledReason: isToggleEnabled ? nil : "이 Mac은 충전 제어를 지원하지 않습니다") {
                     VStack(alignment: .leading, spacing: 2) {
                         SettingsRowTitle("배터리 충전 제한")
                         Text(isHardwareUnsupported
@@ -91,7 +94,8 @@ struct SettingsBatterySection: View {
                 // once the state settles, instead of running forever or freezing on a failure.
                 while !Task.isCancelled,
                       BatterySectionPresentation.shouldPollStatus(isLimitOn: batteryLimitEnabled,
-                                                                   mode: batteryControl.status.mode) {
+                                                                   mode: batteryControl.status.mode,
+                                                                   isHardwareSupported: batteryControl.status.isHardwareSupported) {
                     try? await Task.sleep(for: .seconds(BatteryControlPolicy.statusPollInterval))
                     guard !Task.isCancelled else { return }
                     await batteryControl.refreshStatus()
@@ -240,6 +244,14 @@ struct SettingsBatterySection: View {
     /// Derived from `areDetailsVisible` rather than `isHardwareSupported` directly, so the `nil`
     /// policy has exactly one place to change.
     private var isHardwareUnsupported: Bool { !areDetailsVisible }
+
+    /// 토글이 조작 가능한지. `isHardwareUnsupported`의 단순한 반대가 아니다 — 이미 켜져 있는 값을
+    /// 끌 수 있게 남겨두는 예외가 붙는다. 판단은 `BatterySectionPresentation`이 갖는다.
+    private var isToggleEnabled: Bool {
+        BatterySectionPresentation.isToggleEnabled(
+            isHardwareSupported: batteryControl.status.isHardwareSupported,
+            isLimitOn: batteryLimitEnabled)
+    }
 
     /// 하위 항목(한도 선택기 · 상태 줄)을 그릴지. 토글의 ON/OFF와는 무관하다 —
     /// 꺼져 있어도 이 기능이 무엇을 하는지는 보여야 한다. 숨기는 경우는 이 Mac에 충전 제어
