@@ -53,7 +53,7 @@ struct SettingsBatterySection: View {
                             Button {
                                 isHelpPopoverPresented = true
                             } label: {
-                                Image(systemName: "questionmark.circle")
+                                Image(systemName: "exclamationmark.circle")
                                     .font(.system(size: 13, weight: .medium))
                                     .foregroundStyle(t.faint)
                             }
