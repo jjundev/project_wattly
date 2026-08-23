@@ -70,6 +70,27 @@ import Testing
         #expect(!BatteryControlPolicy.accepted(configuration: requested, by: status))
     }
 
+    @Test func enabledPolicyIsNotAcceptedWithoutActualGateEvidence() {
+        let requested = BatteryControlConfiguration(enabled: true, limitPercentage: 85)
+        let status = BatteryControlServiceStatus(
+            mode: .charging, currentPercentage: 80, isPowerAdapterConnected: true,
+            detail: "OK", updatedAt: 1, desiredConfiguration: requested,
+            lastMaintenance: .init(
+                trigger: .clientConfiguration, result: .applied, occurredAt: 1, reason: nil))
+
+        #expect(!BatteryControlPolicy.accepted(configuration: requested, by: status))
+    }
+
+    @Test func enabledPolicyIsNotAcceptedWithoutMaintenanceEvidence() {
+        let requested = BatteryControlConfiguration(enabled: true, limitPercentage: 85)
+        let status = BatteryControlServiceStatus(
+            mode: .charging, currentPercentage: 80, isPowerAdapterConnected: true,
+            detail: "OK", updatedAt: 1, desiredConfiguration: requested,
+            actualGate: .inhibited(appliedLimitPercentage: 85))
+
+        #expect(!BatteryControlPolicy.accepted(configuration: requested, by: status))
+    }
+
     @Test func reapplyWhenHelperRestartedAndForgotTheLimit() {
         // A KeepAlive relaunch brings the helper back with an empty configuration.
         let forgotten = status(mode: .charging, applied: nil)

@@ -154,6 +154,17 @@ struct BatteryControlClientTests {
         #expect(sent.configuration == requested)
     }
 
+    @Test func legacyWakeWithDisabledConfigurationUsesVerifiedDisable() {
+        let configuration = BatteryControlConfiguration(
+            enabled: false, limitPercentage: 85, lowerHysteresisDelta: 5)
+        let legacy = BatteryControlServiceStatus(
+            mode: .charging, currentPercentage: 80, isPowerAdapterConnected: true,
+            detail: "OK", updatedAt: 1, appliedLimitPercentage: nil)
+
+        #expect(BatteryControlBridge.wakeAction(
+            configuration: configuration, status: legacy) == .disableAndConfirm)
+    }
+
     @Test func differentInstalledOwnerIsBlockedWithoutTransfer() throws {
         #expect(throws: FanHelperInstaller.OwnershipError.self) {
             try FanHelperInstaller.validateOwnership(
@@ -394,5 +405,27 @@ struct BatteryControlClientTests {
         #expect(BatteryStatusText.installFailureMessage(reason: reason, detail: detail,
                                                         locale: Locale(identifier: "en"))
                 == "Helper installed, but the charge limit could not be applied: Could not apply charge control on this Mac")
+    }
+
+    @MainActor @Test func installRejectsEnabledAcknowledgementWithoutActualGate() async {
+        let requested = BatteryControlConfiguration(enabled: true, limitPercentage: 85)
+        let incomplete = BatteryControlServiceStatus(
+            mode: .charging, currentPercentage: 80, isPowerAdapterConnected: true,
+            detail: "gate unavailable", updatedAt: 1, desiredConfiguration: requested,
+            lastMaintenance: .init(
+                trigger: .clientConfiguration, result: .applied, occurredAt: 1, reason: nil))
+        let client = BatteryControlClient(requestHandler: { _ in
+            (try? BatteryControlCodec.encode(incomplete), nil)
+        }, installHandler: { _, _, postInstall in
+            await postInstall()
+            return nil
+        })
+
+        let failure = await client.installAndApply(
+            enabled: true, limitPercentage: 85, window: nil)
+        guard case .configureRejected = failure else {
+            Issue.record("Expected configure rejection")
+            return
+        }
     }
 }

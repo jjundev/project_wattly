@@ -77,13 +77,16 @@ public enum BatteryControlPolicy {
         by status: BatteryControlServiceStatus
     ) -> Bool {
         guard status.desiredConfiguration?.normalized == configuration.normalized,
-              status.lastMaintenance?.result != .failed else { return false }
+              let maintenance = status.lastMaintenance,
+              maintenance.result != .failed else { return false }
         if !configuration.enabled {
             return status.actualGate?.state == .allowed
                 || status.releaseVerdict?.isSafeToRemove == true
         }
-        return status.actualGate?.state != .unreadable
-            && status.actualGate?.state != .unrecognized
+        guard maintenance.trigger == .clientConfiguration,
+              maintenance.result == .applied || maintenance.result == .verified else { return false }
+        guard let gate = status.actualGate else { return false }
+        return gate.state != .unreadable && gate.state != .unrecognized
     }
 
     /// True when turning the opt-in on has to run the privileged installer. A helper that already

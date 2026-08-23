@@ -2,6 +2,12 @@ import SwiftUI
 import AppKit
 
 struct BatteryControlBridge: View {
+    enum WakeAction: Equatable {
+        case refreshStatus
+        case apply
+        case disableAndConfirm
+    }
+
     let client: BatteryControlClient
 
     @AppStorage(StorageKey.batteryLimitEnabled) private var enabled = Defaults.batteryLimitEnabled
@@ -18,6 +24,16 @@ struct BatteryControlBridge: View {
             enabled: enabled,
             limitPercentage: limit,
             lowerHysteresisDelta: effectiveDelta)
+    }
+
+    static func wakeAction(
+        configuration: BatteryControlConfiguration,
+        status: BatteryControlServiceStatus
+    ) -> WakeAction {
+        if BatteryControlPolicy.supportsPersistentPolicy(status: status) {
+            return .refreshStatus
+        }
+        return configuration.enabled ? .apply : .disableAndConfirm
     }
 
     var body: some View {
@@ -96,12 +112,18 @@ struct BatteryControlBridge: View {
             }
             .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)) { _ in
                 Task {
-                    if BatteryControlPolicy.supportsPersistentPolicy(status: client.status) {
+                    switch Self.wakeAction(configuration: configuration, status: client.status) {
+                    case .refreshStatus:
                         await client.refreshStatus()
-                    } else {
+                    case .apply:
                         await client.apply(
                             enabled: enabled, limitPercentage: limit,
                             lowerHysteresisDelta: effectiveDelta)
+                    case .disableAndConfirm:
+                        let requested = configuration
+                        _ = await client.disableAndConfirm(
+                            limitPercentage: requested.limitPercentage,
+                            lowerHysteresisDelta: requested.lowerHysteresisDelta)
                     }
                 }
             }

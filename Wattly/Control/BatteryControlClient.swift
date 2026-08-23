@@ -10,6 +10,9 @@ import AppKit
     }
 
     public typealias RequestHandler = @Sendable (BatteryControlClientRequest) async -> (Data?, NSError?)
+    typealias InstallHandler = @MainActor (
+        NSWindow?, Bool, @escaping @MainActor () async -> Void
+    ) async -> Error?
 
     /// Why enabling the limit did not take. Kept structured rather than pre-rendered: the message
     /// embeds the helper's status, and only the view knows what language to build it in.
@@ -28,6 +31,7 @@ import AppKit
     }
 
     private let requestHandler: RequestHandler
+    private let installHandler: InstallHandler
     public private(set) var status = BatteryControlServiceStatus(
         mode: .unavailable,
         currentPercentage: 0,
@@ -38,7 +42,11 @@ import AppKit
     public private(set) var isInstallingHelper = false
     private var commandGeneration = UInt64(Date().timeIntervalSince1970 * 1_000_000)
 
-    public init(requestHandler: RequestHandler? = nil) {
+    public convenience init(requestHandler: RequestHandler? = nil) {
+        self.init(requestHandler: requestHandler, installHandler: nil)
+    }
+
+    init(requestHandler: RequestHandler?, installHandler: InstallHandler?) {
         self.requestHandler = requestHandler ?? { req in
             switch req {
             case .configure(let data):
@@ -46,6 +54,12 @@ import AppKit
             case .status:
                 return await Self.sendXPC { svc, reply in svc.batteryStatus(withReply: reply) }
             }
+        }
+        self.installHandler = installHandler ?? { window, transferringOwnership, postInstall in
+            await PrivilegedHelperInstallSession.run(
+                window: window,
+                transferringOwnership: transferringOwnership,
+                postInstall: postInstall)
         }
     }
 
@@ -129,10 +143,7 @@ import AppKit
     ) async -> InstallFailure? {
         isInstallingHelper = true
         defer { isInstallingHelper = false }
-        if let failure = await PrivilegedHelperInstallSession.run(
-            window: window,
-            transferringOwnership: transferringOwnership,
-            postInstall: {
+        if let failure = await installHandler(window, transferringOwnership, {
             await self.apply(enabled: enabled, limitPercentage: limitPercentage, lowerHysteresisDelta: lowerHysteresisDelta)
         }) {
             return .install(failure)
