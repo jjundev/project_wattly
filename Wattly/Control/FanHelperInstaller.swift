@@ -130,10 +130,33 @@ enum FanHelperInstaller {
 
     /// Boots out and removes the daemon + LaunchDaemon (one auth prompt).
     static func uninstall() async throws {
-        try await runPrivileged("""
-        launchctl bootout system/\(label) 2>/dev/null || true
-        rm -f '/Library/PrivilegedHelperTools/\(label)' '/Library/LaunchDaemons/\(label).plist'
-        """)
+        let verifier = bundledDaemonURL
+        guard FileManager.default.isExecutableFile(atPath: verifier.path) else {
+            throw InstallError.daemonMissing
+        }
+        try await runPrivileged(makeUninstallScript(verifierPath: verifier.path))
+    }
+
+    static func makeUninstallScript(verifierPath: String) -> String {
+        """
+        set -eu
+        '\(verifierPath)' --verify-battery-release
+        was_running=false
+        if launchctl print system/\(label) >/dev/null 2>&1; then
+          was_running=true
+          launchctl bootout system/\(label)
+        fi
+        if ! '\(verifierPath)' --verify-battery-release; then
+          if $was_running; then
+            launchctl bootstrap system '/Library/LaunchDaemons/\(label).plist'
+          fi
+          exit 74
+        fi
+        rm -f '/Library/PrivilegedHelperTools/\(label)' \\
+          '/Library/LaunchDaemons/\(label).plist' \\
+          '/Library/Application Support/Wattly/battery-control-v1.json'
+        rmdir '/Library/Application Support/Wattly' 2>/dev/null || true
+        """
     }
 
     // MARK: - Internals

@@ -26,6 +26,7 @@ struct SettingsView: View {
     @State private var autoUpdater = AutoUpdater()
     @State private var isResetConfirmationPresented = false
     @State private var isUninstallConfirmationPresented = false
+    @State private var uninstallErrorMessage: String?
 
     var body: some View {
         ScrollView {
@@ -56,12 +57,24 @@ struct SettingsView: View {
                isPresented: $isUninstallConfirmationPresented) {
             Button("완전 삭제 및 앱 종료", role: .destructive) {
                 Task {
-                    try? await AppUninstaller.uninstall()
+                    do {
+                        try await AppUninstaller.uninstall()
+                    } catch {
+                        uninstallErrorMessage = error.localizedDescription
+                    }
                 }
             }
             Button("취소", role: .cancel) {}
         } message: {
             Text("모든 설정값, 캐시, 백그라운드 팬 제어 도우미 및 앱이 시스템에서 완전히 제거되고 앱이 종료됩니다.")
+        }
+        .alert("Wattly 삭제 중단", isPresented: Binding(
+            get: { uninstallErrorMessage != nil },
+            set: { if !$0 { uninstallErrorMessage = nil } }
+        )) {
+            Button("확인", role: .cancel) { uninstallErrorMessage = nil }
+        } message: {
+            Text(uninstallErrorMessage ?? "")
         }
     }
 

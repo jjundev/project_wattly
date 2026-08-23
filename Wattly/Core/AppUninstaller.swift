@@ -5,6 +5,26 @@ import AppKit
 /// Handles cleanup of user data, preferences, caches, login items, privileged helper daemon,
 /// and spawns a background shell script to delete the app bundle after termination.
 enum AppUninstaller: Sendable {
+    enum UninstallError: LocalizedError, Equatable {
+        case helperUnavailable
+        case persistenceRejected
+        case releaseUnverified
+        case helperRemovalFailed(String)
+
+        var errorDescription: String? {
+            switch self {
+            case .helperUnavailable:
+                "도우미에 연결할 수 없어 충전 허용 상태를 확인하지 못했습니다."
+            case .persistenceRejected:
+                "충전 제한 비활성화 설정을 저장하지 못했습니다."
+            case .releaseUnverified:
+                "충전 허용 상태를 확인하지 못해 Wattly 삭제를 중단했습니다."
+            case .helperRemovalFailed(let detail):
+                "도우미를 제거하지 못했습니다: \(detail)"
+            }
+        }
+    }
+
     /// Returns the list of standard user directories and files associated with Wattly.
     static func targetCleanupPaths(
         homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser,
@@ -47,31 +67,45 @@ enum AppUninstaller: Sendable {
         fileManager: FileManager = .default,
         homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser,
         bundleID: String = Bundle.main.bundleIdentifier ?? "dev.jjundev.Wattly",
-        releaseBatteryLimit: @MainActor () async -> Void = {
-            await BatteryControlClient().apply(enabled: false, limitPercentage: 100)
+        releaseBatteryLimit: @MainActor () async throws -> Void = {
+            let client = BatteryControlClient()
+            switch await client.prepareForRemoval(window: NSApp.keyWindow) {
+            case nil:
+                return
+            case .helperUnavailable?:
+                throw UninstallError.helperUnavailable
+            case .persistenceRejected?:
+                throw UninstallError.persistenceRejected
+            case .releaseUnverified?:
+                throw UninstallError.releaseUnverified
+            }
         },
         /// Injected because the default checks real `/Library` paths and, when the helper is
         /// installed, shells out through `osascript … with administrator privileges` — a test
         /// that let the default run would block the suite on a credential dialog on any machine
         /// with the helper installed.
-        removeHelper: @MainActor () async -> Void = {
+        removeHelper: @MainActor () async throws -> Void = {
             let daemonPath = "/Library/PrivilegedHelperTools/\(FanHelperInstaller.label)"
             let plistPath = "/Library/LaunchDaemons/\(FanHelperInstaller.label).plist"
             if FileManager.default.fileExists(atPath: daemonPath) || FileManager.default.fileExists(atPath: plistPath) {
-                try? await FanHelperInstaller.uninstall()
+                do {
+                    try await FanHelperInstaller.uninstall()
+                } catch {
+                    throw UninstallError.helperRemovalFailed(error.localizedDescription)
+                }
             }
         }
-    ) async {
+    ) async throws {
         // 1. Unregister login item
         try? loginItem.setEnabled(false)
 
         // 2. Hand the battery back before the helper goes away. `bootout` below SIGTERMs the
         // daemon, which releases on its own — but a helper that was SIGKILLed earlier would leave
         // the SMC charge-inhibit latched with nothing left on disk to ever clear it.
-        await releaseBatteryLimit()
+        try await releaseBatteryLimit()
 
         // 3. Remove privileged helper daemon if installed
-        await removeHelper()
+        try await removeHelper()
 
         // 4. Clear user defaults
         userDefaults.removePersistentDomain(forName: bundleID)
@@ -95,7 +129,7 @@ enum AppUninstaller: Sendable {
         let currentPID = ProcessInfo.processInfo.processIdentifier
         let cleanupPaths = targetCleanupPaths()
 
-        await cleanUserData(
+        try await cleanUserData(
             userDefaults: userDefaults,
             loginItem: loginItem,
             fileManager: fileManager

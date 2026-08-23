@@ -223,6 +223,51 @@ struct BatteryControlClientTests {
         #expect(!script.contains("bootout system/\(FanHelperInstaller.label) 2>/dev/null || true"))
     }
 
+    @Test func uninstallScriptVerifiesReleaseBeforeRemovingTheHelper() {
+        let script = FanHelperInstaller.makeUninstallScript(verifierPath: "/tmp/WattlyFanDaemon")
+        let preflight = try! #require(script.range(of: "'/tmp/WattlyFanDaemon' --verify-battery-release"))
+        let bootout = try! #require(script.range(of: "launchctl bootout system/\(FanHelperInstaller.label)"))
+        let postflight = try! #require(script.range(of: "if ! '/tmp/WattlyFanDaemon' --verify-battery-release"))
+        let removal = try! #require(script.range(of: "rm -f '/Library/PrivilegedHelperTools/\(FanHelperInstaller.label)'"))
+
+        #expect(script.contains("set -eu"))
+        #expect(preflight.lowerBound < bootout.lowerBound)
+        #expect(bootout.lowerBound < postflight.lowerBound)
+        #expect(postflight.lowerBound < removal.lowerBound)
+        #expect(script.contains("launchctl bootstrap system '/Library/LaunchDaemons/\(FanHelperInstaller.label).plist'"))
+    }
+
+    @MainActor @Test func legacyHelperIsPreparedForVerifiedRemoval() async throws {
+        let legacy = BatteryControlServiceStatus(
+            mode: .charging, currentPercentage: 70, isPowerAdapterConnected: true,
+            detail: "legacy", updatedAt: 1)
+        let released = BatteryControlServiceStatus(
+            mode: .charging, currentPercentage: 70, isPowerAdapterConnected: true,
+            detail: "released", updatedAt: 2,
+            desiredConfiguration: .init(enabled: false, limitPercentage: 100),
+            actualGate: .unreadable, releaseVerdict: .notControllable,
+            lastMaintenance: .init(
+                trigger: .clientConfiguration, result: .released,
+                occurredAt: 2, reason: nil))
+        let recorder = RequestRecorder()
+        let client = BatteryControlClient(requestHandler: { request in
+            await recorder.record(request)
+            switch request {
+            case .status:
+                return (try? BatteryControlCodec.encode(legacy), nil)
+            case .configure:
+                return (try? BatteryControlCodec.encode(released), nil)
+            }
+        }, installHandler: { _, transferringOwnership, postInstall in
+            #expect(transferringOwnership == false)
+            await postInstall()
+            return nil
+        })
+
+        #expect(await client.prepareForRemoval(window: nil) == nil)
+        #expect(await recorder.kinds == ["status", "configure", "configure"])
+    }
+
     @MainActor @Test func clientInitialStateIsUnavailable() {
         let client = BatteryControlClient()
         #expect(client.status.mode == .unavailable)

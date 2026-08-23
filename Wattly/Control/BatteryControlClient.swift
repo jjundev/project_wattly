@@ -97,6 +97,24 @@ import AppKit
         return safe ? nil : .releaseUnverified
     }
 
+    /// Full uninstall is the one explicit flow allowed to replace a legacy or missing helper.
+    /// A healthy persistent helper is left in place until its confirmed release succeeds; a
+    /// foreign helper remains blocked by the non-transfer install path.
+    public func prepareForRemoval(window: NSWindow?) async -> DisableFailure? {
+        await refreshStatus()
+        if !BatteryControlPolicy.supportsPersistentPolicy(status: status) {
+            if await installAndApply(
+                enabled: false,
+                limitPercentage: 100,
+                lowerHysteresisDelta: 2,
+                transferringOwnership: false,
+                window: window) != nil {
+                return .helperUnavailable
+            }
+        }
+        return await disableAndConfirm()
+    }
+
     @discardableResult
     public func refreshStatus() async -> BatteryControlServiceStatus? {
         await send(.status)
