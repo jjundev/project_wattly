@@ -212,4 +212,36 @@ struct BatteryControlClientTests {
         let kinds = await recorder.kinds
         #expect(kinds == ["status"])
     }
+
+    @MainActor
+    @Test func installFailureCarriesTheStatusRatherThanAKoreanSentence() async {
+        // 도우미는 설치됐지만 설정 푸시가 거부된 상황. 클라이언트는 문장을 조립하지 않고
+        // 사유와 원문을 그대로 넘겨야 한다 — 언어를 아는 쪽은 뷰다.
+        let client = BatteryControlClient(requestHandler: { _ in
+            let status = BatteryControlServiceStatus(
+                mode: .unsupported,
+                currentPercentage: 70,
+                isPowerAdapterConnected: true,
+                detail: "이 Mac에서 충전 제어를 적용하지 못했습니다",
+                updatedAt: 1,
+                appliedLimitPercentage: nil,
+                isHardwareSupported: true,
+                detailReason: .init(kind: .applyFailed))
+            return (try? BatteryControlCodec.encode(status), nil)
+        })
+        await client.apply(enabled: true, limitPercentage: 80)
+
+        let failure = BatteryControlClient.InstallFailure.configureRejected(
+            reason: client.status.detailReason, detail: client.status.detail)
+        guard case .configureRejected(let reason, let detail) = failure else {
+            Issue.record("expected .configureRejected")
+            return
+        }
+        #expect(reason?.kind == .applyFailed)
+        #expect(detail == "이 Mac에서 충전 제어를 적용하지 못했습니다")
+
+        #expect(BatteryStatusText.installFailureMessage(reason: reason, detail: detail,
+                                                        locale: Locale(identifier: "en"))
+                == "Helper installed, but the charge limit could not be applied: Could not apply charge control on this Mac")
+    }
 }

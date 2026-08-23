@@ -102,7 +102,7 @@ struct SettingsBatterySection: View {
                     let mode = await batteryControl.refreshStatus()?.mode ?? .unavailable
                     if BatteryControlPolicy.shouldRunInstaller(mode: mode) {
                         if let failure = await batteryControl.installAndApply(enabled: true, limitPercentage: limit, window: window) {
-                            installErrorMessage = failure.localizedDescription
+                            installErrorMessage = Self.message(for: failure, locale: locale)
                             isInstallFailedAlertPresented = true
                             batteryLimitEnabled = false
                         }
@@ -146,7 +146,7 @@ struct SettingsBatterySection: View {
                     let limit = batteryLimitPercentage
                     Task {
                         if let failure = await batteryControl.installAndApply(enabled: batteryLimitEnabled, limitPercentage: limit, window: window) {
-                            installErrorMessage = failure.localizedDescription
+                            installErrorMessage = Self.message(for: failure, locale: locale)
                             isInstallFailedAlertPresented = true
                         }
                     }
@@ -212,6 +212,19 @@ struct SettingsBatterySection: View {
             reason: batteryControl.status.detailReason,
             detail: batteryControl.status.detail,
             locale: locale)
+    }
+
+    /// 설치 실패 문구. `.install`은 설치기 자신의 오류(카탈로그 키이거나 macOS가 이미 현지화한
+    /// 문장)이고, `.configureRejected`는 도우미 상태를 문장 안에 끼워 넣어야 한다.
+    private static func message(for failure: BatteryControlClient.InstallFailure,
+                                locale: Locale) -> String {
+        switch failure {
+        case .install(let error):
+            return String(localized: error.localizedDescription, locale: locale)
+        case .configureRejected(let reason, let detail):
+            return BatteryStatusText.installFailureMessage(reason: reason, detail: detail,
+                                                           locale: locale)
+        }
     }
 
     /// 의미 → 색. 색을 순수 타입에 넣지 않는 이유는 `t.faint`가 테마 토큰이라

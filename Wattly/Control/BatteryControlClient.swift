@@ -11,6 +11,16 @@ import AppKit
 
     public typealias RequestHandler = @Sendable (BatteryControlClientRequest) async -> (Data?, NSError?)
 
+    /// Why enabling the limit did not take. Kept structured rather than pre-rendered: the message
+    /// embeds the helper's status, and only the view knows what language to build it in.
+    public enum InstallFailure: Error {
+        /// The privileged install itself failed or was cancelled. `localizedDescription` is either
+        /// a catalog key from `FanHelperInstaller.InstallError` or text macOS already localized.
+        case install(any Error)
+        /// The helper installed and answered, but would not take the configuration.
+        case configureRejected(reason: BatteryControlStatusReason?, detail: String)
+    }
+
     private let requestHandler: RequestHandler
     public private(set) var status = BatteryControlServiceStatus(
         mode: .unavailable,
@@ -66,24 +76,21 @@ import AppKit
 
     /// Installs the privileged helper with one admin-auth prompt and immediately pushes the user's
     /// configuration — without this the helper would sit at its disabled default while the toggle
-    /// reads ON. `enabled` is still the caller's real opt-in rather than an assumption, even though
-    /// the recovery button is only reachable while the toggle already reads ON.
-    /// Returns `nil` only when both halves landed — otherwise the install failure, or a synthesized
-    /// error for an install that succeeded while the configure push did not.
-    public func installAndApply(enabled: Bool, limitPercentage: Int, window: NSWindow?) async -> Error? {
+    /// reads ON. `enabled` is the caller's real opt-in rather than an assumption, so installing from
+    /// a recovery button can never switch the limit on behind the user's back.
+    /// Returns `nil` only when both halves landed.
+    public func installAndApply(enabled: Bool, limitPercentage: Int, window: NSWindow?) async -> InstallFailure? {
         isInstallingHelper = true
         defer { isInstallingHelper = false }
         if let failure = await PrivilegedHelperInstallSession.run(window: window, postInstall: {
             await self.apply(enabled: enabled, limitPercentage: limitPercentage)
         }) {
-            return failure
+            return .install(failure)
         }
         // Installing is only half of it — the configure push is what actually engages the limit.
         // Reporting success here would leave the toggle ON over a helper that is doing nothing.
         guard status.mode != .unavailable else {
-            return NSError(domain: "Wattly", code: 2, userInfo: [
-                NSLocalizedDescriptionKey: "도우미는 설치했지만 충전 제한을 적용하지 못했습니다: \(status.detail)"
-            ])
+            return .configureRejected(reason: status.detailReason, detail: status.detail)
         }
         return nil
     }
