@@ -93,7 +93,7 @@ import AppKit
             return .persistenceRejected
         }
         let safe = acknowledged.actualGate?.state == .allowed
-            || acknowledged.releaseVerdict?.isSafeToRemove == true
+            || acknowledged.releaseVerification?.isSafeToRemove == true
         return safe ? nil : .releaseUnverified
     }
 

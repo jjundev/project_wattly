@@ -3,8 +3,8 @@ import Foundation
 if CommandLine.arguments.contains("--verify-battery-release") {
     guard let verifierSMC = SMCControlConnection() else { exit(74) }
     let verifierHardware = SMCBatteryControlHardware(smc: verifierSMC)
-    let verdict = verifierHardware.releaseChargingControlAndVerify()
-    exit(verdict.isSafeToRemove ? 0 : 74)
+    let verification = verifierHardware.releaseChargingControlAndVerify()
+    exit(verification.isSafeToRemove ? 0 : 74)
 }
 
 let rawUID = ProcessInfo.processInfo.environment["WATTLY_ALLOWED_UID"] ?? ""

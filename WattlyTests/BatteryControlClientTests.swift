@@ -223,6 +223,39 @@ struct BatteryControlClientTests {
         #expect(!script.contains("bootout system/\(FanHelperInstaller.label) 2>/dev/null || true"))
     }
 
+    @Test func changedInstalledOwnerAfterPreflightIsRejectedInsideReplacementTransaction() throws {
+        // The app-level preflight can become stale before administrator authorization completes.
+        try FanHelperInstaller.validateOwnership(
+            installedOwnership: .owner(501), currentUID: 501, transferringOwnership: false)
+
+        let script = FanHelperInstaller.makeInstallScript(
+            daemonPath: "/tmp/WattlyFanDaemon",
+            plistPath: "/tmp/Wattly.plist",
+            currentUID: 501,
+            transferringOwnership: false)
+        let elevatedRecheck = try #require(script.range(of: "installed_uid=$("))
+        let rejectChangedOwner = try #require(script.range(of: "Helper ownership changed; rerun with an explicit transfer."))
+        let bootout = try #require(script.range(of: "launchctl bootout system/\(FanHelperInstaller.label)"))
+
+        #expect(elevatedRecheck.lowerBound < bootout.lowerBound)
+        #expect(rejectChangedOwner.lowerBound < bootout.lowerBound)
+        #expect(script.contains("allow_ownership_transfer=false"))
+        #expect(script.contains("[ \"$installed_uid\" -ne \"$expected_owner_uid\" ]"))
+        #expect(script.contains("validate_installed_owner\n'/tmp/WattlyFanDaemon' --verify-battery-release"))
+        #expect(script.contains("'/tmp/WattlyFanDaemon' --verify-battery-release\nvalidate_installed_owner\nwas_running=false"))
+    }
+
+    @Test func elevatedReplacementAcceptsChangedOwnerOnlyWithExplicitTransfer() {
+        let script = FanHelperInstaller.makeInstallScript(
+            daemonPath: "/tmp/WattlyFanDaemon",
+            plistPath: "/tmp/Wattly.plist",
+            currentUID: 501,
+            transferringOwnership: true)
+
+        #expect(script.contains("allow_ownership_transfer=true"))
+        #expect(script.contains("[ \"$allow_ownership_transfer\" != true ]"))
+    }
+
     @Test func uninstallScriptVerifiesReleaseBeforeRemovingTheHelper() {
         let script = FanHelperInstaller.makeUninstallScript(verifierPath: "/tmp/WattlyFanDaemon")
         let preflight = try! #require(script.range(of: "'/tmp/WattlyFanDaemon' --verify-battery-release"))
@@ -246,6 +279,9 @@ struct BatteryControlClientTests {
             detail: "released", updatedAt: 2,
             desiredConfiguration: .init(enabled: false, limitPercentage: 100),
             actualGate: .unreadable, releaseVerdict: .notControllable,
+            releaseVerification: .init(
+                verdict: .notControllable,
+                proof: .noDrivableRegisterAtRuntime),
             lastMaintenance: .init(
                 trigger: .clientConfiguration, result: .released,
                 occurredAt: 2, reason: nil))

@@ -53,19 +53,55 @@ tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 sed "s/__WATTLY_ALLOWED_UID__/$uid/g" "$plist_template" > "$tmp"
 
-sudo "$dir/WattlyFanDaemon" --verify-battery-release
+# The login-user preflight above is advisory only. Keep the authoritative ownership check and every
+# replacement step in one elevated shell so a plist changed while sudo authentication was pending
+# cannot be replaced unless this invocation explicitly authorized ownership transfer.
+sudo /bin/sh -s -- "$uid" "$transfer_ownership" "$plist" "$helper" "$dir/WattlyFanDaemon" "$tmp" "$label" <<'ROOT_TRANSACTION'
+set -eu
+expected_owner_uid="$1"
+allow_ownership_transfer="$2"
+installed_plist="$3"
+helper_path="$4"
+daemon_path="$5"
+replacement_plist="$6"
+daemon_label="$7"
+
+validate_installed_owner() {
+  if [ -e "$installed_plist" ]; then
+    installed_uid=$(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:WATTLY_ALLOWED_UID' "$installed_plist" 2>/dev/null) || installed_uid=""
+    case "$installed_uid" in
+      ''|*[!0-9]*) ownership_changed=true ;;
+      *)
+        if [ "$installed_uid" -le 0 ] || [ "$installed_uid" -ne "$expected_owner_uid" ]; then
+          ownership_changed=true
+        else
+          ownership_changed=false
+        fi
+        ;;
+    esac
+    if [ "$ownership_changed" = true ] && [ "$allow_ownership_transfer" != true ]; then
+      echo 'Helper ownership changed; rerun with --transfer-ownership.' >&2
+      exit 65
+    fi
+  fi
+}
+
+validate_installed_owner
+"$daemon_path" --verify-battery-release
+validate_installed_owner
 was_running=false
-if sudo launchctl print "system/$label" >/dev/null 2>&1; then
+if launchctl print "system/$daemon_label" >/dev/null 2>&1; then
   was_running=true
-  sudo launchctl bootout "system/$label"
+  launchctl bootout "system/$daemon_label"
 fi
-if ! sudo "$dir/WattlyFanDaemon" --verify-battery-release; then
-  $was_running && sudo launchctl bootstrap system "$plist"
+if ! "$daemon_path" --verify-battery-release; then
+  $was_running && launchctl bootstrap system "$installed_plist"
   exit 74
 fi
-sudo install -d -o root -g wheel -m 755 /Library/PrivilegedHelperTools /Library/LaunchDaemons
-sudo install -o root -g wheel -m 755 "$dir/WattlyFanDaemon" "$helper"
-sudo install -o root -g wheel -m 644 "$tmp" "$plist"
-sudo launchctl bootstrap system "$plist"
-sudo launchctl kickstart -k "system/$label"
-sudo launchctl print "system/$label" >/dev/null
+install -d -o root -g wheel -m 755 /Library/PrivilegedHelperTools /Library/LaunchDaemons
+install -o root -g wheel -m 755 "$daemon_path" "$helper_path"
+install -o root -g wheel -m 644 "$replacement_plist" "$installed_plist"
+launchctl bootstrap system "$installed_plist"
+launchctl kickstart -k "system/$daemon_label"
+launchctl print "system/$daemon_label" >/dev/null
+ROOT_TRANSACTION

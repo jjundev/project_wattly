@@ -102,13 +102,49 @@ enum FanHelperInstaller {
             throw InstallError.scriptWriteFailed
         }
         try await (privilegedRunner ?? runPrivileged)(makeInstallScript(
-            daemonPath: daemon.path, plistPath: plistPath.path))
+            daemonPath: daemon.path,
+            plistPath: plistPath.path,
+            currentUID: currentUID,
+            transferringOwnership: transferringOwnership))
     }
 
-    static func makeInstallScript(daemonPath: String, plistPath: String) -> String {
-        """
+    static func makeInstallScript(
+        daemonPath: String,
+        plistPath: String,
+        currentUID: UInt32 = UInt32(getuid()),
+        transferringOwnership: Bool = false
+    ) -> String {
+        let transferAuthorization = transferringOwnership ? "true" : "false"
+        return """
         set -eu
+        allow_ownership_transfer=\(transferAuthorization)
+        expected_owner_uid=\(currentUID)
+        installed_plist='/Library/LaunchDaemons/\(label).plist'
+        # The app's preflight can become stale while the authentication panel is open. Re-read the
+        # installed LaunchDaemon as root before the safety preflight, then again immediately before
+        # bootout. Only the explicit transfer flag may authorize changed or invalid metadata.
+        validate_installed_owner() {
+          if [ -e "$installed_plist" ]; then
+            installed_uid=$(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:WATTLY_ALLOWED_UID' "$installed_plist" 2>/dev/null) || installed_uid=""
+            case "$installed_uid" in
+              ''|*[!0-9]*) ownership_changed=true ;;
+              *)
+                if [ "$installed_uid" -le 0 ] || [ "$installed_uid" -ne "$expected_owner_uid" ]; then
+                  ownership_changed=true
+                else
+                  ownership_changed=false
+                fi
+                ;;
+            esac
+            if [ "$ownership_changed" = true ] && [ "$allow_ownership_transfer" != true ]; then
+              echo 'Helper ownership changed; rerun with an explicit transfer.' >&2
+              exit 65
+            fi
+          fi
+        }
+        validate_installed_owner
         '\(daemonPath)' --verify-battery-release
+        validate_installed_owner
         was_running=false
         if launchctl print system/\(label) >/dev/null 2>&1; then
           was_running=true
@@ -116,14 +152,14 @@ enum FanHelperInstaller {
         fi
         if ! '\(daemonPath)' --verify-battery-release; then
           if $was_running; then
-            launchctl bootstrap system '/Library/LaunchDaemons/\(label).plist'
+            launchctl bootstrap system "$installed_plist"
           fi
           exit 74
         fi
         install -d -o root -g wheel -m 755 /Library/PrivilegedHelperTools /Library/LaunchDaemons
         install -o root -g wheel -m 755 '\(daemonPath)' '/Library/PrivilegedHelperTools/\(label)'
-        install -o root -g wheel -m 644 '\(plistPath)' '/Library/LaunchDaemons/\(label).plist'
-        launchctl bootstrap system '/Library/LaunchDaemons/\(label).plist'
+        install -o root -g wheel -m 644 '\(plistPath)' "$installed_plist"
+        launchctl bootstrap system "$installed_plist"
         launchctl kickstart -k system/\(label)
         """
     }

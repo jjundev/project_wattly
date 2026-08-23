@@ -88,18 +88,19 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
             engine.configure(desired)
             let gate = engine.hydrateHardwareState()
             if !desired.enabled {
-                let verdict = engine.releaseVerified()
+                let verification = engine.releaseVerified()
                 let reason = ownershipFailure
-                    ?? (verdict.isSafeToRemove
+                    ?? (verification.isSafeToRemove
                         ? nil : .init(kind: .releaseFailed))
                 return publish(
                     statusForMissingPowerSource(
-                        actualGate: verdict == .verifiedAllowed ? .allowed : gate,
-                        releaseVerdict: verdict),
+                        actualGate: verification.verdict == .verifiedAllowed ? .allowed : gate,
+                        releaseVerdict: verification.verdict,
+                        releaseVerification: verification),
                     trigger: .startup,
                     result: ownershipFailure != nil
                         ? .failed
-                        : (verdict.isSafeToRemove ? .released : .failed),
+                        : (verification.isSafeToRemove ? .released : .failed),
                     reason: reason)
             }
             return publish(
@@ -119,11 +120,12 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
                     reason: .init(kind: .persistenceReadFailed))
             }
             let gate = engine.hydrateHardwareState()
-            let verdict = engine.releaseVerified()
+            let verification = engine.releaseVerified()
             return publish(
                 statusForMissingPowerSource(
-                    actualGate: verdict == .verifiedAllowed ? .allowed : gate,
-                    releaseVerdict: verdict),
+                    actualGate: verification.verdict == .verifiedAllowed ? .allowed : gate,
+                    releaseVerdict: verification.verdict,
+                    releaseVerification: verification),
                 trigger: .startup,
                 result: .failed,
                 reason: .init(kind: .persistenceReadFailed))
@@ -157,19 +159,20 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
 
         engine.configure(normalized)
         if !normalized.enabled {
-            let verdict = engine.releaseVerified()
+            let verification = engine.releaseVerified()
             var status = engine.statusForCurrentBelief(
                 currentSoC: currentSoC,
                 isPluggedIn: isPluggedIn)
-            status.releaseVerdict = verdict
-            if verdict == .verifiedAllowed {
+            status.releaseVerdict = verification.verdict
+            status.releaseVerification = verification
+            if verification.verdict == .verifiedAllowed {
                 status.actualGate = .allowed
             }
             return publish(
                 status,
                 trigger: trigger,
-                result: verdict.isSafeToRemove ? .released : .failed,
-                reason: verdict.isSafeToRemove
+                result: verification.isSafeToRemove ? .released : .failed,
+                reason: verification.isSafeToRemove
                     ? nil : .init(kind: .releaseFailed))
         }
         let status = engine.verifyAndUpdate(
@@ -209,14 +212,15 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         engine.configure(normalized)
         let gate = engine.hydrateHardwareState()
         if !normalized.enabled {
-            let verdict = engine.releaseVerified()
+            let verification = engine.releaseVerified()
             return publish(
                 statusForMissingPowerSource(
-                    actualGate: verdict == .verifiedAllowed ? .allowed : gate,
-                    releaseVerdict: verdict),
+                    actualGate: verification.verdict == .verifiedAllowed ? .allowed : gate,
+                    releaseVerdict: verification.verdict,
+                    releaseVerification: verification),
                 trigger: trigger,
-                result: verdict.isSafeToRemove ? .released : .failed,
-                reason: verdict.isSafeToRemove
+                result: verification.isSafeToRemove ? .released : .failed,
+                reason: verification.isSafeToRemove
                     ? nil : .init(kind: .releaseFailed))
         }
         return publish(
@@ -262,10 +266,10 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
     @discardableResult
     public func releaseForTermination() -> Bool {
         engine.beginRecoveryWindow()
-        var verdict = BatteryReleaseVerdict.failed
+        var verification = BatteryReleaseVerification(verdict: .failed)
         for _ in 0..<BatteryControlEngine.maxConsecutiveWriteFailures {
-            verdict = engine.releaseVerified()
-            if verdict.isSafeToRemove {
+            verification = engine.releaseVerified()
+            if verification.isSafeToRemove {
                 break
             }
         }
@@ -273,17 +277,18 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         var status = engine.statusForCurrentBelief(
             currentSoC: latestStatus.currentPercentage,
             isPluggedIn: latestStatus.isPowerAdapterConnected)
-        status.releaseVerdict = verdict
-        if verdict == .verifiedAllowed {
+        status.releaseVerdict = verification.verdict
+        status.releaseVerification = verification
+        if verification.verdict == .verifiedAllowed {
             status.actualGate = .allowed
         }
         _ = publish(
             status,
             trigger: .termination,
-            result: verdict.isSafeToRemove ? .released : .failed,
-            reason: verdict.isSafeToRemove
+            result: verification.isSafeToRemove ? .released : .failed,
+            reason: verification.isSafeToRemove
                 ? nil : .init(kind: .releaseFailed))
-        return verdict.isSafeToRemove
+        return verification.isSafeToRemove
     }
 
     private func publish(
@@ -324,22 +329,23 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         isPluggedIn: Bool,
         resolutionFailure: BatteryControlStatusReason?
     ) -> BatteryControlServiceStatus {
-        let verdict = engine.releaseVerified()
+        let verification = engine.releaseVerified()
         var status = engine.statusForCurrentBelief(
             currentSoC: currentSoC,
             isPluggedIn: isPluggedIn)
-        status.releaseVerdict = verdict
-        if verdict == .verifiedAllowed {
+        status.releaseVerdict = verification.verdict
+        status.releaseVerification = verification
+        if verification.verdict == .verifiedAllowed {
             status.actualGate = .allowed
         }
-        let releaseFailure = verdict.isSafeToRemove
+        let releaseFailure = verification.isSafeToRemove
             ? nil : BatteryControlStatusReason(kind: .releaseFailed)
         return publish(
             status,
             trigger: .startup,
             result: resolutionFailure != nil
                 ? .failed
-                : (verdict.isSafeToRemove ? .released : .failed),
+                : (verification.isSafeToRemove ? .released : .failed),
             reason: resolutionFailure ?? releaseFailure)
     }
 
@@ -355,7 +361,8 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
 
     private func statusForMissingPowerSource(
         actualGate: BatteryHardwareGate,
-        releaseVerdict: BatteryReleaseVerdict? = nil
+        releaseVerdict: BatteryReleaseVerdict? = nil,
+        releaseVerification: BatteryReleaseVerification? = nil
     ) -> BatteryControlServiceStatus {
         let reason = BatteryControlStatusReason(kind: .powerSourceUnreadable)
         let mode: BatteryControlServiceMode
@@ -381,6 +388,7 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
             detailReason: reason,
             actualGate: actualGate,
             releaseVerdict: releaseVerdict,
+            releaseVerification: releaseVerification,
             capabilities: Self.capabilities)
     }
 

@@ -13,7 +13,11 @@ final class MockBatteryHardware: BatteryControlHardwareProtocol, @unchecked Send
     var writeShouldFail: Bool = false
     var onWrite: (() -> Void)?
     var holdReportedGateAfterWrite = false
-    var releaseVerdict: BatteryReleaseVerdict = .verifiedAllowed
+    var releaseVerification = BatteryReleaseVerification(verdict: .verifiedAllowed)
+    var releaseVerdict: BatteryReleaseVerdict {
+        get { releaseVerification.verdict }
+        set { releaseVerification = .init(verdict: newValue) }
+    }
     var releaseAttemptCount = 0
 
     func readChargingGate(targetLimit: Int) -> BatteryHardwareGate {
@@ -36,18 +40,47 @@ final class MockBatteryHardware: BatteryControlHardwareProtocol, @unchecked Send
         return true
     }
 
-    func releaseChargingControlAndVerify() -> BatteryReleaseVerdict {
+    func releaseChargingControlAndVerify() -> BatteryReleaseVerification {
         releaseAttemptCount += 1
-        if releaseVerdict.isSafeToRemove {
+        if releaseVerification.isSafeToRemove {
             chargingInhibited = false
             appliedLimit = 100
-            reportedGate = releaseVerdict == .verifiedAllowed ? .allowed : .unreadable
+            reportedGate = releaseVerification.verdict == .verifiedAllowed ? .allowed : .unreadable
         }
-        return releaseVerdict
+        return releaseVerification
     }
 }
 
 struct BatteryControlEngineTests {
+    @Test func noControllableLatchWithoutRuntimeProbeProofDoesNotPermitRelease() {
+        let hardware = MockBatteryHardware()
+        hardware.registerSet = .unsupported
+        hardware.releaseVerification = .init(verdict: .notControllable)
+        let engine = BatteryControlEngine(hardware: hardware)
+
+        let verification = engine.releaseVerified()
+
+        #expect(verification.verdict == .notControllable)
+        #expect(verification.isSafeToRemove == false)
+        #expect(engine.statusForCurrentBelief(
+            currentSoC: 80, isPluggedIn: true).actualGate == nil)
+    }
+
+    @Test func runtimeProofOfNoDrivableRegisterPermitsNoLatchRelease() {
+        let hardware = MockBatteryHardware()
+        hardware.registerSet = .firmwareManaged
+        hardware.releaseVerification = .init(
+            verdict: .notControllable,
+            proof: .noDrivableRegisterAtRuntime)
+        let engine = BatteryControlEngine(hardware: hardware)
+
+        let verification = engine.releaseVerified()
+
+        #expect(verification.verdict == .notControllable)
+        #expect(verification.proof == .noDrivableRegisterAtRuntime)
+        #expect(verification.isSafeToRemove)
+    }
+
     @Test(arguments: [
         BatteryControlRegisterSet.firmwareManaged,
         .unsupported,
@@ -99,10 +132,12 @@ struct BatteryControlEngineTests {
     ) {
         let hardware = MockBatteryHardware()
         hardware.registerSet = registerSet
-        hardware.releaseVerdict = .notControllable
+        hardware.releaseVerification = .init(
+            verdict: .notControllable,
+            proof: .noDrivableRegisterAtRuntime)
         let engine = BatteryControlEngine(hardware: hardware)
 
-        #expect(engine.releaseVerified() == .notControllable)
+        #expect(engine.releaseVerified().verdict == .notControllable)
         #expect(hardware.releaseAttemptCount == 1)
         #expect(hardware.writeCount == 0)
     }
@@ -174,7 +209,7 @@ struct BatteryControlEngineTests {
         hardware.releaseVerdict = .failed
         let engine = BatteryControlEngine(hardware: hardware)
 
-        #expect(engine.releaseVerified() == .failed)
+        #expect(engine.releaseVerified().verdict == .failed)
         #expect(hardware.releaseAttemptCount == 1)
     }
 
@@ -184,7 +219,7 @@ struct BatteryControlEngineTests {
         hardware.chargingInhibited = true
         let engine = BatteryControlEngine(hardware: hardware)
 
-        #expect(engine.releaseVerified() == .verifiedAllowed)
+        #expect(engine.releaseVerified().verdict == .verifiedAllowed)
         let status = engine.update(currentSoC: 80, isPluggedIn: true)
 
         #expect(hardware.releaseAttemptCount == 1)
@@ -192,14 +227,16 @@ struct BatteryControlEngineTests {
         #expect(status.actualGate == .allowed)
     }
 
-    @Test func notControllableReleaseIsSafeWithoutInventingReadableHardware() {
+    @Test func noControllableLatchWithRuntimeProofIsSafeWithoutInventingReadableHardware() {
         let hardware = MockBatteryHardware()
         hardware.registerSet = .unsupported
         hardware.reportedGate = .unreadable
-        hardware.releaseVerdict = .notControllable
+        hardware.releaseVerification = .init(
+            verdict: .notControllable,
+            proof: .noDrivableRegisterAtRuntime)
         let engine = BatteryControlEngine(hardware: hardware)
 
-        #expect(engine.releaseVerified() == .notControllable)
+        #expect(engine.releaseVerified().verdict == .notControllable)
         let status = engine.update(currentSoC: 80, isPluggedIn: true)
 
         #expect(hardware.releaseAttemptCount == 1)
@@ -278,10 +315,10 @@ struct BatteryControlEngineTests {
         _ = engine.update(currentSoC: 85, isPluggedIn: true)
         _ = engine.update(currentSoC: 85, isPluggedIn: true)
         hardware.releaseVerdict = .failed
-        #expect(engine.releaseVerified() == .failed)
+        #expect(engine.releaseVerified().verdict == .failed)
 
         _ = engine.update(currentSoC: 85, isPluggedIn: true)
-        #expect(engine.releaseVerified() == .failed)
+        #expect(engine.releaseVerified().verdict == .failed)
         #expect(hardware.writeCount == 2)
         #expect(hardware.releaseAttemptCount == 1)
         #expect(hardware.writeCount + hardware.releaseAttemptCount
@@ -298,7 +335,7 @@ struct BatteryControlEngineTests {
 
         engine.beginRecoveryWindow()
         hardware.releaseVerdict = .verifiedAllowed
-        #expect(engine.releaseVerified() == .verifiedAllowed)
+        #expect(engine.releaseVerified().verdict == .verifiedAllowed)
         #expect(hardware.releaseAttemptCount
             == BatteryControlEngine.maxConsecutiveWriteFailures + 1)
     }

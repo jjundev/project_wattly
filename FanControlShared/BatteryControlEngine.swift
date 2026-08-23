@@ -7,7 +7,7 @@ public protocol BatteryControlHardwareProtocol: Sendable {
     var registerSet: BatteryControlRegisterSet { get }
     func readChargingGate(targetLimit: Int) -> BatteryHardwareGate
     func setChargingInhibited(_ inhibited: Bool, targetLimit: Int) -> Bool
-    func releaseChargingControlAndVerify() -> BatteryReleaseVerdict
+    func releaseChargingControlAndVerify() -> BatteryReleaseVerification
 }
 
 public final class BatteryControlEngine: @unchecked Sendable {
@@ -249,20 +249,20 @@ public final class BatteryControlEngine: @unchecked Sendable {
         }
     }
 
-    public func releaseVerified() -> BatteryReleaseVerdict {
-        guard !isWriteLatched else { return .failed }
-        let verdict = hardware.releaseChargingControlAndVerify()
-        guard verdict.isSafeToRemove else {
+    public func releaseVerified() -> BatteryReleaseVerification {
+        guard !isWriteLatched else { return .init(verdict: .failed) }
+        let verification = hardware.releaseChargingControlAndVerify()
+        guard verification.isSafeToRemove else {
             consecutiveWriteFailures += 1
             lastWriteFailed = true
             failureProvenance = .verifiedRelease
-            return verdict
+            return verification
         }
         isCurrentlyInhibited = false
         hasInitializedState = true
         beginRecoveryWindow()
-        lastVerifiedGate = verdict == .verifiedAllowed ? .allowed : .unreadable
-        return verdict
+        lastVerifiedGate = verification.verdict == .verifiedAllowed ? .allowed : .unreadable
+        return verification
     }
 
     private func gateMatches(

@@ -141,7 +141,10 @@ public enum BatteryReleaseVerdict: String, Codable, Equatable, Sendable {
     case unrecognized
 
     public var isSafeToRemove: Bool {
-        self == .verifiedAllowed || self == .notControllable
+        // A bare `.notControllable` came from older helpers and has no evidence that the runtime
+        // actually probed every Wattly-controllable latch. It must never authorize removal by
+        // itself; current helpers attach `BatteryReleaseVerification.proof` below.
+        self == .verifiedAllowed
     }
 
     public init(from decoder: any Decoder) throws {
@@ -152,6 +155,40 @@ public enum BatteryReleaseVerdict: String, Codable, Equatable, Sendable {
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(rawValue)
+    }
+}
+
+/// The evidence carried with a release verdict. A write/readback is the normal success path; the
+/// only readback-free success is a completed runtime probe that found no register Wattly can drive.
+public enum BatteryReleaseProof: String, Codable, Equatable, Sendable {
+    case noDrivableRegisterAtRuntime = "no-drivable-register-at-runtime"
+    case unrecognized
+
+    public init(from decoder: any Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = Self(rawValue: raw) ?? .unrecognized
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+/// A release result that cannot accidentally turn an unsupported verdict into a generic success.
+/// `notControllable` is safe only with the narrow, explicit runtime-probe proof.
+public struct BatteryReleaseVerification: Codable, Equatable, Sendable {
+    public var verdict: BatteryReleaseVerdict
+    public var proof: BatteryReleaseProof?
+
+    public init(verdict: BatteryReleaseVerdict, proof: BatteryReleaseProof? = nil) {
+        self.verdict = verdict
+        self.proof = proof
+    }
+
+    public var isSafeToRemove: Bool {
+        verdict == .verifiedAllowed
+            || (verdict == .notControllable && proof == .noDrivableRegisterAtRuntime)
     }
 }
 
@@ -204,6 +241,9 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
     public var desiredConfiguration: BatteryControlConfiguration?
     public var actualGate: BatteryHardwareGate?
     public var releaseVerdict: BatteryReleaseVerdict?
+    /// The evidence for a release verdict from a current helper. `nil` is intentionally unsafe for
+    /// `notControllable`, preserving fail-safe behavior when paired with an older helper.
+    public var releaseVerification: BatteryReleaseVerification?
     public var lastMaintenance: BatteryMaintenanceRecord?
     public var capabilities: [BatteryControlCapability]?
 
@@ -220,6 +260,7 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
         desiredConfiguration: BatteryControlConfiguration? = nil,
         actualGate: BatteryHardwareGate? = nil,
         releaseVerdict: BatteryReleaseVerdict? = nil,
+        releaseVerification: BatteryReleaseVerification? = nil,
         lastMaintenance: BatteryMaintenanceRecord? = nil,
         capabilities: [BatteryControlCapability]? = nil
     ) {
@@ -235,6 +276,7 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
         self.desiredConfiguration = desiredConfiguration
         self.actualGate = actualGate
         self.releaseVerdict = releaseVerdict
+        self.releaseVerification = releaseVerification
         self.lastMaintenance = lastMaintenance
         self.capabilities = capabilities
     }

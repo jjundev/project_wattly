@@ -81,7 +81,7 @@ public enum BatteryControlPolicy {
               maintenance.result != .failed else { return false }
         if !configuration.enabled {
             return status.actualGate?.state == .allowed
-                || status.releaseVerdict?.isSafeToRemove == true
+                || status.releaseVerification?.isSafeToRemove == true
         }
         guard maintenance.trigger == .clientConfiguration,
               maintenance.result == .applied || maintenance.result == .verified else { return false }

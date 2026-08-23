@@ -225,7 +225,10 @@ struct BatteryControlProtocolTests {
             activity: .holdingAtLimit,
             desiredConfiguration: desired,
             actualGate: .inhibited(appliedLimitPercentage: nil),
-            releaseVerdict: .verifiedAllowed,
+            releaseVerdict: .notControllable,
+            releaseVerification: .init(
+                verdict: .notControllable,
+                proof: .noDrivableRegisterAtRuntime),
             lastMaintenance: maintenance,
             capabilities: [.persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1])
 
@@ -235,7 +238,10 @@ struct BatteryControlProtocolTests {
 
         #expect(decoded.desiredConfiguration == desired)
         #expect(decoded.actualGate == .inhibited(appliedLimitPercentage: nil))
-        #expect(decoded.releaseVerdict == .verifiedAllowed)
+        #expect(decoded.releaseVerdict == .notControllable)
+        #expect(decoded.releaseVerification == .init(
+            verdict: .notControllable,
+            proof: .noDrivableRegisterAtRuntime))
         #expect(decoded.lastMaintenance == maintenance)
         #expect(decoded.capabilities == [
             .persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1

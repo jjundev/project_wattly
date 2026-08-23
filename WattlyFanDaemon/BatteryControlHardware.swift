@@ -3,7 +3,9 @@ import IOKit
 
 public final class SMCBatteryControlHardware: BatteryControlHardwareProtocol, @unchecked Sendable {
     private let smc: SMCControlConnection
-    private let safetyReleaseRegisterSet: BatteryControlRegisterSet
+    /// Captures the runtime probe independently of the policy register set. This is the proof for
+    /// the sole readback-free release outcome: no known Wattly latch was reachable at probe time.
+    private let runtimeDrivableRegisterSet: BatteryControlRegisterSet
     public let registerSet: BatteryControlRegisterSet
 
     init(smc: SMCControlConnection) {
@@ -13,11 +15,7 @@ public final class SMCBatteryControlHardware: BatteryControlHardwareProtocol, @u
         // key that does not answer here is a key that could only ever fail to be written.
         let registerSet = BatteryControlKeys.registerSet { smc.keyInfo($0) }
         self.registerSet = registerSet
-        if registerSet == .firmwareManaged {
-            safetyReleaseRegisterSet = BatteryControlKeys.drivableRegisterSet { smc.keyInfo($0) }
-        } else {
-            safetyReleaseRegisterSet = .unsupported
-        }
+        runtimeDrivableRegisterSet = BatteryControlKeys.drivableRegisterSet { smc.keyInfo($0) }
     }
 
     public func readChargingGate(targetLimit: Int) -> BatteryHardwareGate {
@@ -45,18 +43,20 @@ public final class SMCBatteryControlHardware: BatteryControlHardwareProtocol, @u
         return requiredWritesSucceeded
     }
 
-    public func releaseChargingControlAndVerify() -> BatteryReleaseVerdict {
+    public func releaseChargingControlAndVerify() -> BatteryReleaseVerification {
         let releaseRegisterSet: BatteryControlRegisterSet
         switch registerSet {
         case .modern, .legacy, .intel:
             releaseRegisterSet = registerSet
-        case .firmwareManaged:
-            releaseRegisterSet = safetyReleaseRegisterSet
-        case .unsupported:
-            return .notControllable
+        case .firmwareManaged, .unsupported:
+            releaseRegisterSet = runtimeDrivableRegisterSet
         }
         guard releaseRegisterSet.canDriveCharging else {
-            return .notControllable
+            // `runtimeDrivableRegisterSet` was just obtained by probing every key in
+            // `BatteryControlKeys.probeOrder`; do not claim this for a policy-only verdict.
+            return .init(
+                verdict: .notControllable,
+                proof: .noDrivableRegisterAtRuntime)
         }
 
         let writes = BatteryControlKeys.writes(
@@ -67,12 +67,12 @@ public final class SMCBatteryControlHardware: BatteryControlHardwareProtocol, @u
             let reply = smc.write(write.key, bytes: write.bytes)
             let succeeded = reply?.kernel == KERN_SUCCESS
                 && reply?.smcResult == 0
-            if write.isRequired && !succeeded { return .failed }
+            if write.isRequired && !succeeded { return .init(verdict: .failed) }
         }
 
         let gate = BatteryControlKeys.readGate(
             registerSet: releaseRegisterSet,
             read: { [smc] key in smc.read(key) })
-        return gate.state == .allowed ? .verifiedAllowed : .failed
+        return .init(verdict: gate.state == .allowed ? .verifiedAllowed : .failed)
     }
 }

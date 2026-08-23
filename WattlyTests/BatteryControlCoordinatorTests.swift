@@ -121,7 +121,9 @@ struct BatteryControlCoordinatorTests {
     @Test func storedDisabledPolicyUsesDedicatedFirmwareManagedRelease() {
         let hardware = MockBatteryHardware()
         hardware.registerSet = .firmwareManaged
-        hardware.releaseVerdict = .notControllable
+        hardware.releaseVerification = .init(
+            verdict: .notControllable,
+            proof: .noDrivableRegisterAtRuntime)
         let store = PolicyStoreSpy()
         store.stored = .init(
             ownerUID: 501,
@@ -139,6 +141,7 @@ struct BatteryControlCoordinatorTests {
         #expect(hardware.writeCount == 0)
         #expect(hardware.releaseAttemptCount == 1)
         #expect(status.releaseVerdict == .notControllable)
+        #expect(status.releaseVerification?.proof == .noDrivableRegisterAtRuntime)
         #expect(status.actualGate == .unreadable)
         #expect(status.lastMaintenance?.result == .released)
     }
