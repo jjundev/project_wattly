@@ -145,7 +145,12 @@ struct WattlySegment<T: Hashable>: View {
             .onKeyPress(.return) { guard isEnabled else { return .ignored }; selection = value; return .handled }
             .wattlyFocusRing(focusedValue == value, cornerRadius: 6)
             .accessibilityAddTraits(active ? [.isButton, .isSelected] : .isButton)
-            .accessibilityHint(isEnabled ? "" : (disabledReason ?? "사용할 수 없습니다"))
+            // `disabledReason`은 호출부가 넘긴 **카탈로그 키**다 (예: "이 Mac은 충전 제어를
+            // 지원하지 않습니다"). `String` 오버로드는 조회 없이 그대로 읽으므로,
+            // 영어로 쓰는 VoiceOver 사용자에게 한국어가 들린다.
+            .accessibilityHint(isEnabled
+                               ? Text(verbatim: "")
+                               : Text(LocalizedStringKey(disabledReason ?? "사용할 수 없습니다")))
     }
 }
 
@@ -198,7 +203,12 @@ struct WattlyChip: View {
             .opacity(isEnabled ? 1 : 0.45)
             .wattlyFocusRing(focused, cornerRadius: 6)
             .accessibilityAddTraits(isOn ? [.isButton, .isSelected] : .isButton)
-            .accessibilityHint(isEnabled ? "" : (disabledReason ?? "사용할 수 없습니다"))
+            // `disabledReason`은 호출부가 넘긴 **카탈로그 키**다 (예: "이 Mac은 충전 제어를
+            // 지원하지 않습니다"). `String` 오버로드는 조회 없이 그대로 읽으므로,
+            // 영어로 쓰는 VoiceOver 사용자에게 한국어가 들린다.
+            .accessibilityHint(isEnabled
+                               ? Text(verbatim: "")
+                               : Text(LocalizedStringKey(disabledReason ?? "사용할 수 없습니다")))
             .accessibilityAction { guard isEnabled else { return }; action() }
     }
 }
@@ -325,9 +335,14 @@ struct SettingsToggleRow<Label: View>: View {
         // "선택됨", not "켜짐/꺼짐".
         .opacity(isEnabled ? 1 : 0.55)
         .accessibilityElement(children: .combine)
-        .accessibilityValue(isOn ? "켜짐" : "꺼짐")
+        .accessibilityValue(Text(LocalizedStringKey(isOn ? "켜짐" : "꺼짐")))
         .accessibilityAddTraits(isEnabled ? .isButton : .isStaticText)
-        .accessibilityHint(isEnabled ? "" : (disabledReason ?? "사용할 수 없습니다"))
+        // `disabledReason`은 호출부가 넘긴 **카탈로그 키**다 (예: "이 Mac은 충전 제어를
+        // 지원하지 않습니다"). `String` 오버로드는 조회 없이 그대로 읽으므로,
+        // 영어로 쓰는 VoiceOver 사용자에게 한국어가 들린다.
+        .accessibilityHint(isEnabled
+                           ? Text(verbatim: "")
+                           : Text(LocalizedStringKey(disabledReason ?? "사용할 수 없습니다")))
         .accessibilityAction { guard isEnabled else { return }; isOn.toggle() }
     }
 }
