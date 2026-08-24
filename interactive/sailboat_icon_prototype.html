@@ -1,0 +1,948 @@
+<!doctype html>
+<html lang="ko" data-ui-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wattly — Sailboat Dynamic Icon Lab</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --page: #0b0f14;
+      --surface: #121820;
+      --surface-2: #18212b;
+      --surface-3: #202c38;
+      --line: rgba(255, 255, 255, 0.09);
+      --line-strong: rgba(255, 255, 255, 0.17);
+      --text: #f4f7f9;
+      --muted: #95a2ad;
+      --dim: #64717d;
+      --sea: #5fd1c8;
+      --sea-soft: rgba(95, 209, 200, 0.14);
+      --orange: #ffb36b;
+      --red: #ff6d79;
+      --blue: #75bfff;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+      --radius: 18px;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Pretendard", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 78% -10%, rgba(73, 137, 151, 0.18), transparent 35%),
+        radial-gradient(circle at 10% 30%, rgba(47, 72, 104, 0.16), transparent 27%),
+        var(--page);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input { font: inherit; }
+    button { color: inherit; }
+
+    .prototype-banner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 28px;
+      padding: 5px 16px;
+      color: #b8c3cb;
+      background: #080b0f;
+      border-bottom: 1px solid var(--line);
+      font-size: 11px;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+    }
+
+    .prototype-banner::before {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--orange);
+      content: "";
+      box-shadow: 0 0 12px rgba(255, 179, 107, .6);
+    }
+
+    .desktop-strip {
+      position: sticky;
+      z-index: 20;
+      top: 0;
+      padding-bottom: 42px;
+      overflow: hidden;
+      background: linear-gradient(145deg, #182d3b, #415c63 54%, #b06f51);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      box-shadow: 0 12px 35px rgba(0,0,0,.22);
+    }
+
+    .desktop-strip.light { background: linear-gradient(145deg, #b7d8e8, #dce9e7 54%, #eebd9d); }
+
+    .menubar {
+      height: 31px;
+      padding: 0 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      color: #fff;
+      background: rgba(16, 20, 25, .66);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      backdrop-filter: blur(26px) saturate(160%);
+      -webkit-backdrop-filter: blur(26px) saturate(160%);
+      font-size: 13px;
+      font-weight: 550;
+      user-select: none;
+    }
+
+    .desktop-strip.light .menubar {
+      color: #15191d;
+      background: rgba(244, 247, 249, .72);
+      border-color: rgba(0,0,0,.08);
+    }
+
+    .menu-side, .system-icons, .wattly-slot {
+      display: flex;
+      align-items: center;
+    }
+
+    .menu-side { gap: 17px; }
+    .system-icons { gap: 12px; }
+    .wattly-slot {
+      gap: 5px;
+      padding: 2px 6px 2px 5px;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 6px;
+      background: rgba(255,255,255,.08);
+      box-shadow: 0 1px 2px rgba(0,0,0,.14);
+    }
+
+    .desktop-strip.light .wattly-slot {
+      border-color: rgba(0,0,0,.1);
+      background: rgba(0,0,0,.045);
+    }
+
+    .menubar-canvas { width: 18px; height: 18px; display: block; }
+    .power-readout { min-width: 30px; font-variant-numeric: tabular-nums; }
+    .desktop-hint {
+      position: absolute;
+      left: 50%;
+      bottom: 10px;
+      transform: translateX(-50%);
+      color: rgba(255,255,255,.72);
+      font-size: 11px;
+      letter-spacing: .02em;
+    }
+
+    .desktop-strip.light .desktop-hint { color: rgba(0,0,0,.53); }
+
+    main {
+      width: min(1240px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: 46px 0 120px;
+    }
+
+    .intro {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr);
+      gap: 28px;
+      align-items: end;
+      margin-bottom: 28px;
+    }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0 0 12px;
+      color: var(--sea);
+      font-size: 12px;
+      font-weight: 750;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before { width: 24px; height: 1px; background: currentColor; content: ""; }
+    h1 { margin: 0; font-size: clamp(32px, 5vw, 58px); line-height: .98; letter-spacing: -.055em; }
+    .subtitle { max-width: 720px; margin: 18px 0 0; color: var(--muted); font-size: 16px; line-height: 1.65; }
+
+    .question-card {
+      padding: 18px 20px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: rgba(18,24,32,.68);
+      box-shadow: inset 0 1px rgba(255,255,255,.03);
+    }
+
+    .question-card b { display: block; margin-bottom: 7px; font-size: 12px; color: var(--orange); letter-spacing: .08em; text-transform: uppercase; }
+    .question-card p { margin: 0; color: #c5ced5; font-size: 13px; line-height: 1.55; }
+
+    .lab-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.28fr) minmax(320px, .72fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(18, 24, 32, .88);
+      box-shadow: var(--shadow), inset 0 1px rgba(255,255,255,.03);
+      overflow: hidden;
+    }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      min-height: 62px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .card-title { margin: 0; font-size: 14px; letter-spacing: -.01em; }
+    .card-kicker { margin-top: 3px; color: var(--dim); font: 11px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    .mini-actions { display: flex; gap: 6px; }
+    .icon-button {
+      min-height: 30px;
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+      background: var(--surface-2);
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .icon-button:hover, .icon-button[aria-pressed="true"] { color: var(--text); border-color: var(--line-strong); background: var(--surface-3); }
+
+    .canvas-stage {
+      position: relative;
+      min-height: 520px;
+      display: grid;
+      place-items: center;
+      padding: 38px 24px 86px;
+      overflow: hidden;
+      background:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px),
+        radial-gradient(circle at 50% 43%, rgba(95,209,200,.09), transparent 38%),
+        #0e141b;
+      background-size: 24px 24px, 24px 24px, auto, auto;
+    }
+
+    .canvas-orbit {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: min(440px, 90vw);
+      aspect-ratio: 1;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(26,37,47,.9) 0 58%, rgba(11,16,22,.6) 59% 100%);
+      box-shadow: 0 0 0 24px rgba(255,255,255,.015), 0 30px 70px rgba(0,0,0,.4);
+    }
+
+    .canvas-orbit::after {
+      position: absolute;
+      inset: 11%;
+      border: 1px dashed rgba(255,255,255,.07);
+      border-radius: 50%;
+      content: "";
+      pointer-events: none;
+    }
+
+    #heroCanvas { width: 100%; height: 100%; display: block; }
+
+    .scale-dock {
+      position: absolute;
+      right: 18px;
+      bottom: 18px;
+      display: flex;
+      align-items: flex-end;
+      gap: 9px;
+    }
+
+    .scale-chip {
+      min-width: 64px;
+      padding: 9px 9px 8px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: rgba(9,13,18,.84);
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+
+    .scale-chip canvas { display: block; margin: 0 auto 6px; }
+    .scale-chip span { color: var(--dim); font: 9px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
+
+    .live-pill {
+      position: absolute;
+      left: 18px;
+      bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(9,13,18,.82);
+      font: 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+      backdrop-filter: blur(10px);
+    }
+
+    .live-pill i { width: 6px; height: 6px; border-radius: 50%; background: var(--sea); box-shadow: 0 0 10px var(--sea); }
+    .live-pill.frozen i { background: var(--orange); box-shadow: 0 0 10px var(--orange); }
+
+    .control-card { display: flex; flex-direction: column; }
+    .controls { display: flex; flex-direction: column; gap: 20px; padding: 20px; }
+    .control-section { padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+    .control-section:last-child { padding-bottom: 0; border: 0; }
+    .label-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+    .label-row label, .section-label { color: #d9e0e5; font-size: 12px; font-weight: 720; }
+    .value { color: var(--sea); font: 700 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    input[type="range"] {
+      width: 100%;
+      height: 5px;
+      margin: 7px 0;
+      appearance: none;
+      border-radius: 99px;
+      outline: 0;
+      background: linear-gradient(90deg, var(--sea) 0 var(--range-progress, 0%), var(--surface-3) var(--range-progress, 0%) 100%);
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      width: 17px;
+      height: 17px;
+      appearance: none;
+      border: 3px solid var(--surface);
+      border-radius: 50%;
+      background: var(--sea);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.22), 0 3px 9px rgba(0,0,0,.35);
+      cursor: grab;
+    }
+
+    .ticks { display: flex; justify-content: space-between; color: var(--dim); font: 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .presets { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 12px; }
+    .preset {
+      padding: 8px 3px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+      background: var(--surface-2);
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .preset:hover, .preset.active { color: var(--text); border-color: rgba(95,209,200,.45); background: var(--sea-soft); }
+    .switch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 11px; }
+    .toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 9px;
+      min-height: 38px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      color: var(--muted);
+      background: var(--surface-2);
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 650;
+      text-align: left;
+    }
+
+    .toggle::after { width: 16px; height: 9px; flex: 0 0 auto; border-radius: 99px; background: #3a4651; content: ""; box-shadow: inset 0 0 0 3px #3a4651; }
+    .toggle[aria-pressed="true"] { color: var(--text); border-color: rgba(95,209,200,.33); }
+    .toggle[aria-pressed="true"]::after { background: var(--sea); box-shadow: inset 7px 0 0 1px #eafffd; }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-top: 1px solid var(--line);
+      margin-top: auto;
+    }
+
+    .metric { min-height: 75px; padding: 14px 16px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .metric:nth-child(2n) { border-right: 0; }
+    .metric:nth-last-child(-n+2) { border-bottom: 0; }
+    .metric span { display: block; margin-bottom: 7px; color: var(--dim); font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .metric strong { color: #e8edf0; font: 700 14px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    .story-section { margin-top: 34px; }
+    .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 14px; }
+    .section-heading h2 { margin: 0; font-size: 20px; letter-spacing: -.03em; }
+    .section-heading p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .section-heading code { color: var(--dim); font: 10px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    .tier-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .tier-card {
+      position: relative;
+      min-height: 188px;
+      padding: 15px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: linear-gradient(150deg, rgba(255,255,255,.035), transparent 44%), var(--surface);
+    }
+
+    .tier-card::before { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: var(--tier-color); content: ""; opacity: .8; }
+    .tier-number { color: var(--tier-color); font: 700 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
+    .tier-card h3 { margin: 7px 0 2px; font-size: 14px; }
+    .tier-card p { margin: 0; color: var(--dim); font-size: 10px; }
+    .tier-canvas { display: block; width: 92px; height: 92px; margin: 5px auto -3px; }
+    .tier-stats { display: flex; justify-content: center; gap: 9px; color: var(--muted); font: 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    .variant-bar {
+      position: fixed;
+      z-index: 40;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 5px;
+      width: max-content;
+      max-width: calc(100vw - 24px);
+      padding: 6px;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 13px;
+      background: rgba(12,17,23,.86);
+      box-shadow: 0 16px 40px rgba(0,0,0,.42);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+    }
+
+    .variant-button {
+      padding: 9px 13px;
+      border: 0;
+      border-radius: 8px;
+      color: var(--muted);
+      background: transparent;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .variant-button:hover { color: var(--text); }
+    .variant-button.active { color: #09110f; background: var(--sea); box-shadow: 0 4px 16px rgba(95,209,200,.25); }
+    .variant-label { display: grid; place-items: center; padding: 0 8px 0 5px; color: var(--dim); font: 9px/1.1 ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
+
+    @media (max-width: 940px) {
+      .intro, .lab-grid { grid-template-columns: 1fr; }
+      .tier-grid { grid-template-columns: 1fr 1fr; }
+      .canvas-stage { min-height: 500px; }
+    }
+
+    @media (max-width: 620px) {
+      .prototype-banner { justify-content: flex-start; overflow: hidden; white-space: nowrap; }
+      .menu-side .optional { display: none; }
+      .system-icons > span:not(.wattly-slot) { display: none; }
+      main { width: min(100% - 22px, 1240px); padding-top: 32px; }
+      .intro { gap: 18px; }
+      .canvas-stage { min-height: 420px; padding: 20px 10px 80px; }
+      .canvas-orbit { width: min(340px, 92vw); }
+      .scale-dock { right: 10px; bottom: 12px; }
+      .live-pill { left: 10px; bottom: 12px; }
+      .tier-grid { grid-template-columns: 1fr; }
+      .variant-label { display: none; }
+      .variant-button { padding-inline: 9px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
+</head>
+<body>
+  <div class="prototype-banner">Throwaway prototype · vector &amp; motion decisions only · not production UI</div>
+
+  <section class="desktop-strip" id="desktopStrip" aria-label="macOS 메뉴바 실제 크기 미리보기">
+    <div class="menubar">
+      <div class="menu-side">
+        <span style="font-size:16px">●</span>
+        <strong>Wattly</strong>
+        <span class="optional">파일</span>
+        <span class="optional">보기</span>
+      </div>
+      <div class="system-icons">
+        <span class="wattly-slot"><canvas id="menubarCanvas" class="menubar-canvas" width="36" height="36"></canvas><b class="power-readout" id="powerReadout">14 W</b></span>
+        <span>⌁</span><span>▰</span><span id="clock">8월 24일 일 15:42</span>
+      </div>
+    </div>
+    <div class="desktop-hint">실제 메뉴바 배율 · 18 × 18pt · 2× Retina</div>
+  </section>
+
+  <main>
+    <header class="intro">
+      <div>
+        <p class="eyebrow">Dynamic load theme / 96 frames</p>
+        <h1>파도와 돛단배</h1>
+        <p class="subtitle">부하가 오르면 파도가 빨라지고 높아집니다. 선체는 파면의 접선에 반응하고, 폭풍 구간에서는 뱃머리의 물보라가 시스템의 긴장을 짧고 명확하게 드러냅니다.</p>
+      </div>
+      <aside class="question-card">
+        <b>이 프로토타입이 답할 질문</b>
+        <p>18pt 흑백 템플릿에서도 ‘배 + 파도 + 강도’가 즉시 읽히는가? 아래 세 실루엣을 전환해 최종 이식 후보를 고르세요.</p>
+      </aside>
+    </header>
+
+    <section class="lab-grid">
+      <article class="card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">Motion microscope</h2>
+            <div class="card-kicker" id="frameLabel">AUTO · FRAME 00 / 95</div>
+          </div>
+          <div class="mini-actions">
+            <button class="icon-button" id="guideButton" aria-pressed="true">가이드</button>
+            <button class="icon-button" id="themeButton" aria-pressed="false">☼ 라이트 메뉴바</button>
+          </div>
+        </div>
+        <div class="canvas-stage">
+          <div class="canvas-orbit"><canvas id="heroCanvas" width="880" height="880"></canvas></div>
+          <div class="live-pill" id="motionStatus"><i></i><span>AUTO PLAYING</span></div>
+          <div class="scale-dock" aria-label="래스터 배율 비교">
+            <div class="scale-chip"><canvas id="retinaCanvas" width="36" height="36" style="width:36px;height:36px"></canvas><span>2× / 36px</span></div>
+            <div class="scale-chip"><canvas id="standardCanvas" width="18" height="18" style="width:18px;height:18px"></canvas><span>1× / 18px</span></div>
+          </div>
+        </div>
+      </article>
+
+      <aside class="card control-card">
+        <div class="card-head">
+          <div><h2 class="card-title">Dynamics</h2><div class="card-kicker">SINE WAVE → AMP CAP AT 50% + SPEED CAP AT 75%</div></div>
+          <span class="value" id="tierBadge">TIER 0</span>
+        </div>
+
+        <div class="controls">
+          <div class="control-section">
+            <div class="label-row"><label for="loadSlider">시스템 부하</label><output class="value" id="loadValue">18%</output></div>
+            <input id="loadSlider" type="range" min="0" max="100" step="1" value="18" style="--range-progress:18%">
+            <div class="ticks"><span>idle</span><span>cruise</span><span>swell</span><span>storm</span></div>
+            <div class="presets" id="presets">
+              <button class="preset" data-load="0">0%</button><button class="preset" data-load="25">25%</button><button class="preset" data-load="50">50%</button><button class="preset" data-load="80">80%</button><button class="preset" data-load="100">100%</button>
+            </div>
+          </div>
+
+          <div class="control-section">
+            <div class="label-row"><label for="frameSlider">96 프레임 탐색</label><output class="value" id="manualFrameValue">AUTO</output></div>
+            <input id="frameSlider" type="range" min="-1" max="95" step="1" value="-1" style="--range-progress:0%">
+            <div class="ticks"><span>auto</span><span>23</span><span>47</span><span>71</span><span>95</span></div>
+          </div>
+
+          <div class="control-section">
+            <span class="section-label">레이어와 접근성</span>
+            <div class="switch-grid">
+              <button class="toggle" data-toggle="dualWave" aria-pressed="true">2중 파도</button>
+              <button class="toggle" data-toggle="splash" aria-pressed="true">물보라</button>
+              <button class="toggle" data-toggle="reduceMotion" aria-pressed="false">동작 줄이기</button>
+              <button class="toggle" data-toggle="sailBelly" aria-pressed="true">돛 배부름</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="metrics" aria-live="polite">
+          <div class="metric"><span>Wave speed</span><strong id="rpsMetric">1.04 RPS</strong></div>
+          <div class="metric"><span>Amplitude</span><strong id="ampMetric">1.0 pt</strong></div>
+          <div class="metric"><span>Boat angle</span><strong id="angleMetric">+0.0°</strong></div>
+          <div class="metric"><span>Frame index</span><strong id="indexMetric">00 / 95</strong></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="story-section">
+      <div class="section-heading">
+        <div><h2>Four weather states</h2><p>각 티어의 대표 부하에서 실루엣과 동작 범위를 한눈에 비교합니다.</p></div>
+        <code>4 tiers × 24 subphases</code>
+      </div>
+      <div class="tier-grid">
+        <article class="tier-card" style="--tier-color:#78d8cf"><span class="tier-number">Tier 0 · 0—24%</span><h3>잔잔한 수평선</h3><p>진폭은 0% 기준에서 출발</p><canvas class="tier-canvas" data-load="12" width="184" height="184"></canvas><div class="tier-stats"><span>A 1.0→2.7pt</span><span>±5°</span><span>0.50—1.22RPS</span></div></article>
+        <article class="tier-card" style="--tier-color:#75bfff"><span class="tier-number">Tier 1 · 25—54%</span><h3>순항 파도</h3><p>50%에서 최대 파고 도달</p><canvas class="tier-canvas" data-load="40" width="184" height="184"></canvas><div class="tier-stats"><span>A 2.8→4.5pt</span><span>±12°</span><span>1.25—2.12RPS</span></div></article>
+        <article class="tier-card" style="--tier-color:#ffb36b"><span class="tier-number">Tier 2 · 55—79%</span><h3>높은 너울</h3><p>파고는 이미 최대값 유지</p><canvas class="tier-canvas" data-load="67" width="184" height="184"></canvas><div class="tier-stats"><span>A 4.5pt</span><span>±20°</span><span>2.15—2.75RPS</span></div></article>
+        <article class="tier-card" style="--tier-color:#ff6d79"><span class="tier-number">Tier 3 · 80—100%</span><h3>폭풍과 물보라</h3><p>75% 속도를 유지하고 강도만 최대로</p><canvas class="tier-canvas" data-load="92" width="184" height="184"></canvas><div class="tier-stats"><span>A 4.5pt</span><span>±26°</span><span>2.75RPS 고정</span></div></article>
+      </div>
+    </section>
+  </main>
+
+  <nav class="variant-bar" aria-label="보트 실루엣 변형">
+    <span class="variant-label">Boat<br>variant</span>
+    <button class="variant-button" data-boat="sloop">Modern Sloop</button>
+    <button class="variant-button" data-boat="paper">Paper Boat</button>
+    <button class="variant-button" data-boat="schooner">Twin Sail</button>
+  </nav>
+
+  <script>
+    (() => {
+      const TAU = Math.PI * 2;
+      const TIERS = [
+        { min: 0,  max: 24, roll: 5,  name: 'CALM' },
+        { min: 25, max: 54, roll: 12, name: 'CRUISE' },
+        { min: 55, max: 79, roll: 20, name: 'SWELL' },
+        { min: 80, max: 100, roll: 26, name: 'STORM' }
+      ];
+      const WAVE_K = TAU / (18 * .88);
+
+      const state = {
+        load: 18,
+        phase: 0,
+        manualFrame: -1,
+        boat: new URLSearchParams(location.search).get('boat') || 'sloop',
+        dualWave: true,
+        splash: true,
+        reduceMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
+        sailBelly: true,
+        guides: true,
+        lightMenubar: false,
+        lastTime: performance.now()
+      };
+
+      if (!['sloop', 'paper', 'schooner'].includes(state.boat)) state.boat = 'sloop';
+
+      const $ = id => document.getElementById(id);
+      const canvases = {
+        hero: $('heroCanvas'),
+        menu: $('menubarCanvas'),
+        retina: $('retinaCanvas'),
+        standard: $('standardCanvas')
+      };
+
+      function tierForLoad(load) {
+        if (load < 25) return 0;
+        if (load < 55) return 1;
+        if (load < 80) return 2;
+        return 3;
+      }
+
+      // Keep the idle cadence intact, then stop accelerating after the current 75% cadence.
+      function rpsForLoad(load) {
+        return .5 + Math.min(load, 75) * .03;
+      }
+
+      function amplitudeForLoad(load) {
+        return 1 + Math.min(Math.max(load, 0), 50) / 50 * 3.5;
+      }
+
+      function sineWave(x, phase, frequency = 1) {
+        const q = frequency * WAVE_K * x - phase * TAU;
+        return { value: Math.sin(q), slope: frequency * WAVE_K * Math.cos(q) };
+      }
+
+      function dynamics(load, phase, forcedTier = null) {
+        const tierIndex = forcedTier ?? tierForLoad(load);
+        const tier = TIERS[tierIndex];
+        const xBoat = 9;
+        const amplitude = amplitudeForLoad(load);
+        const surface = sineWave(xBoat, phase);
+        const slope = -amplitude * surface.slope;
+        const rawAngle = Math.atan(slope) * 180 / Math.PI;
+        const rawMax = Math.atan(amplitude * WAVE_K) * 180 / Math.PI;
+        const damping = tier.roll / rawMax;
+        const motionFactor = state.reduceMotion ? .18 : 1;
+        const angle = rawAngle * damping * motionFactor;
+        const yBoat = 11.5 - amplitude * surface.value;
+        return { tierIndex, tier, amplitude, slope, angle, yBoat, rps: rpsForLoad(load) };
+      }
+
+      function pathWave(ctx, amp, phase, baseY, frequency = 1, from = -2, to = 20) {
+        ctx.beginPath();
+        for (let x = from; x <= to; x += .15) {
+          const y = baseY - amp * sineWave(x, phase, frequency).value;
+          if (x === from) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+      }
+
+      function stroke(ctx, width = 1.15, alpha = 1) {
+        ctx.globalAlpha = alpha;
+        ctx.lineWidth = width;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      function drawSplash(ctx, phase, load) {
+        const energy = (load - 80) / 20;
+        if (energy <= 0 || !state.splash || state.reduceMotion) return;
+        const burst = Math.max(0, Math.sin(phase * TAU + .8));
+        const dots = [
+          [3.9, -.4, .46], [4.65, -1.15, .33], [3.15, -1.55, .28], [4.2, -2.05, .22]
+        ];
+        ctx.save();
+        ctx.globalAlpha = .34 + burst * .66;
+        for (const [x, y, r] of dots) {
+          ctx.beginPath();
+          ctx.arc(x + burst * .5, y - burst * energy * 1.2, Math.max(.15, r * (0.7 + energy * .5)), 0, TAU);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      function drawSloop(ctx, phase) {
+        ctx.beginPath();
+        ctx.moveTo(-4.3, .2);
+        ctx.quadraticCurveTo(-2.8, 2.5, 2.1, 2.25);
+        ctx.quadraticCurveTo(3.7, 1.95, 4.35, .1);
+        ctx.quadraticCurveTo(.4, .8, -4.3, .2);
+        stroke(ctx, 1.25);
+
+        ctx.beginPath();
+        ctx.moveTo(-.6, .35);
+        ctx.lineTo(-.6, -6.25);
+        stroke(ctx, 1.05);
+
+        const belly = state.sailBelly ? .8 + .45 * Math.sin(phase * TAU) : 0;
+        ctx.beginPath();
+        ctx.moveTo(-.35, -5.75);
+        ctx.quadraticCurveTo(2.05 + belly, -3.15, 2.65, -.55);
+        ctx.quadraticCurveTo(.65, -.9, -.35, -5.75);
+        stroke(ctx, 1.05);
+
+        ctx.beginPath();
+        ctx.moveTo(-.9, -5.15);
+        ctx.quadraticCurveTo(-2.3 - belly * .35, -2.6, -3.0, -.35);
+        ctx.lineTo(-.9, -5.15);
+        stroke(ctx, .92, .88);
+
+        ctx.beginPath();
+        ctx.moveTo(-.55, -6.05);
+        ctx.quadraticCurveTo(.45, -6.2 - .25 * Math.sin(phase * TAU * 2), 1.2, -5.7);
+        stroke(ctx, .72, .85);
+      }
+
+      function drawPaperBoat(ctx) {
+        ctx.beginPath();
+        ctx.moveTo(-4.5, .4);
+        ctx.lineTo(-2.55, 2.35);
+        ctx.lineTo(2.55, 2.35);
+        ctx.lineTo(4.5, .4);
+        ctx.lineTo(0, 1.0);
+        ctx.closePath();
+        stroke(ctx, 1.28);
+
+        ctx.beginPath();
+        ctx.moveTo(-4.5, .4);
+        ctx.lineTo(0, -4.85);
+        ctx.lineTo(4.5, .4);
+        ctx.moveTo(0, -4.85);
+        ctx.lineTo(0, 1.0);
+        stroke(ctx, 1.08);
+      }
+
+      function drawSchooner(ctx, phase) {
+        ctx.beginPath();
+        ctx.moveTo(-4.6, .25);
+        ctx.quadraticCurveTo(-3.2, 2.45, 2.2, 2.25);
+        ctx.quadraticCurveTo(3.85, 1.9, 4.5, .05);
+        ctx.quadraticCurveTo(.2, .72, -4.6, .25);
+        stroke(ctx, 1.2);
+
+        const belly = state.sailBelly ? .55 + .3 * Math.sin(phase * TAU) : 0;
+        for (const mast of [-1.6, 1.05]) {
+          const height = mast < 0 ? 5.75 : 4.85;
+          ctx.beginPath();
+          ctx.moveTo(mast, .45);
+          ctx.lineTo(mast, -height);
+          stroke(ctx, .82);
+          ctx.beginPath();
+          ctx.moveTo(mast + .2, -height + .35);
+          ctx.quadraticCurveTo(mast + 1.45 + belly, -height / 2, mast + 1.65, -.25);
+          ctx.quadraticCurveTo(mast + .65, -.65, mast + .2, -height + .35);
+          stroke(ctx, .82);
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(-1.5, -5.5);
+        ctx.quadraticCurveTo(-.65, -5.8 - .2 * Math.cos(phase * TAU * 2), .05, -5.35);
+        stroke(ctx, .68, .86);
+      }
+
+      function drawBoat(ctx, boat, phase, dyn) {
+        ctx.save();
+        ctx.translate(9, dyn.yBoat - .7);
+        ctx.rotate(dyn.angle * Math.PI / 180);
+        drawSplash(ctx, phase, state.load);
+        if (boat === 'paper') drawPaperBoat(ctx);
+        else if (boat === 'schooner') drawSchooner(ctx, phase);
+        else drawSloop(ctx, phase);
+        ctx.restore();
+      }
+
+      function render(canvas, opts = {}) {
+        const ctx = canvas.getContext('2d');
+        const px = canvas.width;
+        const logical = 18;
+        const scale = px / logical;
+        const load = opts.load ?? state.load;
+        let phase = opts.phase ?? state.phase;
+        let forcedTier = opts.forcedTier ?? null;
+        if (state.manualFrame >= 0 && !opts.ignoreManual) {
+          forcedTier = Math.floor(state.manualFrame / 24);
+          phase = (state.manualFrame % 24) / 24;
+        }
+        const dyn = dynamics(load, phase, forcedTier);
+        const ink = opts.ink || '#f5f7f8';
+
+        ctx.clearRect(0, 0, px, px);
+        ctx.save();
+        ctx.scale(scale, scale);
+        ctx.strokeStyle = ink;
+        ctx.fillStyle = ink;
+
+        if (opts.background) {
+          ctx.fillStyle = opts.background;
+          ctx.fillRect(0, 0, logical, logical);
+          ctx.strokeStyle = ink;
+          ctx.fillStyle = ink;
+        }
+
+        if (state.guides && opts.hero) {
+          ctx.save();
+          ctx.setLineDash([.3, .45]);
+          ctx.strokeStyle = 'rgba(117,191,255,.42)';
+          ctx.lineWidth = .035 * logical;
+          ctx.beginPath(); ctx.moveTo(0, 11.5); ctx.lineTo(18, 11.5); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(9, 1.5); ctx.lineTo(9, 16.5); ctx.stroke();
+          ctx.translate(9, dyn.yBoat - .7); ctx.rotate(dyn.angle * Math.PI / 180);
+          ctx.strokeStyle = 'rgba(255,179,107,.52)';
+          ctx.beginPath(); ctx.moveTo(-6.2, 0); ctx.lineTo(6.2, 0); ctx.stroke();
+          ctx.restore();
+        }
+
+        if (state.dualWave) {
+          ctx.save();
+          ctx.strokeStyle = ink;
+          pathWave(ctx, dyn.amplitude * .55, phase + .22, 13.65);
+          stroke(ctx, .8, .26);
+          ctx.restore();
+        }
+
+        drawBoat(ctx, state.boat, phase, dyn);
+
+        ctx.save();
+        ctx.strokeStyle = ink;
+        pathWave(ctx, dyn.amplitude, phase, 11.5);
+        stroke(ctx, 1.22, .96);
+        ctx.restore();
+
+        if (load >= 80 && state.splash && !state.reduceMotion) {
+          ctx.save();
+          ctx.translate(12.8, dyn.yBoat);
+          ctx.rotate(dyn.angle * Math.PI / 180);
+          ctx.globalAlpha = .6 + .4 * Math.max(0, Math.sin(phase * TAU));
+          for (const dot of [[.2,-1.1,.28],[1,-1.8,.2],[1.45,-.8,.16]]) {
+            ctx.beginPath(); ctx.arc(...dot, 0, TAU); ctx.fill();
+          }
+          ctx.restore();
+        }
+
+        ctx.restore();
+        return dyn;
+      }
+
+      function selectedPhaseAndTier() {
+        if (state.manualFrame >= 0) return { phase: (state.manualFrame % 24) / 24, tier: Math.floor(state.manualFrame / 24), frame: state.manualFrame };
+        const tier = tierForLoad(state.load);
+        const sub = Math.floor(state.phase * 24) % 24;
+        return { phase: state.phase, tier, frame: tier * 24 + sub };
+      }
+
+      function renderAll() {
+        const selected = selectedPhaseAndTier();
+        const heroDyn = render(canvases.hero, { hero: true });
+        const menuInk = state.lightMenubar ? '#15191d' : '#ffffff';
+        render(canvases.menu, { ink: menuInk });
+        render(canvases.retina, { background: '#0d1319' });
+        render(canvases.standard, { background: '#0d1319' });
+
+        document.querySelectorAll('.tier-canvas').forEach((canvas, index) => {
+          const load = Number(canvas.dataset.load);
+          render(canvas, { load, phase: .08 + index * .12, ignoreManual: true, background: '#111820' });
+        });
+
+        $('frameLabel').textContent = `${state.manualFrame < 0 ? 'AUTO' : 'FROZEN'} · FRAME ${String(selected.frame).padStart(2, '0')} / 95`;
+        $('tierBadge').textContent = `TIER ${selected.tier} · ${TIERS[selected.tier].name}`;
+        $('rpsMetric').textContent = `${rpsForLoad(state.load).toFixed(2)} RPS`;
+        $('ampMetric').textContent = `${heroDyn.amplitude.toFixed(1)} pt`;
+        $('angleMetric').textContent = `${heroDyn.angle >= 0 ? '+' : '−'}${Math.abs(heroDyn.angle).toFixed(1)}°`;
+        $('indexMetric').textContent = `${String(selected.frame).padStart(2, '0')} / 95`;
+        $('powerReadout').textContent = `${Math.round(5 + state.load * .5)} W`;
+      }
+
+      function syncUI() {
+        $('loadValue').textContent = `${state.load}%`;
+        $('loadSlider').value = state.load;
+        $('loadSlider').style.setProperty('--range-progress', `${state.load}%`);
+        $('frameSlider').value = state.manualFrame;
+        $('frameSlider').style.setProperty('--range-progress', `${Math.max(0, (state.manualFrame + 1) / 96 * 100)}%`);
+        $('manualFrameValue').textContent = state.manualFrame < 0 ? 'AUTO' : `#${String(state.manualFrame).padStart(2, '0')}`;
+        $('motionStatus').classList.toggle('frozen', state.manualFrame >= 0);
+        $('motionStatus').querySelector('span').textContent = state.manualFrame < 0 ? (state.reduceMotion ? 'REDUCED MOTION' : 'AUTO PLAYING') : 'FRAME FROZEN';
+        $('themeButton').setAttribute('aria-pressed', String(state.lightMenubar));
+        $('themeButton').textContent = state.lightMenubar ? '☾ 다크 메뉴바' : '☼ 라이트 메뉴바';
+        $('desktopStrip').classList.toggle('light', state.lightMenubar);
+        $('guideButton').setAttribute('aria-pressed', String(state.guides));
+        document.querySelectorAll('[data-toggle]').forEach(button => button.setAttribute('aria-pressed', String(state[button.dataset.toggle])));
+        document.querySelectorAll('[data-boat]').forEach(button => button.classList.toggle('active', button.dataset.boat === state.boat));
+        document.querySelectorAll('.preset').forEach(button => button.classList.toggle('active', Number(button.dataset.load) === state.load));
+        renderAll();
+      }
+
+      $('loadSlider').addEventListener('input', event => {
+        state.load = Number(event.target.value);
+        state.manualFrame = -1;
+        syncUI();
+      });
+
+      $('frameSlider').addEventListener('input', event => {
+        state.manualFrame = Number(event.target.value);
+        syncUI();
+      });
+
+      document.querySelectorAll('.preset').forEach(button => button.addEventListener('click', () => {
+        state.load = Number(button.dataset.load);
+        state.manualFrame = -1;
+        syncUI();
+      }));
+
+      document.querySelectorAll('[data-toggle]').forEach(button => button.addEventListener('click', () => {
+        const key = button.dataset.toggle;
+        state[key] = !state[key];
+        syncUI();
+      }));
+
+      document.querySelectorAll('[data-boat]').forEach(button => button.addEventListener('click', () => {
+        state.boat = button.dataset.boat;
+        const url = new URL(location.href);
+        url.searchParams.set('boat', state.boat);
+        history.replaceState({}, '', url);
+        syncUI();
+      }));
+
+      $('guideButton').addEventListener('click', () => { state.guides = !state.guides; syncUI(); });
+      $('themeButton').addEventListener('click', () => { state.lightMenubar = !state.lightMenubar; syncUI(); });
+
+      function animate(now) {
+        const dt = Math.min(.05, (now - state.lastTime) / 1000);
+        state.lastTime = now;
+        if (state.manualFrame < 0) {
+          const speedScale = state.reduceMotion ? .12 : 1;
+          state.phase = (state.phase + dt * rpsForLoad(state.load) * speedScale) % 1;
+          renderAll();
+        }
+        requestAnimationFrame(animate);
+      }
+
+      syncUI();
+      requestAnimationFrame(animate);
+    })();
+  </script>
+</body>
+</html>
