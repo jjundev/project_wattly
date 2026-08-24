@@ -182,7 +182,7 @@ enum MenuBarIconMotion {
         let maxFPSDelay = 1.0 / targetFPS
 
         // Natural duration for 1 sprite advance at current RPS (24 discrete steps per revolution)
-        let stepsPerCycle = (style == .pulseWave) ? 24.0 : Double(frameCount)
+        let stepsPerCycle = (style == .pulseWave || style == .sailboat) ? 24.0 : Double(frameCount)
         let naturalFPS = max(rps * stepsPerCycle, 1.0)
         let naturalDelay = 1.0 / naturalFPS
 
@@ -267,6 +267,23 @@ enum MenuBarIconMotion {
             }
             let subPhase = Int(safePhase * 8.0) % 8
             return tier * 8 + subPhase
+        }
+
+        // Sailboat maps 4 workload tiers (Idle, Cruising, Swell, Storm) into 24 subphases each (96 frames total)
+        if style == .sailboat {
+            let clampedLoad = min(max(activeLoad, 0), 100)
+            let tier: Int
+            if clampedLoad < 25.0 {
+                tier = 0 // 저부하 (0..<25%): 잔잔한 수평선 (Frames 0..23)
+            } else if clampedLoad < 55.0 {
+                tier = 1 // 중저부하 (25..<55%): 순항 파도 (Frames 24..47)
+            } else if clampedLoad < 80.0 {
+                tier = 2 // 중고부하 (55..<80%): 높은 너울 (Frames 48..71)
+            } else {
+                tier = 3 // 고부하 풀로드 (80..100%): 폭풍우와 물보라 (Frames 72..95)
+            }
+            let subPhase = Int(safePhase * 24.0) % 24
+            return tier * 24 + subPhase
         }
 
         return Int(safePhase * Double(count)) % count
