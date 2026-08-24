@@ -230,5 +230,41 @@ struct KineticNotchMotionTests {
         let multiplier = MenuBarIconMotion.phaseDelayMultiplier(style: .hillRunner, phase: 0)
         #expect(multiplier == 1.4)
     }
+
+    @Test func sailboatScalesTierWithLoad() {
+        // Tier 0 (0..<25% load): Frames 0..23
+        let lowFrame = MenuBarIconMotion.displayedFrame(style: .sailboat, phase: 0.3, load: 10.0, reduceMotion: false)
+        #expect((0...23).contains(lowFrame))
+
+        // Tier 1 (25..<55% load): Frames 24..47
+        let midLowFrame = MenuBarIconMotion.displayedFrame(style: .sailboat, phase: 0.3, load: 40.0, reduceMotion: false)
+        #expect((24...47).contains(midLowFrame))
+
+        // Tier 2 (55..<80% load): Frames 48..71
+        let midHighFrame = MenuBarIconMotion.displayedFrame(style: .sailboat, phase: 0.3, load: 65.0, reduceMotion: false)
+        #expect((48...71).contains(midHighFrame))
+
+        // Tier 3 (80..100% load): Frames 72..95
+        let highFrame = MenuBarIconMotion.displayedFrame(style: .sailboat, phase: 0.3, load: 95.0, reduceMotion: false)
+        #expect((72...95).contains(highFrame))
+    }
+
+    @Test func sailboatHonorsReduceMotion() {
+        let staticFrame = MenuBarIconMotion.displayedFrame(style: .sailboat, phase: 0.5, load: 90.0, reduceMotion: true)
+        #expect(staticFrame == MenuBarIconStyle.sailboat.staticFrame)
+        #expect(staticFrame == 0)
+    }
+
+    @Test func sailboatInterFrameDelayUses24StepsPerCycle() {
+        let pulseWaveDelay = MenuBarIconMotion.interFrameDelay(rps: 1.0, speed: .standard, frameCount: 96, style: .pulseWave)
+        let sailboatDelay = MenuBarIconMotion.interFrameDelay(rps: 1.0, speed: .standard, frameCount: 96, style: .sailboat)
+        #expect(abs(pulseWaveDelay - sailboatDelay) < 1e-6)
+    }
+
+    @Test func sailboatRevolutionsPerSecondScalesTo70PercentMaxSpeed() {
+        #expect(MenuBarIconMotion.revolutionsPerSecond(load: 0.0, style: .sailboat) == 0.50)
+        #expect(abs(MenuBarIconMotion.revolutionsPerSecond(load: 100.0, style: .sailboat) - 2.45) < 1e-9)
+        #expect(abs(MenuBarIconMotion.revolutionsPerSecond(load: 50.0, style: .sailboat) - (0.50 + (2.45 - 0.50) * 0.5)) < 1e-9)
+    }
 }
 

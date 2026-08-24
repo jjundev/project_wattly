@@ -34,5 +34,20 @@ struct GlyphsRenderingTests {
             #expect(mark.frame == frame)
         }
     }
+
+    @Test @MainActor func sailboatMarkRendersAcrossAllTiers() {
+        for frame in 0..<96 {
+            let mark = SailboatMark(frame: frame, markerColor: .black)
+            #expect(mark.frame == frame)
+        }
+    }
+
+    @Test @MainActor func sailboatDynamicMarkRendersWithoutCrash() {
+        for frame in 0..<MenuBarIconStyle.sailboat.frameCount {
+            let view = DynamicMenuBarIconMark(style: .sailboat, frame: frame, markerColor: .black)
+            #expect(view.style == .sailboat)
+            #expect(view.frame == frame)
+        }
+    }
 }
 

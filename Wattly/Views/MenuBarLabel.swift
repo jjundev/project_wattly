@@ -43,7 +43,7 @@ struct MenuBarLabel: View {
 
             while !Task.isCancelled {
                 let load = kineticNotchLoad ?? 0.0
-                let targetRPS = MenuBarIconMotion.revolutionsPerSecond(load: load)
+                let targetRPS = MenuBarIconMotion.revolutionsPerSecond(load: load, style: iconStyle)
 
                 let now = CACurrentMediaTime()
                 let dt = min(max(now - lastInstant, 0.001), 1.0)

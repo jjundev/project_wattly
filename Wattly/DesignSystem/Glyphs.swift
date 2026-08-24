@@ -541,6 +541,112 @@ struct HillRunnerMark: View {
     }
 }
 
+// 7. Paper Boat on Waves Mark (Sailboat)
+struct SailboatMark: View {
+    let frame: Int
+    var markerColor: Color = Tokens.accent
+
+    var body: some View {
+        GeometryReader { proxy in
+            let s = min(proxy.size.width, proxy.size.height)
+            let strokeW = max(1.3 * (s / 18.0), 1.2)
+
+            let safeFrame = min(max(frame, 0), 95)
+            let tier = safeFrame / 24
+            let subPhase = safeFrame % 24
+            let phaseRad = (Double(subPhase) / 24.0) * .pi * 2.0
+
+            // Base geometry parameters
+            let baseY = s * 0.70
+            let ampRatio: Double = tier == 0 ? 0.050 : (tier == 1 ? 0.085 : (tier == 2 ? 0.130 : 0.175))
+            let tiltDamp: Double = tier == 0 ? 0.65 : (tier == 1 ? 0.75 : (tier == 2 ? 0.85 : 0.95))
+
+            let amp = s * ampRatio
+            let waveFreq = (.pi * 2.0) / (s * 0.88)
+
+            // Boat Kinematics at horizontal center (x = 0.50 s)
+            let boatX = s * 0.50
+            let boatY = baseY - amp * sin(waveFreq * boatX - phaseRad)
+            let slope = -amp * waveFreq * cos(waveFreq * boatX - phaseRad)
+            let rollAngle = atan(slope) * tiltDamp
+
+            let hullW = s * 0.68
+            let hullH = s * 0.20
+            let mastH = s * 0.50
+            let draftH = hullH * 0.20
+            let brimH = hullH * 0.85
+
+            let cosT = cos(rollAngle)
+            let sinT = sin(rollAngle)
+
+            ZStack {
+                // 1. Single Traveling Sine Wave
+                Path { path in
+                    let steps = 24
+                    for i in 0...steps {
+                        let progress = Double(i) / Double(steps)
+                        let x = progress * s
+                        let y = baseY - amp * sin(waveFreq * x - phaseRad)
+                        if i == 0 {
+                            path.move(to: CGPoint(x: x, y: y))
+                        } else {
+                            path.addLine(to: CGPoint(x: x, y: y))
+                        }
+                    }
+                }
+                .stroke(markerColor, style: StrokeStyle(lineWidth: strokeW * 0.95, lineCap: .round, lineJoin: .round))
+
+                // 2. Paper Boat (Folded Geometry riding on top of the wave)
+                // Lower Hull (Inverted trapezoid / folded polygon)
+                Path { path in
+                    func pt(_ lx: CGFloat, _ ly: CGFloat) -> CGPoint {
+                        CGPoint(x: boatX + lx * cosT - ly * sinT, y: boatY + lx * sinT + ly * cosT)
+                    }
+                    path.move(to: pt(-hullW * 0.50, -brimH))
+                    path.addLine(to: pt(-hullW * 0.24, draftH))
+                    path.addLine(to: pt(hullW * 0.24, draftH))
+                    path.addLine(to: pt(hullW * 0.50, -brimH))
+                    path.addLine(to: pt(0, -brimH * 0.45))
+                    path.closeSubpath()
+                }
+                .fill(markerColor)
+
+                // Upper Triangular Fold (Sail)
+                Path { path in
+                    func pt(_ lx: CGFloat, _ ly: CGFloat) -> CGPoint {
+                        CGPoint(x: boatX + lx * cosT - ly * sinT, y: boatY + lx * sinT + ly * cosT)
+                    }
+                    path.move(to: pt(0, -mastH))
+                    path.addLine(to: pt(-hullW * 0.24, -brimH * 0.40))
+                    path.addLine(to: pt(hullW * 0.24, -brimH * 0.40))
+                    path.closeSubpath()
+                }
+                .fill(markerColor)
+
+                // 3. Splash Spray VFX (Tier 3 full load only)
+                if tier == 3 {
+                    let splashPhase = Double(subPhase % 12) / 12.0
+                    let sprayR = strokeW * 0.70
+
+                    let sp1X = boatX + (hullW * 0.55 + splashPhase * (s * 0.15)) * cosT - (-brimH * 0.5 - sin(splashPhase * .pi) * (s * 0.22)) * sinT
+                    let sp1Y = boatY + (hullW * 0.55 + splashPhase * (s * 0.15)) * sinT + (-brimH * 0.5 - sin(splashPhase * .pi) * (s * 0.22)) * cosT
+                    Circle()
+                        .fill(markerColor)
+                        .frame(width: sprayR * 2.0, height: sprayR * 2.0)
+                        .position(x: sp1X, y: sp1Y)
+
+                    let sp2X = boatX + (hullW * 0.42 + splashPhase * (s * 0.10)) * cosT - (-brimH * 0.2 - sin(splashPhase * .pi) * (s * 0.14)) * sinT
+                    let sp2Y = boatY + (hullW * 0.42 + splashPhase * (s * 0.10)) * sinT + (-brimH * 0.2 - sin(splashPhase * .pi) * (s * 0.14)) * cosT
+                    Circle()
+                        .fill(markerColor)
+                        .frame(width: sprayR * 1.6, height: sprayR * 1.6)
+                        .position(x: sp2X, y: sp2Y)
+                }
+            }
+        }
+    }
+}
+
 // Unified Dynamic MenuBar Icon Dispatcher
 struct DynamicMenuBarIconMark: View {
     let style: MenuBarIconStyle
@@ -561,6 +667,7 @@ struct DynamicMenuBarIconMark: View {
         case .cube3D: Cube3DMark(frame: frame, markerColor: markerColor)
         case .equalizer: EqualizerMark(frame: frame, markerColor: markerColor)
         case .hillRunner: HillRunnerMark(frame: frame, markerColor: markerColor)
+        case .sailboat: SailboatMark(frame: frame, markerColor: markerColor)
         }
     }
 }
