@@ -194,4 +194,43 @@ struct BatteryDaemonControlServiceTests {
         #expect(status.currentPercentage == 70)
         #expect(status.isPowerAdapterConnected)
     }
+
+    @Test func daemonControlServicePassesTemperatureReadingToCoordinator() {
+        let store = PolicyStoreSpy()
+        let hw = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: hw)
+        let coordinator = BatteryControlCoordinator(ownerUID: 501, store: store, engine: engine, now: { 1000 })
+        let service = BatteryDaemonControlService(coordinator: coordinator)
+
+        let reading = BatteryPowerSourceReading(stateOfCharge: 80, isPluggedIn: true, temperatureCelsius: 38.5)
+        let status = service.sample(currentReading: reading, force: true)
+
+        #expect(status.batteryTemperatureCelsius == 38.5)
+    }
+
+    @Test func daemonControlServiceThreadsTemperatureThroughConfigureAndRestore() throws {
+        let store = PolicyStoreSpy()
+        let hw = MockBatteryHardware()
+        hw.reportedGate = .allowed
+        let engine = BatteryControlEngine(hardware: hw)
+        let coordinator = BatteryControlCoordinator(ownerUID: 501, store: store, engine: engine, now: { 1000 })
+        let service = BatteryDaemonControlService(coordinator: coordinator)
+
+        let restoreReading = BatteryPowerSourceReading(stateOfCharge: 75, isPluggedIn: true, temperatureCelsius: 36.2)
+        let restoreStatus = service.restore(currentReading: restoreReading)
+        #expect(restoreStatus.batteryTemperatureCelsius == 36.2)
+
+        let configRequest = BatteryControlConfigurationRequest(
+            configuration: .init(enabled: true, limitPercentage: 80),
+            generation: 1)
+        let configReading = BatteryPowerSourceReading(stateOfCharge: 76, isPluggedIn: true, temperatureCelsius: 39.1)
+        let replyData = try service.configure(
+            encodedRequest: BatteryControlCodec.encode(configRequest),
+            currentReading: configReading)
+        let configStatus = try BatteryControlCodec.decode(BatteryControlServiceStatus.self, from: replyData)
+        #expect(configStatus.batteryTemperatureCelsius == 39.1)
+
+        let wakeStatus = service.reconcileAfterWake(currentReading: nil)
+        #expect(wakeStatus.batteryTemperatureCelsius == 39.1)
+    }
 }

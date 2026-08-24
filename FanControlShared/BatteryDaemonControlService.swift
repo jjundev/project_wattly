@@ -32,7 +32,8 @@ public final class BatteryDaemonControlService {
         lastPowerReading = currentReading
         return coordinator.restore(
             currentSoC: currentReading.stateOfCharge,
-            isPluggedIn: currentReading.isPluggedIn)
+            isPluggedIn: currentReading.isPluggedIn,
+            temperatureCelsius: currentReading.temperatureCelsius)
     }
 
     public func configure(
@@ -53,7 +54,8 @@ public final class BatteryDaemonControlService {
                 request.configuration,
                 trigger: .clientConfiguration,
                 currentSoC: reading.stateOfCharge,
-                isPluggedIn: reading.isPluggedIn)
+                isPluggedIn: reading.isPluggedIn,
+                temperatureCelsius: reading.temperatureCelsius)
         } else {
             status = coordinator.configureWithoutPowerReading(
                 request.configuration,
@@ -79,11 +81,13 @@ public final class BatteryDaemonControlService {
             return coordinator.reconcile(
                 trigger: .adapterTransition,
                 currentSoC: reading.stateOfCharge,
-                isPluggedIn: reading.isPluggedIn)
+                isPluggedIn: reading.isPluggedIn,
+                temperatureCelsius: reading.temperatureCelsius)
         }
         return coordinator.sample(
             currentSoC: reading.stateOfCharge,
-            isPluggedIn: reading.isPluggedIn)
+            isPluggedIn: reading.isPluggedIn,
+            temperatureCelsius: reading.temperatureCelsius)
     }
 
     @discardableResult
@@ -97,6 +101,7 @@ public final class BatteryDaemonControlService {
         return coordinator.reconcile(
             trigger: .wake,
             currentSoC: reading.stateOfCharge,
-            isPluggedIn: reading.isPluggedIn)
+            isPluggedIn: reading.isPluggedIn,
+            temperatureCelsius: reading.temperatureCelsius)
     }
 }

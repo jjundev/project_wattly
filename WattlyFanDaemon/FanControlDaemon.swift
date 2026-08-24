@@ -1,5 +1,6 @@
 import Darwin
 import Foundation
+import IOKit
 import IOKit.ps
 
 /// Owns the privileged XPC service and serializes every interaction with the fan and battery engines.
@@ -175,9 +176,24 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
         let maxCap = desc[kIOPSMaxCapacityKey] as? Int ?? 100
         let soc = maxCap > 0 ? Int((Double(current) / Double(maxCap) * 100.0).rounded()) : current
         let isPlugged = (desc[kIOPSPowerSourceStateKey] as? String) == kIOPSACPowerValue
+
+        let tempC = readBatteryTemperatureFromRegistry()
         return BatteryPowerSourceReading(
             stateOfCharge: soc,
-            isPluggedIn: isPlugged)
+            isPluggedIn: isPlugged,
+            temperatureCelsius: tempC)
+    }
+
+    private func readBatteryTemperatureFromRegistry() -> Double? {
+        let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"))
+        guard service != 0 else { return nil }
+        defer { IOObjectRelease(service) }
+        guard let rawNumber = IORegistryEntryCreateCFProperty(service, "Temperature" as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue() as? NSNumber else {
+            return nil
+        }
+        let centiCelsius = rawNumber.intValue
+        guard (0...8000).contains(centiCelsius) else { return nil }
+        return Double(centiCelsius) / 100.0
     }
 
     private func startTimers() {
