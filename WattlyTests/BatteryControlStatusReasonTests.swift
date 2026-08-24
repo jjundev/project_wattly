@@ -127,4 +127,19 @@ import Foundation
         let decodedUnreadable = try JSONDecoder().decode(BatteryControlStatusReason.self, from: unreadableData)
         #expect(decodedUnreadable.kind == .batterySensorUnreadable)
     }
+
+    @Test func topUpReasonsRoundTripAndProvideLegacyKoreanDetail() throws {
+        let charging = BatteryControlStatusReason(kind: .topUpCharging, limitPercentage: 100)
+        let complete = BatteryControlStatusReason(kind: .topUpComplete, limitPercentage: 100)
+
+        let encodedCharging = try BatteryControlCodec.encode(charging)
+        let decodedCharging = try BatteryControlCodec.decode(BatteryControlStatusReason.self, from: encodedCharging)
+        #expect(decodedCharging.kind == .topUpCharging)
+        #expect(decodedCharging.legacyKoreanDetail == "Top Up 중 (100%까지 충전)")
+
+        let encodedComplete = try BatteryControlCodec.encode(complete)
+        let decodedComplete = try BatteryControlCodec.decode(BatteryControlStatusReason.self, from: encodedComplete)
+        #expect(decodedComplete.kind == .topUpComplete)
+        #expect(decodedComplete.legacyKoreanDetail == "Top Up 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)")
+    }
 }

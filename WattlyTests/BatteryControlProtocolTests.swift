@@ -366,4 +366,32 @@ struct BatteryControlProtocolTests {
         let config = try BatteryControlCodec.decode(BatteryControlConfiguration.self, from: json)
         #expect(config.heatProtectionThresholdCelsius == 35)
     }
+
+    @Test func topUpActiveConfigurationRoundTrips() throws {
+        let input = BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            lowerHysteresisDelta: 2,
+            heatProtectionEnabled: false,
+            heatProtectionThresholdCelsius: 35,
+            topUpActive: true
+        )
+        let encoded = try BatteryControlCodec.encode(input)
+        let decoded = try BatteryControlCodec.decode(BatteryControlConfiguration.self, from: encoded)
+        #expect(decoded == input)
+        #expect(decoded.topUpActive == true)
+        #expect(decoded.isActive == true)
+    }
+
+    @Test func topUpActiveNormalizesPreservingFlag() {
+        let config = BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            lowerHysteresisDelta: 2,
+            topUpActive: true
+        )
+        let normalized = config.normalized
+        #expect(normalized.topUpActive == true)
+        #expect(normalized.clampedLimitPercentage == 80)
+    }
 }

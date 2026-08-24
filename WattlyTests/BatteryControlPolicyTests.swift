@@ -270,4 +270,22 @@ import Testing
                 occurredAt: 1,
                 reason: nil))
     }
+
+    @Test func shouldReapplyPreservesActiveTopUpWhenBaseSettingsMatch() {
+        let appConfig = BatteryControlConfiguration(enabled: true, limitPercentage: 80, lowerHysteresisDelta: 2, topUpActive: false)
+        let daemonConfig = BatteryControlConfiguration(enabled: true, limitPercentage: 80, lowerHysteresisDelta: 2, topUpActive: true)
+
+        let status = BatteryControlServiceStatus(
+            mode: .charging,
+            currentPercentage: 70,
+            isPowerAdapterConnected: true,
+            detail: "Top Up 중 (100%까지 충전)",
+            updatedAt: 100.0,
+            desiredConfiguration: daemonConfig,
+            capabilities: [.persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1]
+        )
+
+        // When helper holds topUpActive == true, background client check with same base settings must NOT trigger reapply
+        #expect(BatteryControlPolicy.shouldReapply(configuration: appConfig, status: status) == false)
+    }
 }
