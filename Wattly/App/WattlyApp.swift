@@ -35,7 +35,7 @@ struct WattlyApp: App {
                 // The fan bridge is likewise always mounted. Closing a Settings window must
                 // never release control; only disabling the persisted opt-in may do that.
                 .background(FanControlBridge(client: fanControl))
-                .background(BatteryControlBridge(client: batteryControl))
+                .background(BatteryControlBridge(client: batteryControl, monitor: monitor))
         }
         .menuBarExtraStyle(.window)
 
