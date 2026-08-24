@@ -87,6 +87,21 @@ public enum BatteryControlKeyProbeResult: Equatable, Sendable {
     case readable(type: String, size: Int)
     /// Transport/SMC failure or an invalid reply shape; absence is not proved.
     case uncertain
+
+    /// Classifies an AppleSMC cmd-9 key-info reply without collapsing an error into absence.
+    /// The M5 used for this helper reports 132 when a named key is absent; other nonzero
+    /// results remain uncertain so verified release cannot ignore a reachable latch.
+    public static func fromSMCKeyInfo(
+        kernelSucceeded: Bool,
+        smcResult: UInt8,
+        type: String,
+        size: Int
+    ) -> Self {
+        guard kernelSucceeded else { return .uncertain }
+        if smcResult == 132 { return .confirmedAbsent }
+        guard smcResult == 0, (1...32).contains(size) else { return .uncertain }
+        return .readable(type: type, size: size)
+    }
 }
 
 /// The runtime answer used only by the dedicated safety-release path.
