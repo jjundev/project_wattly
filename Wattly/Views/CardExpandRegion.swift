@@ -258,47 +258,65 @@ struct CardExpandRegion: View {
             batteryDetailRow(label: "전류", value: CardPresentation.batteryCurrentText(s))
             batteryDetailRow(label: "전압", value: CardPresentation.batteryVoltageText(s))
 
-            if let batteryControl, s.charging || batteryControl.status.isPowerAdapterConnected {
-                let isTopUp = batteryControl.status.desiredConfiguration?.topUpActive == true
-                    || batteryControl.status.activity == .topUp
-                Button {
-                    let limit = batteryLimitPercentage
-                    let delta = batterySailingEnabled ? batterySailingDelta : 2
-                    let heatEnabled = batteryHeatProtectionEnabled
-                    let heatThreshold = batteryHeatProtectionThreshold
-                    Task {
-                        if isTopUp {
-                            await batteryControl.cancelTopUp(
-                                limitPercentage: limit,
-                                lowerHysteresisDelta: delta,
-                                heatProtectionEnabled: heatEnabled,
-                                heatProtectionThresholdCelsius: heatThreshold)
-                        } else {
-                            await batteryControl.startTopUp(
-                                limitPercentage: limit,
-                                lowerHysteresisDelta: delta,
-                                heatProtectionEnabled: heatEnabled,
-                                heatProtectionThresholdCelsius: heatThreshold)
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: isTopUp ? "xmark.circle.fill" : "bolt.fill")
-                            .font(.system(size: 10, weight: .semibold))
-                        Text(isTopUp ? "Top Up 취소" : "Top Up (100% 충전)")
-                            .font(WattlyFont.at(10.5, weight: .medium))
-                    }
-                    .foregroundStyle(isTopUp ? Tokens.statusOrange : Tokens.accent)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(RoundedRectangle(cornerRadius: 5).fill(t.segTrack))
-                    .overlay(RoundedRectangle(cornerRadius: 5).stroke(isTopUp ? Tokens.statusOrange.opacity(0.4) : t.rowBorder, lineWidth: 1))
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
+            if let batteryControl {
+                batteryTopUpRow(batteryControl, s)
             }
         }
         .padding(.top, 8)
+    }
+
+    @ViewBuilder
+    private func batteryTopUpRow(_ batteryControl: BatteryControlClient, _ s: BatterySample) -> some View {
+        let isConnected = s.charging || batteryControl.status.isPowerAdapterConnected
+        let isTopUp = isConnected && (batteryControl.status.desiredConfiguration?.topUpActive == true || batteryControl.status.activity == .topUp)
+
+        HStack(alignment: .center) {
+            HStack(spacing: 4) {
+                Text(LocalizedStringKey("한 번만 완충"))
+                    .font(WattlyFont.at(10.5, weight: .medium))
+                    .foregroundStyle(t.faint)
+                if isTopUp {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(Tokens.statusOrange)
+                }
+            }
+            Spacer()
+            Button {
+                let limit = batteryLimitPercentage
+                let delta = batterySailingEnabled ? batterySailingDelta : 2
+                let heatEnabled = batteryHeatProtectionEnabled
+                let heatThreshold = batteryHeatProtectionThreshold
+                Task {
+                    if isTopUp {
+                        await batteryControl.cancelTopUp(
+                            limitPercentage: limit,
+                            lowerHysteresisDelta: delta,
+                            heatProtectionEnabled: heatEnabled,
+                            heatProtectionThresholdCelsius: heatThreshold)
+                    } else {
+                        await batteryControl.startTopUp(
+                            limitPercentage: limit,
+                            lowerHysteresisDelta: delta,
+                            heatProtectionEnabled: heatEnabled,
+                            heatProtectionThresholdCelsius: heatThreshold)
+                    }
+                }
+            } label: {
+                Text(LocalizedStringKey(isTopUp ? "(활성화)" : "(비활성화)"))
+                    .font(WattlyFont.at(10.5, weight: .medium))
+                    .foregroundStyle(isTopUp ? Tokens.statusOrange : (isConnected ? t.sub : t.faint.opacity(0.6)))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(RoundedRectangle(cornerRadius: 4).fill(isTopUp ? Tokens.statusOrange.opacity(0.15) : t.segTrack))
+                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(isTopUp ? Tokens.statusOrange.opacity(0.4) : t.rowBorder, lineWidth: 1))
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!isConnected)
+            .accessibilityLabel(Text(LocalizedStringKey("한 번만 완충")))
+            .accessibilityValue(Text(LocalizedStringKey(isTopUp ? "(활성화)" : "(비활성화)")))
+        }
     }
 
     private func batteryDetailRow(label: String, value: String) -> some View {
