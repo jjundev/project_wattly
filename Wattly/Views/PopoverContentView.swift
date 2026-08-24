@@ -126,6 +126,7 @@ struct PopoverContentView: View {
             Task {
                 await fanControl.reconcileAfterMenuBarOpen(enabled: shouldControlFans,
                                                             curve: curveForRecovery)
+                await batteryControl.refreshStatus()
             }
             // Cap the scrollable cards to the menu-bar screen — screens.first (index 0 = the
             // menu-bar display), NOT NSScreen.main which tracks the key window and is wrong on

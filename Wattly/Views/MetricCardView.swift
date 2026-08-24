@@ -33,13 +33,13 @@ struct MetricCardView: View {
         let d = CardPresentation.display(card, state)
         return VStack(alignment: .leading, spacing: 8) {
             summaryGroup(d)
+                .contentShape(Rectangle())
+                .onTapGesture { onToggleExpand?() }
             if isExpanded, isExpandable { expandRegion }
         }
         .padding(EdgeInsets(top: 11, leading: 12, bottom: 11, trailing: 12))
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: Tokens.cardRadius).fill(t.cardBg))
-        .contentShape(Rectangle())
-        .onTapGesture { onToggleExpand?() }
     }
 
     /// The card's spoken summary: header + sparkline + sub-line collapsed into ONE VoiceOver

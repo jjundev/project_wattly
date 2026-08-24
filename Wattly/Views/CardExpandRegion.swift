@@ -11,6 +11,11 @@ import AppKit   // NSWorkspace for per-process app icons (issue 05)
 struct CardExpandRegion: View {
     @Environment(\.tokens) private var t
     @AppStorage(StorageKey.showBatteryEfficiency) private var showBatteryEfficiency = Defaults.showBatteryEfficiency
+    @AppStorage(StorageKey.batteryLimitPercentage) private var batteryLimitPercentage = Defaults.batteryLimitPercentage
+    @AppStorage(StorageKey.batterySailingEnabled) private var batterySailingEnabled = Defaults.batterySailingEnabled
+    @AppStorage(StorageKey.batterySailingDelta) private var batterySailingDelta = Defaults.batterySailingDelta
+    @AppStorage(StorageKey.batteryHeatProtectionEnabled) private var batteryHeatProtectionEnabled = Defaults.batteryHeatProtectionEnabled
+    @AppStorage(StorageKey.batteryHeatProtectionThreshold) private var batteryHeatProtectionThreshold = Defaults.batteryHeatProtectionThreshold
     let card: CardKind
     let state: MetricState
     var thresholds: Thresholds = Defaults.thresholds
@@ -257,15 +262,23 @@ struct CardExpandRegion: View {
                 let isTopUp = batteryControl.status.desiredConfiguration?.topUpActive == true
                     || batteryControl.status.activity == .topUp
                 Button {
+                    let limit = batteryLimitPercentage
+                    let delta = batterySailingEnabled ? batterySailingDelta : 2
+                    let heatEnabled = batteryHeatProtectionEnabled
+                    let heatThreshold = batteryHeatProtectionThreshold
                     Task {
                         if isTopUp {
                             await batteryControl.cancelTopUp(
-                                limitPercentage: 80,
-                                lowerHysteresisDelta: 2)
+                                limitPercentage: limit,
+                                lowerHysteresisDelta: delta,
+                                heatProtectionEnabled: heatEnabled,
+                                heatProtectionThresholdCelsius: heatThreshold)
                         } else {
                             await batteryControl.startTopUp(
-                                limitPercentage: 80,
-                                lowerHysteresisDelta: 2)
+                                limitPercentage: limit,
+                                lowerHysteresisDelta: delta,
+                                heatProtectionEnabled: heatEnabled,
+                                heatProtectionThresholdCelsius: heatThreshold)
                         }
                     }
                 } label: {
@@ -277,9 +290,10 @@ struct CardExpandRegion: View {
                     }
                     .foregroundStyle(isTopUp ? Tokens.statusOrange : Tokens.accent)
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
+                    .padding(.vertical, 4)
                     .background(RoundedRectangle(cornerRadius: 5).fill(t.segTrack))
                     .overlay(RoundedRectangle(cornerRadius: 5).stroke(isTopUp ? Tokens.statusOrange.opacity(0.4) : t.rowBorder, lineWidth: 1))
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
