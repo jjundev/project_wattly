@@ -81,16 +81,30 @@ func estimatedTimeRemainingMinutes(remainingWattHours: Double?, netW: Double) ->
     return Int(minutes.rounded())
 }
 
-/// Estimated time until full charge from current energy, maximum energy capacity, and live charging power.
-func estimatedTimeToFullMinutes(remainingWh: Double?, maxWh: Double?, netW: Double) -> Int? {
+/// Estimated time until target charge percentage from current energy, maximum energy capacity,
+/// target percentage (50...100), and live charging power.
+func estimatedTimeToTargetMinutes(
+    remainingWh: Double?,
+    maxWh: Double?,
+    targetPercentage: Int = 100,
+    netW: Double
+) -> Int? {
     guard let remainingWh, remainingWh.isFinite, remainingWh >= 0,
-          let maxWh, maxWh.isFinite, maxWh > remainingWh,
+          let maxWh, maxWh.isFinite, maxWh > 0,
+          (50...100).contains(targetPercentage),
           netW.isFinite, netW < -0.2 else { return nil }
-    let neededWh = maxWh - remainingWh
+    let targetWh = maxWh * (Double(targetPercentage) / 100.0)
+    let neededWh = targetWh - remainingWh
+    guard neededWh > 0 else { return nil }
     let chargingW = abs(netW)
     let minutes = neededWh / chargingW * 60
     guard minutes.isFinite, (1...1_440).contains(minutes) else { return nil }
     return Int(minutes.rounded())
+}
+
+/// Estimated time until full charge (target = 100%) from current energy, maximum energy capacity, and live charging power.
+func estimatedTimeToFullMinutes(remainingWh: Double?, maxWh: Double?, netW: Double) -> Int? {
+    estimatedTimeToTargetMinutes(remainingWh: remainingWh, maxWh: maxWh, targetPercentage: 100, netW: netW)
 }
 
 /// Battery health/efficiency from the current maximum charge capacity relative to
