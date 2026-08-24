@@ -7,6 +7,7 @@ final class MockBatteryHardware: BatteryControlHardwareProtocol, @unchecked Send
     var reportedGate: BatteryHardwareGate = .allowed
     var chargingInhibited: Bool = false
     var lastInhibited: Bool { chargingInhibited }
+    var isInhibited: Bool { chargingInhibited }
     var appliedLimit: Int = 100
     /// Counts EVERY call, including a redundant one — a retry has to be visible to the tests.
     var writeCount: Int = 0
@@ -1086,5 +1087,75 @@ struct BatteryControlEngineTests {
         let sFail = engine.update(currentSoC: 50, isPluggedIn: true, temperatureCelsius: nil, now: 1410)
         #expect(sFail.mode == .inhibited)
         #expect(sFail.detailReason?.kind == .batterySensorUnreadable)
+    }
+
+    @Test func topUpChargesTo100AndHoldsAt100OnAdapterBypass() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 80, topUpActive: true))
+
+        // Below 100%: charging should NOT be inhibited (gate allowed)
+        let status70 = engine.update(currentSoC: 70, isPluggedIn: true)
+        #expect(status70.mode == .charging)
+        #expect(status70.activity == .topUp)
+        #expect(status70.detailReason?.kind == .topUpCharging)
+        #expect(mockHW.isInhibited == false)
+
+        // At 80% (normal limit): should KEEP charging to 100%
+        let status80 = engine.update(currentSoC: 80, isPluggedIn: true)
+        #expect(status80.mode == .charging)
+        #expect(status80.activity == .topUp)
+        #expect(status80.detailReason?.kind == .topUpCharging)
+        #expect(mockHW.isInhibited == false)
+
+        // Reaching 100%: should INHIBIT charging and hold at 100%
+        let status100 = engine.update(currentSoC: 100, isPluggedIn: true)
+        #expect(status100.mode == .inhibited)
+        #expect(status100.activity == .topUp)
+        #expect(status100.detailReason?.kind == .topUpComplete)
+        #expect(mockHW.isInhibited == true)
+    }
+
+    @Test func heatProtectionOutranksTopUp() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            heatProtectionEnabled: true,
+            heatProtectionThresholdCelsius: 35,
+            topUpActive: true
+        ))
+
+        // Normal temperature: Top Up charges
+        let cool = engine.update(currentSoC: 70, isPluggedIn: true, temperatureCelsius: 30.0)
+        #expect(cool.mode == .charging)
+        #expect(cool.activity == .topUp)
+
+        // High temperature (36°C): Heat Protection engages and inhibits charging
+        let hot = engine.update(currentSoC: 70, isPluggedIn: true, temperatureCelsius: 36.0)
+        #expect(hot.mode == .inhibited)
+        #expect(hot.activity == .heatProtection)
+        #expect(hot.detailReason?.kind == .heatProtectionActive)
+        #expect(mockHW.isInhibited == true)
+    }
+
+    @Test func topUpCancelsImmediatelyRestoringNormalLimit() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 80, topUpActive: true))
+
+        // At 85% during Top Up: still charging
+        _ = engine.update(currentSoC: 85, isPluggedIn: true)
+        #expect(mockHW.isInhibited == false)
+
+        // User cancels Top Up: configuration re-applied with topUpActive: false
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 80, topUpActive: false))
+        let afterCancel = engine.update(currentSoC: 85, isPluggedIn: true)
+
+        // Since currentSoC (85%) >= normal limit (80%), charging is immediately inhibited
+        #expect(afterCancel.mode == .inhibited)
+        #expect(afterCancel.activity == .holdingAtLimit)
+        #expect(mockHW.isInhibited == true)
     }
 }

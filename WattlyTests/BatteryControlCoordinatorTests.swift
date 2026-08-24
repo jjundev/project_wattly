@@ -10,6 +10,8 @@ final class PolicyStoreSpy: BatteryPolicyStoring, @unchecked Sendable {
     var loadError: Error?
     var onSave: (() -> Void)?
 
+    var savedRecord: PersistedBatteryPolicy? { stored }
+
     func load() throws -> PersistedBatteryPolicy? {
         if let loadError { throw loadError }
         events.append("load")
@@ -28,6 +30,8 @@ final class PolicyStoreSpy: BatteryPolicyStoring, @unchecked Sendable {
         stored = nil
     }
 }
+
+typealias MockBatteryPolicyStore = PolicyStoreSpy
 
 struct BatteryControlCoordinatorTests {
     @Test func configurePersistsBeforeTheFirstHardwareWrite() {
@@ -831,5 +835,56 @@ struct BatteryControlCoordinatorTests {
         #expect(status.mode == .inhibited)
         #expect(status.activity == .heatProtection)
         #expect(hw.lastInhibited == true)
+    }
+
+    @Test func unpluggingAdapterAutomaticallyDeactivatesTopUpAndPersistsBasePolicy() throws {
+        let store = MockBatteryPolicyStore()
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501,
+            store: store,
+            engine: engine,
+            now: { 1000.0 }
+        )
+
+        // Configure Top Up while plugged in
+        let topUpConfig = BatteryControlConfiguration(enabled: true, limitPercentage: 80, topUpActive: true)
+        _ = coordinator.configure(topUpConfig, trigger: .clientConfiguration, currentSoC: 70, isPluggedIn: true)
+        #expect(coordinator.latestStatus.desiredConfiguration?.topUpActive == true)
+        #expect(store.savedRecord?.configuration.topUpActive == true)
+
+        // Adapter is disconnected (unplugged): trigger adapterTransition
+        let unpluggedStatus = coordinator.reconcile(
+            trigger: .adapterTransition,
+            currentSoC: 70,
+            isPluggedIn: false
+        )
+
+        // Top Up must be cleared, normal policy (limit 80) persisted and enforced
+        #expect(unpluggedStatus.desiredConfiguration?.topUpActive == false)
+        #expect(unpluggedStatus.desiredConfiguration?.limitPercentage == 80)
+        #expect(store.savedRecord?.configuration.topUpActive == false)
+        #expect(store.savedRecord?.configuration.limitPercentage == 80)
+    }
+
+    @Test func startingUpOrWakingOnBatteryPowerClearsAnyStaleTopUpActive() throws {
+        let store = MockBatteryPolicyStore()
+        let staleTopUp = BatteryControlConfiguration(enabled: true, limitPercentage: 80, topUpActive: true)
+        try store.save(.init(ownerUID: 501, configuration: staleTopUp, updatedAt: 900.0))
+
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501,
+            store: store,
+            engine: engine,
+            now: { 1000.0 }
+        )
+
+        // Restore on battery power (!isPluggedIn)
+        let restoreStatus = coordinator.restore(currentSoC: 90, isPluggedIn: false)
+        #expect(restoreStatus.desiredConfiguration?.topUpActive == false)
+        #expect(store.savedRecord?.configuration.topUpActive == false)
     }
 }

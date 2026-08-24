@@ -574,4 +574,75 @@ struct BatteryControlClientTests {
             Issue.record("Expected configure request with decoded config")
         }
     }
+
+    @MainActor @Test func startTopUpAppliesTopUpActiveTrue() async {
+        let receiver = RequestReceiver()
+        let client = BatteryControlClient(requestHandler: { req in
+            await receiver.set(req)
+            if case .configure = req {
+                let status = BatteryControlServiceStatus(
+                    mode: .charging,
+                    currentPercentage: 70,
+                    isPowerAdapterConnected: true,
+                    detail: "Top Up 중 (100%까지 충전)",
+                    updatedAt: 1.0,
+                    activity: .topUp
+                )
+                let replyData = try? BatteryControlCodec.encode(status)
+                return (replyData, nil)
+            }
+            return (nil, nil)
+        })
+
+        await client.startTopUp(
+            limitPercentage: 80,
+            lowerHysteresisDelta: 2,
+            heatProtectionEnabled: false,
+            heatProtectionThresholdCelsius: 35
+        )
+
+        let receivedRequest = await receiver.request
+        var recordedRequest: BatteryControlConfigurationRequest?
+        if case .configure(let data) = receivedRequest {
+            recordedRequest = try? BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data)
+        }
+        #expect(recordedRequest?.configuration.topUpActive == true)
+        #expect(recordedRequest?.configuration.limitPercentage == 80)
+    }
+
+    @MainActor @Test func cancelTopUpAppliesTopUpActiveFalse() async {
+        let receiver = RequestReceiver()
+        let client = BatteryControlClient(requestHandler: { req in
+            await receiver.set(req)
+            if case .configure = req {
+                let status = BatteryControlServiceStatus(
+                    mode: .inhibited,
+                    currentPercentage: 85,
+                    isPowerAdapterConnected: true,
+                    detail: "충전 제한 80% 도달",
+                    updatedAt: 1.0,
+                    activity: .holdingAtLimit
+                )
+                let replyData = try? BatteryControlCodec.encode(status)
+                return (replyData, nil)
+            }
+            return (nil, nil)
+        })
+
+        await client.cancelTopUp(
+            limitPercentage: 80,
+            lowerHysteresisDelta: 2,
+            heatProtectionEnabled: false,
+            heatProtectionThresholdCelsius: 35
+        )
+
+        let receivedRequest = await receiver.request
+        var recordedRequest: BatteryControlConfigurationRequest?
+        if case .configure(let data) = receivedRequest {
+            recordedRequest = try? BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data)
+        }
+        #expect(recordedRequest?.configuration.topUpActive == false)
+        #expect(recordedRequest?.configuration.limitPercentage == 80)
+    }
 }
+

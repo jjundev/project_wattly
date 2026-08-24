@@ -13,6 +13,7 @@ struct MetricCardView: View {
     var isExpanded: Bool = false
     var onToggleExpand: (() -> Void)? = nil
     var thresholds: Thresholds = Defaults.thresholds
+    var batteryControl: BatteryControlClient? = nil
 
     var body: some View {
         switch state {
@@ -32,13 +33,13 @@ struct MetricCardView: View {
         let d = CardPresentation.display(card, state)
         return VStack(alignment: .leading, spacing: 8) {
             summaryGroup(d)
+                .contentShape(Rectangle())
+                .onTapGesture { onToggleExpand?() }
             if isExpanded, isExpandable { expandRegion }
         }
         .padding(EdgeInsets(top: 11, leading: 12, bottom: 11, trailing: 12))
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: Tokens.cardRadius).fill(t.cardBg))
-        .contentShape(Rectangle())
-        .onTapGesture { onToggleExpand?() }
     }
 
     /// The card's spoken summary: header + sparkline + sub-line collapsed into ONE VoiceOver
@@ -141,7 +142,7 @@ struct MetricCardView: View {
     // Content lives in the shared `CardExpandRegion` (plan: hero card expand) — mode C's
     // hero card reuses it too, with `Tokens.dark` force-injected instead of the live theme.
     private var expandRegion: some View {
-        CardExpandRegion(card: card, state: state, thresholds: thresholds)
+        CardExpandRegion(card: card, state: state, thresholds: thresholds, batteryControl: batteryControl)
     }
 
     // MARK: Unavailable cards

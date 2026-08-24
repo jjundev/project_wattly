@@ -17,6 +17,8 @@ struct BatteryControlBridge: View {
     @AppStorage(StorageKey.batteryHeatProtectionEnabled) private var heatProtectionEnabled = Defaults.batteryHeatProtectionEnabled
     @AppStorage(StorageKey.batteryHeatProtectionThreshold) private var heatProtectionThreshold = Defaults.batteryHeatProtectionThreshold
 
+    @State private var topUpDetector = BatteryTopUpTransitionDetector()
+
     private var effectiveDelta: Int {
         sailingEnabled ? sailingDelta : 2
     }
@@ -199,6 +201,11 @@ struct BatteryControlBridge: View {
                     // A Mac with no charge-control register will report the same thing forever, and
                     // the register set is probed once per helper process. Stop rather than back off.
                     if client.status.isHardwareSupported == false { return }
+                }
+            }
+            .onChange(of: client.status) { _, newStatus in
+                if topUpDetector.update(reasonKind: newStatus.detailReason?.kind) {
+                    BatteryNotificationManager.postTopUpCompleteNotification()
                 }
             }
     }

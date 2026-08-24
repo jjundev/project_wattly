@@ -158,4 +158,22 @@ import Foundation
         #expect(BatteryStatusText.text(reason: cooldownReason, detail: "", locale: ko) == "발열 보호 쿨다운 중 (120초 후 충전 재개)")
         #expect(BatteryStatusText.text(reason: cooldownReason, detail: "", locale: en) == "Heat Protection cooling down (recharging in 120s)")
     }
+
+    @Test func topUpStatusTextLocalized() {
+        let ko = Locale(identifier: "ko")
+        let en = Locale(identifier: "en")
+
+        let chargingReason = BatteryControlStatusReason(kind: .topUpCharging, limitPercentage: 100)
+        let completeReason = BatteryControlStatusReason(kind: .topUpComplete, limitPercentage: 100)
+
+        #expect(BatteryStatusText.text(reason: chargingReason, detail: "", locale: ko)
+                == "한 번만 완충 중 (100%까지 충전)")
+        #expect(BatteryStatusText.text(reason: chargingReason, detail: "", locale: en)
+                == "Top Up in progress (Charging to 100%)")
+
+        #expect(BatteryStatusText.text(reason: completeReason, detail: "", locale: ko)
+                == "한 번만 완충 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)")
+        #expect(BatteryStatusText.text(reason: completeReason, detail: "", locale: en)
+                == "Top Up complete (Holding at 100%, normal limit restores on unplug)")
+    }
 }

@@ -81,6 +81,10 @@ enum BatteryStatusText {
             let remaining = Int64(resolved.cooldownRemainingSeconds ?? 0)
             return String(format: String(localized: "발열 보호 쿨다운 중 (%lld초 후 충전 재개)", locale: locale),
                           locale: locale, remaining)
+        case .topUpCharging:
+            return String(localized: "한 번만 완충 중 (100%까지 충전)", locale: locale)
+        case .topUpComplete:
+            return String(localized: "한 번만 완충 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)", locale: locale)
         case .batterySensorUnreadable:
             return String(localized: "배터리 온도 센서를 읽을 수 없습니다", locale: locale)
         case .persistenceReadFailed:

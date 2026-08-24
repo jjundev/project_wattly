@@ -659,4 +659,45 @@ import AppKit
             isHeatProtectionOn: true
         ) == true)
     }
+
+    // MARK: - Top Up
+
+    @Test func topUpStatusRendersTopUpIndicator() {
+        let ko = Locale(identifier: "ko")
+        let statusCharging = BatterySectionPresentation.status(
+            isLimitOn: true,
+            isInstalling: false,
+            mode: .charging,
+            reason: .init(kind: .topUpCharging, limitPercentage: 100),
+            detail: "한 번만 완충 중 (100%까지 충전)",
+            locale: ko,
+            activity: .topUp
+        )
+        #expect(statusCharging.indicator == .topUp)
+        #expect(statusCharging.indicator.symbolName == "arrow.up.circle.fill")
+        #expect(statusCharging.indicator.tone == .green)
+        #expect(statusCharging.text == "한 번만 완충 중 (100%까지 충전)")
+
+        let statusComplete = BatterySectionPresentation.status(
+            isLimitOn: true,
+            isInstalling: false,
+            mode: .inhibited,
+            reason: .init(kind: .topUpComplete, limitPercentage: 100),
+            detail: "한 번만 완충 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)",
+            locale: ko,
+            activity: .topUp
+        )
+        #expect(statusComplete.indicator == .topUp)
+        #expect(statusComplete.text == "한 번만 완충 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)")
+    }
+
+    @Test func shouldPollStatusReturnsTrueDuringActiveTopUp() {
+        #expect(BatterySectionPresentation.shouldPollStatus(
+            isLimitOn: false,
+            isHeatProtectionOn: false,
+            isTopUpOn: true,
+            mode: .charging,
+            isHardwareSupported: true
+        ) == true)
+    }
 }

@@ -27,6 +27,8 @@ enum LegacyBatteryDetail {
         case "이 Mac에서 충전 제어를 적용하지 못했습니다": return .init(kind: .applyFailed)
         case "충전 제한 비활성화됨": return .init(kind: .limitDisabled)
         case "배터리 전원으로 구동 중": return .init(kind: .onBatteryPower)
+        case "한 번만 완충 중 (100%까지 충전)", "Top Up 중 (100%까지 충전)": return .init(kind: .topUpCharging)
+        case "한 번만 완충 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)", "Top Up 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)": return .init(kind: .topUpComplete)
         case "배터리 온도 센서를 읽을 수 없습니다": return .init(kind: .batterySensorUnreadable)
         case "저장된 충전 정책을 읽지 못해 충전 허용 상태로 복구합니다":
             return .init(kind: .persistenceReadFailed)

@@ -28,6 +28,7 @@ struct PopoverHeroView: View {
     let monitor: SystemMonitor
     var thresholds: Thresholds = Defaults.thresholds
     var powerSmoothed: Bool
+    var batteryControl: BatteryControlClient? = nil
 
     @AppStorage(StorageKey.heroMetric) private var heroMetric = Defaults.heroMetric
     // Shared with mode A's `PopoverContentView.expandedRaw` — same key, same CSV Set (see the
@@ -49,7 +50,8 @@ struct PopoverHeroView: View {
                          historyValues: monitor.historyValues(for: hero, smoothed: powerSmoothed),
                          thresholds: thresholds,
                          isExpanded: expanded.contains(hero),
-                         onToggleExpand: hero.isExpandable ? { toggleExpand(hero) } : nil)
+                         onToggleExpand: hero.isExpandable ? { toggleExpand(hero) } : nil,
+                         batteryControl: batteryControl)
                 list(excluding: hero)
             }
         }
@@ -116,6 +118,7 @@ private struct HeroCard: View {
     var thresholds: Thresholds = Defaults.thresholds
     var isExpanded: Bool = false
     var onToggleExpand: (() -> Void)? = nil
+    var batteryControl: BatteryControlClient? = nil
 
     // Hardcoded light-on-dark surface/text (prototype line 208).
     private static let heroBg = Color(hex: "#171719")
@@ -126,22 +129,16 @@ private struct HeroCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             summary
+                .contentShape(Rectangle())
+                .onTapGesture { if hasChevron { onToggleExpand?() } }
             if isExpanded, hasChevron {
-                CardExpandRegion(card: card, state: state, thresholds: thresholds)
+                CardExpandRegion(card: card, state: state, thresholds: thresholds, batteryControl: batteryControl)
                     .environment(\.tokens, Tokens.dark)
             }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 14).fill(Self.heroBg))
-        .contentShape(Rectangle())
-        // Gated on `hasChevron`, not just `onToggleExpand != nil`: an expandable card
-        // that's currently `.unavailable` has neither a chevron nor an expand region to
-        // toggle (mirrors `MetricCardView`, which routes unavailable cards to a separate
-        // `unavailableCard` layout with no tap gesture at all) — without this guard, a tap
-        // would silently flip that card's entry in the SHARED expand set with no visible
-        // effect until it becomes available again.
-        .onTapGesture { if hasChevron { onToggleExpand?() } }
     }
 
     /// The hero's spoken summary — its own VoiceOver element, a SIBLING of the expand region

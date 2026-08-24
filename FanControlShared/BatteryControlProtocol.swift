@@ -8,6 +8,7 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
     public var heatProtectionThresholdCelsius: Int
     public var heatProtectionResumeDeltaCelsius: Int
     public var heatProtectionMinCooldownSeconds: TimeInterval
+    public var topUpActive: Bool
 
     public init(
         enabled: Bool = false,
@@ -16,7 +17,8 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         heatProtectionEnabled: Bool = false,
         heatProtectionThresholdCelsius: Int = 35,
         heatProtectionResumeDeltaCelsius: Int = 2,
-        heatProtectionMinCooldownSeconds: TimeInterval = 300.0
+        heatProtectionMinCooldownSeconds: TimeInterval = 300.0,
+        topUpActive: Bool = false
     ) {
         self.enabled = enabled
         self.limitPercentage = limitPercentage
@@ -25,11 +27,13 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         self.heatProtectionThresholdCelsius = heatProtectionThresholdCelsius
         self.heatProtectionResumeDeltaCelsius = heatProtectionResumeDeltaCelsius
         self.heatProtectionMinCooldownSeconds = heatProtectionMinCooldownSeconds
+        self.topUpActive = topUpActive
     }
 
     private enum CodingKeys: String, CodingKey {
         case enabled, limitPercentage, lowerHysteresisDelta
         case heatProtectionEnabled, heatProtectionThresholdCelsius, heatProtectionResumeDeltaCelsius, heatProtectionMinCooldownSeconds
+        case topUpActive
     }
 
     public init(from decoder: any Decoder) throws {
@@ -41,6 +45,7 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         heatProtectionThresholdCelsius = (try? container.decodeIfPresent(Int.self, forKey: .heatProtectionThresholdCelsius)) ?? 35
         heatProtectionResumeDeltaCelsius = (try? container.decodeIfPresent(Int.self, forKey: .heatProtectionResumeDeltaCelsius)) ?? 2
         heatProtectionMinCooldownSeconds = (try? container.decodeIfPresent(TimeInterval.self, forKey: .heatProtectionMinCooldownSeconds)) ?? 300.0
+        topUpActive = (try? container.decodeIfPresent(Bool.self, forKey: .topUpActive)) ?? false
     }
 
     /// Range-clamped copy. Configurations reach the root daemon through the synthesized
@@ -53,11 +58,12 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         copy.heatProtectionThresholdCelsius = Self.clampThreshold(heatProtectionThresholdCelsius)
         copy.heatProtectionResumeDeltaCelsius = Self.clampResumeDelta(heatProtectionResumeDeltaCelsius)
         copy.heatProtectionMinCooldownSeconds = Self.clampCooldown(heatProtectionMinCooldownSeconds)
+        copy.topUpActive = topUpActive
         return copy
     }
 
     public var isActive: Bool {
-        enabled || heatProtectionEnabled
+        enabled || heatProtectionEnabled || topUpActive
     }
 
     public var clampedLimitPercentage: Int { Self.clampLimit(limitPercentage) }

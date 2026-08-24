@@ -55,12 +55,16 @@ public enum BatteryControlPolicy {
         configuration: BatteryControlConfiguration,
         status: BatteryControlServiceStatus
     ) -> Bool {
-        let requested = configuration.normalized
+        var requested = configuration.normalized
         guard status.mode != .unavailable else { return false }
         // Hardware with no charge-control register will never accept the configuration, so
         // re-pushing is not a recovery there — just traffic. `nil` is "unknown" and still retries.
         guard status.isHardwareSupported != false else { return false }
         if supportsPersistentPolicy(status: status), let desired = status.desiredConfiguration {
+            // Background periodic reconciliation preserves helper's active Top Up state
+            if desired.topUpActive && !configuration.topUpActive {
+                requested.topUpActive = true
+            }
             return desired.normalized != requested
         }
         if requested.enabled {

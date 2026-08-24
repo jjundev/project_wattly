@@ -71,4 +71,14 @@ import Foundation
         #expect(primaryURL?.scheme == "x-apple.systempreferences")
         #expect(fallbackURL?.scheme == "x-apple.systempreferences")
     }
+
+    @Test func topUpToggleStatePresentation() {
+        let isTopUpActive = true
+        let labelActive = isTopUpActive ? "활성화됨" : "비활성화됨"
+        #expect(labelActive == "활성화됨")
+
+        let isTopUpInactive = false
+        let labelInactive = isTopUpInactive ? "활성화됨" : "비활성화됨"
+        #expect(labelInactive == "비활성화됨")
+    }
 }

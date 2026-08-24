@@ -48,7 +48,11 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         temperatureCelsius: Double? = nil
     ) -> BatteryControlServiceStatus {
         do {
-            let (desired, ownershipFailure) = try resolvedStoredPolicy()
+            var (desired, ownershipFailure) = try resolvedStoredPolicy()
+            if !isPluggedIn && desired.topUpActive {
+                desired.topUpActive = false
+                try? store.save(.init(ownerUID: ownerUID, configuration: desired, updatedAt: now()))
+            }
             engine.configure(desired)
             if !desired.isActive {
                 return publishDisabledRestore(
@@ -262,6 +266,22 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         if trigger == .wake || trigger == .adapterTransition {
             engine.beginRecoveryWindow()
         }
+
+        // Auto-terminate Top Up whenever on battery power
+        if !isPluggedIn && engine.configuration.topUpActive {
+            var updatedConfig = engine.configuration
+            updatedConfig.topUpActive = false
+            do {
+                try store.save(.init(
+                    ownerUID: ownerUID,
+                    configuration: updatedConfig,
+                    updatedAt: now()))
+            } catch {
+                // If persistence write fails, proceed with in-memory policy reset
+            }
+            engine.configure(updatedConfig)
+        }
+
         let status = engine.verifyAndUpdate(
             currentSoC: currentSoC,
             isPluggedIn: isPluggedIn,

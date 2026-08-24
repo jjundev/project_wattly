@@ -61,4 +61,11 @@ import Testing
         let cooldownReason = BatteryControlStatusReason(kind: .heatProtectionCooldown)
         #expect(BatteryControlActivity.inferred(from: cooldownReason) == .heatProtection)
     }
+
+    @Test func topUpReasonsInferTopUpActivity() {
+        let chargingReason = BatteryControlStatusReason(kind: .topUpCharging, limitPercentage: 100)
+        let completeReason = BatteryControlStatusReason(kind: .topUpComplete, limitPercentage: 100)
+        #expect(BatteryControlActivity.inferred(from: chargingReason) == .topUp)
+        #expect(BatteryControlActivity.inferred(from: completeReason) == .topUp)
+    }
 }
