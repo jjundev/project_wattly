@@ -218,7 +218,7 @@ struct SettingsBatterySection: View {
                                     Image(systemName: "bolt.fill")
                                         .font(.system(size: 10, weight: .semibold))
                                 }
-                                Text(LocalizedStringKey(isTopUp ? "(활성화)" : "(비활성화)"))
+                                Text(LocalizedStringKey(isTopUp ? "활성화" : "비활성화"))
                                     .font(WattlyFont.at(11.5, weight: .medium))
                             }
                             .foregroundStyle(isTopUp ? Tokens.statusOrange : t.text)
@@ -231,7 +231,7 @@ struct SettingsBatterySection: View {
                         .buttonStyle(.plain)
                         .disabled(!isToggleEnabled || isHardwareUnsupported)
                         .accessibilityLabel(Text(LocalizedStringKey("한 번만 완충")))
-                        .accessibilityValue(Text(LocalizedStringKey(isTopUp ? "(활성화)" : "(비활성화)")))
+                        .accessibilityValue(Text(LocalizedStringKey(isTopUp ? "활성화" : "비활성화")))
                     }
                     .padding(EdgeInsets(top: 10, leading: 14, bottom: 14, trailing: 14))
                 }

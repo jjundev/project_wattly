@@ -74,11 +74,11 @@ import Foundation
 
     @Test func topUpToggleStatePresentation() {
         let isTopUpActive = true
-        let labelActive = isTopUpActive ? "(활성화)" : "(비활성화)"
-        #expect(labelActive == "(활성화)")
+        let labelActive = isTopUpActive ? "활성화" : "비활성화"
+        #expect(labelActive == "활성화")
 
         let isTopUpInactive = false
-        let labelInactive = isTopUpInactive ? "(활성화)" : "(비활성화)"
-        #expect(labelInactive == "(비활성화)")
+        let labelInactive = isTopUpInactive ? "활성화" : "비활성화"
+        #expect(labelInactive == "비활성화")
     }
 }

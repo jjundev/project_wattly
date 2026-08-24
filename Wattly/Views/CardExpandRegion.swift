@@ -303,7 +303,7 @@ struct CardExpandRegion: View {
                     }
                 }
             } label: {
-                Text(LocalizedStringKey(isTopUp ? "(활성화)" : "(비활성화)"))
+                Text(LocalizedStringKey(isTopUp ? "활성화" : "비활성화"))
                     .font(WattlyFont.at(10.5, weight: .medium))
                     .foregroundStyle(isTopUp ? Tokens.statusOrange : (isConnected ? t.sub : t.faint.opacity(0.6)))
                     .padding(.horizontal, 6)
@@ -315,7 +315,7 @@ struct CardExpandRegion: View {
             .buttonStyle(.plain)
             .disabled(!isConnected)
             .accessibilityLabel(Text(LocalizedStringKey("한 번만 완충")))
-            .accessibilityValue(Text(LocalizedStringKey(isTopUp ? "(활성화)" : "(비활성화)")))
+            .accessibilityValue(Text(LocalizedStringKey(isTopUp ? "활성화" : "비활성화")))
         }
     }
 
