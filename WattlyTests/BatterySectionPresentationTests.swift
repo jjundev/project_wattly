@@ -252,6 +252,20 @@ import AppKit
         }
     }
 
+    @Test func statusHelpUsesTheCurrentStatusTextForEveryState() {
+        let charging = BatterySectionPresentation.Status(
+            indicator: .chargingToLimit, text: "목표치(80%)까지 충전 중")
+        let unavailable = BatterySectionPresentation.Status(
+            indicator: .unavailable, text: "도우미에 연결되지 않음")
+
+        #expect(BatterySectionPresentation.statusHelp(for: charging, locale: ko).title
+                == "목표치(80%)까지 충전 중")
+        #expect(BatterySectionPresentation.statusHelp(for: unavailable, locale: ko).title
+                == "도우미에 연결되지 않음")
+        #expect(BatterySectionPresentation.statusHelp(for: charging, locale: en).message
+                == "Stops charging at your limit and runs from the power adapter to protect battery lifespan.")
+    }
+
     // MARK: - 도우미 설치 버튼
 
     @Test func installButtonAppearsOnlyWhenTheFeatureIsOnAndTheHelperIsMissing() {

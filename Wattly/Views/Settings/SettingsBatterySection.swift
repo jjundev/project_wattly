@@ -15,6 +15,7 @@ struct SettingsBatterySection: View {
     @State private var isInstallFailedAlertPresented = false
     @State private var installErrorMessage = ""
     @State private var isHelpPopoverPresented = false
+    @State private var isChargingStatusHelpPopoverPresented = false
     @State private var installedOwnership = FanHelperInstaller.InstalledOwnership.notInstalled
     @State private var isOwnershipTransferConfirmationPresented = false
 
@@ -259,6 +260,19 @@ struct SettingsBatterySection: View {
                 .font(WattlyFont.at(11, weight: .regular))
                 .foregroundStyle(t.sub)
                 .fixedSize(horizontal: false, vertical: true)
+            Button {
+                isChargingStatusHelpPopoverPresented = true
+            } label: {
+                Image(systemName: "questionmark.circle")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(t.faint)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text(verbatim: resolved.text))
+            .popover(isPresented: $isChargingStatusHelpPopoverPresented, arrowEdge: .bottom) {
+                chargingStatusHelpPopover(
+                    BatterySectionPresentation.statusHelp(for: resolved, locale: locale))
+            }
             Spacer()
             if BatterySectionPresentation.isInstallButtonVisible(isLimitOn: batteryLimitEnabled,
                                                                  mode: batteryControl.status.mode) {
@@ -420,6 +434,23 @@ struct SettingsBatterySection: View {
                 .overlay(RoundedRectangle(cornerRadius: 6).stroke(t.rowBorder, lineWidth: 1))
             }
             .buttonStyle(.plain)
+        }
+        .padding(14)
+        .frame(width: 270, alignment: .leading)
+        .background(t.cardBg)
+    }
+
+    private func chargingStatusHelpPopover(
+        _ help: BatterySectionPresentation.StatusHelp
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(verbatim: help.title)
+                .font(WattlyFont.at(13, weight: .semibold))
+                .foregroundStyle(t.text)
+            Text(verbatim: help.message)
+                .font(WattlyFont.at(11, weight: .regular))
+                .foregroundStyle(t.sub)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)
         .frame(width: 270, alignment: .leading)

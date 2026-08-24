@@ -75,7 +75,18 @@ enum BatterySectionPresentation {
         let text: String
     }
 
+    struct StatusHelp: Equatable {
+        let title: String
+        let message: String
+    }
+
     static let staleAfter = 15.0
+
+    static func statusHelp(for status: Status, locale: Locale) -> StatusHelp {
+        StatusHelp(
+            title: status.text,
+            message: String(localized: "설정한 한도에 도달하면 충전을 멈추고 전원 어댑터로만 작동하여 배터리 수명을 보호합니다.", locale: locale))
+    }
 
     static func maintenanceStatus(
         ownership: FanHelperInstaller.InstalledOwnership,
