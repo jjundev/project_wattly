@@ -269,7 +269,36 @@ enum CardPresentation {
         }
     }
 
+    static func batteryZeroWattStatusText(_ s: BatterySample, locale: Locale = Locale(identifier: "ko")) -> String? {
+        guard abs(s.netW) <= 0.2 else { return nil }
+
+        if s.externalConnected {
+            let currentPct: Int? = {
+                guard let rem = s.remainingWh, let maxWh = s.maxWh, maxWh > 0 else { return nil }
+                return Int((rem / maxWh * 100.0).rounded())
+            }()
+
+            if let currentPct {
+                if s.targetPercentage < 100 && currentPct >= s.targetPercentage {
+                    return String(format: String(localized: "%lld%% 한도 유지 중", locale: locale),
+                                  locale: locale, Int64(s.targetPercentage))
+                } else if currentPct >= 99 || (s.remainingWh != nil && s.maxWh != nil && s.remainingWh! >= s.maxWh!) {
+                    return String(localized: "완충됨 (전원 어댑터 사용)", locale: locale)
+                }
+            } else if s.targetPercentage == 100 {
+                // If capacity numbers unavailable, default to fully charged when on AC and 0W
+                return String(localized: "완충됨 (전원 어댑터 사용)", locale: locale)
+            }
+            return String(localized: "전원 어댑터로 작동 중", locale: locale)
+        } else {
+            return String(localized: "대기 모드", locale: locale)
+        }
+    }
+
     static func batteryRemainingTimeSummary(_ s: BatterySample, locale: Locale = Locale(identifier: "ko")) -> String? {
+        if let zeroWattStatus = batteryZeroWattStatusText(s, locale: locale) {
+            return zeroWattStatus
+        }
         guard let totalMinutes = validatedTimeRemainingMinutes(s.projectedTimeRemainingMinutes)
         else { return nil }
         let duration = formatDuration(minutes: totalMinutes, locale: locale)
