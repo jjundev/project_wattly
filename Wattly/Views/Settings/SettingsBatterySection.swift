@@ -12,6 +12,8 @@ struct SettingsBatterySection: View {
     @AppStorage(StorageKey.batteryLimitPercentage) private var batteryLimitPercentage = Defaults.batteryLimitPercentage
     @AppStorage(StorageKey.batterySailingEnabled) private var batterySailingEnabled = Defaults.batterySailingEnabled
     @AppStorage(StorageKey.batterySailingDelta) private var batterySailingDelta = Defaults.batterySailingDelta
+    @AppStorage(StorageKey.batteryHeatProtectionEnabled) private var batteryHeatProtectionEnabled = Defaults.batteryHeatProtectionEnabled
+    @AppStorage(StorageKey.batteryHeatProtectionThreshold) private var batteryHeatProtectionThreshold = Defaults.batteryHeatProtectionThreshold
     @State private var isInstallFailedAlertPresented = false
     @State private var installErrorMessage = ""
     @State private var isHelpPopoverPresented = false
@@ -139,9 +141,46 @@ struct SettingsBatterySection: View {
                         }
                         .padding(EdgeInsets(top: 0, leading: 14, bottom: 14, trailing: 14))
                     }
+
+                    Rectangle().fill(t.line).frame(height: 1)
+
+                    SettingsToggleRow(isOn: $batteryHeatProtectionEnabled,
+                                      divider: false,
+                                      isEnabled: isToggleEnabled) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            SettingsRowTitle("발열 보호 (Heat Protection)")
+                            Text("배터리 온도가 설정값을 초과하면 충전을 일시 중단하여 배터리 수명을 보호합니다.")
+                                .font(WattlyFont.at(10.5, weight: .regular))
+                                .foregroundStyle(t.faint)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+
+                    if batteryHeatProtectionEnabled {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("보호 시작 온도")
+                                    .font(WattlyFont.at(12, weight: .medium))
+                                    .foregroundStyle(t.text)
+                                Spacer()
+                                Text(String(format: String(localized: "%lld°C 초과 시 정지, %lld°C 이하 시 재개", locale: locale),
+                                            locale: locale, Int64(batteryHeatProtectionThreshold), Int64(batteryHeatProtectionThreshold - 2)))
+                                    .font(WattlyFont.at(10.5, weight: .medium))
+                                    .foregroundStyle(t.sub)
+                            }
+
+                            WattlySegment(
+                                selection: $batteryHeatProtectionThreshold,
+                                options: BatterySectionPresentation.heatProtectionThresholdPresets.map { ($0, "\($0)°C") },
+                                pillVPadding: 6,
+                                isEnabled: true
+                            )
+                        }
+                        .padding(EdgeInsets(top: 0, leading: 14, bottom: 14, trailing: 14))
+                    }
                 }
             }
-            .task(id: batteryLimitEnabled) {
+            .task(id: "\(batteryLimitEnabled)-\(batteryHeatProtectionEnabled)") {
                 // One read regardless of the opt-in: a Mac with no charge register has to disable
                 // its toggle before the user ever reaches for it. This is also the read that
                 // decides whether the configuration controls remain visible.
@@ -154,6 +193,7 @@ struct SettingsBatterySection: View {
                 // once the state settles, instead of running forever or freezing on a failure.
                 while !Task.isCancelled,
                       BatterySectionPresentation.shouldPollStatus(isLimitOn: batteryLimitEnabled,
+                                                                   isHeatProtectionOn: batteryHeatProtectionEnabled,
                                                                    mode: batteryControl.status.mode,
                                                                    isHardwareSupported: batteryControl.status.isHardwareSupported) {
                     try? await Task.sleep(for: .seconds(BatteryControlPolicy.statusPollInterval))
@@ -166,21 +206,44 @@ struct SettingsBatterySection: View {
             // default while this toggle reads ON. If the user cancels the prompt, revert the toggle
             // so it reflects reality.
             .onChange(of: batteryLimitEnabled) { _, isEnabled in
-                guard isEnabled, !batteryControl.isInstallingHelper else { return }
+                guard isEnabled, !batteryControl.isInstallingHelper else {
+                    Task {
+                        await batteryControl.apply(
+                            enabled: isEnabled,
+                            limitPercentage: batteryLimitPercentage,
+                            lowerHysteresisDelta: effectiveDelta,
+                            heatProtectionEnabled: batteryHeatProtectionEnabled,
+                            heatProtectionThresholdCelsius: batteryHeatProtectionThreshold)
+                    }
+                    return
+                }
                 let window = NSApp.keyWindow
                 let limit = batteryLimitPercentage
                 let delta = effectiveDelta
+                let heatEnabled = batteryHeatProtectionEnabled
+                let heatThreshold = batteryHeatProtectionThreshold
                 Task {
                     let mode = await batteryControl.refreshStatus()?.mode ?? .unavailable
                     if BatteryControlPolicy.shouldRunInstaller(mode: mode) {
-                        if let failure = await batteryControl.installAndApply(enabled: true, limitPercentage: limit, lowerHysteresisDelta: delta, window: window) {
+                        if let failure = await batteryControl.installAndApply(
+                            enabled: true,
+                            limitPercentage: limit,
+                            lowerHysteresisDelta: delta,
+                            heatProtectionEnabled: heatEnabled,
+                            heatProtectionThresholdCelsius: heatThreshold,
+                            window: window) {
                             installErrorMessage = Self.message(for: failure, locale: locale)
                             isInstallFailedAlertPresented = true
                             batteryLimitEnabled = false
                         }
                     } else {
                         // The helper already answers — reuse it, no second admin prompt.
-                        await batteryControl.apply(enabled: true, limitPercentage: limit, lowerHysteresisDelta: delta)
+                        await batteryControl.apply(
+                            enabled: true,
+                            limitPercentage: limit,
+                            lowerHysteresisDelta: delta,
+                            heatProtectionEnabled: heatEnabled,
+                            heatProtectionThresholdCelsius: heatThreshold)
                     }
                     // The helper has now answered. If it says this Mac has no charge register, undo
                     // the opt-in the user just made — otherwise the row disables itself in the ON
@@ -193,22 +256,85 @@ struct SettingsBatterySection: View {
                 }
             }
             .onChange(of: batteryLimitPercentage) { _, newLimit in
-                guard batteryLimitEnabled else { return }
+                guard batteryLimitEnabled || batteryHeatProtectionEnabled else { return }
                 Task {
-                    await batteryControl.apply(enabled: true, limitPercentage: newLimit, lowerHysteresisDelta: effectiveDelta)
+                    await batteryControl.apply(
+                        enabled: batteryLimitEnabled,
+                        limitPercentage: newLimit,
+                        lowerHysteresisDelta: effectiveDelta,
+                        heatProtectionEnabled: batteryHeatProtectionEnabled,
+                        heatProtectionThresholdCelsius: batteryHeatProtectionThreshold)
                 }
             }
             .onChange(of: batterySailingEnabled) { _, isSailing in
-                guard batteryLimitEnabled else { return }
+                guard batteryLimitEnabled || batteryHeatProtectionEnabled else { return }
                 let delta = isSailing ? batterySailingDelta : 2
                 Task {
-                    await batteryControl.apply(enabled: true, limitPercentage: batteryLimitPercentage, lowerHysteresisDelta: delta)
+                    await batteryControl.apply(
+                        enabled: batteryLimitEnabled,
+                        limitPercentage: batteryLimitPercentage,
+                        lowerHysteresisDelta: delta,
+                        heatProtectionEnabled: batteryHeatProtectionEnabled,
+                        heatProtectionThresholdCelsius: batteryHeatProtectionThreshold)
                 }
             }
             .onChange(of: batterySailingDelta) { _, newDelta in
                 guard batteryLimitEnabled, batterySailingEnabled else { return }
                 Task {
-                    await batteryControl.apply(enabled: true, limitPercentage: batteryLimitPercentage, lowerHysteresisDelta: newDelta)
+                    await batteryControl.apply(
+                        enabled: batteryLimitEnabled,
+                        limitPercentage: batteryLimitPercentage,
+                        lowerHysteresisDelta: newDelta,
+                        heatProtectionEnabled: batteryHeatProtectionEnabled,
+                        heatProtectionThresholdCelsius: batteryHeatProtectionThreshold)
+                }
+            }
+            .onChange(of: batteryHeatProtectionEnabled) { _, isEnabled in
+                guard isEnabled, !batteryControl.isInstallingHelper else {
+                    Task {
+                        await batteryControl.apply(
+                            enabled: batteryLimitEnabled,
+                            limitPercentage: batteryLimitPercentage,
+                            lowerHysteresisDelta: effectiveDelta,
+                            heatProtectionEnabled: isEnabled,
+                            heatProtectionThresholdCelsius: batteryHeatProtectionThreshold)
+                    }
+                    return
+                }
+                let window = NSApp.keyWindow
+                Task {
+                    let mode = await batteryControl.refreshStatus()?.mode ?? .unavailable
+                    if BatteryControlPolicy.shouldRunInstaller(mode: mode) {
+                        if let failure = await batteryControl.installAndApply(
+                            enabled: batteryLimitEnabled,
+                            limitPercentage: batteryLimitPercentage,
+                            lowerHysteresisDelta: effectiveDelta,
+                            heatProtectionEnabled: true,
+                            heatProtectionThresholdCelsius: batteryHeatProtectionThreshold,
+                            window: window) {
+                            installErrorMessage = Self.message(for: failure, locale: locale)
+                            isInstallFailedAlertPresented = true
+                            batteryHeatProtectionEnabled = false
+                        }
+                    } else {
+                        await batteryControl.apply(
+                            enabled: batteryLimitEnabled,
+                            limitPercentage: batteryLimitPercentage,
+                            lowerHysteresisDelta: effectiveDelta,
+                            heatProtectionEnabled: true,
+                            heatProtectionThresholdCelsius: batteryHeatProtectionThreshold)
+                    }
+                }
+            }
+            .onChange(of: batteryHeatProtectionThreshold) { _, newThreshold in
+                guard batteryLimitEnabled || batteryHeatProtectionEnabled else { return }
+                Task {
+                    await batteryControl.apply(
+                        enabled: batteryLimitEnabled,
+                        limitPercentage: batteryLimitPercentage,
+                        lowerHysteresisDelta: effectiveDelta,
+                        heatProtectionEnabled: batteryHeatProtectionEnabled,
+                        heatProtectionThresholdCelsius: newThreshold)
                 }
             }
         }
@@ -232,6 +358,7 @@ struct SettingsBatterySection: View {
     @ViewBuilder
     private var batteryStatusIndicator: some View {
         if BatterySectionPresentation.shouldPollStatus(isLimitOn: batteryLimitEnabled,
+                                                       isHeatProtectionOn: batteryHeatProtectionEnabled,
                                                        mode: batteryControl.status.mode,
                                                        isHardwareSupported: batteryControl.status.isHardwareSupported) {
             // XPC polling remains on its existing five-second task. This view-local clock only
@@ -277,8 +404,16 @@ struct SettingsBatterySection: View {
                     let window = NSApp.keyWindow
                     let limit = batteryLimitPercentage
                     let delta = effectiveDelta
+                    let heatEnabled = batteryHeatProtectionEnabled
+                    let heatThreshold = batteryHeatProtectionThreshold
                     Task {
-                        if let failure = await batteryControl.installAndApply(enabled: batteryLimitEnabled, limitPercentage: limit, lowerHysteresisDelta: delta, window: window) {
+                        if let failure = await batteryControl.installAndApply(
+                            enabled: batteryLimitEnabled,
+                            limitPercentage: limit,
+                            lowerHysteresisDelta: delta,
+                            heatProtectionEnabled: heatEnabled,
+                            heatProtectionThresholdCelsius: heatThreshold,
+                            window: window) {
                             installErrorMessage = Self.message(for: failure, locale: locale)
                             isInstallFailedAlertPresented = true
                         }
@@ -357,7 +492,9 @@ struct SettingsBatterySection: View {
         Task {
             await batteryControl.apply(enabled: batteryLimitEnabled,
                                        limitPercentage: limit,
-                                       lowerHysteresisDelta: delta)
+                                       lowerHysteresisDelta: delta,
+                                       heatProtectionEnabled: batteryHeatProtectionEnabled,
+                                       heatProtectionThresholdCelsius: batteryHeatProtectionThreshold)
         }
     }
 
@@ -370,6 +507,8 @@ struct SettingsBatterySection: View {
                 enabled: batteryLimitEnabled,
                 limitPercentage: limit,
                 lowerHysteresisDelta: delta,
+                heatProtectionEnabled: batteryHeatProtectionEnabled,
+                heatProtectionThresholdCelsius: batteryHeatProtectionThreshold,
                 transferringOwnership: transferringOwnership,
                 window: window) {
                 installErrorMessage = Self.message(for: failure, locale: locale)
@@ -469,6 +608,7 @@ struct SettingsBatterySection: View {
     private func resolvedStatus(at date: Date) -> BatterySectionPresentation.Status {
         BatterySectionPresentation.status(
             isLimitOn: batteryLimitEnabled,
+            isHeatProtectionOn: batteryHeatProtectionEnabled,
             isInstalling: batteryControl.isInstallingHelper,
             mode: batteryControl.status.mode,
             reason: batteryControl.status.detailReason,

@@ -43,6 +43,26 @@ import Foundation
         #expect(BatterySectionPresentation.sailingDeltaPresets == [2, 5, 10])
     }
 
+    @Test func heatProtectionPresetsMatchExpectedValues() {
+        #expect(BatterySectionPresentation.heatProtectionThresholdPresets == [34, 36, 38, 40])
+    }
+
+    @Test func batteryHeatProtectionDefaultsAreConsistent() {
+        #expect(Defaults.batteryHeatProtectionEnabled == false)
+        #expect(Defaults.batteryHeatProtectionThreshold == 36)
+        #expect(StorageKey.batteryHeatProtectionEnabled == "batteryHeatProtectionEnabled")
+        #expect(StorageKey.batteryHeatProtectionThreshold == "batteryHeatProtectionThreshold")
+    }
+
+    @Test func batteryHeatProtectionThresholdCanBePersisted() {
+        let defaults = UserDefaults(suiteName: "SettingsBatterySectionTests")!
+        let presets = [34, 36, 38, 40]
+        for preset in presets {
+            defaults.set(preset, forKey: StorageKey.batteryHeatProtectionThreshold)
+            #expect(defaults.integer(forKey: StorageKey.batteryHeatProtectionThreshold) == preset)
+        }
+    }
+
     @Test func systemBatterySettingsURLIsValid() {
         let primaryURL = URL(string: "x-apple.systempreferences:com.apple.Battery-Settings.extension")
         let fallbackURL = URL(string: "x-apple.systempreferences:com.apple.preference.battery")
