@@ -275,6 +275,45 @@ import Testing
         #expect(BatteryControlKeys.drivableRegisterSet(probing: probe) == .unsupported)
     }
 
+    @Test func measuredKeyInfoResultKeepsTheModernReleaseProbeDrivable() {
+        func reply(for key: String) -> BatteryControlKeyProbeResult {
+            switch key {
+            case "CHTE":
+                return .fromSMCKeyInfo(
+                    kernelSucceeded: true,
+                    smcResult: 0,
+                    type: "ui32",
+                    size: 4)
+            case "CH0B", "BCLM":
+                return .fromSMCKeyInfo(
+                    kernelSucceeded: true,
+                    smcResult: 132,
+                    type: "",
+                    size: 0)
+            default:
+                return .uncertain
+            }
+        }
+
+        #expect(reply(for: "CH0B") == .confirmedAbsent)
+        #expect(BatteryControlKeyProbeResult.fromSMCKeyInfo(
+            kernelSucceeded: true,
+            smcResult: 135,
+            type: "",
+            size: 0) == .uncertain)
+        #expect(BatteryControlKeyProbeResult.fromSMCKeyInfo(
+            kernelSucceeded: false,
+            smcResult: 0,
+            type: "ui32",
+            size: 4) == .uncertain)
+        #expect(BatteryControlKeyProbeResult.fromSMCKeyInfo(
+            kernelSucceeded: true,
+            smcResult: 0,
+            type: "ui32",
+            size: 0) == .uncertain)
+        #expect(BatteryControlKeys.runtimeDrivableRegisterProbe(probing: reply) == .drivable(.modern))
+    }
+
     @Test func runtimeNoLatchProofRequiresConfirmedAbsenceForEveryCandidate() throws {
         // A failed key-info transport and a reachable key with a shape we do not recognise are
         // fundamentally different from proof that a latch key is absent. Neither may mint the

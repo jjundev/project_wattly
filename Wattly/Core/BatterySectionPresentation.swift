@@ -89,13 +89,12 @@ enum BatterySectionPresentation {
         case .owner(let ownerUID) where ownerUID != currentUID:
             return MaintenanceStatus(
                 tone: .red,
-                text: BatteryStatusText.text(
-                    reason: .init(kind: .policyOwnerMismatch), detail: "", locale: locale),
+                text: String(localized: "유지보수: 다른 사용자가 이 Mac의 충전 정책을 관리하고 있습니다", locale: locale),
                 action: .transferOwnership)
         case .invalidMetadata:
             return MaintenanceStatus(
                 tone: .red,
-                text: String(localized: "설치된 도우미의 소유자 정보를 확인할 수 없습니다.", locale: locale),
+                text: String(localized: "유지보수: 설치된 도우미의 소유자 정보를 확인할 수 없습니다.", locale: locale),
                 action: .transferOwnership)
         case .notInstalled, .owner:
             break
@@ -108,23 +107,20 @@ enum BatterySectionPresentation {
         guard requiredCapabilities.allSatisfy({ capabilities?.contains($0) == true }) else {
             return MaintenanceStatus(
                 tone: .orange,
-                text: String(localized: "앱 종료·Sleep 유지를 사용하려면 도우미 업데이트가 필요합니다.", locale: locale),
+                text: String(localized: "유지보수: 앱 종료·Sleep 유지를 사용하려면 도우미 업데이트가 필요합니다.", locale: locale),
                 action: .updateHelper)
         }
         if let record,
            record.result == .failed || record.result == .skipped || record.result == .unrecognized {
             return MaintenanceStatus(
                 tone: .red,
-                text: BatteryStatusText.text(
-                    reason: record.reason,
-                    detail: String(localized: "알 수 없음", locale: locale),
-                    locale: locale),
+                text: maintenanceFailureText(reason: record.reason, locale: locale),
                 action: .retry)
         }
         guard let record else {
             return MaintenanceStatus(
                 tone: .faint,
-                text: String(localized: "충전 정책 확인 전", locale: locale),
+                text: String(localized: "유지보수: 충전 정책 확인 전", locale: locale),
                 action: nil)
         }
         let trigger = maintenanceTriggerText(record.trigger, locale: locale)
@@ -132,28 +128,49 @@ enum BatterySectionPresentation {
         let timestamp = resolvedTimestampText(Date(timeIntervalSince1970: record.occurredAt))
         return MaintenanceStatus(
             tone: .faint,
-            text: String(format: String(localized: "마지막 확인: %@ · 성공 · %@", locale: locale),
+            text: String(format: String(localized: "유지보수: 마지막 확인: %@ · 성공 · %@", locale: locale),
                          locale: locale, trigger, timestamp),
             action: nil)
+    }
+
+    static func maintenancePopoverText(_ maintenance: MaintenanceStatus?, locale: Locale) -> String {
+        maintenance?.text ?? String(localized: "유지보수: 충전 정책 확인 전", locale: locale)
+    }
+
+    private static func maintenanceFailureText(reason: BatteryControlStatusReason?, locale: Locale) -> String {
+        switch reason?.kind {
+        case .persistenceReadFailed:
+            String(localized: "유지보수: 저장된 충전 정책을 읽지 못해 충전 허용 상태로 복구합니다", locale: locale)
+        case .persistenceWriteFailed:
+            String(localized: "유지보수: 충전 정책을 안전하게 저장하지 못했습니다", locale: locale)
+        case .policyOwnerMismatch:
+            String(localized: "유지보수: 다른 사용자가 이 Mac의 충전 정책을 관리하고 있습니다", locale: locale)
+        case .hardwareReadbackFailed:
+            String(localized: "유지보수: 충전 제어 하드웨어 상태를 확인하지 못했습니다", locale: locale)
+        case .none, .some:
+            BatteryStatusText.text(reason: reason,
+                                   detail: String(localized: "유지보수: 알 수 없음", locale: locale),
+                                   locale: locale)
+        }
     }
 
     private static func maintenanceTriggerText(_ trigger: BatteryMaintenanceTrigger,
                                                locale: Locale) -> String {
         switch trigger {
-        case .startup: String(localized: "시작", locale: locale)
-        case .wake: "Wake"
-        case .clientConfiguration: String(localized: "설정 변경", locale: locale)
-        case .adapterTransition: String(localized: "전원 전환", locale: locale)
-        case .termination: String(localized: "종료", locale: locale)
-        case .unrecognized: String(localized: "알 수 없음", locale: locale)
+        case .startup: String(localized: "유지보수: 앱 시작", locale: locale)
+        case .wake: String(localized: "유지보수: 절전 해제", locale: locale)
+        case .clientConfiguration: String(localized: "유지보수: 설정 변경", locale: locale)
+        case .adapterTransition: String(localized: "유지보수: 전원 전환", locale: locale)
+        case .termination: String(localized: "유지보수: 앱 종료", locale: locale)
+        case .unrecognized: String(localized: "유지보수: 알 수 없음", locale: locale)
         }
     }
 
     static func maintenanceActionLabel(_ action: MaintenanceAction, locale: Locale) -> String {
         switch action {
-        case .retry: String(localized: "다시 확인", locale: locale)
-        case .updateHelper: String(localized: "도우미 업데이트", locale: locale)
-        case .transferOwnership: String(localized: "소유권 이전", locale: locale)
+        case .retry: String(localized: "유지보수: 다시 확인", locale: locale)
+        case .updateHelper: String(localized: "유지보수: 도우미 업데이트", locale: locale)
+        case .transferOwnership: String(localized: "유지보수: 소유권 이전", locale: locale)
         }
     }
 

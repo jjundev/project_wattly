@@ -15,6 +15,7 @@ struct SettingsBatterySection: View {
     @State private var isInstallFailedAlertPresented = false
     @State private var installErrorMessage = ""
     @State private var isHelpPopoverPresented = false
+    @State private var isMaintenanceHelpPopoverPresented = false
     @State private var installedOwnership = FanHelperInstaller.InstalledOwnership.notInstalled
     @State private var isOwnershipTransferConfirmationPresented = false
 
@@ -91,9 +92,6 @@ struct SettingsBatterySection: View {
                     // icon-and-text status interface instead of making the entire status row vanish.
                     batteryStatusIndicator
 
-                    if let maintenance = resolvedMaintenanceStatus {
-                        maintenanceStatusRow(maintenance)
-                    }
                 }
                 .padding(EdgeInsets(top: 12, leading: 14, bottom: 14, trailing: 14))
 
@@ -227,7 +225,7 @@ struct SettingsBatterySection: View {
             }
             Button("취소", role: .cancel) {}
         } message: {
-            Text("다른 사용자의 충전 정책을 해제하고 이 사용자로 소유권을 이전합니다.")
+            Text("유지보수: 다른 사용자의 충전 정책을 해제하고 이 사용자로 소유권을 이전합니다.")
         }
     }
 
@@ -259,6 +257,19 @@ struct SettingsBatterySection: View {
                 .font(WattlyFont.at(11, weight: .regular))
                 .foregroundStyle(t.sub)
                 .fixedSize(horizontal: false, vertical: true)
+            Button {
+                isMaintenanceHelpPopoverPresented = true
+            } label: {
+                Image(systemName: "questionmark.circle")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(t.faint)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text(verbatim: BatterySectionPresentation.maintenancePopoverText(
+                resolvedMaintenanceStatus, locale: locale)))
+            .popover(isPresented: $isMaintenanceHelpPopoverPresented, arrowEdge: .bottom) {
+                maintenanceStatusHelpPopover(resolvedMaintenanceStatus)
+            }
             Spacer()
             if BatterySectionPresentation.isInstallButtonVisible(isLimitOn: batteryLimitEnabled,
                                                                  mode: batteryControl.status.mode) {
@@ -303,23 +314,6 @@ struct SettingsBatterySection: View {
             capabilities: batteryControl.status.capabilities,
             record: batteryControl.status.lastMaintenance,
             locale: locale)
-    }
-
-    private func maintenanceStatusRow(_ maintenance: BatterySectionPresentation.MaintenanceStatus) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: maintenance.tone == .red
-                  ? "exclamationmark.triangle.fill"
-                  : "clock.arrow.circlepath")
-                .accessibilityHidden(true)
-            Text(verbatim: maintenance.text)
-                .font(WattlyFont.at(10.5, weight: .regular))
-                .foregroundStyle(statusColor(for: maintenance.tone))
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer()
-            maintenanceActionButton(maintenance.action)
-        }
-        .padding(.vertical, 2)
-        .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder
@@ -420,6 +414,21 @@ struct SettingsBatterySection: View {
                 .overlay(RoundedRectangle(cornerRadius: 6).stroke(t.rowBorder, lineWidth: 1))
             }
             .buttonStyle(.plain)
+        }
+        .padding(14)
+        .frame(width: 270, alignment: .leading)
+        .background(t.cardBg)
+    }
+
+    private func maintenanceStatusHelpPopover(
+        _ maintenance: BatterySectionPresentation.MaintenanceStatus?
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(verbatim: BatterySectionPresentation.maintenancePopoverText(maintenance, locale: locale))
+                .font(WattlyFont.at(11, weight: .regular))
+                .foregroundStyle(statusColor(for: maintenance?.tone ?? .faint))
+                .fixedSize(horizontal: false, vertical: true)
+            maintenanceActionButton(maintenance?.action)
         }
         .padding(14)
         .frame(width: 270, alignment: .leading)

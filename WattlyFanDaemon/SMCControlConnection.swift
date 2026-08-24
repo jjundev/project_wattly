@@ -25,8 +25,6 @@ final class SMCControlConnection: @unchecked Sendable {
     private static let cmdWrite: UInt8 = 6
     private static let cmdKeyInfo: UInt8 = 9
     private static let kernelIndex: UInt32 = 2
-    /// Empirically observed AppleSMC cmd-9 result for a missing key (`135` in the register probe).
-    private static let keyNotFoundResult: UInt8 = 135
 
     private let connection: io_connect_t
 
@@ -46,18 +44,14 @@ final class SMCControlConnection: @unchecked Sendable {
         return (type, size)
     }
 
-    /// Battery release needs a stronger answer than the generic optional `keyInfo` API. Only the
-    /// observed key-not-found SMC result proves absence; a kernel error, another SMC error, or an
-    /// invalid reply might conceal a reachable latch and therefore stays uncertain.
     func batteryKeyProbe(_ key: String) -> BatteryControlKeyProbeResult {
         var probe = Param(); probe.key = Self.fourCC(key); probe.data8 = Self.cmdKeyInfo
         let reply = callStruct(&probe)
-        guard reply.kernel == KERN_SUCCESS else { return .uncertain }
-        if reply.output.result == Self.keyNotFoundResult { return .confirmedAbsent }
-        guard reply.output.result == 0 else { return .uncertain }
-        let size = Int(reply.output.keyInfo.dataSize)
-        guard (1...32).contains(size) else { return .uncertain }
-        return .readable(type: Self.string(reply.output.keyInfo.dataType), size: size)
+        return .fromSMCKeyInfo(
+            kernelSucceeded: reply.kernel == KERN_SUCCESS,
+            smcResult: reply.output.result,
+            type: Self.string(reply.output.keyInfo.dataType),
+            size: Int(reply.output.keyInfo.dataSize))
     }
 
     func read(_ key: String) -> (type: String, bytes: [UInt8])? {
