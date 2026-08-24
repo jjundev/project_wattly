@@ -146,7 +146,83 @@ struct CardPresentationTests {
             volts: 12.7,
             charging: false,
             externalConnected: true)))
-        #expect(CardPresentation.subText(noDetail) == nil)
+        #expect(CardPresentation.subText(noDetail) == "완충됨 (전원 어댑터 사용)")
+    }
+
+    @Test func batteryZeroWattStatusMessages() {
+        let fullyChargedOnAC = BatterySample(
+            netW: 0.0,
+            milliamps: 0,
+            volts: 12.0,
+            charging: false,
+            externalConnected: true,
+            remainingWh: 60.0,
+            maxWh: 60.0,
+            targetPercentage: 100
+        )
+        #expect(CardPresentation.batteryRemainingTimeSummary(fullyChargedOnAC) == "완충됨 (전원 어댑터 사용)")
+
+        let holdingAt80OnAC = BatterySample(
+            netW: -0.1,
+            milliamps: 8,
+            volts: 12.0,
+            charging: false,
+            externalConnected: true,
+            remainingWh: 48.0,
+            maxWh: 60.0,
+            targetPercentage: 80
+        )
+        #expect(CardPresentation.batteryRemainingTimeSummary(holdingAt80OnAC) == "80% 한도 유지 중")
+
+        let passthroughOnAC = BatterySample(
+            netW: 0.05,
+            milliamps: 4,
+            volts: 12.0,
+            charging: false,
+            externalConnected: true,
+            remainingWh: 30.0,
+            maxWh: 60.0,
+            targetPercentage: 100
+        )
+        #expect(CardPresentation.batteryRemainingTimeSummary(passthroughOnAC) == "전원 어댑터로 작동 중")
+
+        let standbyOnBattery = BatterySample(
+            netW: 0.0,
+            milliamps: 0,
+            volts: 12.0,
+            charging: false,
+            externalConnected: false,
+            remainingWh: 50.0,
+            maxWh: 60.0,
+            targetPercentage: 100
+        )
+        #expect(CardPresentation.batteryRemainingTimeSummary(standbyOnBattery) == "대기 모드")
+
+        // Boundary checks for 0.2W threshold
+        let boundaryInAt0_20 = BatterySample(
+            netW: 0.20,
+            milliamps: 16,
+            volts: 12.0,
+            charging: false,
+            externalConnected: true,
+            remainingWh: 30.0,
+            maxWh: 60.0,
+            targetPercentage: 100
+        )
+        #expect(CardPresentation.batteryRemainingTimeSummary(boundaryInAt0_20) == "전원 어댑터로 작동 중")
+
+        let boundaryOutAt0_21 = BatterySample(
+            netW: 0.21,
+            milliamps: 17,
+            volts: 12.0,
+            charging: false,
+            externalConnected: true,
+            remainingWh: 30.0,
+            maxWh: 60.0,
+            targetPercentage: 100
+        )
+        // At 0.21W without projected minutes, returns nil
+        #expect(CardPresentation.batteryZeroWattStatusText(boundaryOutAt0_21) == nil)
     }
 
     @Test func batteryAverageAndRemainingTimeVisibilityRules() {
