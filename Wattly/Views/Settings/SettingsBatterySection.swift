@@ -324,6 +324,9 @@ struct SettingsBatterySection: View {
                             heatProtectionEnabled: true,
                             heatProtectionThresholdCelsius: batteryHeatProtectionThreshold)
                     }
+                    if batteryControl.status.isHardwareSupported == false {
+                        batteryHeatProtectionEnabled = false
+                    }
                 }
             }
             .onChange(of: batteryHeatProtectionThreshold) { _, newThreshold in
@@ -398,8 +401,11 @@ struct SettingsBatterySection: View {
                 maintenanceStatusHelpPopover(resolvedMaintenanceStatus)
             }
             Spacer()
-            if BatterySectionPresentation.isInstallButtonVisible(isLimitOn: batteryLimitEnabled,
-                                                                 mode: batteryControl.status.mode) {
+            if BatterySectionPresentation.isInstallButtonVisible(
+                isLimitOn: batteryLimitEnabled,
+                isHeatProtectionOn: batteryHeatProtectionEnabled,
+                mode: batteryControl.status.mode
+            ) {
                 Button {
                     let window = NSApp.keyWindow
                     let limit = batteryLimitPercentage
@@ -598,7 +604,8 @@ struct SettingsBatterySection: View {
     private var isToggleEnabled: Bool {
         BatterySectionPresentation.isToggleEnabled(
             isHardwareSupported: batteryControl.status.isHardwareSupported,
-            isLimitOn: batteryLimitEnabled)
+            isLimitOn: batteryLimitEnabled,
+            isHeatProtectionOn: batteryHeatProtectionEnabled)
     }
 
     private var isLimitPickerEnabled: Bool {

@@ -640,4 +640,23 @@ import AppKit
             isHardwareSupported: true
         ) == true)
     }
+
+    @Test func isInstallButtonVisibleAndToggleEnabledWithHeatProtection() {
+        #expect(BatterySectionPresentation.isInstallButtonVisible(
+            isLimitOn: false,
+            isHeatProtectionOn: true,
+            mode: .unavailable
+        ) == true)
+        #expect(BatterySectionPresentation.isInstallButtonVisible(
+            isLimitOn: false,
+            isHeatProtectionOn: false,
+            mode: .unavailable
+        ) == false)
+
+        #expect(BatterySectionPresentation.isToggleEnabled(
+            isHardwareSupported: false,
+            isLimitOn: false,
+            isHeatProtectionOn: true
+        ) == true)
+    }
 }

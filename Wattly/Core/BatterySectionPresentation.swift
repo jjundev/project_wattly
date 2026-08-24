@@ -207,8 +207,12 @@ enum BatterySectionPresentation {
     /// 렌더링이 저장값을 대신 꺼주지 않는 것은 의도다(`SettingsBatterySection` 상단 주석): 같은
     /// 환경설정이 이 기능을 지원하는 Mac에 도달하는 순간 그 값은 틀린 값이 된다. 그래서 끄는 행위는
     /// 사용자에게 남기고, 이 함수는 그 길만 열어 둔다.
-    static func isToggleEnabled(isHardwareSupported: Bool?, isLimitOn: Bool) -> Bool {
-        showsConfigurationControls(isHardwareSupported: isHardwareSupported) || isLimitOn
+    static func isToggleEnabled(
+        isHardwareSupported: Bool?,
+        isLimitOn: Bool,
+        isHeatProtectionOn: Bool = false
+    ) -> Bool {
+        showsConfigurationControls(isHardwareSupported: isHardwareSupported) || isLimitOn || isHeatProtectionOn
     }
 
     /// 한도 선택기를 조작할 수 있는지. 꺼짐 상태에서는 보이되 만질 수 없다.
@@ -329,8 +333,12 @@ enum BatterySectionPresentation {
     /// "도우미 설치" 복구 버튼을 띄울지 여부. 이 버튼은 관리자 암호 프롬프트를 띄우므로,
     /// 사용자가 켜지도 않은 기능 때문에 암호를 묻지 않는다. 토글을 켜는 경로가 이미 설치를
     /// 수행하니 잃는 기능도 없다.
-    static func isInstallButtonVisible(isLimitOn: Bool, mode: BatteryControlServiceMode) -> Bool {
-        isLimitOn && mode == .unavailable
+    static func isInstallButtonVisible(
+        isLimitOn: Bool,
+        isHeatProtectionOn: Bool = false,
+        mode: BatteryControlServiceMode
+    ) -> Bool {
+        (isLimitOn || isHeatProtectionOn) && mode == .unavailable
     }
 
     /// 설정 화면이 상태를 주기적으로 다시 읽어야 하는지.
