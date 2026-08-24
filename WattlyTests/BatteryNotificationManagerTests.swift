@@ -8,7 +8,7 @@ import Testing
         let en = Locale(identifier: "en")
 
         #expect(BatteryNotificationManager.topUpCompleteTitle(locale: ko) == "한 번만 완충 완료")
-        #expect(BatteryNotificationManager.topUpCompleteTitle(locale: en) == "One-Time Full Charge Complete")
+        #expect(BatteryNotificationManager.topUpCompleteTitle(locale: en) == "Top Up Complete")
 
         #expect(BatteryNotificationManager.topUpCompleteBody(locale: ko) == "배터리가 100%까지 충전되었습니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.")
         #expect(BatteryNotificationManager.topUpCompleteBody(locale: en) == "Battery is charged to 100%. Normal limit will restore automatically when unplugged.")

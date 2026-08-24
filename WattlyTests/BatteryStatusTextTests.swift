@@ -169,11 +169,11 @@ import Foundation
         #expect(BatteryStatusText.text(reason: chargingReason, detail: "", locale: ko)
                 == "한 번만 완충 중 (100%까지 충전)")
         #expect(BatteryStatusText.text(reason: chargingReason, detail: "", locale: en)
-                == "One-time full charging (up to 100%)")
+                == "Top Up in progress (Charging to 100%)")
 
         #expect(BatteryStatusText.text(reason: completeReason, detail: "", locale: ko)
                 == "한 번만 완충 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)")
         #expect(BatteryStatusText.text(reason: completeReason, detail: "", locale: en)
-                == "One-time full charge complete (holding at 100%, reverts to limit on disconnect)")
+                == "Top Up complete (Holding at 100%, normal limit restores on unplug)")
     }
 }

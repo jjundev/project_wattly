@@ -43356,7 +43356,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "One-Time Full Charge"
+            "value": "Top Up"
           }
         },
         "ko": {
@@ -43373,7 +43373,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "One-time full charging (up to 100%)"
+            "value": "Top Up in progress (Charging to 100%)"
           }
         },
         "ko": {
@@ -43390,7 +43390,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "One-time full charge complete (holding at 100%, reverts to limit on disconnect)"
+            "value": "Top Up complete (Holding at 100%, normal limit restores on unplug)"
           }
         },
         "ko": {
@@ -43407,7 +43407,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "One-Time Full Charge Complete"
+            "value": "Top Up Complete"
           }
         },
         "ko": {
