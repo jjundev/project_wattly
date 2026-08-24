@@ -557,7 +557,7 @@ struct SailboatMark: View {
             let phaseRad = (Double(subPhase) / 24.0) * .pi * 2.0
 
             // Base geometry parameters
-            let baseY = s * 0.68
+            let baseY = s * 0.70
             let ampRatio: Double = tier == 0 ? 0.065 : (tier == 1 ? 0.125 : (tier == 2 ? 0.190 : 0.250))
             let tiltDamp: Double = tier == 0 ? 0.75 : (tier == 1 ? 0.90 : (tier == 2 ? 1.05 : 1.20))
 
@@ -570,9 +570,9 @@ struct SailboatMark: View {
             let slope = -amp * waveFreq * cos(waveFreq * boatX - phaseRad)
             let rollAngle = atan(slope) * tiltDamp
 
-            let hullW = s * 0.44
-            let hullH = s * 0.13
-            let mastH = s * 0.38
+            let hullW = s * 0.60
+            let hullH = s * 0.17
+            let mastH = s * 0.46
 
             let cosT = cos(rollAngle)
             let sinT = sin(rollAngle)
@@ -601,8 +601,8 @@ struct SailboatMark: View {
                         CGPoint(x: boatX + lx * cosT - ly * sinT, y: boatY + lx * sinT + ly * cosT)
                     }
                     path.move(to: pt(-hullW * 0.5, 0))
-                    path.addLine(to: pt(-hullW * 0.25, hullH * 0.9))
-                    path.addLine(to: pt(hullW * 0.25, hullH * 0.9))
+                    path.addLine(to: pt(-hullW * 0.26, hullH * 0.9))
+                    path.addLine(to: pt(hullW * 0.26, hullH * 0.9))
                     path.addLine(to: pt(hullW * 0.5, 0))
                     path.addLine(to: pt(0, -hullH * 0.5))
                     path.closeSubpath()
@@ -615,8 +615,8 @@ struct SailboatMark: View {
                         CGPoint(x: boatX + lx * cosT - ly * sinT, y: boatY + lx * sinT + ly * cosT)
                     }
                     path.move(to: pt(0, -mastH * 0.95))
-                    path.addLine(to: pt(-hullW * 0.22, 0))
-                    path.addLine(to: pt(hullW * 0.22, 0))
+                    path.addLine(to: pt(-hullW * 0.24, 0))
+                    path.addLine(to: pt(hullW * 0.24, 0))
                     path.closeSubpath()
                 }
                 .fill(markerColor)
