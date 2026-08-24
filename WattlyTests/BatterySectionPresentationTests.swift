@@ -22,7 +22,7 @@ import AppKit
             timestampText: { _ in "21:04" })
         #expect(status == .init(
             tone: .faint,
-            text: "마지막 확인: Wake · 성공 · 21:04",
+            text: "마지막 확인: 절전 해제 · 성공 · 21:04",
             action: nil))
     }
 
@@ -135,6 +135,54 @@ import AppKit
         #expect(BatterySectionPresentation.maintenanceActionLabel(.updateHelper, locale: en) == "Update Helper")
         #expect(BatterySectionPresentation.maintenanceActionLabel(.transferOwnership, locale: en)
                 == "Transfer Ownership")
+    }
+
+    @Test func maintenancePopoverUsesEverySupportedLocale() {
+        let locales = ["ar", "cs", "da", "de", "el", "en", "es", "fi", "fr", "he", "hi",
+                       "hu", "id", "it", "ja", "ko", "nb", "nl", "pl", "pt-BR", "pt-PT",
+                       "ro", "ru", "sv", "th", "tr", "uk", "vi", "zh-Hans", "zh-Hant"]
+        let triggers: [BatteryMaintenanceTrigger] = [
+            .startup, .wake, .clientConfiguration, .adapterTransition, .termination, .unrecognized,
+        ]
+        let reasons: [BatteryControlStatusReason.Kind] = [
+            .persistenceReadFailed, .persistenceWriteFailed, .policyOwnerMismatch, .hardwareReadbackFailed,
+        ]
+        let actions: [BatterySectionPresentation.MaintenanceAction] = [.retry, .updateHelper, .transferOwnership]
+
+        func successfulText(trigger: BatteryMaintenanceTrigger, locale: Locale) -> String {
+            BatterySectionPresentation.maintenanceStatus(
+                ownership: .owner(501), currentUID: 501,
+                capabilities: BatteryControlCoordinator.capabilities,
+                record: .init(trigger: trigger, result: .verified, occurredAt: 100, reason: nil),
+                locale: locale, timestampText: { _ in "21:04" })!.text
+        }
+
+        for identifier in locales where identifier != "ko" {
+            let locale = Locale(identifier: identifier)
+            for trigger in triggers {
+                #expect(successfulText(trigger: trigger, locale: locale)
+                        != successfulText(trigger: trigger, locale: ko),
+                        "\(identifier): \(trigger) translated text fell back to Korean")
+            }
+            for reason in reasons {
+                let translated = BatterySectionPresentation.maintenanceStatus(
+                    ownership: .owner(501), currentUID: 501,
+                    capabilities: BatteryControlCoordinator.capabilities,
+                    record: .init(trigger: .wake, result: .failed, occurredAt: 100,
+                                  reason: .init(kind: reason)), locale: locale)!.text
+                let korean = BatterySectionPresentation.maintenanceStatus(
+                    ownership: .owner(501), currentUID: 501,
+                    capabilities: BatteryControlCoordinator.capabilities,
+                    record: .init(trigger: .wake, result: .failed, occurredAt: 100,
+                                  reason: .init(kind: reason)), locale: ko)!.text
+                #expect(translated != korean, "\(identifier): \(reason) fell back to Korean")
+            }
+            for action in actions {
+                #expect(BatterySectionPresentation.maintenanceActionLabel(action, locale: locale)
+                        != BatterySectionPresentation.maintenanceActionLabel(action, locale: ko),
+                        "\(identifier): \(action) fell back to Korean")
+            }
+        }
     }
 
     // MARK: - 하위 항목 노출

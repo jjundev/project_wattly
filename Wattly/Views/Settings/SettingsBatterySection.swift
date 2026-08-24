@@ -225,7 +225,7 @@ struct SettingsBatterySection: View {
             }
             Button("취소", role: .cancel) {}
         } message: {
-            Text("다른 사용자의 충전 정책을 해제하고 이 사용자로 소유권을 이전합니다.")
+            Text("유지보수: 다른 사용자의 충전 정책을 해제하고 이 사용자로 소유권을 이전합니다.")
         }
     }
 
