@@ -79,7 +79,7 @@ public enum BatteryControlPolicy {
         guard status.desiredConfiguration?.normalized == configuration.normalized,
               let maintenance = status.lastMaintenance,
               maintenance.result != .failed else { return false }
-        if !configuration.enabled {
+        if !configuration.isActive {
             return status.actualGate?.state == .allowed
                 || status.releaseVerification?.isSafeToRemove == true
         }

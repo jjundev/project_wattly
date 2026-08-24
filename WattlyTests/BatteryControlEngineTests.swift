@@ -6,6 +6,7 @@ final class MockBatteryHardware: BatteryControlHardwareProtocol, @unchecked Send
     var registerSet: BatteryControlRegisterSet = .modern
     var reportedGate: BatteryHardwareGate = .allowed
     var chargingInhibited: Bool = false
+    var lastInhibited: Bool { chargingInhibited }
     var appliedLimit: Int = 100
     /// Counts EVERY call, including a redundant one — a retry has to be visible to the tests.
     var writeCount: Int = 0
@@ -1041,5 +1042,49 @@ struct BatteryControlEngineTests {
         #expect(sUnplugged.mode == .charging)
         #expect(sUnplugged.activity == .onBatteryPower)
         #expect(sUnplugged.detailReason?.kind == .onBatteryPower)
+    }
+
+    @Test func heatProtectionTriggersAndInhibitsChargingRegardlessOfLimit() {
+        let mockHW = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHW)
+        engine.configure(BatteryControlConfiguration(
+            enabled: false, // Charge limit disabled
+            heatProtectionEnabled: true,
+            heatProtectionThresholdCelsius: 36,
+            heatProtectionResumeDeltaCelsius: 2,
+            heatProtectionMinCooldownSeconds: 300
+        ))
+
+        #expect(engine.needsSampling == true)
+
+        // 1. Temperature normal (34°C) -> Charging allowed
+        let s1 = engine.update(currentSoC: 50, isPluggedIn: true, temperatureCelsius: 34.0, now: 1000)
+        #expect(s1.mode == .charging)
+        #expect(s1.activity == .inactive)
+
+        // 2. Temperature exceeds threshold (36.5°C) -> Heat protection inhibits charging!
+        let s2 = engine.update(currentSoC: 50, isPluggedIn: true, temperatureCelsius: 36.5, now: 1010)
+        #expect(s2.mode == .inhibited)
+        #expect(s2.activity == .heatProtection)
+        #expect(s2.detailReason?.kind == .heatProtectionActive)
+        #expect(s2.detailReason?.currentTemperatureCelsius == 36.5)
+
+        // 3. Temperature drops to 33.5°C (below resume 34°C), but cooldown timer not elapsed (elapsed 60s < 300s) -> Stays inhibited in cooldown!
+        let s3 = engine.update(currentSoC: 50, isPluggedIn: true, temperatureCelsius: 33.5, now: 1070)
+        #expect(s3.mode == .inhibited)
+        #expect(s3.activity == .heatProtection)
+        #expect(s3.detailReason?.kind == .heatProtectionCooldown)
+        #expect(s3.detailReason?.cooldownRemainingSeconds == 240)
+
+        // 4. Cooldown elapsed (310s >= 300s) and temperature still cool (33.0°C) -> Exits heat protection and resumes charging!
+        let s4 = engine.update(currentSoC: 50, isPluggedIn: true, temperatureCelsius: 33.0, now: 1320)
+        #expect(s4.mode == .charging)
+        #expect(s4.activity == .inactive)
+
+        // 5. If sensor fails while in heat protection -> stays inhibited (fail-closed) and preserves trigger timestamp
+        _ = engine.update(currentSoC: 50, isPluggedIn: true, temperatureCelsius: 37.0, now: 1400)
+        let sFail = engine.update(currentSoC: 50, isPluggedIn: true, temperatureCelsius: nil, now: 1410)
+        #expect(sFail.mode == .inhibited)
+        #expect(sFail.detailReason?.kind == .batterySensorUnreadable)
     }
 }
