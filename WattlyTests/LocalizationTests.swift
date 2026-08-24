@@ -223,8 +223,14 @@ struct LocalizationTests {
                                  locale: Locale(identifier: lang))
             #expect(sailing.contains("%lld"), "\(lang): %lld 유실")
             #expect(sailing.contains("%%"), "\(lang): %% 유실")
+
+            let holding = String(localized: "%lld%% 한도 유지 중", locale: Locale(identifier: lang))
+            #expect(holding.contains("%lld"), "\(lang): %lld 유실")
+            #expect(holding.contains("%%"), "\(lang): %% 유실")
         }
 
+        #expect(String(localized: "%lld%% 한도 유지 중", locale: Locale(identifier: "en"))
+                == "Holding at %lld%% Limit")
         #expect(String(localized: "충전 제한 %lld%% 도달 (전원 어댑터 바이패스 구동)", locale: Locale(identifier: "en"))
                 == "Charge limit %lld%% reached (running on adapter bypass)")
         #expect(String(localized: "목표치(%lld%%)까지 충전 중", locale: Locale(identifier: "en"))
@@ -389,5 +395,48 @@ struct LocalizationTests {
         #expect(CardPresentation.batteryRemainingTimeSummary(sample100, locale: zhHans) == "距离充满约剩余 1小时 10分钟")
         #expect(CardPresentation.batteryTimeToFullLabel(targetPercentage: 85, locale: zhHans) == "充至 85% 剩余时间")
         #expect(CardPresentation.batteryTimeToFullLabel(targetPercentage: 100, locale: zhHans) == "充满剩余时间")
+    }
+
+    @Test func batteryZeroWattStatusLocalization() {
+        let ko = Locale(identifier: "ko")
+        let en = Locale(identifier: "en")
+        let ja = Locale(identifier: "ja")
+        let de = Locale(identifier: "de")
+        let zhHans = Locale(identifier: "zh-Hans")
+
+        let fullyCharged = BatterySample(netW: 0.0, milliamps: 0, volts: 12.0, charging: false, externalConnected: true, remainingWh: 60.0, maxWh: 60.0, targetPercentage: 100)
+        let limit80 = BatterySample(netW: 0.0, milliamps: 0, volts: 12.0, charging: false, externalConnected: true, remainingWh: 48.0, maxWh: 60.0, targetPercentage: 80)
+        let passthrough = BatterySample(netW: 0.0, milliamps: 0, volts: 12.0, charging: false, externalConnected: true, remainingWh: 30.0, maxWh: 60.0, targetPercentage: 100)
+        let standby = BatterySample(netW: 0.0, milliamps: 0, volts: 12.0, charging: false, externalConnected: false, remainingWh: 30.0, maxWh: 60.0, targetPercentage: 100)
+
+        // Korean
+        #expect(CardPresentation.batteryRemainingTimeSummary(fullyCharged, locale: ko) == "완충됨 (전원 어댑터 사용)")
+        #expect(CardPresentation.batteryRemainingTimeSummary(limit80, locale: ko) == "80% 한도 유지 중")
+        #expect(CardPresentation.batteryRemainingTimeSummary(passthrough, locale: ko) == "전원 어댑터로 작동 중")
+        #expect(CardPresentation.batteryRemainingTimeSummary(standby, locale: ko) == "대기 모드")
+
+        // English
+        #expect(CardPresentation.batteryRemainingTimeSummary(fullyCharged, locale: en) == "Fully Charged (On AC Power)")
+        #expect(CardPresentation.batteryRemainingTimeSummary(limit80, locale: en) == "Holding at 80% Limit")
+        #expect(CardPresentation.batteryRemainingTimeSummary(passthrough, locale: en) == "Powered by Power Adapter")
+        #expect(CardPresentation.batteryRemainingTimeSummary(standby, locale: en) == "Standby")
+
+        // Japanese
+        #expect(CardPresentation.batteryRemainingTimeSummary(fullyCharged, locale: ja) == "充電完了 (電源アダプタ使用)")
+        #expect(CardPresentation.batteryRemainingTimeSummary(limit80, locale: ja) == "80%制限を維持中")
+        #expect(CardPresentation.batteryRemainingTimeSummary(passthrough, locale: ja) == "電源アダプタで給電中")
+        #expect(CardPresentation.batteryRemainingTimeSummary(standby, locale: ja) == "スタンバイ")
+
+        // German
+        #expect(CardPresentation.batteryRemainingTimeSummary(fullyCharged, locale: de) == "Vollständig geladen (Netzbetrieb)")
+        #expect(CardPresentation.batteryRemainingTimeSummary(limit80, locale: de) == "80 %-Limit gehalten")
+        #expect(CardPresentation.batteryRemainingTimeSummary(passthrough, locale: de) == "Stromversorgung über Netzteil")
+        #expect(CardPresentation.batteryRemainingTimeSummary(standby, locale: de) == "Standby-Modus")
+
+        // Chinese Simplified
+        #expect(CardPresentation.batteryRemainingTimeSummary(fullyCharged, locale: zhHans) == "已充满 (使用电源适配器)")
+        #expect(CardPresentation.batteryRemainingTimeSummary(limit80, locale: zhHans) == "保持在 80% 限制")
+        #expect(CardPresentation.batteryRemainingTimeSummary(passthrough, locale: zhHans) == "由电源适配器供电")
+        #expect(CardPresentation.batteryRemainingTimeSummary(standby, locale: zhHans) == "待机模式")
     }
 }
