@@ -182,6 +182,14 @@ import AppKit
                         != BatterySectionPresentation.maintenanceActionLabel(action, locale: ko),
                         "\(identifier): \(action) fell back to Korean")
             }
+            let foreignOwner = BatterySectionPresentation.maintenanceStatus(
+                ownership: .owner(502), currentUID: 501, capabilities: nil, record: nil,
+                locale: locale)!.text
+            let koreanForeignOwner = BatterySectionPresentation.maintenanceStatus(
+                ownership: .owner(502), currentUID: 501, capabilities: nil, record: nil,
+                locale: ko)!.text
+            #expect(foreignOwner != koreanForeignOwner,
+                    "\(identifier): foreign-owner recovery fell back to Korean")
         }
     }
 

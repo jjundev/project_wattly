@@ -89,8 +89,7 @@ enum BatterySectionPresentation {
         case .owner(let ownerUID) where ownerUID != currentUID:
             return MaintenanceStatus(
                 tone: .red,
-                text: BatteryStatusText.text(
-                    reason: .init(kind: .policyOwnerMismatch), detail: "", locale: locale),
+                text: String(localized: "유지보수: 다른 사용자가 이 Mac의 충전 정책을 관리하고 있습니다", locale: locale),
                 action: .transferOwnership)
         case .invalidMetadata:
             return MaintenanceStatus(
