@@ -6,8 +6,8 @@ public enum MenuBarIconStyle: String, CaseIterable, Identifiable, Sendable {
     case vuMeter = "vuMeter"             // 3. VU 파워 미터
     case cube3D = "cube3D"               // 4. 3D 와이어프레임 큐브
     case equalizer = "equalizer"         // 5. 디지털 이퀄라이저
-    case hillRunner = "hillRunner"       // 6. 경사로 러너 (Hill Runner)
-    case sailboat = "sailboat"           // 7. 종이배 (파도 항해)
+    case hillRunner = "hillRunner"       // 6. 러너
+    case sailboat = "sailboat"           // 7. 종이배
 
     public var id: String { rawValue }
 
@@ -18,8 +18,8 @@ public enum MenuBarIconStyle: String, CaseIterable, Identifiable, Sendable {
         case .vuMeter: "VU 파워 미터"
         case .cube3D: "3D 큐브"
         case .equalizer: "디지털 이퀄라이저"
-        case .hillRunner: "러너 (경사로 질주)"
-        case .sailboat: "종이배 (파도 항해)"
+        case .hillRunner: "러너"
+        case .sailboat: "종이배"
         }
     }
 

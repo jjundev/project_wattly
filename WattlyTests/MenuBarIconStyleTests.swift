@@ -19,7 +19,7 @@ struct MenuBarIconStyleTests {
     @Test func sailboatHasSpecificMetadata() {
         let boat = MenuBarIconStyle.sailboat
         #expect(boat.rawValue == "sailboat")
-        #expect(boat.label == "종이배 (파도 항해)")
+        #expect(boat.label == "종이배")
         #expect(boat.category == "캐릭터 / 라이프")
         #expect(!boat.summary.isEmpty)
         #expect(boat.frameCount == 96)
@@ -29,7 +29,7 @@ struct MenuBarIconStyleTests {
     @Test func hillRunnerHasSpecificMetadata() {
         let runner = MenuBarIconStyle.hillRunner
         #expect(runner.rawValue == "hillRunner")
-        #expect(runner.label == "러너 (경사로 질주)")
+        #expect(runner.label == "러너")
         #expect(runner.category == "캐릭터 / 라이프")
         #expect(!runner.summary.isEmpty)
         #expect(runner.frameCount == 24)

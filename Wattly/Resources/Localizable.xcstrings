@@ -20740,246 +20740,372 @@
         }
       }
     },
-    "종이배 (파도 항해)": {
+    "종이배": {
       "extractionState": "manual",
       "localizations": {
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "종이배 (파도 항해)"
+            "value": "종이배"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Paper Boat (Ocean Waves)"
+            "value": "Paper Boat"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "紙の船（波の航海）"
+            "value": "紙の船"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "纸船（乘风破浪）"
+            "value": "纸船"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "紙船（乘風破浪）"
+            "value": "紙船"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Papierschiffchen (Meereswellen)"
+            "value": "Papierschiffchen"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bateau en papier (Vagues de l'océan)"
+            "value": "Bateau en papier"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Barco de papel (Olas oceánicas)"
+            "value": "Barco de papel"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Barchetta di carta (Onde marine)"
-          }
-        }
-      }
-    },
-    "러너 (경사로 질주)": {
-      "extractionState": "manual",
-      "localizations": {
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "러너 (경사로 질주)"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hill Runner"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "坂道ランナー"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "斜坡奔跑者"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "斜坡奔跑者"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bergläufer"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Coureur de côte"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Corredor de colina"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Corridore in salita"
+            "value": "Barchetta di carta"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Corredor de colina"
+            "value": "Barco de papel"
           }
         },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Corredor de colina"
+            "value": "Barco de papel"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Heuvelloper"
+            "value": "Papieren bootje"
           }
         },
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Backlöpare"
+            "value": "Pappersbåt"
           }
         },
         "da": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bakkeløber"
+            "value": "Papirbåd"
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mäkimaratoonari"
+            "value": "Paperivene"
           }
         },
         "nb": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bakkeløper"
+            "value": "Papirbåt"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Biegacz górski"
+            "value": "Papierowa łódka"
           }
         },
         "cs": {
           "stringUnit": {
             "state": "translated",
-            "value": "Běžec do kopce"
+            "value": "Papírová lodička"
           }
         },
         "hu": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hegyi futó"
+            "value": "Papírhajó"
           }
         },
         "ro": {
           "stringUnit": {
             "state": "translated",
-            "value": "Alergător pe deal"
+            "value": "Barcă de hârtie"
           }
         },
         "el": {
           "stringUnit": {
             "state": "translated",
-            "value": "Δρομέας ανηφόρας"
+            "value": "Χάρτινο καραβάκι"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Бегун по склону"
+            "value": "Бумажный кораблик"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Бігун по схилу"
+            "value": "Паперовий кораблик"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tepe Koşucusu"
+            "value": "Kağıt Gemi"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "عداء المنحدرات"
+            "value": "قارب ورقي"
           }
         },
         "he": {
           "stringUnit": {
             "state": "translated",
-            "value": "רץ במדרון"
+            "value": "סירת נייר"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "นักวิ่งบนทางลาด"
+            "value": "เรือกระดาษ"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Người chạy dốc"
+            "value": "Thuyền giấy"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pelari Bukit"
+            "value": "Perahu Kertas"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "हिल रनर"
+            "value": "कागज़ की नाव"
+          }
+        }
+      }
+    },
+    "러너": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "러너"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Runner"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ランナー"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "奔跑者"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "奔跑者"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läufer"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coureur"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corredor"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corridore"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corredor"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corredor"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loper"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löpare"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Løber"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Juoksija"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Løper"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Biegacz"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Běžec"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Futó"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alergător"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Δρομέας"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Бегун"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Бігун"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koşucu"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عداء"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "רץ"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "นักวิ่ง"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Người chạy"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pelari"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "धावक"
           }
         }
       }
