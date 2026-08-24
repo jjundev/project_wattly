@@ -31,11 +31,11 @@ enum CardPresentation {
     /// `MetricState`: `.loading`/`.unavailable` yield `valueText == "—"` (so callers
     /// like `MenuBarLabel` are always safe). The unavailable *layout* is the view's
     /// concern; it still shares `label(_:)` for its copy.
-    static func display(_ card: CardKind, _ state: MetricState) -> CardDisplay {
+    static func display(_ card: CardKind, _ state: MetricState, locale: Locale = Locale(identifier: "ko")) -> CardDisplay {
         CardDisplay(label: label(card),
                     valueText: valueText(card, state),
                     unitText: unitText(card, state),
-                    subText: subText(state),
+                    subText: subText(state, locale: locale),
                     tint: card.isAccented ? .accent : .neutral)
     }
 
@@ -173,13 +173,13 @@ enum CardPresentation {
 
     /// Sub-line beneath the sparkline. nil for loading/unavailable and for the
     /// temperature cards (which carry their detail in the expand region).
-    static func subText(_ state: MetricState) -> String? {
+    static func subText(_ state: MetricState, locale: Locale = Locale(identifier: "ko")) -> String? {
         guard case .value(let sample) = state else { return nil }
         switch sample {
         case .power(let s):
             return "CPU \(f1(s.cpuW)) W · GPU \(f1(s.gpuW)) W · NPU \(f1(s.npuW)) W"
         case .battery(let s):
-            return batteryRemainingTimeSummary(s)
+            return batteryRemainingTimeSummary(s, locale: locale)
         case .cpu(let s):
             // Order-based (not name-coupled): runtime perf-level names ("Performance"/
             // "Efficiency" → "P"/"E") differ from the prototype's "S". Guard
@@ -237,8 +237,13 @@ enum CardPresentation {
     static let batteryTemperatureLabel = "배터리 온도"
     static var batteryTimeToFullLabel: String { batteryTimeToFullLabel(targetPercentage: 100) }
 
-    static func batteryTimeToFullLabel(targetPercentage: Int = 100) -> String {
-        targetPercentage < 100 ? "\(targetPercentage)%까지 남은 시간" : "완충까지 남은 시간"
+    static func batteryTimeToFullLabel(targetPercentage: Int = 100, locale: Locale = Locale(identifier: "ko")) -> String {
+        if targetPercentage < 100 {
+            return String(format: String(localized: "%lld%%까지 남은 시간", locale: locale),
+                          locale: locale, Int64(targetPercentage))
+        } else {
+            return String(localized: "완충까지 남은 시간", locale: locale)
+        }
     }
 
     static func batteryAverage1mText(_ s: BatterySample) -> String? {
@@ -252,38 +257,43 @@ enum CardPresentation {
         return "\(f1(wh)) Wh"
     }
 
-    static func formatDuration(minutes: Int) -> String {
+    static func formatDuration(minutes: Int, locale: Locale = Locale(identifier: "ko")) -> String {
         let h = minutes / 60
         let m = minutes % 60
         if h == 0 {
-            return "\(m)분"
+            return String(format: String(localized: "%@분", locale: locale), locale: locale, "\(m)")
         } else if m == 0 {
-            return "\(h)시간"
+            return String(format: String(localized: "%@시간", locale: locale), locale: locale, "\(h)")
         } else {
-            return "\(h)시간 \(m)분"
+            return String(format: String(localized: "%@시간 %@분", locale: locale), locale: locale, "\(h)", "\(m)")
         }
     }
 
-    static func batteryRemainingTimeSummary(_ s: BatterySample) -> String? {
+    static func batteryRemainingTimeSummary(_ s: BatterySample, locale: Locale = Locale(identifier: "ko")) -> String? {
         guard let totalMinutes = validatedTimeRemainingMinutes(s.projectedTimeRemainingMinutes)
         else { return nil }
-        let duration = formatDuration(minutes: totalMinutes)
+        let duration = formatDuration(minutes: totalMinutes, locale: locale)
         if s.charging {
             if s.targetPercentage < 100 {
-                return "\(s.targetPercentage)%까지 약 \(duration) 남음"
+                return String(format: String(localized: "%lld%%까지 약 %@ 남음", locale: locale),
+                              locale: locale, Int64(s.targetPercentage), duration)
             } else {
-                return "완충까지 약 \(duration) 남음"
+                return String(format: String(localized: "완충까지 약 %@ 남음", locale: locale),
+                              locale: locale, duration)
             }
         } else {
-            return "약 \(duration) 남음"
+            return String(format: String(localized: "약 %@ 남음", locale: locale),
+                          locale: locale, duration)
         }
     }
 
-    static func batteryTimeToFullText(_ s: BatterySample) -> String? {
+    static func batteryTimeToFullText(_ s: BatterySample, locale: Locale = Locale(identifier: "ko")) -> String? {
         guard s.charging,
               let totalMinutes = validatedTimeRemainingMinutes(s.projectedTimeRemainingMinutes)
         else { return nil }
-        return "약 \(formatDuration(minutes: totalMinutes)) 남음"
+        let duration = formatDuration(minutes: totalMinutes, locale: locale)
+        return String(format: String(localized: "약 %@ 남음", locale: locale),
+                      locale: locale, duration)
     }
 
     static func batteryEfficiencyText(_ s: BatterySample) -> String? {

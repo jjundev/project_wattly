@@ -7,6 +7,7 @@ import SwiftUI
 /// and resolves the `tint` role to theme tokens.
 struct MetricCardView: View {
     @Environment(\.tokens) private var t
+    @Environment(\.locale) private var locale
     let card: CardKind
     let state: MetricState
     var historyValues: [Double] = []
@@ -21,7 +22,7 @@ struct MetricCardView: View {
             unavailableCard(reason)
                 // Whole unavailable card → one VO element: "<이름>, 사용 불가, <사유>" (§3).
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(Accessibility.cardLabel(card, state))
+                .accessibilityLabel(Accessibility.cardLabel(card, state, locale: locale))
         case .loading, .value:
             standardCard
         }
@@ -30,7 +31,7 @@ struct MetricCardView: View {
     // MARK: Standard card (loading or value)
 
     private var standardCard: some View {
-        let d = CardPresentation.display(card, state)
+        let d = CardPresentation.display(card, state, locale: locale)
         return VStack(alignment: .leading, spacing: 8) {
             summaryGroup(d)
                 .contentShape(Rectangle())
@@ -63,7 +64,7 @@ struct MetricCardView: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Accessibility.cardLabel(card, state))
+        .accessibilityLabel(Accessibility.cardLabel(card, state, locale: locale))
         .accessibilityValue(Accessibility.stateWord(card, state, thresholds) ?? "")
 
         if isExpandable {

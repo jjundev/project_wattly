@@ -317,4 +317,75 @@ struct LocalizationTests {
         #expect(String(localized: "다음 외출이나 출장을 위해 배터리를 일회성으로 100%까지 완전 충전합니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.", locale: ko) == "다음 외출이나 출장을 위해 배터리를 일회성으로 100%까지 완전 충전합니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.")
         #expect(String(localized: "배터리가 100%까지 충전되었습니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.", locale: ko) == "배터리가 100%까지 충전되었습니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.")
     }
+
+    @Test func dynamicChargeTimeTranslations() {
+        let sample85 = BatterySample(
+            netW: -20.0,
+            milliamps: 1500,
+            volts: 12.5,
+            charging: true,
+            externalConnected: true,
+            projectedTimeRemainingMinutes: 25,
+            targetPercentage: 85
+        )
+        let sample100 = BatterySample(
+            netW: -20.0,
+            milliamps: 1500,
+            volts: 12.5,
+            charging: true,
+            externalConnected: true,
+            projectedTimeRemainingMinutes: 70,
+            targetPercentage: 100
+        )
+        let sampleDischarge = BatterySample(
+            netW: 15.0,
+            milliamps: 1200,
+            volts: 12.5,
+            charging: false,
+            externalConnected: false,
+            projectedTimeRemainingMinutes: 140,
+            targetPercentage: 85
+        )
+
+        // Korean
+        let ko = Locale(identifier: "ko")
+        #expect(CardPresentation.batteryRemainingTimeSummary(sample85, locale: ko) == "85%까지 약 25분 남음")
+        #expect(CardPresentation.batteryRemainingTimeSummary(sample100, locale: ko) == "완충까지 약 1시간 10분 남음")
+        #expect(CardPresentation.batteryRemainingTimeSummary(sampleDischarge, locale: ko) == "약 2시간 20분 남음")
+        #expect(CardPresentation.batteryTimeToFullLabel(targetPercentage: 85, locale: ko) == "85%까지 남은 시간")
+        #expect(CardPresentation.batteryTimeToFullLabel(targetPercentage: 100, locale: ko) == "완충까지 남은 시간")
+        #expect(CardPresentation.batteryTimeToFullText(sample85, locale: ko) == "약 25분 남음")
+
+        // English
+        let en = Locale(identifier: "en")
+        #expect(CardPresentation.batteryRemainingTimeSummary(sample85, locale: en) == "About 25 min to 85%")
+        #expect(CardPresentation.batteryRemainingTimeSummary(sample100, locale: en) == "About 1 hr 10 min until full")
+        #expect(CardPresentation.batteryRemainingTimeSummary(sampleDischarge, locale: en) == "About 2 hr 20 min remaining")
+        #expect(CardPresentation.batteryTimeToFullLabel(targetPercentage: 85, locale: en) == "Time to 85%")
+        #expect(CardPresentation.batteryTimeToFullLabel(targetPercentage: 100, locale: en) == "Time to Full")
+        #expect(CardPresentation.batteryTimeToFullText(sample85, locale: en) == "About 25 min remaining")
+
+        // Japanese
+        let ja = Locale(identifier: "ja")
+        #expect(CardPresentation.batteryRemainingTimeSummary(sample85, locale: ja) == "85%まで約25分")
+        #expect(CardPresentation.batteryRemainingTimeSummary(sample100, locale: ja) == "フル充電まで約1時間 10分")
+        #expect(CardPresentation.batteryRemainingTimeSummary(sampleDischarge, locale: ja) == "残り約2時間 20分")
+        #expect(CardPresentation.batteryTimeToFullLabel(targetPercentage: 85, locale: ja) == "85%までの時間")
+        #expect(CardPresentation.batteryTimeToFullLabel(targetPercentage: 100, locale: ja) == "フル充電までの時間")
+        #expect(CardPresentation.batteryTimeToFullText(sample85, locale: ja) == "残り約25分")
+
+        // German
+        let de = Locale(identifier: "de")
+        #expect(CardPresentation.batteryRemainingTimeSummary(sample85, locale: de) == "Noch ca. 25 Min. bis 85 %")
+        #expect(CardPresentation.batteryRemainingTimeSummary(sample100, locale: de) == "Noch ca. 1 Std. 10 Min. bis voll")
+        #expect(CardPresentation.batteryTimeToFullLabel(targetPercentage: 85, locale: de) == "Zeit bis 85 %")
+        #expect(CardPresentation.batteryTimeToFullLabel(targetPercentage: 100, locale: de) == "Zeit bis voll")
+
+        // Simplified Chinese
+        let zhHans = Locale(identifier: "zh-Hans")
+        #expect(CardPresentation.batteryRemainingTimeSummary(sample85, locale: zhHans) == "距离充至 85% 约剩余 25分钟")
+        #expect(CardPresentation.batteryRemainingTimeSummary(sample100, locale: zhHans) == "距离充满约剩余 1小时 10分钟")
+        #expect(CardPresentation.batteryTimeToFullLabel(targetPercentage: 85, locale: zhHans) == "充至 85% 剩余时间")
+        #expect(CardPresentation.batteryTimeToFullLabel(targetPercentage: 100, locale: zhHans) == "充满剩余时间")
+    }
 }
