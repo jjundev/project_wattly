@@ -181,54 +181,57 @@ struct SettingsBatterySection: View {
 
                     Rectangle().fill(t.line).frame(height: 1)
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(alignment: .center) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                SettingsRowTitle("한 번만 100% 충전 (Top Up)")
-                                Text("외출 전에 한 번만 100%까지 완충하며, 어댑터를 분리하면 기존 한도로 자동 복귀합니다.")
-                                    .font(WattlyFont.at(10.5, weight: .regular))
-                                    .foregroundStyle(t.faint)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            Spacer()
-                            let isTopUp = batteryControl.status.desiredConfiguration?.topUpActive == true
-                                || batteryControl.status.activity == .topUp
-                            Button {
-                                let limit = batteryLimitPercentage
-                                let delta = effectiveDelta
-                                let heatEnabled = batteryHeatProtectionEnabled
-                                let heatThreshold = batteryHeatProtectionThreshold
-                                Task {
-                                    if isTopUp {
-                                        await batteryControl.cancelTopUp(
-                                            limitPercentage: limit,
-                                            lowerHysteresisDelta: delta,
-                                            heatProtectionEnabled: heatEnabled,
-                                            heatProtectionThresholdCelsius: heatThreshold)
-                                    } else {
-                                        await batteryControl.startTopUp(
-                                            limitPercentage: limit,
-                                            lowerHysteresisDelta: delta,
-                                            heatProtectionEnabled: heatEnabled,
-                                            heatProtectionThresholdCelsius: heatThreshold)
-                                    }
-                                }
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Image(systemName: isTopUp ? "xmark.circle" : "bolt.fill")
-                                        .font(.system(size: 11, weight: .semibold))
-                                    Text(isTopUp ? "Top Up 취소" : "Top Up 시작")
-                                        .font(WattlyFont.at(11.5, weight: .medium))
-                                }
-                                .foregroundStyle(isTopUp ? Tokens.statusOrange : t.text)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(RoundedRectangle(cornerRadius: 6).fill(t.segTrack))
-                                .overlay(RoundedRectangle(cornerRadius: 6).stroke(isTopUp ? Tokens.statusOrange.opacity(0.5) : t.rowBorder, lineWidth: 1))
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(!isToggleEnabled || isHardwareUnsupported)
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            SettingsRowTitle("한 번만 완충")
+                            Text(LocalizedStringKey("다음 외출이나 출장을 위해 배터리를 일회성으로 100%까지 완전 충전합니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다."))
+                                .font(WattlyFont.at(10.5, weight: .regular))
+                                .foregroundStyle(t.faint)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
+                        Spacer()
+                        let isTopUp = batteryControl.status.desiredConfiguration?.topUpActive == true
+                            || batteryControl.status.activity == .topUp
+                        Button {
+                            let limit = batteryLimitPercentage
+                            let delta = effectiveDelta
+                            let heatEnabled = batteryHeatProtectionEnabled
+                            let heatThreshold = batteryHeatProtectionThreshold
+                            Task {
+                                if isTopUp {
+                                    await batteryControl.cancelTopUp(
+                                        limitPercentage: limit,
+                                        lowerHysteresisDelta: delta,
+                                        heatProtectionEnabled: heatEnabled,
+                                        heatProtectionThresholdCelsius: heatThreshold)
+                                } else {
+                                    await batteryControl.startTopUp(
+                                        limitPercentage: limit,
+                                        lowerHysteresisDelta: delta,
+                                        heatProtectionEnabled: heatEnabled,
+                                        heatProtectionThresholdCelsius: heatThreshold)
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                if isTopUp {
+                                    Image(systemName: "bolt.fill")
+                                        .font(.system(size: 10, weight: .semibold))
+                                }
+                                Text(LocalizedStringKey(isTopUp ? "(활성화)" : "(비활성화)"))
+                                    .font(WattlyFont.at(11.5, weight: .medium))
+                            }
+                            .foregroundStyle(isTopUp ? Tokens.statusOrange : t.text)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(RoundedRectangle(cornerRadius: 6).fill(isTopUp ? Tokens.statusOrange.opacity(0.15) : t.segTrack))
+                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(isTopUp ? Tokens.statusOrange.opacity(0.4) : t.rowBorder, lineWidth: 1))
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(!isToggleEnabled || isHardwareUnsupported)
+                        .accessibilityLabel(Text(LocalizedStringKey("한 번만 완충")))
+                        .accessibilityValue(Text(LocalizedStringKey(isTopUp ? "(활성화)" : "(비활성화)")))
                     }
                     .padding(EdgeInsets(top: 10, leading: 14, bottom: 14, trailing: 14))
                 }

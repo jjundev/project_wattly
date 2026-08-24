@@ -72,15 +72,13 @@ import Foundation
         #expect(fallbackURL?.scheme == "x-apple.systempreferences")
     }
 
-    @Test func topUpButtonStatePresentation() {
-        // When Top Up is active, button shows "Top Up 취소"
+    @Test func topUpToggleStatePresentation() {
         let isTopUpActive = true
-        let labelActive = isTopUpActive ? "Top Up 취소" : "Top Up 시작"
-        #expect(labelActive == "Top Up 취소")
+        let labelActive = isTopUpActive ? "(활성화)" : "(비활성화)"
+        #expect(labelActive == "(활성화)")
 
-        // When Top Up is inactive, button shows "Top Up 시작"
         let isTopUpInactive = false
-        let labelInactive = isTopUpInactive ? "Top Up 취소" : "Top Up 시작"
-        #expect(labelInactive == "Top Up 시작")
+        let labelInactive = isTopUpInactive ? "(활성화)" : "(비활성화)"
+        #expect(labelInactive == "(비활성화)")
     }
 }
