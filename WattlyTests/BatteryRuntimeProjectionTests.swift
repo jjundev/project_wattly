@@ -95,4 +95,74 @@ struct BatteryRuntimeProjectionTests {
         let minutes = projection.ingest(chargingSample, at: now)
         #expect(minutes == 90)
     }
+
+    @Test func ingestProjectsChargingTimeToCustomTargetAndReanchorsOnTargetChange() {
+        var projection = BatteryRuntimeProjection()
+        let now = ContinuousClock.now
+        let sample85 = BatterySample(
+            netW: -20.0,
+            milliamps: 1500,
+            volts: 12.5,
+            charging: true,
+            externalConnected: true,
+            remainingWh: 30.0,
+            maxWh: 60.0,
+            targetPercentage: 85
+        )
+        // 60 * 0.85 = 51 Wh target. Needed = 21 Wh. 21 / 20 * 60 = 63 min.
+        let minutes85 = projection.ingest(sample85, at: now)
+        #expect(minutes85 == 63)
+
+        // Switching target to 100% (Top Up activated)
+        let sample100 = BatterySample(
+            netW: -20.0,
+            milliamps: 1500,
+            volts: 12.5,
+            charging: true,
+            externalConnected: true,
+            remainingWh: 30.0,
+            maxWh: 60.0,
+            targetPercentage: 100
+        )
+        // 60 * 1.0 = 60 Wh target. Needed = 30 Wh. 30 / 20 * 60 = 90 min.
+        let minutes100 = projection.ingest(sample100, at: now.advanced(by: .seconds(1)))
+        #expect(minutes100 == 90)
+    }
+
+    @Test func registryChargingTimeScalesToTargetWhenEstimatedMathUnavailable() {
+        var projection = BatteryRuntimeProjection()
+        let now = ContinuousClock.now
+        // netW = 0 means estimatedTimeToTargetMinutes returns nil, forcing fallback to registry timeRemainingMinutes
+        let sample = BatterySample(
+            netW: 0.0,
+            milliamps: 0,
+            volts: 12.5,
+            charging: true,
+            externalConnected: true,
+            remainingWh: 30.0,
+            maxWh: 60.0,
+            timeRemainingMinutes: 100,
+            targetPercentage: 80
+        )
+        // currentPct = 50%, target = 80%. Scaled = 100 * (80 - 50) / (100 - 50) = 60 min.
+        let minutes = projection.ingest(sample, at: now)
+        #expect(minutes == 60)
+
+        // If target <= currentPct, registry fallback yields nil
+        let sampleAtTarget = BatterySample(
+            netW: 0.0,
+            milliamps: 0,
+            volts: 12.5,
+            charging: true,
+            externalConnected: true,
+            remainingWh: 48.0,
+            maxWh: 60.0,
+            timeRemainingMinutes: 100,
+            targetPercentage: 80
+        )
+        let minutesAtTarget = projection.ingest(sampleAtTarget, at: now.advanced(by: .seconds(1)))
+        #expect(minutesAtTarget == nil)
+    }
 }
+
+

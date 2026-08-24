@@ -62,4 +62,25 @@ import Foundation
         #expect(pipeline.lastExternalConnected == nil)
         #expect(pipeline.hasConnectionChanged == false)
     }
+
+    @Test func ingestWithTargetPercentageSetsTargetAndCalculatesProjection() {
+        var pipeline = BatteryTelemetryPipeline()
+        let clock = ContinuousClock()
+        let t0 = clock.now
+
+        let chargingSample = BatterySample(
+            netW: -20,
+            milliamps: 1500,
+            volts: 12,
+            charging: true,
+            externalConnected: true,
+            remainingWh: 30.0,
+            maxWh: 60.0
+        )
+        // targetPercentage 80: needed = 48 - 30 = 18 Wh; 18 / 20 * 60 = 54 min
+        let out = pipeline.ingest(chargingSample, at: t0, targetPercentage: 80)
+        #expect(out.targetPercentage == 80)
+        #expect(out.projectedTimeRemainingMinutes == 54)
+    }
 }
+
