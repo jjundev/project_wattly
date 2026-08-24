@@ -25,7 +25,7 @@ struct WattlyApp: App {
     var body: some Scene {
         MenuBarExtra {
             ThemedRoot {
-                PopoverContentView(monitor: monitor, fanControl: fanControl)
+                PopoverContentView(monitor: monitor, fanControl: fanControl, batteryControl: batteryControl)
             }
         } label: {
             MenuBarLabel(monitor: monitor)

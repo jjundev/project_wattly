@@ -28,6 +28,7 @@ struct PopoverHeroView: View {
     let monitor: SystemMonitor
     var thresholds: Thresholds = Defaults.thresholds
     var powerSmoothed: Bool
+    var batteryControl: BatteryControlClient? = nil
 
     @AppStorage(StorageKey.heroMetric) private var heroMetric = Defaults.heroMetric
     // Shared with mode A's `PopoverContentView.expandedRaw` — same key, same CSV Set (see the
@@ -49,7 +50,8 @@ struct PopoverHeroView: View {
                          historyValues: monitor.historyValues(for: hero, smoothed: powerSmoothed),
                          thresholds: thresholds,
                          isExpanded: expanded.contains(hero),
-                         onToggleExpand: hero.isExpandable ? { toggleExpand(hero) } : nil)
+                         onToggleExpand: hero.isExpandable ? { toggleExpand(hero) } : nil,
+                         batteryControl: batteryControl)
                 list(excluding: hero)
             }
         }
@@ -116,6 +118,7 @@ private struct HeroCard: View {
     var thresholds: Thresholds = Defaults.thresholds
     var isExpanded: Bool = false
     var onToggleExpand: (() -> Void)? = nil
+    var batteryControl: BatteryControlClient? = nil
 
     // Hardcoded light-on-dark surface/text (prototype line 208).
     private static let heroBg = Color(hex: "#171719")
@@ -127,7 +130,7 @@ private struct HeroCard: View {
         VStack(alignment: .leading, spacing: 10) {
             summary
             if isExpanded, hasChevron {
-                CardExpandRegion(card: card, state: state, thresholds: thresholds)
+                CardExpandRegion(card: card, state: state, thresholds: thresholds, batteryControl: batteryControl)
                     .environment(\.tokens, Tokens.dark)
             }
         }

@@ -178,9 +178,62 @@ struct SettingsBatterySection: View {
                         }
                         .padding(EdgeInsets(top: 0, leading: 14, bottom: 14, trailing: 14))
                     }
+
+                    Rectangle().fill(t.line).frame(height: 1)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .center) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                SettingsRowTitle("한 번만 100% 충전 (Top Up)")
+                                Text("외출 전에 한 번만 100%까지 완충하며, 어댑터를 분리하면 기존 한도로 자동 복귀합니다.")
+                                    .font(WattlyFont.at(10.5, weight: .regular))
+                                    .foregroundStyle(t.faint)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            Spacer()
+                            let isTopUp = batteryControl.status.desiredConfiguration?.topUpActive == true
+                                || batteryControl.status.activity == .topUp
+                            Button {
+                                let limit = batteryLimitPercentage
+                                let delta = effectiveDelta
+                                let heatEnabled = batteryHeatProtectionEnabled
+                                let heatThreshold = batteryHeatProtectionThreshold
+                                Task {
+                                    if isTopUp {
+                                        await batteryControl.cancelTopUp(
+                                            limitPercentage: limit,
+                                            lowerHysteresisDelta: delta,
+                                            heatProtectionEnabled: heatEnabled,
+                                            heatProtectionThresholdCelsius: heatThreshold)
+                                    } else {
+                                        await batteryControl.startTopUp(
+                                            limitPercentage: limit,
+                                            lowerHysteresisDelta: delta,
+                                            heatProtectionEnabled: heatEnabled,
+                                            heatProtectionThresholdCelsius: heatThreshold)
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: isTopUp ? "xmark.circle" : "bolt.fill")
+                                        .font(.system(size: 11, weight: .semibold))
+                                    Text(isTopUp ? "Top Up 취소" : "Top Up 시작")
+                                        .font(WattlyFont.at(11.5, weight: .medium))
+                                }
+                                .foregroundStyle(isTopUp ? Tokens.statusOrange : t.text)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(RoundedRectangle(cornerRadius: 6).fill(t.segTrack))
+                                .overlay(RoundedRectangle(cornerRadius: 6).stroke(isTopUp ? Tokens.statusOrange.opacity(0.5) : t.rowBorder, lineWidth: 1))
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(!isToggleEnabled || isHardwareUnsupported)
+                        }
+                    }
+                    .padding(EdgeInsets(top: 10, leading: 14, bottom: 14, trailing: 14))
                 }
             }
-            .task(id: "\(batteryLimitEnabled)-\(batteryHeatProtectionEnabled)") {
+            .task(id: "\(batteryLimitEnabled)-\(batteryHeatProtectionEnabled)-\(batteryControl.status.desiredConfiguration?.topUpActive == true)") {
                 // One read regardless of the opt-in: a Mac with no charge register has to disable
                 // its toggle before the user ever reaches for it. This is also the read that
                 // decides whether the configuration controls remain visible.
@@ -191,11 +244,13 @@ struct SettingsBatterySection: View {
                 // daemon recovers from `.inhibited`/`.unsupported` back to `.charging` once the user
                 // reconnects the adapter. Re-evaluating here is what lets polling stop on its own
                 // once the state settles, instead of running forever or freezing on a failure.
+                let isTopUp = batteryControl.status.desiredConfiguration?.topUpActive == true
                 while !Task.isCancelled,
                       BatterySectionPresentation.shouldPollStatus(isLimitOn: batteryLimitEnabled,
-                                                                   isHeatProtectionOn: batteryHeatProtectionEnabled,
-                                                                   mode: batteryControl.status.mode,
-                                                                   isHardwareSupported: batteryControl.status.isHardwareSupported) {
+                                                                    isHeatProtectionOn: batteryHeatProtectionEnabled,
+                                                                    isTopUpOn: isTopUp,
+                                                                    mode: batteryControl.status.mode,
+                                                                    isHardwareSupported: batteryControl.status.isHardwareSupported) {
                     try? await Task.sleep(for: .seconds(BatteryControlPolicy.statusPollInterval))
                     guard !Task.isCancelled else { return }
                     await batteryControl.refreshStatus()
@@ -366,8 +421,10 @@ struct SettingsBatterySection: View {
 
     @ViewBuilder
     private var batteryStatusIndicator: some View {
+        let isTopUp = batteryControl.status.desiredConfiguration?.topUpActive == true
         if BatterySectionPresentation.shouldPollStatus(isLimitOn: batteryLimitEnabled,
                                                        isHeatProtectionOn: batteryHeatProtectionEnabled,
+                                                       isTopUpOn: isTopUp,
                                                        mode: batteryControl.status.mode,
                                                        isHardwareSupported: batteryControl.status.isHardwareSupported) {
             // XPC polling remains on its existing five-second task. This view-local clock only

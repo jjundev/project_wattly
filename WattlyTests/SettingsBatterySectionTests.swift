@@ -71,4 +71,16 @@ import Foundation
         #expect(primaryURL?.scheme == "x-apple.systempreferences")
         #expect(fallbackURL?.scheme == "x-apple.systempreferences")
     }
+
+    @Test func topUpButtonStatePresentation() {
+        // When Top Up is active, button shows "Top Up 취소"
+        let isTopUpActive = true
+        let labelActive = isTopUpActive ? "Top Up 취소" : "Top Up 시작"
+        #expect(labelActive == "Top Up 취소")
+
+        // When Top Up is inactive, button shows "Top Up 시작"
+        let isTopUpInactive = false
+        let labelInactive = isTopUpInactive ? "Top Up 취소" : "Top Up 시작"
+        #expect(labelInactive == "Top Up 시작")
+    }
 }

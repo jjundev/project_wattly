@@ -12,6 +12,13 @@ private struct DragSlot { let card: CardKind; let minY: CGFloat; let height: CGF
 struct PopoverContentView: View {
     let monitor: SystemMonitor
     let fanControl: FanControlClient
+    let batteryControl: BatteryControlClient
+
+    init(monitor: SystemMonitor, fanControl: FanControlClient, batteryControl: BatteryControlClient = BatteryControlClient()) {
+        self.monitor = monitor
+        self.fanControl = fanControl
+        self.batteryControl = batteryControl
+    }
 
     @Environment(\.tokens) private var t
     @Environment(\.openSettings) private var openSettings
@@ -231,7 +238,8 @@ struct PopoverContentView: View {
         case .c:
             scrollCapped {
                 PopoverHeroView(cards: visibleCards, monitor: monitor,
-                                thresholds: thresholds, powerSmoothed: powerSmoothed)
+                                thresholds: thresholds, powerSmoothed: powerSmoothed,
+                                batteryControl: batteryControl)
             }
         }
     }
@@ -399,7 +407,8 @@ struct PopoverContentView: View {
                 historyValues: monitor.historyValues(for: card, smoothed: powerSmoothed),
                 isExpanded: expanded.contains(card),
                 onToggleExpand: editMode ? nil : (card.isExpandable ? { toggleExpand(card) } : nil),
-                thresholds: thresholds
+                thresholds: thresholds,
+                batteryControl: batteryControl
             )
         }
     }

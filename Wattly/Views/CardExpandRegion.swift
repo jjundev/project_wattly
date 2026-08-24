@@ -14,6 +14,7 @@ struct CardExpandRegion: View {
     let card: CardKind
     let state: MetricState
     var thresholds: Thresholds = Defaults.thresholds
+    var batteryControl: BatteryControlClient? = nil
 
     @ViewBuilder
     var body: some View {
@@ -251,6 +252,37 @@ struct CardExpandRegion: View {
             }
             batteryDetailRow(label: "전류", value: CardPresentation.batteryCurrentText(s))
             batteryDetailRow(label: "전압", value: CardPresentation.batteryVoltageText(s))
+
+            if let batteryControl, s.charging || batteryControl.status.isPowerAdapterConnected {
+                let isTopUp = batteryControl.status.desiredConfiguration?.topUpActive == true
+                    || batteryControl.status.activity == .topUp
+                Button {
+                    Task {
+                        if isTopUp {
+                            await batteryControl.cancelTopUp(
+                                limitPercentage: 80,
+                                lowerHysteresisDelta: 2)
+                        } else {
+                            await batteryControl.startTopUp(
+                                limitPercentage: 80,
+                                lowerHysteresisDelta: 2)
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: isTopUp ? "xmark.circle.fill" : "bolt.fill")
+                            .font(.system(size: 10, weight: .semibold))
+                        Text(isTopUp ? "Top Up 취소" : "Top Up (100% 충전)")
+                            .font(WattlyFont.at(10.5, weight: .medium))
+                    }
+                    .foregroundStyle(isTopUp ? Tokens.statusOrange : Tokens.accent)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(RoundedRectangle(cornerRadius: 5).fill(t.segTrack))
+                    .overlay(RoundedRectangle(cornerRadius: 5).stroke(isTopUp ? Tokens.statusOrange.opacity(0.4) : t.rowBorder, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
         }
         .padding(.top, 8)
     }

@@ -13,6 +13,7 @@ struct MetricCardView: View {
     var isExpanded: Bool = false
     var onToggleExpand: (() -> Void)? = nil
     var thresholds: Thresholds = Defaults.thresholds
+    var batteryControl: BatteryControlClient? = nil
 
     var body: some View {
         switch state {
@@ -141,7 +142,7 @@ struct MetricCardView: View {
     // Content lives in the shared `CardExpandRegion` (plan: hero card expand) — mode C's
     // hero card reuses it too, with `Tokens.dark` force-injected instead of the live theme.
     private var expandRegion: some View {
-        CardExpandRegion(card: card, state: state, thresholds: thresholds)
+        CardExpandRegion(card: card, state: state, thresholds: thresholds, batteryControl: batteryControl)
     }
 
     // MARK: Unavailable cards
