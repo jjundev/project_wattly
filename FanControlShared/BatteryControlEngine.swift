@@ -233,10 +233,12 @@ public final class BatteryControlEngine: @unchecked Sendable {
         }
 
         // 2. Evaluate shouldInhibit
-        let target = config.clampedLimitPercentage
+        let target = config.topUpActive ? 100 : config.clampedLimitPercentage
         let shouldInhibit: Bool
         if isInHeatProtection {
             shouldInhibit = true
+        } else if config.topUpActive && isPluggedIn {
+            shouldInhibit = currentSoC >= 100
         } else if config.enabled && isPluggedIn {
             // Hysteresis: cross up at the target, come back down only at the resume threshold.
             shouldInhibit = isCurrentlyInhibited
@@ -390,6 +392,12 @@ public final class BatteryControlEngine: @unchecked Sendable {
                 thresholdTemperatureCelsius: threshold,
                 resumeTemperatureCelsius: resume
             )
+        }
+        if config.topUpActive && isPluggedIn {
+            if currentSoC >= 100 {
+                return .init(kind: .topUpComplete, limitPercentage: 100)
+            }
+            return .init(kind: .topUpCharging, limitPercentage: 100)
         }
         if isCurrentlyInhibited {
             if currentSoC < target {
