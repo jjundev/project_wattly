@@ -360,10 +360,11 @@ enum BatterySectionPresentation {
     /// 확인이 맡는다.
     static func shouldPollStatus(isLimitOn: Bool,
                                  isHeatProtectionOn: Bool = false,
+                                 isTopUpOn: Bool = false,
                                  mode: BatteryControlServiceMode,
                                  isHardwareSupported: Bool?) -> Bool {
         if isHardwareSupported == false { return false }
-        if isLimitOn || isHeatProtectionOn { return true }
+        if isLimitOn || isHeatProtectionOn || isTopUpOn { return true }
         switch mode {
         case .inhibited, .unsupported: return true
         case .charging, .unavailable: return false

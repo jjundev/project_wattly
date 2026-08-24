@@ -43315,6 +43315,142 @@
         "zh-Hans": { "stringUnit": { "state": "translated", "value": "无法读取电池温度传感器" } },
         "zh-Hant": { "stringUnit": { "state": "translated", "value": "無法讀取電池溫度傳感器" } }
       }
+    },
+    "Top Up 중 (100%까지 충전)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Top Up in progress (Charging to 100%)"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Top Up 중 (100%까지 충전)"
+          }
+        }
+      }
+    },
+    "Top Up 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Top Up complete (Holding at 100%, normal limit restores on unplug)"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Top Up 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)"
+          }
+        }
+      }
+    },
+    "한 번만 100% 충전 (Top Up)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Charge to 100% Once (Top Up)"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "한 번만 100% 충전 (Top Up)"
+          }
+        }
+      }
+    },
+    "외출 전에 한 번만 100%까지 완충하며, 어댑터를 분리하면 기존 한도로 자동 복귀합니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Charges to 100% once before heading out, then automatically restores your charge limit when unplugged."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "외출 전에 한 번만 100%까지 완충하며, 어댑터를 분리하면 기존 한도로 자동 복귀합니다."
+          }
+        }
+      }
+    },
+    "Top Up 취소": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel Top Up"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Top Up 취소"
+          }
+        }
+      }
+    },
+    "Top Up 시작": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start Top Up"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Top Up 시작"
+          }
+        }
+      }
+    },
+    "Top Up 완료": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Top Up Complete"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Top Up 완료"
+          }
+        }
+      }
+    },
+    "배터리가 100%까지 충전되었습니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Battery is charged to 100%. Normal limit will restore automatically when unplugged."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "배터리가 100%까지 충전되었습니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다."
+          }
+        }
+      }
     }
   }
 }

@@ -294,4 +294,27 @@ struct LocalizationTests {
         #expect(String(localized: "보호 시작 온도", locale: Locale(identifier: "ja")) == "保護開始温度")
         #expect(String(localized: "%lld°C 초과 시 정지, %lld°C 이하 시 재개", locale: Locale(identifier: "en")).contains("%lld"))
     }
+
+    @Test func topUpTranslations() {
+        let en = Locale(identifier: "en")
+        let ko = Locale(identifier: "ko")
+
+        #expect(String(localized: "Top Up 중 (100%까지 충전)", locale: en) == "Top Up in progress (Charging to 100%)")
+        #expect(String(localized: "Top Up 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)", locale: en) == "Top Up complete (Holding at 100%, normal limit restores on unplug)")
+        #expect(String(localized: "한 번만 100% 충전 (Top Up)", locale: en) == "Charge to 100% Once (Top Up)")
+        #expect(String(localized: "외출 전에 한 번만 100%까지 완충하며, 어댑터를 분리하면 기존 한도로 자동 복귀합니다.", locale: en) == "Charges to 100% once before heading out, then automatically restores your charge limit when unplugged.")
+        #expect(String(localized: "Top Up 취소", locale: en) == "Cancel Top Up")
+        #expect(String(localized: "Top Up 시작", locale: en) == "Start Top Up")
+        #expect(String(localized: "Top Up 완료", locale: en) == "Top Up Complete")
+        #expect(String(localized: "배터리가 100%까지 충전되었습니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.", locale: en) == "Battery is charged to 100%. Normal limit will restore automatically when unplugged.")
+
+        #expect(String(localized: "Top Up 중 (100%까지 충전)", locale: ko) == "Top Up 중 (100%까지 충전)")
+        #expect(String(localized: "Top Up 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)", locale: ko) == "Top Up 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)")
+        #expect(String(localized: "한 번만 100% 충전 (Top Up)", locale: ko) == "한 번만 100% 충전 (Top Up)")
+        #expect(String(localized: "외출 전에 한 번만 100%까지 완충하며, 어댑터를 분리하면 기존 한도로 자동 복귀합니다.", locale: ko) == "외출 전에 한 번만 100%까지 완충하며, 어댑터를 분리하면 기존 한도로 자동 복귀합니다.")
+        #expect(String(localized: "Top Up 취소", locale: ko) == "Top Up 취소")
+        #expect(String(localized: "Top Up 시작", locale: ko) == "Top Up 시작")
+        #expect(String(localized: "Top Up 완료", locale: ko) == "Top Up 완료")
+        #expect(String(localized: "배터리가 100%까지 충전되었습니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.", locale: ko) == "배터리가 100%까지 충전되었습니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.")
+    }
 }
