@@ -77,36 +77,7 @@ struct MetricCardView: View {
 
     @ViewBuilder
     private func subTextView(_ fallbackSubText: String?) -> some View {
-        if case .value(.battery(let s)) = state,
-           let totalMinutes = validatedTimeRemainingMinutes(s.projectedTimeRemainingMinutes) {
-            let h = totalMinutes / 60
-            let m = totalMinutes % 60
-            if h == 0 {
-                if s.charging {
-                    Text("완충까지 약 \(m)분 남음")
-                } else {
-                    Text("약 \(m)분 남음")
-                }
-            } else if m == 0 {
-                if s.charging {
-                    Text("완충까지 약 \(h)시간 남음")
-                } else {
-                    Text("약 \(h)시간 남음")
-                }
-            } else {
-                if s.charging {
-                    Text("완충까지 약 \(h)시간 \(m)분 남음")
-                } else {
-                    Text("약 \(h)시간 \(m)분 남음")
-                }
-            }
-        } else if case .value(.memory(let s)) = state {
-            if let p = s.pressurePercent {
-                Text("압력 \(p)% · 고정 \(CardPresentation.f1(s.wiredGB)) GB · 압축 \(CardPresentation.f1(s.compressedGB)) GB · 스왑 \(CardPresentation.f1(s.swapUsedGB)) GB")
-            } else {
-                Text("고정 \(CardPresentation.f1(s.wiredGB)) GB · 압축 \(CardPresentation.f1(s.compressedGB)) GB · 스왑 \(CardPresentation.f1(s.swapUsedGB)) GB")
-            }
-        } else if let sub = fallbackSubText, !sub.isEmpty {
+        if let sub = fallbackSubText, !sub.isEmpty {
             Text(sub)
         }
     }

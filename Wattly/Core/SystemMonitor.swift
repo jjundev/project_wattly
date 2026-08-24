@@ -29,6 +29,18 @@ final class SystemMonitor {
         batteryPipeline.oneMinuteAverage
     }
 
+    private(set) var batteryTargetPercentage: Int = 100
+
+    func setBatteryChargeTarget(enabled: Bool, limitPercentage: Int, topUpActive: Bool) {
+        let target = topUpActive ? 100 : (enabled ? max(50, min(100, limitPercentage)) : 100)
+        guard batteryTargetPercentage != target else { return }
+        batteryTargetPercentage = target
+        if let state = states[.battery], case .value(.battery(var sample)) = state {
+            sample.targetPercentage = target
+            states[.battery] = .value(.battery(sample))
+        }
+    }
+
     /// Wattly's own EMA-smoothed power draw in watts (issue 16), or nil until the first
     /// valid interval (the settings footer shows "—"). Doubles as the EMA's previous
     /// value, so it is never blanked by a transient anomaly — only the cold start is nil.
@@ -335,7 +347,7 @@ final class SystemMonitor {
         case .unavailable(let reason):
             states[kind] = .unavailable(reason)
         case .value(.battery(let rawBattery)):
-            let battery = batteryPipeline.ingest(rawBattery, at: instant)
+            let battery = batteryPipeline.ingest(rawBattery, at: instant, targetPercentage: batteryTargetPercentage)
             if batteryPipeline.hasConnectionChanged {
                 history[.battery] = HistoryBuffer()
                 batteryOverlay.reset()
@@ -392,7 +404,8 @@ final class SystemMonitor {
             efficiencyPercent: raw.efficiencyPercent,
             cycleCount: raw.cycleCount,
             average1mW: raw.average1mW,
-            temperatureCelsius: raw.temperatureCelsius)
+            temperatureCelsius: raw.temperatureCelsius,
+            targetPercentage: raw.targetPercentage)
     }
 
     // MARK: Derivation — the 8-card fan-out

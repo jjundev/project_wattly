@@ -160,6 +160,8 @@ struct BatterySample: Sendable, Equatable {
     var average1mW: Double? = nil
     /// Battery pack temperature, °C (from AppleSmartBattery centi-°C). nil on desktop or unreadable.
     var temperatureCelsius: Double? = nil
+    /// Active target charge percentage (50...100, default 100).
+    var targetPercentage: Int = 100
 }
 
 // MARK: - Temperature (the partial-failure boundary, PRD line 74)

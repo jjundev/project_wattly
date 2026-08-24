@@ -9,6 +9,7 @@ struct BatteryControlBridge: View {
     }
 
     let client: BatteryControlClient
+    var monitor: SystemMonitor? = nil
 
     @AppStorage(StorageKey.batteryLimitEnabled) private var enabled = Defaults.batteryLimitEnabled
     @AppStorage(StorageKey.batteryLimitPercentage) private var limit = Defaults.batteryLimitPercentage
@@ -32,6 +33,11 @@ struct BatteryControlBridge: View {
             heatProtectionThresholdCelsius: heatProtectionThreshold)
     }
 
+    private func syncMonitorTarget() {
+        let isTopUp = client.status.desiredConfiguration?.topUpActive == true || client.status.activity == .topUp
+        monitor?.setBatteryChargeTarget(enabled: enabled, limitPercentage: limit, topUpActive: isTopUp)
+    }
+
     static func wakeAction(
         configuration: BatteryControlConfiguration,
         status: BatteryControlServiceStatus
@@ -47,7 +53,9 @@ struct BatteryControlBridge: View {
             .frame(width: 0, height: 0)
             .accessibilityHidden(true)
             .task {
+                syncMonitorTarget()
                 await client.refreshStatus()
+                syncMonitorTarget()
                 let requested = configuration
                 guard BatteryControlPolicy.shouldReapply(
                     configuration: requested, status: client.status) else { return }
@@ -65,6 +73,7 @@ struct BatteryControlBridge: View {
                 }
             }
             .onChange(of: enabled) { _, val in
+                syncMonitorTarget()
                 Task {
                     if val || heatProtectionEnabled {
                         await client.apply(
@@ -80,6 +89,7 @@ struct BatteryControlBridge: View {
                 }
             }
             .onChange(of: limit) { _, val in
+                syncMonitorTarget()
                 Task {
                     if enabled || heatProtectionEnabled {
                         await client.apply(
@@ -204,6 +214,7 @@ struct BatteryControlBridge: View {
                 }
             }
             .onChange(of: client.status) { _, newStatus in
+                syncMonitorTarget()
                 if topUpDetector.update(reasonKind: newStatus.detailReason?.kind) {
                     BatteryNotificationManager.postTopUpCompleteNotification()
                 }

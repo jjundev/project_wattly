@@ -563,4 +563,75 @@ struct SystemMonitorTests {
         #expect(await mem.reads >= 1)
         monitor.stop()
     }
+
+    // MARK: Battery target synchronization
+
+    @Test func batteryTargetPercentageDefaultAndSetter() {
+        let monitor = SystemMonitor(providers: [], clock: ManualClock())
+        #expect(monitor.batteryTargetPercentage == 100)
+
+        monitor.setBatteryChargeTarget(enabled: true, limitPercentage: 80, topUpActive: false)
+        #expect(monitor.batteryTargetPercentage == 80)
+
+        // Clamping to 50...100
+        monitor.setBatteryChargeTarget(enabled: true, limitPercentage: 40, topUpActive: false)
+        #expect(monitor.batteryTargetPercentage == 50)
+
+        monitor.setBatteryChargeTarget(enabled: true, limitPercentage: 110, topUpActive: false)
+        #expect(monitor.batteryTargetPercentage == 100)
+
+        // Disabled returns 100
+        monitor.setBatteryChargeTarget(enabled: false, limitPercentage: 80, topUpActive: false)
+        #expect(monitor.batteryTargetPercentage == 100)
+
+        // topUpActive overrides to 100
+        monitor.setBatteryChargeTarget(enabled: true, limitPercentage: 80, topUpActive: true)
+        #expect(monitor.batteryTargetPercentage == 100)
+    }
+
+    @Test func setBatteryChargeTargetUpdatesExistingBatterySampleState() async {
+        let batterySample = BatterySample(
+            netW: -20, milliamps: 1500, volts: 12.5, charging: true,
+            externalConnected: true, remainingWh: 30, maxWh: 60)
+        let batteryProvider = ScriptedProvider(kind: .battery, [.value(.battery(batterySample))])
+        let monitor = SystemMonitor(providers: [batteryProvider], clock: ManualClock())
+
+        await monitor.pollOnce()
+        guard case .value(.battery(let sampleBefore)) = monitor.cardState(.battery) else {
+            Issue.record("Expected battery sample"); return
+        }
+        #expect(sampleBefore.targetPercentage == 100)
+
+        monitor.setBatteryChargeTarget(enabled: true, limitPercentage: 85, topUpActive: false)
+        #expect(monitor.batteryTargetPercentage == 85)
+
+        guard case .value(.battery(let sampleAfter)) = monitor.cardState(.battery) else {
+            Issue.record("Expected battery sample"); return
+        }
+        #expect(sampleAfter.targetPercentage == 85)
+    }
+
+    @Test func pollIngestsBatterySampleWithTargetPercentageAndSmoothedOverlayCarriesIt() async {
+        let batterySample = BatterySample(
+            netW: -20, milliamps: 1500, volts: 12.5, charging: true,
+            externalConnected: true, remainingWh: 30, maxWh: 60)
+        let batteryProvider = ScriptedProvider(kind: .battery, [.value(.battery(batterySample))])
+        let monitor = SystemMonitor(providers: [batteryProvider], clock: ManualClock())
+
+        monitor.setBatteryChargeTarget(enabled: true, limitPercentage: 85, topUpActive: false)
+        await monitor.pollOnce()
+
+        guard case .value(.battery(let rawSample)) = monitor.cardState(.battery, smoothed: false) else {
+            Issue.record("Expected raw battery sample"); return
+        }
+        #expect(rawSample.targetPercentage == 85)
+
+        guard case .value(.battery(let smoothedSample)) = monitor.cardState(.battery, smoothed: true) else {
+            Issue.record("Expected smoothed battery sample"); return
+        }
+        #expect(smoothedSample.targetPercentage == 85)
+        // 60 Wh * 0.85 = 51 Wh target. Needed = 21 Wh. 21 / 20 * 60 = 63 min.
+        #expect(smoothedSample.projectedTimeRemainingMinutes == 63)
+    }
 }
+

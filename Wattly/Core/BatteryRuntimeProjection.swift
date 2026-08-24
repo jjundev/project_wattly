@@ -13,11 +13,13 @@ struct BatteryRuntimeProjection {
     private struct Candidate {
         var minutes: Int
         var source: Source
+        var targetPercentage: Int
     }
 
     private struct Anchor {
         var minutes: Int
         var source: Source
+        var targetPercentage: Int
         var at: ContinuousClock.Instant
     }
 
@@ -35,9 +37,10 @@ struct BatteryRuntimeProjection {
               let lastObservation,
               anchor.minutes == candidate.minutes,
               anchor.source == candidate.source,
+              anchor.targetPercentage == candidate.targetPercentage,
               seconds(from: lastObservation, to: now) <= Self.maximumProjectionGap
         else {
-            self.anchor = Anchor(minutes: candidate.minutes, source: candidate.source, at: now)
+            self.anchor = Anchor(minutes: candidate.minutes, source: candidate.source, targetPercentage: candidate.targetPercentage, at: now)
             self.lastObservation = now
             return candidate.minutes
         }
@@ -57,28 +60,40 @@ struct BatteryRuntimeProjection {
     }
 
     private func candidate(for sample: BatterySample) -> Candidate? {
+        let target = sample.targetPercentage
         if sample.charging {
             if let average = sample.average1mW,
-               let minutes = estimatedTimeToFullMinutes(remainingWh: sample.remainingWh, maxWh: sample.maxWh, netW: average) {
-                return Candidate(minutes: minutes, source: .estimated)
+               let minutes = estimatedTimeToTargetMinutes(remainingWh: sample.remainingWh, maxWh: sample.maxWh, targetPercentage: target, netW: average) {
+                return Candidate(minutes: minutes, source: .estimated, targetPercentage: target)
             }
-            if let minutes = estimatedTimeToFullMinutes(remainingWh: sample.remainingWh, maxWh: sample.maxWh, netW: sample.netW) {
-                return Candidate(minutes: minutes, source: .estimated)
+            if let minutes = estimatedTimeToTargetMinutes(remainingWh: sample.remainingWh, maxWh: sample.maxWh, targetPercentage: target, netW: sample.netW) {
+                return Candidate(minutes: minutes, source: .estimated, targetPercentage: target)
             }
             if let minutes = validatedTimeRemainingMinutes(sample.timeRemainingMinutes) {
-                return Candidate(minutes: minutes, source: .registry)
+                let scaledMinutes: Int
+                if target < 100, let rem = sample.remainingWh, let maxWh = sample.maxWh, maxWh > 0 {
+                    let currentPct = Int((rem / maxWh * 100).rounded())
+                    if target > currentPct, currentPct < 100 {
+                        scaledMinutes = Swift.max(1, Int((Double(minutes) * Double(target - currentPct) / Double(100 - currentPct)).rounded()))
+                    } else {
+                        return nil
+                    }
+                } else {
+                    scaledMinutes = minutes
+                }
+                return Candidate(minutes: scaledMinutes, source: .registry, targetPercentage: target)
             }
             return nil
         } else {
             if let minutes = validatedTimeRemainingMinutes(sample.timeRemainingMinutes) {
-                return Candidate(minutes: minutes, source: .registry)
+                return Candidate(minutes: minutes, source: .registry, targetPercentage: target)
             }
             if let average = sample.average1mW,
                let minutes = estimatedTimeRemainingMinutes(remainingWattHours: sample.remainingWh, netW: average) {
-                return Candidate(minutes: minutes, source: .estimated)
+                return Candidate(minutes: minutes, source: .estimated, targetPercentage: target)
             }
             if let minutes = estimatedTimeRemainingMinutes(remainingWattHours: sample.remainingWh, netW: sample.netW) {
-                return Candidate(minutes: minutes, source: .estimated)
+                return Candidate(minutes: minutes, source: .estimated, targetPercentage: target)
             }
             return nil
         }

@@ -23,8 +23,13 @@ struct BatteryTelemetryPipeline: Sendable {
 
     /// Ingests a raw battery sample at the given instant, applies transient suppression,
     /// regime-change resets, 1-minute EMA, and runtime projection, returning the processed sample.
-    mutating func ingest(_ raw: BatterySample, at instant: ContinuousClock.Instant) -> BatterySample {
-        let sample = suppressingStaleTimeAfterDisconnect(raw)
+    mutating func ingest(
+        _ raw: BatterySample,
+        at instant: ContinuousClock.Instant,
+        targetPercentage: Int = 100
+    ) -> BatterySample {
+        var sample = suppressingStaleTimeAfterDisconnect(raw)
+        sample.targetPercentage = targetPercentage
 
         if let last = lastExternalConnected, last != sample.externalConnected {
             hasConnectionChanged = true

@@ -246,6 +246,12 @@ struct CardExpandRegion: View {
             if let value = CardPresentation.batteryRemainingCapacityText(s) {
                 batteryDetailRow(label: CardPresentation.batteryRemainingCapacityLabel, value: value)
             }
+            if s.charging, let value = CardPresentation.batteryTimeToFullText(s) {
+                batteryDetailRow(
+                    label: CardPresentation.batteryTimeToFullLabel(targetPercentage: s.targetPercentage),
+                    value: value
+                )
+            }
             if showBatteryEfficiency, let value = CardPresentation.batteryEfficiencyText(s) {
                 batteryDetailRow(label: CardPresentation.batteryEfficiencyLabel, value: value)
             }

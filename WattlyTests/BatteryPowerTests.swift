@@ -152,6 +152,27 @@ struct BatteryPowerTests {
         #expect(estimatedTimeToFullMinutes(remainingWh: nil, maxWh: 60.0, netW: -10.0) == nil)
     }
 
+    @Test func estimatedTimeToTargetCalculatesMinutesForCustomLimit() {
+        // 30 Wh remaining, 60 Wh max, 80% target = 48 Wh target. Needed = 18 Wh.
+        // Charging at netW = -20.0 W -> 18 / 20 = 0.9 h = 54 min.
+        #expect(estimatedTimeToTargetMinutes(remainingWh: 30.0, maxWh: 60.0, targetPercentage: 80, netW: -20.0) == 54)
+
+        // 85% limit: target = 51 Wh. Needed = 21 Wh. 21 / 20 = 1.05 h = 63 min.
+        #expect(estimatedTimeToTargetMinutes(remainingWh: 30.0, maxWh: 60.0, targetPercentage: 85, netW: -20.0) == 63)
+
+        // Already at or above target (e.g. 50 Wh remaining, 80% target = 48 Wh) -> nil
+        #expect(estimatedTimeToTargetMinutes(remainingWh: 50.0, maxWh: 60.0, targetPercentage: 80, netW: -20.0) == nil)
+
+        // 100% target delegates identically
+        #expect(estimatedTimeToTargetMinutes(remainingWh: 30.0, maxWh: 60.0, targetPercentage: 100, netW: -20.0) == 90)
+        #expect(estimatedTimeToFullMinutes(remainingWh: 30.0, maxWh: 60.0, netW: -20.0) == 90)
+    }
+
+    @Test func estimatedTimeToTargetRejectsInvalidTargetPercentages() {
+        #expect(estimatedTimeToTargetMinutes(remainingWh: 30.0, maxWh: 60.0, targetPercentage: 40, netW: -20.0) == nil)
+        #expect(estimatedTimeToTargetMinutes(remainingWh: 30.0, maxWh: 60.0, targetPercentage: 105, netW: -20.0) == nil)
+    }
+
     @Test func batteryEfficiencyUsesMaximumOverDesignCapacity() {
         let percent = batteryEfficiencyPercent(
             maxCapacityMilliampHours: 6_222,
