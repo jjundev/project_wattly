@@ -10,6 +10,7 @@ import AppKit   // NSWorkspace for per-process app icons (issue 05)
 /// themes, so the live theme tokens would vanish against it — see `PopoverHeroView`).
 struct CardExpandRegion: View {
     @Environment(\.tokens) private var t
+    @Environment(\.locale) private var locale
     @AppStorage(StorageKey.showBatteryEfficiency) private var showBatteryEfficiency = Defaults.showBatteryEfficiency
     @AppStorage(StorageKey.batteryLimitPercentage) private var batteryLimitPercentage = Defaults.batteryLimitPercentage
     @AppStorage(StorageKey.batterySailingEnabled) private var batterySailingEnabled = Defaults.batterySailingEnabled
@@ -246,9 +247,9 @@ struct CardExpandRegion: View {
             if let value = CardPresentation.batteryRemainingCapacityText(s) {
                 batteryDetailRow(label: CardPresentation.batteryRemainingCapacityLabel, value: value)
             }
-            if s.charging, let value = CardPresentation.batteryTimeToFullText(s) {
+            if s.charging, let value = CardPresentation.batteryTimeToFullText(s, locale: locale) {
                 batteryDetailRow(
-                    label: CardPresentation.batteryTimeToFullLabel(targetPercentage: s.targetPercentage),
+                    label: CardPresentation.batteryTimeToFullLabel(targetPercentage: s.targetPercentage, locale: locale),
                     value: value
                 )
             }

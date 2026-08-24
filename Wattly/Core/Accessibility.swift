@@ -14,7 +14,7 @@ import Foundation
 enum Accessibility {
     /// The card's summary VoiceOver label: name + value(+unit) + folded sub-line, or the
     /// loading/unavailable copy. **Total** over `MetricState`.
-    static func cardLabel(_ card: CardKind, _ state: MetricState) -> String {
+    static func cardLabel(_ card: CardKind, _ state: MetricState, locale: Locale = Locale(identifier: "ko")) -> String {
         let name = CardPresentation.label(card)
         switch state {
         case .loading:
@@ -26,7 +26,7 @@ enum Accessibility {
             // Fold the sub-line in. For the power card the CPU/GPU/NPU breakdown lives ONLY
             // in the sub-line (the power expand shows the per-app Top-3, not the engine
             // split), so dropping it would lose the breakdown for VO.
-            if let sub = CardPresentation.subText(state), !sub.isEmpty {
+            if let sub = CardPresentation.subText(state, locale: locale), !sub.isEmpty {
                 label += ", \(sub)"
             }
             return label

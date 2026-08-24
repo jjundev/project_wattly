@@ -35,6 +35,7 @@ struct PopoverHeroView: View {
     // doc comment above).
     @AppStorage(StorageKey.expandedCards) private var expandedRaw = ""
     @Environment(\.tokens) private var t
+    @Environment(\.locale) private var locale
 
     private var hero: CardKind? {
         CardPresentation.resolveHero(persisted: heroMetric, visible: cards)
@@ -99,7 +100,7 @@ struct PopoverHeroView: View {
         .onTapGesture { heroMetric = card }
         // One VoiceOver element per row: the card summary + a promote action (issue 15 regs reused).
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Accessibility.cardLabel(card, state))
+        .accessibilityLabel(Accessibility.cardLabel(card, state, locale: locale))
         .accessibilityValue(Accessibility.stateWord(card, state, thresholds) ?? "")
         .accessibilityAddTraits(.isButton)
         .accessibilityHint("히어로로 강조")
@@ -112,6 +113,7 @@ struct PopoverHeroView: View {
 /// `isExpandable` cards get the same chevron + tap-to-expand as mode A's stack rows (plan: hero
 /// card expand) — the whole card is the tap target, matching `MetricCardView.standardCard`.
 private struct HeroCard: View {
+    @Environment(\.locale) private var locale
     let card: CardKind
     let state: MetricState
     var historyValues: [Double] = []
@@ -172,7 +174,7 @@ private struct HeroCard: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Accessibility.cardLabel(card, state))
+        .accessibilityLabel(Accessibility.cardLabel(card, state, locale: locale))
         .accessibilityValue(Accessibility.stateWord(card, state, thresholds) ?? "")
 
         if hasChevron {
@@ -186,7 +188,7 @@ private struct HeroCard: View {
 
     // value 40/700 white + unit 16/600 → spark (h32, area+line) → sub 11 (prototype 208).
     @ViewBuilder private var valueBody: some View {
-        let d = CardPresentation.display(card, state)
+        let d = CardPresentation.display(card, state, locale: locale)
         HStack(alignment: .firstTextBaseline, spacing: 4) {
             Text(d.valueText)
                 .font(WattlyFont.at(40, weight: .bold)).tracking(-1.2)
