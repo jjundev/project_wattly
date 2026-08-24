@@ -43418,36 +43418,36 @@
         }
       }
     },
-    "활성화": {
+    "활성화됨": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Active"
+            "value": "Enabled"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "활성화"
+            "value": "활성화됨"
           }
         }
       }
     },
-    "비활성화": {
+    "비활성화됨": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Inactive"
+            "value": "Disabled"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "비활성화"
+            "value": "비활성화됨"
           }
         }
       }
