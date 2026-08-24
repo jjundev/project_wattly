@@ -557,7 +557,7 @@ struct SailboatMark: View {
             let phaseRad = (Double(subPhase) / 24.0) * .pi * 2.0
 
             // Base geometry parameters
-            let baseY = s * 0.70
+            let baseY = s * 0.68
             let ampRatio: Double = tier == 0 ? 0.065 : (tier == 1 ? 0.125 : (tier == 2 ? 0.190 : 0.250))
             let tiltDamp: Double = tier == 0 ? 0.75 : (tier == 1 ? 0.90 : (tier == 2 ? 1.05 : 1.20))
 
@@ -570,9 +570,11 @@ struct SailboatMark: View {
             let slope = -amp * waveFreq * cos(waveFreq * boatX - phaseRad)
             let rollAngle = atan(slope) * tiltDamp
 
-            let hullW = s * 0.60
-            let hullH = s * 0.17
-            let mastH = s * 0.46
+            let hullW = s * 0.58
+            let hullH = s * 0.16
+            let mastH = s * 0.44
+            let draftH = hullH * 0.25
+            let brimH = hullH * 0.80
 
             let cosT = cos(rollAngle)
             let sinT = sin(rollAngle)
@@ -594,17 +596,17 @@ struct SailboatMark: View {
                 }
                 .stroke(markerColor, style: StrokeStyle(lineWidth: strokeW * 0.95, lineCap: .round, lineJoin: .round))
 
-                // 2. Paper Boat (Folded Geometry)
+                // 2. Paper Boat (Folded Geometry riding on top of the wave)
                 // Lower Hull (Inverted trapezoid / folded polygon)
                 Path { path in
                     func pt(_ lx: CGFloat, _ ly: CGFloat) -> CGPoint {
                         CGPoint(x: boatX + lx * cosT - ly * sinT, y: boatY + lx * sinT + ly * cosT)
                     }
-                    path.move(to: pt(-hullW * 0.5, 0))
-                    path.addLine(to: pt(-hullW * 0.26, hullH * 0.9))
-                    path.addLine(to: pt(hullW * 0.26, hullH * 0.9))
-                    path.addLine(to: pt(hullW * 0.5, 0))
-                    path.addLine(to: pt(0, -hullH * 0.5))
+                    path.move(to: pt(-hullW * 0.50, -brimH))
+                    path.addLine(to: pt(-hullW * 0.22, draftH))
+                    path.addLine(to: pt(hullW * 0.22, draftH))
+                    path.addLine(to: pt(hullW * 0.50, -brimH))
+                    path.addLine(to: pt(0, -brimH * 0.45))
                     path.closeSubpath()
                 }
                 .fill(markerColor)
@@ -614,9 +616,9 @@ struct SailboatMark: View {
                     func pt(_ lx: CGFloat, _ ly: CGFloat) -> CGPoint {
                         CGPoint(x: boatX + lx * cosT - ly * sinT, y: boatY + lx * sinT + ly * cosT)
                     }
-                    path.move(to: pt(0, -mastH * 0.95))
-                    path.addLine(to: pt(-hullW * 0.24, 0))
-                    path.addLine(to: pt(hullW * 0.24, 0))
+                    path.move(to: pt(0, -mastH))
+                    path.addLine(to: pt(-hullW * 0.22, -brimH * 0.40))
+                    path.addLine(to: pt(hullW * 0.22, -brimH * 0.40))
                     path.closeSubpath()
                 }
                 .fill(markerColor)
@@ -626,15 +628,15 @@ struct SailboatMark: View {
                     let splashPhase = Double(subPhase % 12) / 12.0
                     let sprayR = strokeW * 0.70
 
-                    let sp1X = boatX + (hullW * 0.55 + splashPhase * (s * 0.15)) * cosT - (-hullH * 0.4 - sin(splashPhase * .pi) * (s * 0.22)) * sinT
-                    let sp1Y = boatY + (hullW * 0.55 + splashPhase * (s * 0.15)) * sinT + (-hullH * 0.4 - sin(splashPhase * .pi) * (s * 0.22)) * cosT
+                    let sp1X = boatX + (hullW * 0.55 + splashPhase * (s * 0.15)) * cosT - (-brimH * 0.5 - sin(splashPhase * .pi) * (s * 0.22)) * sinT
+                    let sp1Y = boatY + (hullW * 0.55 + splashPhase * (s * 0.15)) * sinT + (-brimH * 0.5 - sin(splashPhase * .pi) * (s * 0.22)) * cosT
                     Circle()
                         .fill(markerColor)
                         .frame(width: sprayR * 2.0, height: sprayR * 2.0)
                         .position(x: sp1X, y: sp1Y)
 
-                    let sp2X = boatX + (hullW * 0.42 + splashPhase * (s * 0.10)) * cosT - (-hullH * 0.2 - sin(splashPhase * .pi) * (s * 0.14)) * sinT
-                    let sp2Y = boatY + (hullW * 0.42 + splashPhase * (s * 0.10)) * sinT + (-hullH * 0.2 - sin(splashPhase * .pi) * (s * 0.14)) * cosT
+                    let sp2X = boatX + (hullW * 0.42 + splashPhase * (s * 0.10)) * cosT - (-brimH * 0.2 - sin(splashPhase * .pi) * (s * 0.14)) * sinT
+                    let sp2Y = boatY + (hullW * 0.42 + splashPhase * (s * 0.10)) * sinT + (-brimH * 0.2 - sin(splashPhase * .pi) * (s * 0.14)) * cosT
                     Circle()
                         .fill(markerColor)
                         .frame(width: sprayR * 1.6, height: sprayR * 1.6)
