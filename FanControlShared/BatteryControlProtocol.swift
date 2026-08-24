@@ -14,7 +14,7 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         limitPercentage: Int = 80,
         lowerHysteresisDelta: Int = 2,
         heatProtectionEnabled: Bool = false,
-        heatProtectionThresholdCelsius: Int = 36,
+        heatProtectionThresholdCelsius: Int = 35,
         heatProtectionResumeDeltaCelsius: Int = 2,
         heatProtectionMinCooldownSeconds: TimeInterval = 300.0
     ) {
@@ -38,7 +38,7 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         limitPercentage = (try? container.decode(Int.self, forKey: .limitPercentage)) ?? 80
         lowerHysteresisDelta = (try? container.decode(Int.self, forKey: .lowerHysteresisDelta)) ?? 2
         heatProtectionEnabled = (try? container.decodeIfPresent(Bool.self, forKey: .heatProtectionEnabled)) ?? false
-        heatProtectionThresholdCelsius = (try? container.decodeIfPresent(Int.self, forKey: .heatProtectionThresholdCelsius)) ?? 36
+        heatProtectionThresholdCelsius = (try? container.decodeIfPresent(Int.self, forKey: .heatProtectionThresholdCelsius)) ?? 35
         heatProtectionResumeDeltaCelsius = (try? container.decodeIfPresent(Int.self, forKey: .heatProtectionResumeDeltaCelsius)) ?? 2
         heatProtectionMinCooldownSeconds = (try? container.decodeIfPresent(TimeInterval.self, forKey: .heatProtectionMinCooldownSeconds)) ?? 300.0
     }

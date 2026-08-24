@@ -435,7 +435,7 @@ enum Defaults {
     static let batterySailingEnabled = false
     static let batterySailingDelta = 5
     static let batteryHeatProtectionEnabled = false
-    static let batteryHeatProtectionThreshold = 36
+    static let batteryHeatProtectionThreshold = 35
 }
 
 /// `@AppStorage` key names. `loginItem` is a mirror of `SMAppService.mainApp`

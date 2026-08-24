@@ -150,7 +150,7 @@ public struct BatteryControlStatusReason: Codable, Equatable, Sendable {
         case .sailing: return "Sailing 중 (\(resume)% 도달 시 충전)"
         case .heatProtectionActive:
             let tempStr = currentTemperatureCelsius.map { String(format: "%.1f", $0) } ?? "?"
-            let resume = resumeTemperatureCelsius ?? 34
+            let resume = resumeTemperatureCelsius ?? 33
             return "발열 보호 중 (배터리 \(tempStr)°C / \(resume)°C 이하 시 재개)"
         case .heatProtectionCooldown:
             let remaining = cooldownRemainingSeconds ?? 0

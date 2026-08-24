@@ -554,4 +554,24 @@ struct BatteryControlClientTests {
             Issue.record("Expected configure request")
         }
     }
+
+    @MainActor @Test func clientApplyUsesDefaultThreshold35() async {
+        let receiver = RequestReceiver()
+        let client = BatteryControlClient(requestHandler: { request in
+            await receiver.set(request)
+            let status = BatteryControlServiceStatus(
+                mode: .charging, currentPercentage: 50, isPowerAdapterConnected: true,
+                detail: "ok", updatedAt: 100
+            )
+            return (try? BatteryControlCodec.encode(status), nil)
+        })
+        await client.apply(enabled: true, limitPercentage: 80, lowerHysteresisDelta: 5, heatProtectionEnabled: true)
+        let recordedRequest = await receiver.request
+        if case .configure(let data) = recordedRequest,
+           let decoded = try? BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data) {
+            #expect(decoded.configuration.heatProtectionThresholdCelsius == 35)
+        } else {
+            Issue.record("Expected configure request with decoded config")
+        }
+    }
 }

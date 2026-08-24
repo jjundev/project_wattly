@@ -355,4 +355,15 @@ struct BatteryControlProtocolTests {
         #expect(reading.isPluggedIn == true)
         #expect(reading.temperatureCelsius == 34.5)
     }
+
+    @Test func configurationDefaultHeatProtectionThresholdIs35() {
+        let config = BatteryControlConfiguration()
+        #expect(config.heatProtectionThresholdCelsius == 35)
+    }
+
+    @Test func decodingConfigurationWithoutThresholdDefaultsTo35() throws {
+        let json = "{\"enabled\":true,\"limitPercentage\":80,\"lowerHysteresisDelta\":5,\"heatProtectionEnabled\":true}".data(using: .utf8)!
+        let config = try BatteryControlCodec.decode(BatteryControlConfiguration.self, from: json)
+        #expect(config.heatProtectionThresholdCelsius == 35)
+    }
 }

@@ -74,7 +74,7 @@ enum BatteryStatusText {
                           locale: locale, resume)
         case .heatProtectionActive:
             let tempStr = resolved.currentTemperatureCelsius.map { String(format: "%.1f", $0) } ?? "?"
-            let resume = Int64(resolved.resumeTemperatureCelsius ?? 34)
+            let resume = Int64(resolved.resumeTemperatureCelsius ?? 33)
             return String(format: String(localized: "발열 보호 중 (배터리 %@°C, %lld°C 도달 시 재충전)", locale: locale),
                           locale: locale, tempStr, resume)
         case .heatProtectionCooldown:

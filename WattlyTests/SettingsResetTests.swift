@@ -201,6 +201,10 @@ struct SettingsResetTests {
         #expect(d.integer(forKey: StorageKey.batteryHeatProtectionThreshold) == Defaults.batteryHeatProtectionThreshold)
     }
 
+    @Test func resetRestoresHeatProtectionThresholdTo35() {
+        #expect(Defaults.batteryHeatProtectionThreshold == 35)
+    }
+
     @Test func resetHidesBatteryEfficiency() {
         let defaults = makeDefaults(#function)
         defaults.set(true, forKey: StorageKey.showBatteryEfficiency)

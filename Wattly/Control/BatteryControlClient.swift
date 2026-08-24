@@ -69,7 +69,7 @@ import AppKit
         limitPercentage: Int,
         lowerHysteresisDelta: Int = 2,
         heatProtectionEnabled: Bool = false,
-        heatProtectionThresholdCelsius: Int = 36
+        heatProtectionThresholdCelsius: Int = 35
     ) async -> BatteryControlServiceStatus? {
         commandGeneration &+= 1
         let config = BatteryControlConfiguration(
@@ -96,7 +96,7 @@ import AppKit
             limitPercentage: limitPercentage,
             lowerHysteresisDelta: lowerHysteresisDelta,
             heatProtectionEnabled: false,
-            heatProtectionThresholdCelsius: 36) else {
+            heatProtectionThresholdCelsius: 35) else {
             return .helperUnavailable
         }
         guard acknowledged.desiredConfiguration?.enabled == false else {
@@ -118,7 +118,7 @@ import AppKit
                 limitPercentage: 100,
                 lowerHysteresisDelta: 2,
                 heatProtectionEnabled: false,
-                heatProtectionThresholdCelsius: 36,
+                heatProtectionThresholdCelsius: 35,
                 transferringOwnership: false,
                 window: window) != nil {
                 return .helperUnavailable
@@ -139,7 +139,7 @@ import AppKit
         limitPercentage: Int,
         lowerHysteresisDelta: Int = 2,
         heatProtectionEnabled: Bool = false,
-        heatProtectionThresholdCelsius: Int = 36
+        heatProtectionThresholdCelsius: Int = 35
     ) async {
         await refreshStatus()
         // The caller's task may have been cancelled while that read was in flight, and a reconcile
@@ -179,7 +179,7 @@ import AppKit
         limitPercentage: Int,
         lowerHysteresisDelta: Int = 2,
         heatProtectionEnabled: Bool = false,
-        heatProtectionThresholdCelsius: Int = 36,
+        heatProtectionThresholdCelsius: Int = 35,
         transferringOwnership: Bool = false,
         window: NSWindow?
     ) async -> InstallFailure? {
