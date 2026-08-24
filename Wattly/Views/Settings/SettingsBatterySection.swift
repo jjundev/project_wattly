@@ -190,8 +190,9 @@ struct SettingsBatterySection: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         Spacer()
-                        let isTopUp = batteryControl.status.desiredConfiguration?.topUpActive == true
-                            || batteryControl.status.activity == .topUp
+                        let isPluggedIn = batteryControl.status.isPowerAdapterConnected
+                        let isTopUp = isPluggedIn && (batteryControl.status.desiredConfiguration?.topUpActive == true
+                            || batteryControl.status.activity == .topUp)
                         Button {
                             let limit = batteryLimitPercentage
                             let delta = effectiveDelta
@@ -221,7 +222,7 @@ struct SettingsBatterySection: View {
                                 Text(LocalizedStringKey(isTopUp ? "활성화됨" : "비활성화됨"))
                                     .font(WattlyFont.at(11.5, weight: .medium))
                             }
-                            .foregroundStyle(isTopUp ? Tokens.statusOrange : t.text)
+                            .foregroundStyle(isTopUp ? Tokens.statusOrange : (isPluggedIn ? t.text : t.faint))
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
                             .background(RoundedRectangle(cornerRadius: 6).fill(isTopUp ? Tokens.statusOrange.opacity(0.15) : t.segTrack))
@@ -229,7 +230,7 @@ struct SettingsBatterySection: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .disabled(!isToggleEnabled || isHardwareUnsupported)
+                        .disabled(!isToggleEnabled || isHardwareUnsupported || !isPluggedIn)
                         .accessibilityLabel(Text(LocalizedStringKey("한 번만 완충")))
                         .accessibilityValue(Text(LocalizedStringKey(isTopUp ? "활성화됨" : "비활성화됨")))
                     }

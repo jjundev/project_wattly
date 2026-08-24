@@ -258,7 +258,7 @@ struct CardExpandRegion: View {
             batteryDetailRow(label: "전류", value: CardPresentation.batteryCurrentText(s))
             batteryDetailRow(label: "전압", value: CardPresentation.batteryVoltageText(s))
 
-            if let batteryControl {
+            if let batteryControl, s.charging || batteryControl.status.isPowerAdapterConnected {
                 batteryTopUpRow(batteryControl, s)
             }
         }
@@ -267,8 +267,7 @@ struct CardExpandRegion: View {
 
     @ViewBuilder
     private func batteryTopUpRow(_ batteryControl: BatteryControlClient, _ s: BatterySample) -> some View {
-        let isConnected = s.charging || batteryControl.status.isPowerAdapterConnected
-        let isTopUp = isConnected && (batteryControl.status.desiredConfiguration?.topUpActive == true || batteryControl.status.activity == .topUp)
+        let isTopUp = batteryControl.status.desiredConfiguration?.topUpActive == true || batteryControl.status.activity == .topUp
 
         HStack(alignment: .center) {
             HStack(spacing: 4) {
@@ -305,7 +304,7 @@ struct CardExpandRegion: View {
             } label: {
                 Text(LocalizedStringKey(isTopUp ? "활성화됨" : "비활성화됨"))
                     .font(WattlyFont.at(10.5, weight: .medium))
-                    .foregroundStyle(isTopUp ? Tokens.statusOrange : (isConnected ? t.sub : t.faint.opacity(0.6)))
+                    .foregroundStyle(isTopUp ? Tokens.statusOrange : t.sub)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(RoundedRectangle(cornerRadius: 4).fill(isTopUp ? Tokens.statusOrange.opacity(0.15) : t.segTrack))
@@ -313,7 +312,6 @@ struct CardExpandRegion: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .disabled(!isConnected)
             .accessibilityLabel(Text(LocalizedStringKey("한 번만 완충")))
             .accessibilityValue(Text(LocalizedStringKey(isTopUp ? "활성화됨" : "비활성화됨")))
         }
