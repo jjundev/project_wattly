@@ -44,19 +44,19 @@ import Foundation
     }
 
     @Test func heatProtectionPresetsMatchExpectedValues() {
-        #expect(BatterySectionPresentation.heatProtectionThresholdPresets == [34, 36, 38, 40])
+        #expect(BatterySectionPresentation.heatProtectionThresholdPresets == [32, 35, 38, 40])
     }
 
     @Test func batteryHeatProtectionDefaultsAreConsistent() {
         #expect(Defaults.batteryHeatProtectionEnabled == false)
-        #expect(Defaults.batteryHeatProtectionThreshold == 36)
+        #expect(Defaults.batteryHeatProtectionThreshold == 35)
         #expect(StorageKey.batteryHeatProtectionEnabled == "batteryHeatProtectionEnabled")
         #expect(StorageKey.batteryHeatProtectionThreshold == "batteryHeatProtectionThreshold")
     }
 
     @Test func batteryHeatProtectionThresholdCanBePersisted() {
         let defaults = UserDefaults(suiteName: "SettingsBatterySectionTests")!
-        let presets = [34, 36, 38, 40]
+        let presets = [32, 35, 38, 40]
         for preset in presets {
             defaults.set(preset, forKey: StorageKey.batteryHeatProtectionThreshold)
             #expect(defaults.integer(forKey: StorageKey.batteryHeatProtectionThreshold) == preset)

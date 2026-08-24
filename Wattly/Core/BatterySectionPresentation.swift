@@ -247,7 +247,7 @@ enum BatterySectionPresentation {
 
     // MARK: - Heat Protection Helpers
 
-    static let heatProtectionThresholdPresets = [34, 36, 38, 40]
+    static let heatProtectionThresholdPresets = [32, 35, 38, 40]
 
     /// 상태 아이콘 + 문구. 설치 → 오류/미지원 → stale → 검증된 activity → 로컬 fallback 순이다.
     static func status(isLimitOn: Bool,
