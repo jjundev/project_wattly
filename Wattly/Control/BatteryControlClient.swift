@@ -69,7 +69,8 @@ import AppKit
         limitPercentage: Int,
         lowerHysteresisDelta: Int = 2,
         heatProtectionEnabled: Bool = false,
-        heatProtectionThresholdCelsius: Int = 35
+        heatProtectionThresholdCelsius: Int = 35,
+        topUpActive: Bool = false
     ) async -> BatteryControlServiceStatus? {
         commandGeneration &+= 1
         let config = BatteryControlConfiguration(
@@ -77,7 +78,8 @@ import AppKit
             limitPercentage: limitPercentage,
             lowerHysteresisDelta: lowerHysteresisDelta,
             heatProtectionEnabled: heatProtectionEnabled,
-            heatProtectionThresholdCelsius: heatProtectionThresholdCelsius
+            heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
+            topUpActive: topUpActive
         )
         let request = BatteryControlConfigurationRequest(configuration: config, generation: commandGeneration)
         guard let data = try? BatteryControlCodec.encode(request) else {
@@ -85,6 +87,41 @@ import AppKit
             return nil
         }
         return await send(.configure(data))
+    }
+
+    @discardableResult
+    public func startTopUp(
+        limitPercentage: Int,
+        lowerHysteresisDelta: Int = 2,
+        heatProtectionEnabled: Bool = false,
+        heatProtectionThresholdCelsius: Int = 35
+    ) async -> BatteryControlServiceStatus? {
+        BatteryNotificationManager.requestAuthorization()
+        return await apply(
+            enabled: true,
+            limitPercentage: limitPercentage,
+            lowerHysteresisDelta: lowerHysteresisDelta,
+            heatProtectionEnabled: heatProtectionEnabled,
+            heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
+            topUpActive: true
+        )
+    }
+
+    @discardableResult
+    public func cancelTopUp(
+        limitPercentage: Int,
+        lowerHysteresisDelta: Int = 2,
+        heatProtectionEnabled: Bool = false,
+        heatProtectionThresholdCelsius: Int = 35
+    ) async -> BatteryControlServiceStatus? {
+        await apply(
+            enabled: true,
+            limitPercentage: limitPercentage,
+            lowerHysteresisDelta: lowerHysteresisDelta,
+            heatProtectionEnabled: heatProtectionEnabled,
+            heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
+            topUpActive: false
+        )
     }
 
     public func disableAndConfirm(
@@ -142,6 +179,7 @@ import AppKit
         heatProtectionThresholdCelsius: Int = 35
     ) async {
         await refreshStatus()
+        let isTopUp = status.desiredConfiguration?.topUpActive == true
         // The caller's task may have been cancelled while that read was in flight, and a reconcile
         // is a WRITE — unlike the fan heartbeat this loop is modelled on. Without this check a
         // straggler iteration would re-enable a limit the user just switched off, carrying a higher
@@ -153,15 +191,17 @@ import AppKit
                     limitPercentage: limitPercentage,
                     lowerHysteresisDelta: lowerHysteresisDelta,
                     heatProtectionEnabled: heatProtectionEnabled,
-                    heatProtectionThresholdCelsius: heatProtectionThresholdCelsius),
+                    heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
+                    topUpActive: isTopUp),
                 status: status) else { return }
-        if enabled || heatProtectionEnabled {
+        if enabled || heatProtectionEnabled || isTopUp {
             await apply(
                 enabled: enabled,
                 limitPercentage: limitPercentage,
                 lowerHysteresisDelta: lowerHysteresisDelta,
                 heatProtectionEnabled: heatProtectionEnabled,
-                heatProtectionThresholdCelsius: heatProtectionThresholdCelsius)
+                heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
+                topUpActive: isTopUp)
         } else {
             _ = await disableAndConfirm(
                 limitPercentage: limitPercentage,
