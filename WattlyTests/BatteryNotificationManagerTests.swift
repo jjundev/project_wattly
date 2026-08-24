@@ -7,15 +7,11 @@ import Testing
         let ko = Locale(identifier: "ko")
         let en = Locale(identifier: "en")
 
-        let koTitle = BatteryNotificationManager.topUpCompleteTitle(locale: ko)
-        let koBody = BatteryNotificationManager.topUpCompleteBody(locale: ko)
-        #expect(koTitle == "Top Up 완료")
-        #expect(koBody == "배터리가 100%까지 충전되었습니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.")
+        #expect(BatteryNotificationManager.topUpCompleteTitle(locale: ko) == "한 번만 완충 완료")
+        #expect(BatteryNotificationManager.topUpCompleteTitle(locale: en) == "One-Time Full Charge Complete")
 
-        let enTitle = BatteryNotificationManager.topUpCompleteTitle(locale: en)
-        let enBody = BatteryNotificationManager.topUpCompleteBody(locale: en)
-        #expect(enTitle == "Top Up Complete")
-        #expect(enBody == "Battery is charged to 100%. Normal limit will restore automatically when unplugged.")
+        #expect(BatteryNotificationManager.topUpCompleteBody(locale: ko) == "배터리가 100%까지 충전되었습니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.")
+        #expect(BatteryNotificationManager.topUpCompleteBody(locale: en) == "Battery is charged to 100%. Normal limit will restore automatically when unplugged.")
     }
 
     @Test func transitionDetectionFiresOnlyOnTransitionToComplete() {

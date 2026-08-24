@@ -157,8 +157,8 @@ public struct BatteryControlStatusReason: Codable, Equatable, Sendable {
         case .heatProtectionCooldown:
             let remaining = cooldownRemainingSeconds ?? 0
             return "발열 보호 쿨다운 중 (\(remaining)초 후 충전 재개)"
-        case .topUpCharging: return "Top Up 중 (100%까지 충전)"
-        case .topUpComplete: return "Top Up 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)"
+        case .topUpCharging: return "한 번만 완충 중 (100%까지 충전)"
+        case .topUpComplete: return "한 번만 완충 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)"
         case .batterySensorUnreadable:
             return "배터리 온도 센서를 읽을 수 없습니다"
         case .persistenceReadFailed: return "저장된 충전 정책을 읽지 못해 충전 허용 상태로 복구합니다"

@@ -18,7 +18,7 @@ public struct BatteryTopUpTransitionDetector: Sendable {
 
 public enum BatteryNotificationManager {
     public static func topUpCompleteTitle(locale: Locale) -> String {
-        String(localized: "Top Up 완료", locale: locale)
+        String(localized: "한 번만 완충 완료", locale: locale)
     }
 
     public static func topUpCompleteBody(locale: Locale) -> String {

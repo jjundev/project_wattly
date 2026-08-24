@@ -43350,6 +43350,125 @@
         }
       }
     },
+    "한 번만 완충": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One-Time Full Charge"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "한 번만 완충"
+          }
+        }
+      }
+    },
+    "한 번만 완충 중 (100%까지 충전)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One-time full charging (up to 100%)"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "한 번만 완충 중 (100%까지 충전)"
+          }
+        }
+      }
+    },
+    "한 번만 완충 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One-time full charge complete (holding at 100%, reverts to limit on disconnect)"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "한 번만 완충 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)"
+          }
+        }
+      }
+    },
+    "한 번만 완충 완료": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One-Time Full Charge Complete"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "한 번만 완충 완료"
+          }
+        }
+      }
+    },
+    "(활성화)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Active)"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(활성화)"
+          }
+        }
+      }
+    },
+    "(비활성화)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Inactive)"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(비활성화)"
+          }
+        }
+      }
+    },
+    "다음 외출이나 출장을 위해 배터리를 일회성으로 100%까지 완전 충전합니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Charges to 100% once before heading out, then automatically restores your charge limit when unplugged."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다음 외출이나 출장을 위해 배터리를 일회성으로 100%까지 완전 충전합니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다."
+          }
+        }
+      }
+    },
     "한 번만 100% 충전 (Top Up)": {
       "extractionState": "manual",
       "localizations": {
