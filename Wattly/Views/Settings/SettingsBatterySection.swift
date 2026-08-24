@@ -223,28 +223,31 @@ struct SettingsBatterySection: View {
                 let heatEnabled = batteryHeatProtectionEnabled
                 let heatThreshold = batteryHeatProtectionThreshold
                 Task {
-                    let mode = await batteryControl.refreshStatus()?.mode ?? .unavailable
+                    let mode = batteryControl.status.mode
                     if BatteryControlPolicy.shouldRunInstaller(mode: mode) {
-                        if let failure = await batteryControl.installAndApply(
-                            enabled: true,
-                            limitPercentage: limit,
-                            lowerHysteresisDelta: delta,
-                            heatProtectionEnabled: heatEnabled,
-                            heatProtectionThresholdCelsius: heatThreshold,
-                            window: window) {
-                            installErrorMessage = Self.message(for: failure, locale: locale)
-                            isInstallFailedAlertPresented = true
-                            batteryLimitEnabled = false
+                        let refreshedMode = await batteryControl.refreshStatus()?.mode ?? .unavailable
+                        if BatteryControlPolicy.shouldRunInstaller(mode: refreshedMode) {
+                            if let failure = await batteryControl.installAndApply(
+                                enabled: true,
+                                limitPercentage: limit,
+                                lowerHysteresisDelta: delta,
+                                heatProtectionEnabled: heatEnabled,
+                                heatProtectionThresholdCelsius: heatThreshold,
+                                window: window) {
+                                installErrorMessage = Self.message(for: failure, locale: locale)
+                                isInstallFailedAlertPresented = true
+                                batteryLimitEnabled = false
+                            }
+                            return
                         }
-                    } else {
-                        // The helper already answers — reuse it, no second admin prompt.
-                        await batteryControl.apply(
-                            enabled: true,
-                            limitPercentage: limit,
-                            lowerHysteresisDelta: delta,
-                            heatProtectionEnabled: heatEnabled,
-                            heatProtectionThresholdCelsius: heatThreshold)
                     }
+                    // The helper already answers — reuse it, no second admin prompt.
+                    await batteryControl.apply(
+                        enabled: true,
+                        limitPercentage: limit,
+                        lowerHysteresisDelta: delta,
+                        heatProtectionEnabled: heatEnabled,
+                        heatProtectionThresholdCelsius: heatThreshold)
                     // The helper has now answered. If it says this Mac has no charge register, undo
                     // the opt-in the user just made — otherwise the row disables itself in the ON
                     // position with nothing left to switch it back. This clears only a value set in
@@ -303,27 +306,30 @@ struct SettingsBatterySection: View {
                 }
                 let window = NSApp.keyWindow
                 Task {
-                    let mode = await batteryControl.refreshStatus()?.mode ?? .unavailable
+                    let mode = batteryControl.status.mode
                     if BatteryControlPolicy.shouldRunInstaller(mode: mode) {
-                        if let failure = await batteryControl.installAndApply(
-                            enabled: batteryLimitEnabled,
-                            limitPercentage: batteryLimitPercentage,
-                            lowerHysteresisDelta: effectiveDelta,
-                            heatProtectionEnabled: true,
-                            heatProtectionThresholdCelsius: batteryHeatProtectionThreshold,
-                            window: window) {
-                            installErrorMessage = Self.message(for: failure, locale: locale)
-                            isInstallFailedAlertPresented = true
-                            batteryHeatProtectionEnabled = false
+                        let refreshedMode = await batteryControl.refreshStatus()?.mode ?? .unavailable
+                        if BatteryControlPolicy.shouldRunInstaller(mode: refreshedMode) {
+                            if let failure = await batteryControl.installAndApply(
+                                enabled: batteryLimitEnabled,
+                                limitPercentage: batteryLimitPercentage,
+                                lowerHysteresisDelta: effectiveDelta,
+                                heatProtectionEnabled: true,
+                                heatProtectionThresholdCelsius: batteryHeatProtectionThreshold,
+                                window: window) {
+                                installErrorMessage = Self.message(for: failure, locale: locale)
+                                isInstallFailedAlertPresented = true
+                                batteryHeatProtectionEnabled = false
+                            }
+                            return
                         }
-                    } else {
-                        await batteryControl.apply(
-                            enabled: batteryLimitEnabled,
-                            limitPercentage: batteryLimitPercentage,
-                            lowerHysteresisDelta: effectiveDelta,
-                            heatProtectionEnabled: true,
-                            heatProtectionThresholdCelsius: batteryHeatProtectionThreshold)
                     }
+                    await batteryControl.apply(
+                        enabled: batteryLimitEnabled,
+                        limitPercentage: batteryLimitPercentage,
+                        lowerHysteresisDelta: effectiveDelta,
+                        heatProtectionEnabled: true,
+                        heatProtectionThresholdCelsius: batteryHeatProtectionThreshold)
                     if batteryControl.status.isHardwareSupported == false {
                         batteryHeatProtectionEnabled = false
                     }
