@@ -50,6 +50,8 @@ struct LocalizationTests {
         #expect(String(localized: "3D 큐브", locale: Locale(identifier: "en")) == "3D Cube")
         #expect(String(localized: "디지털 이퀄라이저", locale: Locale(identifier: "en")) == "Equalizer")
         #expect(String(localized: "러너 (경사로 질주)", locale: Locale(identifier: "en")) == "Hill Runner")
+        #expect(String(localized: "종이배 (파도 항해)", locale: Locale(identifier: "en")) == "Paper Boat (Ocean Waves)")
+        #expect(String(localized: "종이배 (파도 항해)", locale: Locale(identifier: "ja")) == "紙の船（波の航海）")
     }
 
     @Test func advancedMetricsTranslations() {
