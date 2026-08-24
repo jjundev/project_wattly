@@ -204,6 +204,50 @@ struct CardPresentationTests {
         #expect(CardPresentation.batteryTimeToFullText(charging) == "약 1시간 30분 남음")
     }
 
+    @Test func batteryRemainingTimeSummaryShowsTargetPercentageWhenChargingUnder100() {
+        let sample85 = BatterySample(
+            netW: -20.0,
+            milliamps: 1500,
+            volts: 12.5,
+            charging: true,
+            externalConnected: true,
+            projectedTimeRemainingMinutes: 25,
+            targetPercentage: 85
+        )
+        #expect(CardPresentation.batteryRemainingTimeSummary(sample85) == "85%까지 약 25분 남음")
+        #expect(CardPresentation.batteryTimeToFullText(sample85) == "약 25분 남음")
+        #expect(CardPresentation.batteryTimeToFullLabel(targetPercentage: 85) == "85%까지 남은 시간")
+        #expect(CardPresentation.batteryTimeToFullLabel == "완충까지 남은 시간")
+    }
+
+    @Test func batteryRemainingTimeSummaryShowsFullWhenTargetIs100() {
+        let sample100 = BatterySample(
+            netW: -20.0,
+            milliamps: 1500,
+            volts: 12.5,
+            charging: true,
+            externalConnected: true,
+            projectedTimeRemainingMinutes: 70,
+            targetPercentage: 100
+        )
+        #expect(CardPresentation.batteryRemainingTimeSummary(sample100) == "완충까지 약 1시간 10분 남음")
+        #expect(CardPresentation.batteryTimeToFullText(sample100) == "약 1시간 10분 남음")
+        #expect(CardPresentation.batteryTimeToFullLabel(targetPercentage: 100) == "완충까지 남은 시간")
+    }
+
+    @Test func batteryRemainingTimeSummaryShowsDischargeWithoutTarget() {
+        let sampleDischarge = BatterySample(
+            netW: 15.0,
+            milliamps: 1200,
+            volts: 12.5,
+            charging: false,
+            externalConnected: false,
+            projectedTimeRemainingMinutes: 140,
+            targetPercentage: 85
+        )
+        #expect(CardPresentation.batteryRemainingTimeSummary(sampleDischarge) == "약 2시간 20분 남음")
+    }
+
     @Test func formatDurationOmitsZeroHours() {
         #expect(CardPresentation.formatDuration(minutes: 10) == "10분")
         #expect(CardPresentation.formatDuration(minutes: 60) == "1시간")

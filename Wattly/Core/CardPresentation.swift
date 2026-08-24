@@ -235,7 +235,11 @@ enum CardPresentation {
     static let batteryEfficiencyLabel = "배터리 효율"
     static let batteryCycleLabel = "사이클"
     static let batteryTemperatureLabel = "배터리 온도"
-    static let batteryTimeToFullLabel = "완충까지 남은 시간"
+    static var batteryTimeToFullLabel: String { batteryTimeToFullLabel(targetPercentage: 100) }
+
+    static func batteryTimeToFullLabel(targetPercentage: Int = 100) -> String {
+        targetPercentage < 100 ? "\(targetPercentage)%까지 남은 시간" : "완충까지 남은 시간"
+    }
 
     static func batteryAverage1mText(_ s: BatterySample) -> String? {
         guard let average = s.average1mW, average.isFinite else { return nil }
@@ -265,7 +269,11 @@ enum CardPresentation {
         else { return nil }
         let duration = formatDuration(minutes: totalMinutes)
         if s.charging {
-            return "완충까지 약 \(duration) 남음"
+            if s.targetPercentage < 100 {
+                return "\(s.targetPercentage)%까지 약 \(duration) 남음"
+            } else {
+                return "완충까지 약 \(duration) 남음"
+            }
         } else {
             return "약 \(duration) 남음"
         }

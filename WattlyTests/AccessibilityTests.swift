@@ -97,6 +97,20 @@ struct AccessibilityTests {
                 .hasPrefix("배터리, 0.0 W"))
     }
 
+    @Test func batteryChargingFoldsTargetPercentageIntoAccessibilityLabel() {
+        let sample85 = BatterySample(
+            netW: -20.0,
+            milliamps: 1500,
+            volts: 12.5,
+            charging: true,
+            externalConnected: true,
+            projectedTimeRemainingMinutes: 25,
+            targetPercentage: 85
+        )
+        #expect(Accessibility.cardLabel(.battery, .value(.battery(sample85)))
+                == "배터리, 충전 20.0 W, 85%까지 약 25분 남음")
+    }
+
     // MARK: State word (warn/crit) — reuses ThresholdLevel.stateWord
 
     @Test func stateWordCritWarnNormal() {
