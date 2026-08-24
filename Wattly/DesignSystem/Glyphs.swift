@@ -561,6 +561,7 @@ struct DynamicMenuBarIconMark: View {
         case .cube3D: Cube3DMark(frame: frame, markerColor: markerColor)
         case .equalizer: EqualizerMark(frame: frame, markerColor: markerColor)
         case .hillRunner: HillRunnerMark(frame: frame, markerColor: markerColor)
+        case .sailboat: HillRunnerMark(frame: frame, markerColor: markerColor)
         }
     }
 }

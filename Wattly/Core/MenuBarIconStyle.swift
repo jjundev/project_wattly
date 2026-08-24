@@ -7,6 +7,7 @@ public enum MenuBarIconStyle: String, CaseIterable, Identifiable, Sendable {
     case cube3D = "cube3D"               // 4. 3D 와이어프레임 큐브
     case equalizer = "equalizer"         // 5. 디지털 이퀄라이저
     case hillRunner = "hillRunner"       // 6. 경사로 러너 (Hill Runner)
+    case sailboat = "sailboat"           // 7. 종이배 (파도 항해)
 
     public var id: String { rawValue }
 
@@ -18,6 +19,7 @@ public enum MenuBarIconStyle: String, CaseIterable, Identifiable, Sendable {
         case .cube3D: "3D 큐브"
         case .equalizer: "디지털 이퀄라이저"
         case .hillRunner: "러너 (경사로 질주)"
+        case .sailboat: "종이배 (파도 항해)"
         }
     }
 
@@ -28,7 +30,7 @@ public enum MenuBarIconStyle: String, CaseIterable, Identifiable, Sendable {
         case .vuMeter: "정밀 계측기"
         case .cube3D: "3D 기하학"
         case .equalizer: "디지털 스펙트럼"
-        case .hillRunner: "캐릭터 / 라이프"
+        case .hillRunner, .sailboat: "캐릭터 / 라이프"
         }
     }
 
@@ -40,13 +42,14 @@ public enum MenuBarIconStyle: String, CaseIterable, Identifiable, Sendable {
         case .cube3D: "3차원 대각선 축을 기준으로 와이어프레임 큐브가 자전합니다."
         case .equalizer: "4개의 수직 디지털 바가 연산 및 전력 부하에 맞춰 상하 바운스합니다."
         case .hillRunner: "부하(0%~100%)에 따라 오르막 힘겨운 걸음 → 평지 조깅 → 내리막 폭풍 질주로 지형 경사와 캐릭터 자세가 연속 전환됩니다."
+        case .sailboat: "잔잔한 바다를 순항하다가 시스템 부하가 높아지면 거센 파도와 함께 종이배가 역동적으로 출렁입니다."
         }
     }
 
     public var frameCount: Int {
         switch self {
-        case .pulseWave:
-            return 96 // 4 부하 티어 (1W 저진폭 ~ 풀로드 고진폭) x 24 고해상도 위상 프레임
+        case .pulseWave, .sailboat:
+            return 96 // 4 부하 티어 x 24 고해상도 위상 프레임
         case .turbine, .vuMeter, .cube3D, .equalizer, .hillRunner:
             return 24
         }
@@ -56,6 +59,8 @@ public enum MenuBarIconStyle: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .hillRunner:
             return 8
+        case .sailboat:
+            return 0
         default:
             return 0
         }

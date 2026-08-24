@@ -5,7 +5,7 @@ import Foundation
 struct MenuBarIconStyleTests {
     @Test func allIconStylesHaveValidMetadataAndFrameCounts() {
         let styles = MenuBarIconStyle.allCases
-        #expect(styles.count == 6)
+        #expect(styles.count == 7)
         for style in styles {
             #expect(!style.id.isEmpty)
             #expect(!style.label.isEmpty)
@@ -14,6 +14,16 @@ struct MenuBarIconStyleTests {
             #expect(style.frameCount >= 4)
             #expect(style.staticFrame >= 0 && style.staticFrame < style.frameCount)
         }
+    }
+
+    @Test func sailboatHasSpecificMetadata() {
+        let boat = MenuBarIconStyle.sailboat
+        #expect(boat.rawValue == "sailboat")
+        #expect(boat.label == "종이배 (파도 항해)")
+        #expect(boat.category == "캐릭터 / 라이프")
+        #expect(!boat.summary.isEmpty)
+        #expect(boat.frameCount == 96)
+        #expect(boat.staticFrame == 0)
     }
 
     @Test func hillRunnerHasSpecificMetadata() {
