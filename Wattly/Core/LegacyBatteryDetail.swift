@@ -27,6 +27,7 @@ enum LegacyBatteryDetail {
         case "이 Mac에서 충전 제어를 적용하지 못했습니다": return .init(kind: .applyFailed)
         case "충전 제한 비활성화됨": return .init(kind: .limitDisabled)
         case "배터리 전원으로 구동 중": return .init(kind: .onBatteryPower)
+        case "배터리 온도 센서를 읽을 수 없습니다": return .init(kind: .batterySensorUnreadable)
         case "저장된 충전 정책을 읽지 못해 충전 허용 상태로 복구합니다":
             return .init(kind: .persistenceReadFailed)
         case "충전 정책을 안전하게 저장하지 못했습니다":
@@ -38,7 +39,7 @@ enum LegacyBatteryDetail {
         default: break
         }
 
-        // The two interpolated sentences. A catalog lookup can never match these — the limit is
+        // The interpolated sentences. A catalog lookup can never match these — the parameters are
         // baked into the string — so this is the only path that localizes them.
         if let limit = number(in: detail,
                               between: "충전 제한 ",
@@ -50,6 +51,28 @@ enum LegacyBatteryDetail {
         }
         if let resume = number(in: detail, between: "Sailing 중 (", and: "% 도달 시 충전)") {
             return .init(kind: .sailing, limitPercentage: nil, resumePercentage: resume)
+        }
+        if detail.hasPrefix("발열 보호 중 (배터리 ") && detail.hasSuffix("°C 이하 시 재개)") {
+            let prefixCount = "발열 보호 중 (배터리 ".count
+            let suffixCount = "°C 이하 시 재개)".count
+            if detail.count > prefixCount + suffixCount {
+                let start = detail.index(detail.startIndex, offsetBy: prefixCount)
+                let end = detail.index(detail.endIndex, offsetBy: -suffixCount)
+                let inner = String(detail[start..<end])
+                let parts = inner.components(separatedBy: "°C / ")
+                if parts.count == 2 {
+                    let temp = Double(parts[0])
+                    let resume = Int(parts[1])
+                    if parts[0] == "?" || temp != nil, let resume {
+                        return .init(kind: .heatProtectionActive,
+                                     currentTemperatureCelsius: temp,
+                                     resumeTemperatureCelsius: resume)
+                    }
+                }
+            }
+        }
+        if let remaining = number(in: detail, between: "발열 보호 쿨다운 중 (", and: "초 후 충전 재개)") {
+            return .init(kind: .heatProtectionCooldown, cooldownRemainingSeconds: remaining)
         }
         return nil
     }

@@ -72,6 +72,17 @@ enum BatteryStatusText {
             let resume = Int64(resolved.resumePercentage ?? max(45, Int(target) - 2))
             return String(format: String(localized: "Sailing 중 (%lld%% 도달 시 재충전)", locale: locale),
                           locale: locale, resume)
+        case .heatProtectionActive:
+            let tempStr = resolved.currentTemperatureCelsius.map { String(format: "%.1f", $0) } ?? "?"
+            let resume = Int64(resolved.resumeTemperatureCelsius ?? 34)
+            return String(format: String(localized: "발열 보호 중 (배터리 %@°C, %lld°C 도달 시 재충전)", locale: locale),
+                          locale: locale, tempStr, resume)
+        case .heatProtectionCooldown:
+            let remaining = Int64(resolved.cooldownRemainingSeconds ?? 0)
+            return String(format: String(localized: "발열 보호 쿨다운 중 (%lld초 후 충전 재개)", locale: locale),
+                          locale: locale, remaining)
+        case .batterySensorUnreadable:
+            return String(localized: "배터리 온도 센서를 읽을 수 없습니다", locale: locale)
         case .persistenceReadFailed:
             return String(localized: "저장된 충전 정책을 읽지 못해 충전 허용 상태로 복구합니다", locale: locale)
         case .persistenceWriteFailed:

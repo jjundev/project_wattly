@@ -241,8 +241,13 @@ enum BatterySectionPresentation {
         return sailingRangeDescription(target: limit, resume: resume, locale: locale)
     }
 
+    // MARK: - Heat Protection Helpers
+
+    static let heatProtectionThresholdPresets = [34, 36, 38, 40]
+
     /// 상태 아이콘 + 문구. 설치 → 오류/미지원 → stale → 검증된 activity → 로컬 fallback 순이다.
     static func status(isLimitOn: Bool,
+                       isHeatProtectionOn: Bool = false,
                        isInstalling: Bool,
                        mode: BatteryControlServiceMode,
                        reason: BatteryControlStatusReason?,
@@ -278,6 +283,7 @@ enum BatterySectionPresentation {
         // A zero timestamp is the client's initial state and means "no remote sample". Exactly
         // three polling intervals stays current; only a strictly older sample becomes stale.
         if shouldPollStatus(isLimitOn: isLimitOn,
+                            isHeatProtectionOn: isHeatProtectionOn,
                             mode: mode,
                             isHardwareSupported: isHardwareSupported),
            updatedAt > 0,
@@ -294,7 +300,7 @@ enum BatterySectionPresentation {
 
         // The local toggle is the least authoritative input. It is used only when an old helper
         // sent neither activity nor a recognized reason and the mode carries no finer meaning.
-        if !isLimitOn {
+        if !isLimitOn && !isHeatProtectionOn {
             return Status(indicator: .inactive, text: disabledStatusText(locale: locale))
         }
 
@@ -345,10 +351,11 @@ enum BatterySectionPresentation {
     /// 쓰기 실패)를 함께 뜻하기 때문에, 영구적인 쪽을 걸러내는 일은 위의 `isHardwareSupported`
     /// 확인이 맡는다.
     static func shouldPollStatus(isLimitOn: Bool,
+                                 isHeatProtectionOn: Bool = false,
                                  mode: BatteryControlServiceMode,
                                  isHardwareSupported: Bool?) -> Bool {
         if isHardwareSupported == false { return false }
-        if isLimitOn { return true }
+        if isLimitOn || isHeatProtectionOn { return true }
         switch mode {
         case .inhibited, .unsupported: return true
         case .charging, .unavailable: return false

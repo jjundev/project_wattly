@@ -67,10 +67,18 @@ import AppKit
     public func apply(
         enabled: Bool,
         limitPercentage: Int,
-        lowerHysteresisDelta: Int = 2
+        lowerHysteresisDelta: Int = 2,
+        heatProtectionEnabled: Bool = false,
+        heatProtectionThresholdCelsius: Int = 36
     ) async -> BatteryControlServiceStatus? {
         commandGeneration &+= 1
-        let config = BatteryControlConfiguration(enabled: enabled, limitPercentage: limitPercentage, lowerHysteresisDelta: lowerHysteresisDelta)
+        let config = BatteryControlConfiguration(
+            enabled: enabled,
+            limitPercentage: limitPercentage,
+            lowerHysteresisDelta: lowerHysteresisDelta,
+            heatProtectionEnabled: heatProtectionEnabled,
+            heatProtectionThresholdCelsius: heatProtectionThresholdCelsius
+        )
         let request = BatteryControlConfigurationRequest(configuration: config, generation: commandGeneration)
         guard let data = try? BatteryControlCodec.encode(request) else {
             updateUnavailable("충전 제한 설정을 인코딩할 수 없음")
@@ -86,7 +94,9 @@ import AppKit
         guard let acknowledged = await apply(
             enabled: false,
             limitPercentage: limitPercentage,
-            lowerHysteresisDelta: lowerHysteresisDelta) else {
+            lowerHysteresisDelta: lowerHysteresisDelta,
+            heatProtectionEnabled: false,
+            heatProtectionThresholdCelsius: 36) else {
             return .helperUnavailable
         }
         guard acknowledged.desiredConfiguration?.enabled == false else {
@@ -107,6 +117,8 @@ import AppKit
                 enabled: false,
                 limitPercentage: 100,
                 lowerHysteresisDelta: 2,
+                heatProtectionEnabled: false,
+                heatProtectionThresholdCelsius: 36,
                 transferringOwnership: false,
                 window: window) != nil {
                 return .helperUnavailable
@@ -122,7 +134,13 @@ import AppKit
 
     /// Repairs a helper that restarted and lost its configuration. Reads the helper's state first,
     /// so a healthy helper costs one status call and no SMC traffic at all.
-    public func reconcile(enabled: Bool, limitPercentage: Int, lowerHysteresisDelta: Int = 2) async {
+    public func reconcile(
+        enabled: Bool,
+        limitPercentage: Int,
+        lowerHysteresisDelta: Int = 2,
+        heatProtectionEnabled: Bool = false,
+        heatProtectionThresholdCelsius: Int = 36
+    ) async {
         await refreshStatus()
         // The caller's task may have been cancelled while that read was in flight, and a reconcile
         // is a WRITE — unlike the fan heartbeat this loop is modelled on. Without this check a
@@ -133,13 +151,17 @@ import AppKit
                 configuration: .init(
                     enabled: enabled,
                     limitPercentage: limitPercentage,
-                    lowerHysteresisDelta: lowerHysteresisDelta),
+                    lowerHysteresisDelta: lowerHysteresisDelta,
+                    heatProtectionEnabled: heatProtectionEnabled,
+                    heatProtectionThresholdCelsius: heatProtectionThresholdCelsius),
                 status: status) else { return }
-        if enabled {
+        if enabled || heatProtectionEnabled {
             await apply(
-                enabled: true,
+                enabled: enabled,
                 limitPercentage: limitPercentage,
-                lowerHysteresisDelta: lowerHysteresisDelta)
+                lowerHysteresisDelta: lowerHysteresisDelta,
+                heatProtectionEnabled: heatProtectionEnabled,
+                heatProtectionThresholdCelsius: heatProtectionThresholdCelsius)
         } else {
             _ = await disableAndConfirm(
                 limitPercentage: limitPercentage,
@@ -156,13 +178,20 @@ import AppKit
         enabled: Bool,
         limitPercentage: Int,
         lowerHysteresisDelta: Int = 2,
+        heatProtectionEnabled: Bool = false,
+        heatProtectionThresholdCelsius: Int = 36,
         transferringOwnership: Bool = false,
         window: NSWindow?
     ) async -> InstallFailure? {
         isInstallingHelper = true
         defer { isInstallingHelper = false }
         if let failure = await installHandler(window, transferringOwnership, {
-            await self.apply(enabled: enabled, limitPercentage: limitPercentage, lowerHysteresisDelta: lowerHysteresisDelta)
+            await self.apply(
+                enabled: enabled,
+                limitPercentage: limitPercentage,
+                lowerHysteresisDelta: lowerHysteresisDelta,
+                heatProtectionEnabled: heatProtectionEnabled,
+                heatProtectionThresholdCelsius: heatProtectionThresholdCelsius)
         }) {
             return .install(failure)
         }
@@ -171,7 +200,9 @@ import AppKit
         let configuration = BatteryControlConfiguration(
             enabled: enabled,
             limitPercentage: limitPercentage,
-            lowerHysteresisDelta: lowerHysteresisDelta)
+            lowerHysteresisDelta: lowerHysteresisDelta,
+            heatProtectionEnabled: heatProtectionEnabled,
+            heatProtectionThresholdCelsius: heatProtectionThresholdCelsius)
         guard BatteryControlPolicy.accepted(configuration: configuration, by: status) else {
             return .configureRejected(reason: status.detailReason, detail: status.detail)
         }

@@ -625,4 +625,19 @@ import AppKit
     @Test func sailingPresetsAreValid() {
         #expect(BatterySectionPresentation.sailingDeltaPresets == [2, 5, 10])
     }
+
+    // MARK: - Heat Protection
+
+    @Test func heatProtectionThresholdPresetsAreValid() {
+        #expect(BatterySectionPresentation.heatProtectionThresholdPresets == [34, 36, 38, 40])
+    }
+
+    @Test func shouldPollStatusWhenHeatProtectionIsEnabledEvenIfLimitIsOff() {
+        #expect(BatterySectionPresentation.shouldPollStatus(
+            isLimitOn: false,
+            isHeatProtectionOn: true,
+            mode: .charging,
+            isHardwareSupported: true
+        ) == true)
+    }
 }

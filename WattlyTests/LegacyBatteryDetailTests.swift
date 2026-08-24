@@ -54,6 +54,20 @@ import Foundation
         #expect(parsed?.limitPercentage == nil)
     }
 
+    @Test func parsesLegacyHeatProtectionString() {
+        let parsedActive = LegacyBatteryDetail.reason(from: "발열 보호 중 (배터리 37.5°C / 34°C 이하 시 재개)")
+        #expect(parsedActive?.kind == .heatProtectionActive)
+        #expect(parsedActive?.currentTemperatureCelsius == 37.5)
+        #expect(parsedActive?.resumeTemperatureCelsius == 34)
+
+        let parsedCooldown = LegacyBatteryDetail.reason(from: "발열 보호 쿨다운 중 (120초 후 충전 재개)")
+        #expect(parsedCooldown?.kind == .heatProtectionCooldown)
+        #expect(parsedCooldown?.cooldownRemainingSeconds == 120)
+
+        let parsedUnreadable = LegacyBatteryDetail.reason(from: "배터리 온도 센서를 읽을 수 없습니다")
+        #expect(parsedUnreadable?.kind == .batterySensorUnreadable)
+    }
+
     /// 껍데기는 맞는데 가운데가 숫자가 아닌 경우. nil을 돌려 원문을 그대로 보여줘야 한다.
     @Test func rejectsAMalformedLimit() {
         #expect(LegacyBatteryDetail.reason(from: "충전 제한 팔십% 도달 (전원 어댑터 바이패스 구동)") == nil)

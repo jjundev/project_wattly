@@ -190,6 +190,17 @@ struct SettingsResetTests {
         #expect(d.integer(forKey: StorageKey.batterySailingDelta) == Defaults.batterySailingDelta)
     }
 
+    @Test func resetIncludesHeatProtectionKeys() {
+        let d = makeDefaults(#function)
+        d.set(true, forKey: StorageKey.batteryHeatProtectionEnabled)
+        d.set(40, forKey: StorageKey.batteryHeatProtectionThreshold)
+
+        SettingsReset.applyDefaults(into: d)
+
+        #expect(d.bool(forKey: StorageKey.batteryHeatProtectionEnabled) == Defaults.batteryHeatProtectionEnabled)
+        #expect(d.integer(forKey: StorageKey.batteryHeatProtectionThreshold) == Defaults.batteryHeatProtectionThreshold)
+    }
+
     @Test func resetHidesBatteryEfficiency() {
         let defaults = makeDefaults(#function)
         defaults.set(true, forKey: StorageKey.showBatteryEfficiency)

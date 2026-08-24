@@ -527,4 +527,31 @@ struct BatteryControlClientTests {
             return
         }
     }
+
+    @MainActor @Test func clientSendsHeatProtectionParametersToDaemon() async throws {
+        let receiver = RequestReceiver()
+        let client = BatteryControlClient(requestHandler: { request in
+            await receiver.set(request)
+            let status = BatteryControlServiceStatus(mode: .charging, currentPercentage: 80, isPowerAdapterConnected: true, detail: "OK", updatedAt: Date().timeIntervalSince1970)
+            let data = try? BatteryControlCodec.encode(status)
+            return (data, nil)
+        })
+
+        await client.apply(
+            enabled: false,
+            limitPercentage: 80,
+            lowerHysteresisDelta: 2,
+            heatProtectionEnabled: true,
+            heatProtectionThresholdCelsius: 38
+        )
+        let receivedRequest = await receiver.request
+        if case .configure(let data) = receivedRequest {
+            let req = try BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data)
+            #expect(req.configuration.enabled == false)
+            #expect(req.configuration.heatProtectionEnabled == true)
+            #expect(req.configuration.heatProtectionThresholdCelsius == 38)
+        } else {
+            Issue.record("Expected configure request")
+        }
+    }
 }
