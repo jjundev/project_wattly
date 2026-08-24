@@ -434,6 +434,8 @@ enum Defaults {
     static let batteryLimitPercentage = 80
     static let batterySailingEnabled = false
     static let batterySailingDelta = 5
+    static let batteryHeatProtectionEnabled = false
+    static let batteryHeatProtectionThreshold = 35
 }
 
 /// `@AppStorage` key names. `loginItem` is a mirror of `SMAppService.mainApp`
@@ -467,6 +469,8 @@ enum StorageKey {
     static let batteryLimitPercentage = "batteryLimitPercentage"
     static let batterySailingEnabled = "batterySailingEnabled"
     static let batterySailingDelta = "batterySailingDelta"
+    static let batteryHeatProtectionEnabled = "batteryHeatProtectionEnabled"
+    static let batteryHeatProtectionThreshold = "batteryHeatProtectionThreshold"
     static let menuBatteryTemp = "menu.batteryTemp"
     static let menuMemPressure = "menu.memPressure"
     static let expandedCards = "expandedCards"   // CSV of expanded card raw values (issue 04)

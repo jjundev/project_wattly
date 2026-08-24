@@ -14,6 +14,25 @@ import Testing
         )
     }
 
+    @Test func policyAcceptsHeatProtectionWithoutChargeLimit() {
+        let config = BatteryControlConfiguration(
+            enabled: false,
+            heatProtectionEnabled: true,
+            heatProtectionThresholdCelsius: 36
+        )
+        let status = BatteryControlServiceStatus(
+            mode: .inhibited,
+            currentPercentage: 80,
+            isPowerAdapterConnected: true,
+            detail: "OK",
+            updatedAt: 1000,
+            desiredConfiguration: config,
+            actualGate: .inhibited(appliedLimitPercentage: nil),
+            lastMaintenance: .init(trigger: .clientConfiguration, result: .applied, occurredAt: 1000, reason: nil)
+        )
+        #expect(BatteryControlPolicy.accepted(configuration: config, by: status) == true)
+    }
+
     @Test func reapplyWhenPersistedHysteresisDiffers() {
         let requested = BatteryControlConfiguration(
             enabled: true, limitPercentage: 85, lowerHysteresisDelta: 5)

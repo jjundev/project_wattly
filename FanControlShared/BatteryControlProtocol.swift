@@ -4,11 +4,43 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
     public var enabled: Bool
     public var limitPercentage: Int
     public var lowerHysteresisDelta: Int
+    public var heatProtectionEnabled: Bool
+    public var heatProtectionThresholdCelsius: Int
+    public var heatProtectionResumeDeltaCelsius: Int
+    public var heatProtectionMinCooldownSeconds: TimeInterval
 
-    public init(enabled: Bool = false, limitPercentage: Int = 80, lowerHysteresisDelta: Int = 2) {
+    public init(
+        enabled: Bool = false,
+        limitPercentage: Int = 80,
+        lowerHysteresisDelta: Int = 2,
+        heatProtectionEnabled: Bool = false,
+        heatProtectionThresholdCelsius: Int = 35,
+        heatProtectionResumeDeltaCelsius: Int = 2,
+        heatProtectionMinCooldownSeconds: TimeInterval = 300.0
+    ) {
         self.enabled = enabled
         self.limitPercentage = limitPercentage
         self.lowerHysteresisDelta = lowerHysteresisDelta
+        self.heatProtectionEnabled = heatProtectionEnabled
+        self.heatProtectionThresholdCelsius = heatProtectionThresholdCelsius
+        self.heatProtectionResumeDeltaCelsius = heatProtectionResumeDeltaCelsius
+        self.heatProtectionMinCooldownSeconds = heatProtectionMinCooldownSeconds
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case enabled, limitPercentage, lowerHysteresisDelta
+        case heatProtectionEnabled, heatProtectionThresholdCelsius, heatProtectionResumeDeltaCelsius, heatProtectionMinCooldownSeconds
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        enabled = (try? container.decode(Bool.self, forKey: .enabled)) ?? false
+        limitPercentage = (try? container.decode(Int.self, forKey: .limitPercentage)) ?? 80
+        lowerHysteresisDelta = (try? container.decode(Int.self, forKey: .lowerHysteresisDelta)) ?? 2
+        heatProtectionEnabled = (try? container.decodeIfPresent(Bool.self, forKey: .heatProtectionEnabled)) ?? false
+        heatProtectionThresholdCelsius = (try? container.decodeIfPresent(Int.self, forKey: .heatProtectionThresholdCelsius)) ?? 35
+        heatProtectionResumeDeltaCelsius = (try? container.decodeIfPresent(Int.self, forKey: .heatProtectionResumeDeltaCelsius)) ?? 2
+        heatProtectionMinCooldownSeconds = (try? container.decodeIfPresent(TimeInterval.self, forKey: .heatProtectionMinCooldownSeconds)) ?? 300.0
     }
 
     /// Range-clamped copy. Configurations reach the root daemon through the synthesized
@@ -18,19 +50,34 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         var copy = self
         copy.limitPercentage = Self.clampLimit(limitPercentage)
         copy.lowerHysteresisDelta = Self.clampDelta(lowerHysteresisDelta)
+        copy.heatProtectionThresholdCelsius = Self.clampThreshold(heatProtectionThresholdCelsius)
+        copy.heatProtectionResumeDeltaCelsius = Self.clampResumeDelta(heatProtectionResumeDeltaCelsius)
+        copy.heatProtectionMinCooldownSeconds = Self.clampCooldown(heatProtectionMinCooldownSeconds)
         return copy
     }
 
-    public var clampedLimitPercentage: Int {
-        Self.clampLimit(limitPercentage)
+    public var isActive: Bool {
+        enabled || heatProtectionEnabled
     }
+
+    public var clampedLimitPercentage: Int { Self.clampLimit(limitPercentage) }
+    public var clampedHeatProtectionThresholdCelsius: Int { Self.clampThreshold(heatProtectionThresholdCelsius) }
+    public var clampedHeatProtectionResumeDeltaCelsius: Int { Self.clampResumeDelta(heatProtectionResumeDeltaCelsius) }
+    public var clampedHeatProtectionMinCooldownSeconds: TimeInterval { Self.clampCooldown(heatProtectionMinCooldownSeconds) }
 
     public var resumePercentage: Int {
         max(45, clampedLimitPercentage - Self.clampDelta(lowerHysteresisDelta))
     }
 
+    public var resumeTemperatureCelsius: Int {
+        max(20, clampedHeatProtectionThresholdCelsius - clampedHeatProtectionResumeDeltaCelsius)
+    }
+
     private static func clampLimit(_ value: Int) -> Int { max(50, min(100, value)) }
     private static func clampDelta(_ value: Int) -> Int { max(1, min(10, value)) }
+    private static func clampThreshold(_ value: Int) -> Int { max(30, min(45, value)) }
+    private static func clampResumeDelta(_ value: Int) -> Int { max(1, min(5, value)) }
+    private static func clampCooldown(_ value: TimeInterval) -> TimeInterval { max(60, min(1800, value)) }
 }
 
 public struct BatteryControlConfigurationRequest: Codable, Equatable, Sendable {
@@ -246,6 +293,7 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
     public var releaseVerification: BatteryReleaseVerification?
     public var lastMaintenance: BatteryMaintenanceRecord?
     public var capabilities: [BatteryControlCapability]?
+    public var batteryTemperatureCelsius: Double?
 
     public init(
         mode: BatteryControlServiceMode,
@@ -262,7 +310,8 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
         releaseVerdict: BatteryReleaseVerdict? = nil,
         releaseVerification: BatteryReleaseVerification? = nil,
         lastMaintenance: BatteryMaintenanceRecord? = nil,
-        capabilities: [BatteryControlCapability]? = nil
+        capabilities: [BatteryControlCapability]? = nil,
+        batteryTemperatureCelsius: Double? = nil
     ) {
         self.mode = mode
         self.currentPercentage = currentPercentage
@@ -279,6 +328,7 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
         self.releaseVerification = releaseVerification
         self.lastMaintenance = lastMaintenance
         self.capabilities = capabilities
+        self.batteryTemperatureCelsius = batteryTemperatureCelsius
     }
 }
 

@@ -527,4 +527,51 @@ struct BatteryControlClientTests {
             return
         }
     }
+
+    @MainActor @Test func clientSendsHeatProtectionParametersToDaemon() async throws {
+        let receiver = RequestReceiver()
+        let client = BatteryControlClient(requestHandler: { request in
+            await receiver.set(request)
+            let status = BatteryControlServiceStatus(mode: .charging, currentPercentage: 80, isPowerAdapterConnected: true, detail: "OK", updatedAt: Date().timeIntervalSince1970)
+            let data = try? BatteryControlCodec.encode(status)
+            return (data, nil)
+        })
+
+        await client.apply(
+            enabled: false,
+            limitPercentage: 80,
+            lowerHysteresisDelta: 2,
+            heatProtectionEnabled: true,
+            heatProtectionThresholdCelsius: 38
+        )
+        let receivedRequest = await receiver.request
+        if case .configure(let data) = receivedRequest {
+            let req = try BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data)
+            #expect(req.configuration.enabled == false)
+            #expect(req.configuration.heatProtectionEnabled == true)
+            #expect(req.configuration.heatProtectionThresholdCelsius == 38)
+        } else {
+            Issue.record("Expected configure request")
+        }
+    }
+
+    @MainActor @Test func clientApplyUsesDefaultThreshold35() async {
+        let receiver = RequestReceiver()
+        let client = BatteryControlClient(requestHandler: { request in
+            await receiver.set(request)
+            let status = BatteryControlServiceStatus(
+                mode: .charging, currentPercentage: 50, isPowerAdapterConnected: true,
+                detail: "ok", updatedAt: 100
+            )
+            return (try? BatteryControlCodec.encode(status), nil)
+        })
+        await client.apply(enabled: true, limitPercentage: 80, lowerHysteresisDelta: 5, heatProtectionEnabled: true)
+        let recordedRequest = await receiver.request
+        if case .configure(let data) = recordedRequest,
+           let decoded = try? BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data) {
+            #expect(decoded.configuration.heatProtectionThresholdCelsius == 35)
+        } else {
+            Issue.record("Expected configure request with decoded config")
+        }
+    }
 }

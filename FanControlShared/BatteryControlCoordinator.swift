@@ -44,20 +44,23 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
 
     public func restore(
         currentSoC: Int,
-        isPluggedIn: Bool
+        isPluggedIn: Bool,
+        temperatureCelsius: Double? = nil
     ) -> BatteryControlServiceStatus {
         do {
             let (desired, ownershipFailure) = try resolvedStoredPolicy()
             engine.configure(desired)
-            if !desired.enabled {
+            if !desired.isActive {
                 return publishDisabledRestore(
                     currentSoC: currentSoC,
                     isPluggedIn: isPluggedIn,
+                    temperatureCelsius: temperatureCelsius,
                     resolutionFailure: ownershipFailure)
             }
             let status = engine.verifyAndUpdate(
                 currentSoC: currentSoC,
-                isPluggedIn: isPluggedIn)
+                isPluggedIn: isPluggedIn,
+                temperatureCelsius: temperatureCelsius)
             let failure = ownershipFailure ?? hardwareFailureReason(in: status)
             return publish(
                 status,
@@ -78,6 +81,7 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
             return publishDisabledRestore(
                 currentSoC: currentSoC,
                 isPluggedIn: isPluggedIn,
+                temperatureCelsius: temperatureCelsius,
                 resolutionFailure: .init(kind: .persistenceReadFailed))
         }
     }
@@ -87,7 +91,7 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
             let (desired, ownershipFailure) = try resolvedStoredPolicy()
             engine.configure(desired)
             let gate = engine.hydrateHardwareState()
-            if !desired.enabled {
+            if !desired.isActive {
                 let verification = engine.releaseVerified()
                 let reason = ownershipFailure
                     ?? (verification.isSafeToRemove
@@ -136,7 +140,8 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         _ requested: BatteryControlConfiguration,
         trigger: BatteryMaintenanceTrigger,
         currentSoC: Int,
-        isPluggedIn: Bool
+        isPluggedIn: Bool,
+        temperatureCelsius: Double? = nil
     ) -> BatteryControlServiceStatus {
         let normalized = requested.normalized
         do {
@@ -158,11 +163,12 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         }
 
         engine.configure(normalized)
-        if !normalized.enabled {
+        if !normalized.isActive {
             let verification = engine.releaseVerified()
             var status = engine.statusForCurrentBelief(
                 currentSoC: currentSoC,
-                isPluggedIn: isPluggedIn)
+                isPluggedIn: isPluggedIn,
+                temperatureCelsius: temperatureCelsius)
             status.releaseVerdict = verification.verdict
             status.releaseVerification = verification
             if verification.verdict == .verifiedAllowed {
@@ -177,7 +183,8 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         }
         let status = engine.verifyAndUpdate(
             currentSoC: currentSoC,
-            isPluggedIn: isPluggedIn)
+            isPluggedIn: isPluggedIn,
+            temperatureCelsius: temperatureCelsius)
         let failure = hardwareFailureReason(in: status)
         return publish(
             status,
@@ -211,7 +218,7 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
 
         engine.configure(normalized)
         let gate = engine.hydrateHardwareState()
-        if !normalized.enabled {
+        if !normalized.isActive {
             let verification = engine.releaseVerified()
             return publish(
                 statusForMissingPowerSource(
@@ -232,11 +239,13 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
 
     public func sample(
         currentSoC: Int,
-        isPluggedIn: Bool
+        isPluggedIn: Bool,
+        temperatureCelsius: Double? = nil
     ) -> BatteryControlServiceStatus {
         var status = engine.update(
             currentSoC: currentSoC,
-            isPluggedIn: isPluggedIn)
+            isPluggedIn: isPluggedIn,
+            temperatureCelsius: temperatureCelsius)
         status.desiredConfiguration = engine.configuration
         status.lastMaintenance = latestStatus.lastMaintenance
         status.capabilities = Self.capabilities
@@ -247,14 +256,16 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
     public func reconcile(
         trigger: BatteryMaintenanceTrigger,
         currentSoC: Int,
-        isPluggedIn: Bool
+        isPluggedIn: Bool,
+        temperatureCelsius: Double? = nil
     ) -> BatteryControlServiceStatus {
         if trigger == .wake || trigger == .adapterTransition {
             engine.beginRecoveryWindow()
         }
         let status = engine.verifyAndUpdate(
             currentSoC: currentSoC,
-            isPluggedIn: isPluggedIn)
+            isPluggedIn: isPluggedIn,
+            temperatureCelsius: temperatureCelsius)
         let failure = hardwareFailureReason(in: status)
         return publish(
             status,
@@ -327,12 +338,14 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
     private func publishDisabledRestore(
         currentSoC: Int,
         isPluggedIn: Bool,
+        temperatureCelsius: Double? = nil,
         resolutionFailure: BatteryControlStatusReason?
     ) -> BatteryControlServiceStatus {
         let verification = engine.releaseVerified()
         var status = engine.statusForCurrentBelief(
             currentSoC: currentSoC,
-            isPluggedIn: isPluggedIn)
+            isPluggedIn: isPluggedIn,
+            temperatureCelsius: temperatureCelsius)
         status.releaseVerdict = verification.verdict
         status.releaseVerification = verification
         if verification.verdict == .verifiedAllowed {
@@ -398,12 +411,12 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         switch status.detailReason?.kind {
         case .applyFailed, .releaseFailed, .hardwareReadbackFailed:
             return status.detailReason
-        case .hardwareUnsupported where engine.configuration.enabled:
+        case .hardwareUnsupported where engine.configuration.isActive:
             return status.detailReason
         default:
             break
         }
-        if engine.configuration.enabled, status.actualGate == nil {
+        if engine.configuration.isActive, status.actualGate == nil {
             return .init(kind: .hardwareReadbackFailed)
         }
         guard status.actualGate?.state != .unreadable,

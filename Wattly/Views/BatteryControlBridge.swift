@@ -14,6 +14,8 @@ struct BatteryControlBridge: View {
     @AppStorage(StorageKey.batteryLimitPercentage) private var limit = Defaults.batteryLimitPercentage
     @AppStorage(StorageKey.batterySailingEnabled) private var sailingEnabled = Defaults.batterySailingEnabled
     @AppStorage(StorageKey.batterySailingDelta) private var sailingDelta = Defaults.batterySailingDelta
+    @AppStorage(StorageKey.batteryHeatProtectionEnabled) private var heatProtectionEnabled = Defaults.batteryHeatProtectionEnabled
+    @AppStorage(StorageKey.batteryHeatProtectionThreshold) private var heatProtectionThreshold = Defaults.batteryHeatProtectionThreshold
 
     private var effectiveDelta: Int {
         sailingEnabled ? sailingDelta : 2
@@ -23,7 +25,9 @@ struct BatteryControlBridge: View {
         BatteryControlConfiguration(
             enabled: enabled,
             limitPercentage: limit,
-            lowerHysteresisDelta: effectiveDelta)
+            lowerHysteresisDelta: effectiveDelta,
+            heatProtectionEnabled: heatProtectionEnabled,
+            heatProtectionThresholdCelsius: heatProtectionThreshold)
     }
 
     static func wakeAction(
@@ -33,7 +37,7 @@ struct BatteryControlBridge: View {
         if BatteryControlPolicy.supportsPersistentPolicy(status: status) {
             return .refreshStatus
         }
-        return configuration.enabled ? .apply : .disableAndConfirm
+        return configuration.isActive ? .apply : .disableAndConfirm
     }
 
     var body: some View {
@@ -45,11 +49,13 @@ struct BatteryControlBridge: View {
                 let requested = configuration
                 guard BatteryControlPolicy.shouldReapply(
                     configuration: requested, status: client.status) else { return }
-                if requested.enabled {
+                if requested.isActive {
                     await client.apply(
-                        enabled: true,
+                        enabled: requested.enabled,
                         limitPercentage: requested.limitPercentage,
-                        lowerHysteresisDelta: requested.lowerHysteresisDelta)
+                        lowerHysteresisDelta: requested.lowerHysteresisDelta,
+                        heatProtectionEnabled: requested.heatProtectionEnabled,
+                        heatProtectionThresholdCelsius: requested.heatProtectionThresholdCelsius)
                 } else {
                     _ = await client.disableAndConfirm(
                         limitPercentage: requested.limitPercentage,
@@ -58,10 +64,12 @@ struct BatteryControlBridge: View {
             }
             .onChange(of: enabled) { _, val in
                 Task {
-                    if val {
+                    if val || heatProtectionEnabled {
                         await client.apply(
-                            enabled: true, limitPercentage: limit,
-                            lowerHysteresisDelta: effectiveDelta)
+                            enabled: val, limitPercentage: limit,
+                            lowerHysteresisDelta: effectiveDelta,
+                            heatProtectionEnabled: heatProtectionEnabled,
+                            heatProtectionThresholdCelsius: heatProtectionThreshold)
                     } else {
                         _ = await client.disableAndConfirm(
                             limitPercentage: limit,
@@ -71,10 +79,12 @@ struct BatteryControlBridge: View {
             }
             .onChange(of: limit) { _, val in
                 Task {
-                    if enabled {
+                    if enabled || heatProtectionEnabled {
                         await client.apply(
-                            enabled: true, limitPercentage: val,
-                            lowerHysteresisDelta: effectiveDelta)
+                            enabled: enabled, limitPercentage: val,
+                            lowerHysteresisDelta: effectiveDelta,
+                            heatProtectionEnabled: heatProtectionEnabled,
+                            heatProtectionThresholdCelsius: heatProtectionThreshold)
                     } else {
                         _ = await client.disableAndConfirm(
                             limitPercentage: val,
@@ -85,10 +95,12 @@ struct BatteryControlBridge: View {
             .onChange(of: sailingEnabled) { _, isSailing in
                 let delta = isSailing ? sailingDelta : 2
                 Task {
-                    if enabled {
+                    if enabled || heatProtectionEnabled {
                         await client.apply(
-                            enabled: true, limitPercentage: limit,
-                            lowerHysteresisDelta: delta)
+                            enabled: enabled, limitPercentage: limit,
+                            lowerHysteresisDelta: delta,
+                            heatProtectionEnabled: heatProtectionEnabled,
+                            heatProtectionThresholdCelsius: heatProtectionThreshold)
                     } else {
                         _ = await client.disableAndConfirm(
                             limitPercentage: limit,
@@ -99,14 +111,46 @@ struct BatteryControlBridge: View {
             .onChange(of: sailingDelta) { _, newDelta in
                 guard sailingEnabled else { return }
                 Task {
-                    if enabled {
+                    if enabled || heatProtectionEnabled {
                         await client.apply(
-                            enabled: true, limitPercentage: limit,
-                            lowerHysteresisDelta: newDelta)
+                            enabled: enabled, limitPercentage: limit,
+                            lowerHysteresisDelta: newDelta,
+                            heatProtectionEnabled: heatProtectionEnabled,
+                            heatProtectionThresholdCelsius: heatProtectionThreshold)
                     } else {
                         _ = await client.disableAndConfirm(
                             limitPercentage: limit,
                             lowerHysteresisDelta: newDelta)
+                    }
+                }
+            }
+            .onChange(of: heatProtectionEnabled) { _, isHeatEnabled in
+                Task {
+                    if enabled || isHeatEnabled {
+                        await client.apply(
+                            enabled: enabled, limitPercentage: limit,
+                            lowerHysteresisDelta: effectiveDelta,
+                            heatProtectionEnabled: isHeatEnabled,
+                            heatProtectionThresholdCelsius: heatProtectionThreshold)
+                    } else {
+                        _ = await client.disableAndConfirm(
+                            limitPercentage: limit,
+                            lowerHysteresisDelta: effectiveDelta)
+                    }
+                }
+            }
+            .onChange(of: heatProtectionThreshold) { _, threshold in
+                Task {
+                    if enabled || heatProtectionEnabled {
+                        await client.apply(
+                            enabled: enabled, limitPercentage: limit,
+                            lowerHysteresisDelta: effectiveDelta,
+                            heatProtectionEnabled: heatProtectionEnabled,
+                            heatProtectionThresholdCelsius: threshold)
+                    } else {
+                        _ = await client.disableAndConfirm(
+                            limitPercentage: limit,
+                            lowerHysteresisDelta: effectiveDelta)
                     }
                 }
             }
@@ -118,7 +162,9 @@ struct BatteryControlBridge: View {
                     case .apply:
                         await client.apply(
                             enabled: enabled, limitPercentage: limit,
-                            lowerHysteresisDelta: effectiveDelta)
+                            lowerHysteresisDelta: effectiveDelta,
+                            heatProtectionEnabled: heatProtectionEnabled,
+                            heatProtectionThresholdCelsius: heatProtectionThreshold)
                     case .disableAndConfirm:
                         let requested = configuration
                         _ = await client.disableAndConfirm(
@@ -131,7 +177,7 @@ struct BatteryControlBridge: View {
             // crash) and nothing else would notice: `onChange` needs a user edit, the wake handler
             // needs a sleep. The id covers BOTH values so an edit mid-loop restarts the task —
             // otherwise a stale captured `limit` could be reconciled back over the new one.
-            .task(id: "\(enabled)-\(limit)-\(sailingEnabled)-\(sailingDelta)") {
+            .task(id: "\(enabled)-\(limit)-\(sailingEnabled)-\(sailingDelta)-\(heatProtectionEnabled)-\(heatProtectionThreshold)") {
                 var consecutiveUnsupported = 0
                 while !Task.isCancelled {
                     try? await Task.sleep(
@@ -142,7 +188,9 @@ struct BatteryControlBridge: View {
                     await client.reconcile(
                         enabled: enabled,
                         limitPercentage: limit,
-                        lowerHysteresisDelta: effectiveDelta)
+                        lowerHysteresisDelta: effectiveDelta,
+                        heatProtectionEnabled: heatProtectionEnabled,
+                        heatProtectionThresholdCelsius: heatProtectionThreshold)
                     // A Mac that rejects the write will keep rejecting it; back the cadence off
                     // rather than re-arming its budget every minute forever.
                     consecutiveUnsupported = client.status.mode == .unsupported

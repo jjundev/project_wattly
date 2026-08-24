@@ -818,4 +818,18 @@ struct BatteryControlCoordinatorTests {
             isPluggedIn: true)
         #expect(failing.needsSampling)
     }
+
+    @Test func coordinatorDoesNotReleaseHardwareWhenHeatProtectionIsActiveWithoutChargeLimit() {
+        let store = PolicyStoreSpy()
+        let hw = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: hw)
+        let coordinator = BatteryControlCoordinator(ownerUID: 501, store: store, engine: engine, now: { 1000 })
+
+        let config = BatteryControlConfiguration(enabled: false, heatProtectionEnabled: true)
+        let status = coordinator.configure(config, trigger: .clientConfiguration, currentSoC: 50, isPluggedIn: true, temperatureCelsius: 37.0)
+
+        #expect(status.mode == .inhibited)
+        #expect(status.activity == .heatProtection)
+        #expect(hw.lastInhibited == true)
+    }
 }

@@ -53,4 +53,12 @@ import Testing
         #expect(BatteryControlActivity.inferred(from: reason) == .sailing)
         #expect(BatteryControlActivity.resolved(explicit: nil, reason: reason) == .sailing)
     }
+
+    @Test func heatProtectionReasonsInferHeatProtectionActivity() {
+        let activeReason = BatteryControlStatusReason(kind: .heatProtectionActive)
+        #expect(BatteryControlActivity.inferred(from: activeReason) == .heatProtection)
+
+        let cooldownReason = BatteryControlStatusReason(kind: .heatProtectionCooldown)
+        #expect(BatteryControlActivity.inferred(from: cooldownReason) == .heatProtection)
+    }
 }

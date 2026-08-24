@@ -31,6 +31,8 @@ public final class BatteryControlEngine: @unchecked Sendable {
     private var consecutiveWriteFailures: Int = 0
     private var failureProvenance: FailureProvenance?
     private var lastVerifiedGate: BatteryHardwareGate?
+    private var isInHeatProtection: Bool = false
+    private var heatProtectionTriggeredAt: TimeInterval?
 
     private var isWriteLatched: Bool {
         consecutiveWriteFailures >= Self.maxConsecutiveWriteFailures
@@ -40,7 +42,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
     /// hardware is still inhibiting and the release will not land — the state where the Mac
     /// silently refuses to charge. A failure on work nobody asked for stays quiet.
     private var hasActionableFailure: Bool {
-        lastWriteFailed && (config.enabled || isCurrentlyInhibited)
+        lastWriteFailed && (config.isActive || isCurrentlyInhibited)
     }
 
     /// A permanent fact about the Mac, not a state the engine can retry its way out of. Public
@@ -63,12 +65,16 @@ public final class BatteryControlEngine: @unchecked Sendable {
 
     func statusForCurrentBelief(
         currentSoC: Int,
-        isPluggedIn: Bool
+        isPluggedIn: Bool,
+        temperatureCelsius: Double? = nil,
+        now: TimeInterval = Date().timeIntervalSince1970
     ) -> BatteryControlServiceStatus {
         status(
             currentSoC: currentSoC,
             isPluggedIn: isPluggedIn,
-            target: config.clampedLimitPercentage)
+            target: config.clampedLimitPercentage,
+            temperatureCelsius: temperatureCelsius,
+            now: now)
     }
 
     public func beginRecoveryWindow() {
@@ -106,13 +112,17 @@ public final class BatteryControlEngine: @unchecked Sendable {
 
     public func verifyAndUpdate(
         currentSoC: Int,
-        isPluggedIn: Bool
+        isPluggedIn: Bool,
+        temperatureCelsius: Double? = nil,
+        now: TimeInterval = Date().timeIntervalSince1970
     ) -> BatteryControlServiceStatus {
         guard isHardwareSupported else {
             return status(
                 currentSoC: currentSoC,
                 isPluggedIn: isPluggedIn,
-                target: config.clampedLimitPercentage)
+                target: config.clampedLimitPercentage,
+                temperatureCelsius: temperatureCelsius,
+                now: now)
         }
         let gate = hydrateHardwareState()
         if gate.state == .inhibited {
@@ -125,7 +135,9 @@ public final class BatteryControlEngine: @unchecked Sendable {
                     return status(
                         currentSoC: currentSoC,
                         isPluggedIn: isPluggedIn,
-                        target: config.clampedLimitPercentage)
+                        target: config.clampedLimitPercentage,
+                        temperatureCelsius: temperatureCelsius,
+                        now: now)
                 }
                 isCurrentlyInhibited = false
                 hasInitializedState = true
@@ -134,9 +146,11 @@ public final class BatteryControlEngine: @unchecked Sendable {
         guard hasInitializedState else {
             return verificationFailureStatus(
                 currentSoC: currentSoC,
-                isPluggedIn: isPluggedIn)
+                isPluggedIn: isPluggedIn,
+                temperatureCelsius: temperatureCelsius,
+                now: now)
         }
-        return update(currentSoC: currentSoC, isPluggedIn: isPluggedIn)
+        return update(currentSoC: currentSoC, isPluggedIn: isPluggedIn, temperatureCelsius: temperatureCelsius, now: now)
     }
 
     /// True while the engine still has something a fresh power reading could change. With the
@@ -149,7 +163,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
         // the daemon for one. The XPC status path forces a sample regardless, so the settings
         // screen still gets a fresh answer to show.
         guard isHardwareSupported else { return false }
-        return config.enabled || isCurrentlyInhibited || (!hasInitializedState && !isWriteLatched)
+        return config.isActive || isCurrentlyInhibited || (!hasInitializedState && !isWriteLatched)
     }
 
     public func configure(_ newConfig: BatteryControlConfiguration) {
@@ -162,31 +176,68 @@ public final class BatteryControlEngine: @unchecked Sendable {
     /// Legacy wake entry point retained until the daemon moves to `verifyAndUpdate`. It reasserts
     /// only a believed active hold and still verifies the write through `attemptWrite`.
     public func reassertHardwareState() {
-        guard config.enabled, isCurrentlyInhibited else { return }
+        guard config.isActive, isCurrentlyInhibited else { return }
         if !attemptWrite(inhibited: true, targetLimit: config.clampedLimitPercentage) {
             // The reassertion did not verify, so the next update must rebuild a known baseline.
             hasInitializedState = false
         }
     }
 
-    public func update(currentSoC: Int, isPluggedIn: Bool) -> BatteryControlServiceStatus {
+    public func update(
+        currentSoC: Int,
+        isPluggedIn: Bool,
+        temperatureCelsius: Double? = nil,
+        now: TimeInterval = Date().timeIntervalSince1970
+    ) -> BatteryControlServiceStatus {
         // No register means no write can ever succeed. Short-circuit before the normalization gate
         // so the budget is not spent proving a permanent fact three times over.
         guard isHardwareSupported else {
             return status(currentSoC: currentSoC, isPluggedIn: isPluggedIn,
-                          target: config.clampedLimitPercentage)
+                          target: config.clampedLimitPercentage, temperatureCelsius: temperatureCelsius, now: now)
         }
 
         // Until the hardware is confirmed at a known state the state machine cannot be trusted, so
         // it does not run at all. This also keeps a failing normalization from spending the write
         // budget on a transition whose starting point is a guess.
         guard normalizeOnFirstUpdate() else {
-            return status(currentSoC: currentSoC, isPluggedIn: isPluggedIn, target: config.clampedLimitPercentage)
+            return status(currentSoC: currentSoC, isPluggedIn: isPluggedIn,
+                          target: config.clampedLimitPercentage, temperatureCelsius: temperatureCelsius, now: now)
         }
 
+        // 1. Evaluate Heat Protection
+        if config.heatProtectionEnabled && isPluggedIn {
+            if let temp = temperatureCelsius {
+                let threshold = Double(config.clampedHeatProtectionThresholdCelsius)
+                let resumeTemp = Double(config.resumeTemperatureCelsius)
+                let minCooldown = config.clampedHeatProtectionMinCooldownSeconds
+
+                if !isInHeatProtection && temp >= threshold {
+                    isInHeatProtection = true
+                    heatProtectionTriggeredAt = now
+                } else if isInHeatProtection {
+                    let elapsed = now - (heatProtectionTriggeredAt ?? now)
+                    let cooledDown = temp <= resumeTemp
+                    let cooldownElapsed = elapsed >= minCooldown
+                    if cooledDown && cooldownElapsed {
+                        isInHeatProtection = false
+                        heatProtectionTriggeredAt = nil
+                    }
+                }
+            } else if isInHeatProtection {
+                // Fail-Closed: keep heat protection active, preserve heatProtectionTriggeredAt
+                isInHeatProtection = true
+            }
+        } else {
+            isInHeatProtection = false
+            heatProtectionTriggeredAt = nil
+        }
+
+        // 2. Evaluate shouldInhibit
         let target = config.clampedLimitPercentage
         let shouldInhibit: Bool
-        if config.enabled && isPluggedIn {
+        if isInHeatProtection {
+            shouldInhibit = true
+        } else if config.enabled && isPluggedIn {
             // Hysteresis: cross up at the target, come back down only at the resume threshold.
             shouldInhibit = isCurrentlyInhibited
                 ? currentSoC > config.resumePercentage
@@ -212,7 +263,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
             }
         }
 
-        return status(currentSoC: currentSoC, isPluggedIn: isPluggedIn, target: target)
+        return status(currentSoC: currentSoC, isPluggedIn: isPluggedIn, target: target, temperatureCelsius: temperatureCelsius, now: now)
     }
 
     /// Hands the hardware back to a known state before the state machine runs for the first time.
@@ -304,12 +355,41 @@ public final class BatteryControlEngine: @unchecked Sendable {
         return true
     }
 
-    private func detailReason(isPluggedIn: Bool, target: Int, currentSoC: Int) -> BatteryControlStatusReason {
+    private func detailReason(
+        isPluggedIn: Bool,
+        target: Int,
+        currentSoC: Int,
+        temperatureCelsius: Double?,
+        now: TimeInterval
+    ) -> BatteryControlStatusReason {
         if !isHardwareSupported { return .init(kind: .hardwareUnsupported) }
         if hasActionableFailure {
             // A failed release is the opposite failure from a failed apply: control IS applied and
             // stuck on, so telling the user it could not be applied would be actively misleading.
             return .init(kind: isCurrentlyInhibited ? .releaseFailed : .applyFailed)
+        }
+        if isInHeatProtection {
+            guard let temp = temperatureCelsius else {
+                return .init(kind: .batterySensorUnreadable)
+            }
+            let threshold = config.clampedHeatProtectionThresholdCelsius
+            let resume = config.resumeTemperatureCelsius
+            let elapsed = now - (heatProtectionTriggeredAt ?? now)
+            let remainingCooldown = max(0, Int((config.clampedHeatProtectionMinCooldownSeconds - elapsed).rounded()))
+
+            if temp <= Double(resume) && remainingCooldown > 0 {
+                return .init(
+                    kind: .heatProtectionCooldown,
+                    currentTemperatureCelsius: temp,
+                    cooldownRemainingSeconds: remainingCooldown
+                )
+            }
+            return .init(
+                kind: .heatProtectionActive,
+                currentTemperatureCelsius: temp,
+                thresholdTemperatureCelsius: threshold,
+                resumeTemperatureCelsius: resume
+            )
         }
         if isCurrentlyInhibited {
             if currentSoC < target {
@@ -323,8 +403,14 @@ public final class BatteryControlEngine: @unchecked Sendable {
             : .init(kind: .onBatteryPower)
     }
 
-    private func status(currentSoC: Int, isPluggedIn: Bool, target: Int) -> BatteryControlServiceStatus {
-        let reason = detailReason(isPluggedIn: isPluggedIn, target: target, currentSoC: currentSoC)
+    private func status(
+        currentSoC: Int,
+        isPluggedIn: Bool,
+        target: Int,
+        temperatureCelsius: Double?,
+        now: TimeInterval
+    ) -> BatteryControlServiceStatus {
+        let reason = detailReason(isPluggedIn: isPluggedIn, target: target, currentSoC: currentSoC, temperatureCelsius: temperatureCelsius, now: now)
         let mode: BatteryControlServiceMode
         if !isHardwareSupported || hasActionableFailure {
             mode = .unsupported
@@ -351,13 +437,16 @@ public final class BatteryControlEngine: @unchecked Sendable {
             // The reason is already the single authoritative decision for this sample. Deriving
             // activity here keeps the new app, the legacy sentence, and the hardware mode aligned.
             activity: BatteryControlActivity.inferred(from: reason),
-            actualGate: lastVerifiedGate
+            actualGate: lastVerifiedGate,
+            batteryTemperatureCelsius: temperatureCelsius
         )
     }
 
     private func verificationFailureStatus(
         currentSoC: Int,
-        isPluggedIn: Bool
+        isPluggedIn: Bool,
+        temperatureCelsius: Double? = nil,
+        now: TimeInterval = Date().timeIntervalSince1970
     ) -> BatteryControlServiceStatus {
         let reason = BatteryControlStatusReason(kind: .hardwareReadbackFailed)
         return BatteryControlServiceStatus(
@@ -370,6 +459,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
             isHardwareSupported: isHardwareSupported,
             detailReason: reason,
             activity: nil,
-            actualGate: lastVerifiedGate ?? .unreadable)
+            actualGate: lastVerifiedGate ?? .unreadable,
+            batteryTemperatureCelsius: temperatureCelsius)
     }
 }

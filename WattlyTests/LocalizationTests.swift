@@ -286,4 +286,12 @@ struct LocalizationTests {
                 == "Not connected to helper")
         #expect(String(localized: "도우미 응답 오류", locale: Locale(identifier: "en")) == "Helper response error")
     }
+
+    @Test func heatProtectionTranslationsAcrossLocales() {
+        #expect(String(localized: "발열 보호 (Heat Protection)", locale: Locale(identifier: "en")) == "Heat Protection")
+        #expect(String(localized: "배터리 온도가 설정값을 초과하면 충전을 일시 중단하여 배터리 수명을 보호합니다.", locale: Locale(identifier: "en")) != "")
+        #expect(String(localized: "보호 시작 온도", locale: Locale(identifier: "en")) == "Protection Start Temperature")
+        #expect(String(localized: "보호 시작 온도", locale: Locale(identifier: "ja")) == "保護開始温度")
+        #expect(String(localized: "%lld°C 초과 시 정지, %lld°C 이하 시 재개", locale: Locale(identifier: "en")).contains("%lld"))
+    }
 }

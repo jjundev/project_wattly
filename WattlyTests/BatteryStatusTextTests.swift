@@ -136,4 +136,26 @@ import Foundation
                     reason: nil, detail: "이 Mac에서 충전 제어를 적용하지 못했습니다", locale: en)
                 == "Helper installed, but the charge limit could not be applied: Could not apply charge control on this Mac")
     }
+
+    @Test func heatProtectionStatusTextFormatting() {
+        let ko = Locale(identifier: "ko")
+        let en = Locale(identifier: "en")
+
+        let activeReason = BatteryControlStatusReason(
+            kind: .heatProtectionActive,
+            currentTemperatureCelsius: 37.2,
+            thresholdTemperatureCelsius: 36,
+            resumeTemperatureCelsius: 34
+        )
+        #expect(BatteryStatusText.text(reason: activeReason, detail: "", locale: ko) == "발열 보호 중 (배터리 37.2°C, 34°C 도달 시 재충전)")
+        #expect(BatteryStatusText.text(reason: activeReason, detail: "", locale: en) == "Heat Protection active (Battery 37.2°C, recharges at 34°C)")
+
+        let cooldownReason = BatteryControlStatusReason(
+            kind: .heatProtectionCooldown,
+            currentTemperatureCelsius: 33.5,
+            cooldownRemainingSeconds: 120
+        )
+        #expect(BatteryStatusText.text(reason: cooldownReason, detail: "", locale: ko) == "발열 보호 쿨다운 중 (120초 후 충전 재개)")
+        #expect(BatteryStatusText.text(reason: cooldownReason, detail: "", locale: en) == "Heat Protection cooling down (recharging in 120s)")
+    }
 }

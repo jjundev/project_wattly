@@ -39,6 +39,8 @@ enum SettingsReset {
         defaults.set(Defaults.batteryLimitPercentage, forKey: StorageKey.batteryLimitPercentage)
         defaults.set(Defaults.batterySailingEnabled, forKey: StorageKey.batterySailingEnabled)
         defaults.set(Defaults.batterySailingDelta, forKey: StorageKey.batterySailingDelta)
+        defaults.set(Defaults.batteryHeatProtectionEnabled, forKey: StorageKey.batteryHeatProtectionEnabled)
+        defaults.set(Defaults.batteryHeatProtectionThreshold, forKey: StorageKey.batteryHeatProtectionThreshold)
         defaults.set("", forKey: StorageKey.expandedCards)        // collapse all cards (가정 C)
         defaults.set(Defaults.loginItem, forKey: StorageKey.loginItem)
 
