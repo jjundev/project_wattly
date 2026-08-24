@@ -156,9 +156,13 @@ enum MenuBarIconMotion {
     static let rpsMax = 3.50 // 1 rev per 0.286s at 100% full load
 
     /// Physical rotation speed in revolutions per second (RPS), solely determined by workload.
-    static func revolutionsPerSecond(load: Double) -> Double {
+    static func revolutionsPerSecond(load: Double, style: MenuBarIconStyle = .hillRunner) -> Double {
         let clampedLoad = min(max(load, 0), 100)
         let progress = clampedLoad / 100.0
+        if style == .sailboat {
+            let maxRPS = rpsMax * 0.70 // 2.45 RPS at 100% full load (70% of standard max)
+            return rpsMin + (maxRPS - rpsMin) * progress
+        }
         return rpsMin + (rpsMax - rpsMin) * progress
     }
 

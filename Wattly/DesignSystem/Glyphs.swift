@@ -557,9 +557,9 @@ struct SailboatMark: View {
             let phaseRad = (Double(subPhase) / 24.0) * .pi * 2.0
 
             // Base geometry parameters
-            let baseY = s * 0.68
-            let ampRatio: Double = tier == 0 ? 0.065 : (tier == 1 ? 0.125 : (tier == 2 ? 0.190 : 0.250))
-            let tiltDamp: Double = tier == 0 ? 0.75 : (tier == 1 ? 0.90 : (tier == 2 ? 1.05 : 1.20))
+            let baseY = s * 0.70
+            let ampRatio: Double = tier == 0 ? 0.050 : (tier == 1 ? 0.085 : (tier == 2 ? 0.130 : 0.175))
+            let tiltDamp: Double = tier == 0 ? 0.65 : (tier == 1 ? 0.75 : (tier == 2 ? 0.85 : 0.95))
 
             let amp = s * ampRatio
             let waveFreq = (.pi * 2.0) / (s * 0.88)
@@ -570,11 +570,11 @@ struct SailboatMark: View {
             let slope = -amp * waveFreq * cos(waveFreq * boatX - phaseRad)
             let rollAngle = atan(slope) * tiltDamp
 
-            let hullW = s * 0.58
-            let hullH = s * 0.16
-            let mastH = s * 0.44
-            let draftH = hullH * 0.25
-            let brimH = hullH * 0.80
+            let hullW = s * 0.68
+            let hullH = s * 0.20
+            let mastH = s * 0.50
+            let draftH = hullH * 0.20
+            let brimH = hullH * 0.85
 
             let cosT = cos(rollAngle)
             let sinT = sin(rollAngle)
@@ -603,8 +603,8 @@ struct SailboatMark: View {
                         CGPoint(x: boatX + lx * cosT - ly * sinT, y: boatY + lx * sinT + ly * cosT)
                     }
                     path.move(to: pt(-hullW * 0.50, -brimH))
-                    path.addLine(to: pt(-hullW * 0.22, draftH))
-                    path.addLine(to: pt(hullW * 0.22, draftH))
+                    path.addLine(to: pt(-hullW * 0.24, draftH))
+                    path.addLine(to: pt(hullW * 0.24, draftH))
                     path.addLine(to: pt(hullW * 0.50, -brimH))
                     path.addLine(to: pt(0, -brimH * 0.45))
                     path.closeSubpath()
@@ -617,8 +617,8 @@ struct SailboatMark: View {
                         CGPoint(x: boatX + lx * cosT - ly * sinT, y: boatY + lx * sinT + ly * cosT)
                     }
                     path.move(to: pt(0, -mastH))
-                    path.addLine(to: pt(-hullW * 0.22, -brimH * 0.40))
-                    path.addLine(to: pt(hullW * 0.22, -brimH * 0.40))
+                    path.addLine(to: pt(-hullW * 0.24, -brimH * 0.40))
+                    path.addLine(to: pt(hullW * 0.24, -brimH * 0.40))
                     path.closeSubpath()
                 }
                 .fill(markerColor)

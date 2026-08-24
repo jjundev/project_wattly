@@ -260,5 +260,11 @@ struct KineticNotchMotionTests {
         let sailboatDelay = MenuBarIconMotion.interFrameDelay(rps: 1.0, speed: .standard, frameCount: 96, style: .sailboat)
         #expect(abs(pulseWaveDelay - sailboatDelay) < 1e-6)
     }
+
+    @Test func sailboatRevolutionsPerSecondScalesTo70PercentMaxSpeed() {
+        #expect(MenuBarIconMotion.revolutionsPerSecond(load: 0.0, style: .sailboat) == 0.50)
+        #expect(abs(MenuBarIconMotion.revolutionsPerSecond(load: 100.0, style: .sailboat) - 2.45) < 1e-9)
+        #expect(abs(MenuBarIconMotion.revolutionsPerSecond(load: 50.0, style: .sailboat) - (0.50 + (2.45 - 0.50) * 0.5)) < 1e-9)
+    }
 }
 

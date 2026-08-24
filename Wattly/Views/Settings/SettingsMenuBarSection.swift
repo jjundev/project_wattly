@@ -124,7 +124,7 @@ struct SettingsMenuBarSection: View {
                     kineticNotchField(title: "실시간 속도") {
                         HStack(spacing: 8) {
                             if let previewLoad {
-                                let rps = MenuBarIconMotion.revolutionsPerSecond(load: previewLoad)
+                                let rps = MenuBarIconMotion.revolutionsPerSecond(load: previewLoad, style: iconStyle)
                                 let fps = MenuBarIconMotion.effectiveFrameRate(
                                     load: previewLoad,
                                     speed: kineticNotchSpeed,
@@ -169,7 +169,7 @@ struct SettingsMenuBarSection: View {
 
                 while !Task.isCancelled {
                     let load = previewLoad ?? 0.0
-                    let targetRPS = MenuBarIconMotion.revolutionsPerSecond(load: load)
+                    let targetRPS = MenuBarIconMotion.revolutionsPerSecond(load: load, style: iconStyle)
 
                     let now = CACurrentMediaTime()
                     let dt = min(max(now - lastInstant, 0.001), 1.0)
