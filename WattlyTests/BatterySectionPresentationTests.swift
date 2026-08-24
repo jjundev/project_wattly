@@ -118,6 +118,18 @@ import AppKit
         #expect(status?.text == "마지막 확인: 설정 변경 · 성공 · 21:04")
     }
 
+    @Test func maintenancePopoverShowsTheLastCheckOrPendingState() {
+        let lastCheck = BatterySectionPresentation.MaintenanceStatus(
+            tone: .faint,
+            text: "마지막 확인: 설정 변경 · 성공 · 21:04",
+            action: nil)
+
+        #expect(BatterySectionPresentation.maintenancePopoverText(lastCheck, locale: ko)
+                == "마지막 확인: 설정 변경 · 성공 · 21:04")
+        #expect(BatterySectionPresentation.maintenancePopoverText(nil, locale: ko)
+                == "충전 정책 확인 전")
+    }
+
     @Test func maintenanceActionsHaveLocalizedVoiceOverLabels() {
         #expect(BatterySectionPresentation.maintenanceActionLabel(.retry, locale: en) == "Check Again")
         #expect(BatterySectionPresentation.maintenanceActionLabel(.updateHelper, locale: en) == "Update Helper")
@@ -250,20 +262,6 @@ import AppKit
                                                      locale: ko)
             #expect(s == .init(indicator: indicator, text: "데몬 문구"))
         }
-    }
-
-    @Test func statusHelpUsesTheCurrentStatusTextForEveryState() {
-        let charging = BatterySectionPresentation.Status(
-            indicator: .chargingToLimit, text: "목표치(80%)까지 충전 중")
-        let unavailable = BatterySectionPresentation.Status(
-            indicator: .unavailable, text: "도우미에 연결되지 않음")
-
-        #expect(BatterySectionPresentation.statusHelp(for: charging, locale: ko).title
-                == "목표치(80%)까지 충전 중")
-        #expect(BatterySectionPresentation.statusHelp(for: unavailable, locale: ko).title
-                == "도우미에 연결되지 않음")
-        #expect(BatterySectionPresentation.statusHelp(for: charging, locale: en).message
-                == "Stops charging at your limit and runs from the power adapter to protect battery lifespan.")
     }
 
     // MARK: - 도우미 설치 버튼
