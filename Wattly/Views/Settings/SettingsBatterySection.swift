@@ -41,7 +41,7 @@ struct SettingsBatterySection: View {
                 // switched off by hand. Turning it back on stays impossible, so the exit is
                 // one-way.
                 SettingsToggleRow(isOn: $batteryLimitEnabled,
-                                  divider: true,
+                                  divider: false,
                                   isEnabled: isToggleEnabled,
                                   disabledReason: isToggleEnabled ? nil : "이 Mac은 충전 제어를 지원하지 않습니다") {
                     VStack(alignment: .leading, spacing: 2) {
@@ -55,7 +55,7 @@ struct SettingsBatterySection: View {
                     }
                 }
 
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 10) {
                     if showsConfigurationControls {
                         // 헤더와 세그먼트는 같은 컨트롤로 읽히므로 같은 값(0.5)으로 함께 흐려진다.
                         // 세그먼트 자신의 불투명도는 `isEnabled`가 처리하므로 여기서 또 곱하면
@@ -95,7 +95,7 @@ struct SettingsBatterySection: View {
                     batteryStatusIndicator
 
                 }
-                .padding(EdgeInsets(top: 12, leading: 14, bottom: 14, trailing: 14))
+                .padding(EdgeInsets(top: 0, leading: 14, bottom: 14, trailing: 14))
 
                 if showsConfigurationControls {
                     Rectangle().fill(t.line).frame(height: 1)
