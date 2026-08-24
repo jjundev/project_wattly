@@ -39,9 +39,12 @@ public enum BatteryControlActivity: String, Codable, Equatable, Sendable, CaseIt
         case .some(.inhibitedAtLimit): return .holdingAtLimit
         case .some(.onBatteryPower): return .onBatteryPower
         case .some(.sailing): return .sailing
+        case .some(.heatProtectionActive), .some(.heatProtectionCooldown):
+            return .heatProtection
         case .some(.initializing), .some(.powerSourceUnreadable),
              .some(.hardwareUnsupported), .some(.releaseFailed),
-             .some(.applyFailed), .some(.persistenceReadFailed),
+             .some(.applyFailed), .some(.batterySensorUnreadable),
+             .some(.persistenceReadFailed),
              .some(.persistenceWriteFailed), .some(.policyOwnerMismatch),
              .some(.hardwareReadbackFailed), .some(.unrecognized), .none:
             return nil

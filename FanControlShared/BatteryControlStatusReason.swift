@@ -37,6 +37,9 @@ public struct BatteryControlStatusReason: Codable, Equatable, Sendable {
         case onBatteryPower
         /// In natural discharge band between charge limit and lower hysteresis threshold. Carries `limitPercentage` and `resumePercentage`.
         case sailing
+        case heatProtectionActive
+        case heatProtectionCooldown
+        case batterySensorUnreadable
         case persistenceReadFailed
         case persistenceWriteFailed
         case policyOwnerMismatch
@@ -65,15 +68,32 @@ public struct BatteryControlStatusReason: Codable, Equatable, Sendable {
     public var limitPercentage: Int?
     /// The lower hysteresis threshold at which charging will resume. `nil` everywhere except `.sailing`.
     public var resumePercentage: Int?
+    public var currentTemperatureCelsius: Double?
+    public var thresholdTemperatureCelsius: Int?
+    public var resumeTemperatureCelsius: Int?
+    public var cooldownRemainingSeconds: Int?
 
-    public init(kind: Kind, limitPercentage: Int? = nil, resumePercentage: Int? = nil) {
+    public init(
+        kind: Kind,
+        limitPercentage: Int? = nil,
+        resumePercentage: Int? = nil,
+        currentTemperatureCelsius: Double? = nil,
+        thresholdTemperatureCelsius: Int? = nil,
+        resumeTemperatureCelsius: Int? = nil,
+        cooldownRemainingSeconds: Int? = nil
+    ) {
         self.kind = kind
         self.limitPercentage = limitPercentage
         self.resumePercentage = resumePercentage
+        self.currentTemperatureCelsius = currentTemperatureCelsius
+        self.thresholdTemperatureCelsius = thresholdTemperatureCelsius
+        self.resumeTemperatureCelsius = resumeTemperatureCelsius
+        self.cooldownRemainingSeconds = cooldownRemainingSeconds
     }
 
     private enum CodingKeys: String, CodingKey {
         case kind, limitPercentage, resumePercentage
+        case currentTemperatureCelsius, thresholdTemperatureCelsius, resumeTemperatureCelsius, cooldownRemainingSeconds
     }
 
     /// Decoding is lenient here for the same reason `Kind`'s own decode is lenient one level down:
@@ -87,6 +107,10 @@ public struct BatteryControlStatusReason: Codable, Equatable, Sendable {
         kind = (try? container.decode(Kind.self, forKey: .kind)) ?? .unrecognized
         limitPercentage = try? container.decodeIfPresent(Int.self, forKey: .limitPercentage)
         resumePercentage = try? container.decodeIfPresent(Int.self, forKey: .resumePercentage)
+        currentTemperatureCelsius = try? container.decodeIfPresent(Double.self, forKey: .currentTemperatureCelsius)
+        thresholdTemperatureCelsius = try? container.decodeIfPresent(Int.self, forKey: .thresholdTemperatureCelsius)
+        resumeTemperatureCelsius = try? container.decodeIfPresent(Int.self, forKey: .resumeTemperatureCelsius)
+        cooldownRemainingSeconds = try? container.decodeIfPresent(Int.self, forKey: .cooldownRemainingSeconds)
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -94,6 +118,10 @@ public struct BatteryControlStatusReason: Codable, Equatable, Sendable {
         try container.encode(kind, forKey: .kind)
         try container.encodeIfPresent(limitPercentage, forKey: .limitPercentage)
         try container.encodeIfPresent(resumePercentage, forKey: .resumePercentage)
+        try container.encodeIfPresent(currentTemperatureCelsius, forKey: .currentTemperatureCelsius)
+        try container.encodeIfPresent(thresholdTemperatureCelsius, forKey: .thresholdTemperatureCelsius)
+        try container.encodeIfPresent(resumeTemperatureCelsius, forKey: .resumeTemperatureCelsius)
+        try container.encodeIfPresent(cooldownRemainingSeconds, forKey: .cooldownRemainingSeconds)
     }
 
     /// The Korean sentence this reason used to be, for an app too old to understand `kind`.
@@ -120,6 +148,15 @@ public struct BatteryControlStatusReason: Codable, Equatable, Sendable {
         case .chargingToTarget: return "목표치(\(target)%)까지 충전 중"
         case .onBatteryPower: return "배터리 전원으로 구동 중"
         case .sailing: return "Sailing 중 (\(resume)% 도달 시 충전)"
+        case .heatProtectionActive:
+            let tempStr = currentTemperatureCelsius.map { String(format: "%.1f", $0) } ?? "?"
+            let resume = resumeTemperatureCelsius ?? 34
+            return "발열 보호 중 (배터리 \(tempStr)°C / \(resume)°C 이하 시 재개)"
+        case .heatProtectionCooldown:
+            let remaining = cooldownRemainingSeconds ?? 0
+            return "발열 보호 쿨다운 중 (\(remaining)초 후 충전 재개)"
+        case .batterySensorUnreadable:
+            return "배터리 온도 센서를 읽을 수 없습니다"
         case .persistenceReadFailed: return "저장된 충전 정책을 읽지 못해 충전 허용 상태로 복구합니다"
         case .persistenceWriteFailed: return "충전 정책을 안전하게 저장하지 못했습니다"
         case .policyOwnerMismatch: return "다른 사용자가 이 Mac의 충전 정책을 관리하고 있습니다"

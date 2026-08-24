@@ -3,10 +3,12 @@ import Foundation
 public struct BatteryPowerSourceReading: Equatable, Sendable {
     public let stateOfCharge: Int
     public let isPluggedIn: Bool
+    public let temperatureCelsius: Double?
 
-    public init(stateOfCharge: Int, isPluggedIn: Bool) {
+    public init(stateOfCharge: Int, isPluggedIn: Bool, temperatureCelsius: Double? = nil) {
         self.stateOfCharge = stateOfCharge
         self.isPluggedIn = isPluggedIn
+        self.temperatureCelsius = temperatureCelsius
     }
 }
 

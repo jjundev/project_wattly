@@ -313,4 +313,46 @@ struct BatteryControlProtocolTests {
         #expect(decoded.lastMaintenance?.result == .unrecognized)
         #expect(decoded.currentPercentage == 70)
     }
+
+    @Test func heatProtectionConfigurationClampingAndNormalization() {
+        let configUnder = BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            lowerHysteresisDelta: 2,
+            heatProtectionEnabled: true,
+            heatProtectionThresholdCelsius: 25,
+            heatProtectionResumeDeltaCelsius: 0,
+            heatProtectionMinCooldownSeconds: 30
+        )
+        #expect(configUnder.normalized.heatProtectionThresholdCelsius == 30)
+        #expect(configUnder.normalized.heatProtectionResumeDeltaCelsius == 1)
+        #expect(configUnder.normalized.heatProtectionMinCooldownSeconds == 60)
+        #expect(configUnder.normalized.resumeTemperatureCelsius == 29)
+        #expect(configUnder.isActive == true)
+
+        let configOver = BatteryControlConfiguration(
+            enabled: false,
+            limitPercentage: 80,
+            lowerHysteresisDelta: 2,
+            heatProtectionEnabled: true,
+            heatProtectionThresholdCelsius: 55,
+            heatProtectionResumeDeltaCelsius: 10,
+            heatProtectionMinCooldownSeconds: 3600
+        )
+        #expect(configOver.normalized.heatProtectionThresholdCelsius == 45)
+        #expect(configOver.normalized.heatProtectionResumeDeltaCelsius == 5)
+        #expect(configOver.normalized.heatProtectionMinCooldownSeconds == 1800)
+        #expect(configOver.normalized.resumeTemperatureCelsius == 40)
+        #expect(configOver.isActive == true)
+
+        let configOff = BatteryControlConfiguration(enabled: false, heatProtectionEnabled: false)
+        #expect(configOff.isActive == false)
+    }
+
+    @Test func batteryPowerSourceReadingCarriesTemperature() {
+        let reading = BatteryPowerSourceReading(stateOfCharge: 80, isPluggedIn: true, temperatureCelsius: 34.5)
+        #expect(reading.stateOfCharge == 80)
+        #expect(reading.isPluggedIn == true)
+        #expect(reading.temperatureCelsius == 34.5)
+    }
 }

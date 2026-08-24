@@ -96,4 +96,35 @@ import Foundation
         #expect(decoded.resumePercentage == 75)
         #expect(decoded.legacyKoreanDetail == "Sailing 중 (75% 도달 시 충전)")
     }
+
+    @Test func heatProtectionStatusReasonsEncodeAndDecode() throws {
+        let activeReason = BatteryControlStatusReason(
+            kind: .heatProtectionActive,
+            currentTemperatureCelsius: 37.5,
+            thresholdTemperatureCelsius: 36,
+            resumeTemperatureCelsius: 34
+        )
+        let activeData = try JSONEncoder().encode(activeReason)
+        let decodedActive = try JSONDecoder().decode(BatteryControlStatusReason.self, from: activeData)
+        #expect(decodedActive.kind == .heatProtectionActive)
+        #expect(decodedActive.currentTemperatureCelsius == 37.5)
+        #expect(decodedActive.thresholdTemperatureCelsius == 36)
+        #expect(decodedActive.resumeTemperatureCelsius == 34)
+
+        let cooldownReason = BatteryControlStatusReason(
+            kind: .heatProtectionCooldown,
+            currentTemperatureCelsius: 33.2,
+            cooldownRemainingSeconds: 120
+        )
+        let cooldownData = try JSONEncoder().encode(cooldownReason)
+        let decodedCooldown = try JSONDecoder().decode(BatteryControlStatusReason.self, from: cooldownData)
+        #expect(decodedCooldown.kind == .heatProtectionCooldown)
+        #expect(decodedCooldown.currentTemperatureCelsius == 33.2)
+        #expect(decodedCooldown.cooldownRemainingSeconds == 120)
+
+        let unreadableReason = BatteryControlStatusReason(kind: .batterySensorUnreadable)
+        let unreadableData = try JSONEncoder().encode(unreadableReason)
+        let decodedUnreadable = try JSONDecoder().decode(BatteryControlStatusReason.self, from: unreadableData)
+        #expect(decodedUnreadable.kind == .batterySensorUnreadable)
+    }
 }
