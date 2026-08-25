@@ -38,6 +38,7 @@ func providerIntervals(mode: PowerMode,
                        menubarLiveContentEnabled: Bool,
                        active: Set<ProviderKind>,
                        menubarNeeds: Set<CardKind>,
+                       heroCard: CardKind? = nil,
                        isACConnected: Bool = false) -> [ProviderKind: Duration] {
     if setting != .auto {
         let interval: Duration = switch setting {
@@ -51,10 +52,13 @@ func providerIntervals(mode: PowerMode,
 
     if mode == .performance {
         if panelVisible {
-            let open: [ProviderKind: Duration] = [
+            var open: [ProviderKind: Duration] = [
                 .cpu: .seconds(1), .gpu: .seconds(1), .power: .seconds(1), .temperature: .seconds(1),
                 .memory: .seconds(3), .battery: .seconds(3), .fan: .seconds(3),
             ]
+            if let heroCard {
+                open[heroCard.provider] = .seconds(1)
+            }
             return open.filter { active.contains($0.key) }
         }
 
@@ -82,10 +86,13 @@ func providerIntervals(mode: PowerMode,
     }
 
     if panelVisible {
-        let open: [ProviderKind: Duration] = [
+        var open: [ProviderKind: Duration] = [
             .cpu: .seconds(1), .gpu: .seconds(1), .power: .seconds(1), .temperature: .seconds(2),
             .memory: .seconds(5), .battery: .seconds(5), .fan: .seconds(5),
         ]
+        if let heroCard {
+            open[heroCard.provider] = .seconds(1)
+        }
         return open.filter { active.contains($0.key) }
     }
 
