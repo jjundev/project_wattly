@@ -36,6 +36,8 @@ actor BatteryProvider: MetricProvider {
         var designCapacityMilliampHours: Int?
         var cycleCount: Int?
         var temperatureCelsius: Double?
+        var systemPowerInWatts: Double? = nil
+        var systemLoadWatts: Double? = nil
     }
 
     func read(at instant: ContinuousClock.Instant) async -> ProviderReading {
@@ -56,13 +58,34 @@ actor BatteryProvider: MetricProvider {
         let netW = netWatts(batteryMilliwatts: milliwatts)
         let mA = smc.read("B0AC").map { Int(smcDouble($0.bytes, type: $0.type).rounded()) }
             ?? batteryMilliamps(batteryMilliwatts: milliwatts, volts: volts)
-        let adapterW = smc.read("PDTR").map { smcDouble($0.bytes, type: $0.type) } ?? 0
+        let adapterW = smc.read("PDTR").map { smcDouble($0.bytes, type: $0.type) } ?? registry?.systemPowerInWatts ?? 0.0
+        let measuredSystemW = smc.read("PSTR").map { smcDouble($0.bytes, type: $0.type) } ?? registry?.systemLoadWatts
+        let externalConnected = adapterW > 0.5 || (registry?.externalConnected == true)
+
+        let systemWatts = calculateSystemWatts(
+            adapterWatts: adapterW,
+            batteryNetWatts: netW,
+            measuredSystemWatts: measuredSystemW
+        )
+        let scenario = resolvePowerFlowScenario(
+            externalConnected: externalConnected,
+            adapterWatts: adapterW,
+            batteryNetWatts: netW,
+            isChargeInhibited: false
+        )
+        let powerFlow = PowerFlowSnapshot(
+            scenario: scenario,
+            adapterWatts: adapterW,
+            systemWatts: systemWatts,
+            batteryNetWatts: netW
+        )
+
         return BatterySample(
             netW: netW,
             milliamps: abs(mA),
             volts: volts,
             charging: isCharging(netW: netW),
-            externalConnected: adapterW > 0.5,
+            externalConnected: externalConnected,
             remainingWh: remainingWattHours(
                 rawCapacityMilliampHours: registry?.rawCurrentCapacityMilliampHours ?? 0),
             maxWh: remainingWattHours(
@@ -72,7 +95,8 @@ actor BatteryProvider: MetricProvider {
                 maxCapacityMilliampHours: registry?.rawMaxCapacityMilliampHours ?? 0,
                 designCapacityMilliampHours: registry?.designCapacityMilliampHours ?? 0),
             cycleCount: validatedBatteryCycleCount(registry?.cycleCount),
-            temperatureCelsius: registry?.temperatureCelsius)
+            temperatureCelsius: registry?.temperatureCelsius,
+            powerFlow: powerFlow)
     }
 
     private func appleSmartBatterySnapshot() -> AppleSmartBatterySnapshot? {
@@ -95,6 +119,17 @@ actor BatteryProvider: MetricProvider {
         let tempCenti = number(service, "Temperature")?.intValue
         let tempC = tempCenti.flatMap { batteryCelsius(rawCentiCelsius: $0, in: 0.0...80.0) }
 
+        var systemPowerInW: Double? = nil
+        var systemLoadW: Double? = nil
+        if let telemetry = dict(service, "PowerTelemetryData") {
+            if let pin = (telemetry["SystemPowerIn"] as? NSNumber)?.doubleValue {
+                systemPowerInW = pin / 1000.0
+            }
+            if let load = (telemetry["SystemLoad"] as? NSNumber)?.doubleValue {
+                systemLoadW = load / 1000.0
+            }
+        }
+
         return AppleSmartBatterySnapshot(
             volts: volts,
             externalConnected: externalConnected,
@@ -104,7 +139,9 @@ actor BatteryProvider: MetricProvider {
             rawMaxCapacityMilliampHours: number(service, "AppleRawMaxCapacity")?.intValue,
             designCapacityMilliampHours: number(service, "DesignCapacity")?.intValue,
             cycleCount: number(service, "CycleCount")?.intValue,
-            temperatureCelsius: tempC)
+            temperatureCelsius: tempC,
+            systemPowerInWatts: systemPowerInW,
+            systemLoadWatts: systemLoadW)
     }
 
     /// Fallback: AppleSmartBattery `PowerTelemetryData.BatteryPower` (mW, signed) — coarse but
@@ -117,6 +154,26 @@ actor BatteryProvider: MetricProvider {
         let netW = fallbackNetWatts(
             batteryMilliwatts: milliwatts,
             externalConnected: registry.externalConnected)
+
+        let adapterW = registry.systemPowerInWatts ?? 0.0
+        let systemWatts = calculateSystemWatts(
+            adapterWatts: adapterW,
+            batteryNetWatts: netW,
+            measuredSystemWatts: registry.systemLoadWatts
+        )
+        let scenario = resolvePowerFlowScenario(
+            externalConnected: registry.externalConnected,
+            adapterWatts: adapterW,
+            batteryNetWatts: netW,
+            isChargeInhibited: false
+        )
+        let powerFlow = PowerFlowSnapshot(
+            scenario: scenario,
+            adapterWatts: adapterW,
+            systemWatts: systemWatts,
+            batteryNetWatts: netW
+        )
+
         return .value(.battery(BatterySample(
             netW: netW, milliamps: abs(batteryMilliamps(batteryMilliwatts: milliwatts, volts: volts)),
             volts: volts, charging: isCharging(netW: netW), externalConnected: registry.externalConnected,
@@ -129,7 +186,8 @@ actor BatteryProvider: MetricProvider {
                 maxCapacityMilliampHours: registry.rawMaxCapacityMilliampHours ?? 0,
                 designCapacityMilliampHours: registry.designCapacityMilliampHours ?? 0),
             cycleCount: validatedBatteryCycleCount(registry.cycleCount),
-            temperatureCelsius: registry.temperatureCelsius)))
+            temperatureCelsius: registry.temperatureCelsius,
+            powerFlow: powerFlow)))
     }
 
     private func number(_ service: io_service_t, _ key: String) -> NSNumber? {

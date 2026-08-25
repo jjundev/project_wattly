@@ -710,5 +710,25 @@ struct CardPresentationTests {
         #expect(gpuIdx == cpuIdx + 1)
         #expect(memIdx == gpuIdx + 1)
     }
+
+    @Test func powerSourceTextFormatting() {
+        #expect(CardPresentation.powerSourceText(.charging) == "전원 어댑터")
+        #expect(CardPresentation.powerSourceText(.adapterBypass) == "전원 어댑터")
+        #expect(CardPresentation.powerSourceText(.batteryOnly) == "배터리")
+        #expect(CardPresentation.powerSourceText(.activeDischarge) == "배터리")
+        #expect(CardPresentation.powerSourceText(.powerAssist) == "전원 어댑터 및 배터리")
+    }
+
+    @Test func powerFlowLabels() {
+        #expect(CardPresentation.powerSourceLabel == "전원 공급원")
+        #expect(CardPresentation.adapterPowerLabel == "어댑터 전력")
+        #expect(CardPresentation.systemPowerLabel == "시스템 소비 전력")
+    }
+
+    @Test func powerFlowWattFormatting() {
+        #expect(CardPresentation.adapterPowerText(48.54) == "48.5 W")
+        #expect(CardPresentation.systemPowerText(16.12) == "16.1 W")
+    }
 }
+
 

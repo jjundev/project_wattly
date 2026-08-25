@@ -1,53 +1,75 @@
-# Power Flow
+# Power Flow & 전력 흐름 텔레메트리
 
 ## 상태
 
-- 단계: 기능 정의 초안
-- 구현 난이도: 보통~어려움
-- 권장 우선순위: 8
+- 단계: 구현 완료 (Production Ready)
+- 구현 난이도: 보통
+- 권장 우선순위: 완료
 
 ## 목표
 
-어댑터, 배터리, 시스템 사이의 실시간 전력 흐름을 시각화한다. 사용자가 충전 제한, 능동 방전, 저출력 충전기, 배터리 보조 공급 상태를 수치와 방향으로 이해할 수 있게 한다.
+어댑터, 배터리, 시스템 사이의 실시간 전력 흐름을 측정하여 배터리 카드 펼침 영역에 3대 논리적 범주(전원 공급 및 소비 전력, 실시간 전기 지표, 배터리 팩 건강 & 용량)로 명확히 표시한다.
+과도한 그래픽 다이어그램 대신 macOS 기본 배터리 위젯의 표준 명명 체계(`전원 공급원: 전원 어댑터 / 배터리 / 전원 어댑터 및 배터리`, `어댑터 전력`, `시스템 소비 전력`)를 적용하여 미니멀하고 직관적인 UI를 제공한다.
 
-## 현재 Wattly 기반
+## 하드웨어 데이터 소스 및 매핑
 
-- 배터리 순방전 전력, 전압, 전류를 측정한다.
-- CPU, GPU, ANE의 SoC 전력과 시스템 부하를 측정한다.
-- 현재 README와 배터리 카드에 관련 텔레메트리가 노출된다.
+1. **어댑터 입력 전력 ($P_{\text{adapter}}$)**:
+   - SMC 센서 `PDTR` (W, `flt` / `sp78` / `ioft`)
+   - 보조/폴백: AppleSmartBattery `PowerTelemetryData.SystemPowerIn` (mW)
+2. **배터리 순전력 ($P_{\text{batt}}$)**:
+   - SMC 센서 `B0AP` (mW, 음수=충전, 양수=방전)
+   - 보조/폴백: AppleSmartBattery `PowerTelemetryData.BatteryPower` (mW)
+3. **시스템 총 소비 전력 ($P_{\text{sys}}$)**:
+   - SMC 센서 `PSTR` (W, System Total Power)
+   - 보조/폴백: AppleSmartBattery `PowerTelemetryData.SystemLoad` (mW)
+   - 계산 폴백: 에너지 평형 방정식 $P_{\text{sys}} = P_{\text{adapter}} + P_{\text{batt\_discharge}}$
 
-관련 코드와 문서:
+## 5대 전력 흐름 시나리오 판정 규칙
 
-- `Wattly/Providers/BatteryProvider.swift`
-- `Wattly/Core/BatteryPower.swift`
-- `Wattly/Models/MetricSample.swift`
-- `README.md`
+| 시나리오 | 조건 | `전원 공급원` 표기 | UI 노출 여부 |
+|---|---|---|---|
+| **1. 충전 중 (Charging)** | $P_{\text{batt}} < -0.2\text{W}$, 어댑터 연결 | `전원 어댑터` | 상단 전력 흐름 범주 노출 |
+| **2. 바이패스/상한 유지 (Adapter Bypass)** | $|P_{\text{batt}}| \le 0.2\text{W}$, 어댑터 연결 | `전원 어댑터` | 상단 전력 흐름 범주 노출 |
+| **3. 배터리 단독 구동 (Battery Only)** | 어댑터 미연결 (`externalConnected == false`) | - | **전력 흐름 범주 완전 숨김** |
+| **4. 능동 방전 (Active Discharge)** | 어댑터 연결 중 CHTE 억제 및 방전 ($P_{\text{batt}} > 0.2\text{W}$) | `배터리` | 상단 전력 흐름 범주 노출 |
+| **5. 보조 방전 (Power Assist)** | 어댑터 연결 중 고부하 ($P_{\text{adapter}} > 0.5\text{W}$, $P_{\text{batt}} > 0.2\text{W}$) | `전원 어댑터 및 배터리` | 상단 전력 흐름 범주 노출 |
 
-## 최소 기능 범위
+## UI 레이아웃 및 3대 범주화 구조
 
-다음 시나리오를 구분한다.
+```text
+┌────────────────────────────────────────────────────────┐
+│ [헤더 서브라인] (CardPresentation.batteryRemainingTimeSummary)
+│  • 충전 중: "완충까지 약 24분 남음"
+│  • 직결 유지: "80% 한도 유지 중"
+│  • 배터리 구동: "약 4시간 15분 남음"
+│  • 능동 방전: "목표치(70%)까지 방전 중"
+├────────────────────────────────────────────────────────┤
+│ [1. 전원 공급 및 소비 전력] (어댑터 연결 시에만 표시)
+│  • 전원 공급원: "전원 어댑터" / "배터리" / "전원 어댑터 및 배터리"
+│  • 어댑터 전력: 48.5 W
+│  • 시스템 소비 전력: 16.1 W
+├────────────────────────────────────────────────────────┤
+│ [2. 실시간 전기 지표] (CardPresentation 상수 그대로 사용)
+│  • 1분 평균: CardPresentation.batteryAverage1mLabel (W)
+│  • 전류: "전류" (mA)
+│  • 전압: "전압" (V)
+│  • 배터리 온도: CardPresentation.batteryTemperatureLabel (°C)
+├────────────────────────────────────────────────────────┤
+│ [3. 배터리 팩 건강 & 용량] (CardPresentation 상수 그대로 사용)
+│  • 남은 용량: CardPresentation.batteryRemainingCapacityLabel (Wh)
+│  • 배터리 효율: CardPresentation.batteryEfficiencyLabel (%)
+│  • 사이클: CardPresentation.batteryCycleLabel
+├────────────────────────────────────────────────────────┤
+│ [4. 제어 영역] (CardExpandRegion)
+│  • 한 번만 완충: [ 비활성화됨 / 활성화됨 ]
+└────────────────────────────────────────────────────────┘
+```
 
-1. 어댑터가 시스템과 배터리를 함께 공급
-2. 어댑터가 시스템만 공급하고 배터리는 유지
-3. 배터리가 시스템을 공급
-4. 어댑터 연결 상태에서 능동 방전
-5. 어댑터 출력 부족으로 배터리가 시스템 전력을 보조
+## 관련 파일
 
-MVP는 Sankey 애니메이션보다 수치와 방향이 정확한 정적 흐름도를 우선한다.
-
-## 안전·정확성 규칙
-
-- 측정값과 추정값을 구분한다.
-- 어댑터 입력 전력을 검증하지 못한 상태에서 잔차를 정확한 수치처럼 표시하지 않는다.
-- 순간값과 평활값의 시간 기준을 혼합하지 않는다.
-- 센서 갱신 시각이 다른 경우 불일치 상태를 표시한다.
-
-## 미결정 사항
-
-- 어댑터 입력 전력에 사용할 검증된 레지스터와 모델별 호환성을 확정해야 한다.
-- SoC 전력과 시스템 전체 전력의 차이를 `기타 시스템 전력`으로 표시할지 결정해야 한다.
-- 팝오버 기본 화면과 배터리 상세 화면 중 배치 위치를 결정해야 한다.
-
-## 참고
-
-- [AlDente Power Flow](https://apphousekitchen.com/aldente-overview/features/#power-flow)
+- `Wattly/Core/PowerFlow.swift`: 순수 전력 흐름 시나리오 분기 및 전력 평형 계산 모델
+- `Wattly/Models/MetricSample.swift`: `BatterySample.powerFlow` 스냅샷
+- `Wattly/Providers/BatteryProvider.swift`: SMC `PDTR`, `PSTR`, AppleSmartBattery IOKit 텔레메트리 수집
+- `Wattly/Core/CardPresentation.swift`: `powerSourceLabel`, `powerSourceText`, `adapterPowerLabel`, `systemPowerLabel` 포맷터
+- `Wattly/Views/CardExpandRegion.swift`: 3대 범주화 및 조건부 전력 흐름 렌더링
+- `WattlyTests/PowerFlowTests.swift`, `WattlyTests/CardPresentationTests.swift`, `WattlyTests/BatteryPowerTests.swift`, `WattlyTests/PanelPresentationTests.swift`

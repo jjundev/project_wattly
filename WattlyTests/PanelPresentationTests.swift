@@ -73,4 +73,35 @@ struct PanelPresentationTests {
         #expect(BackgroundRefreshPreset.resolve(interval: .s2, mode: .performance) == .custom)
         #expect(BackgroundRefreshPreset.resolve(interval: .s5, mode: .eco) == .custom)
     }
+
+    @Test func batteryExpandContainsCategorizedSections() {
+        let flow = PowerFlowSnapshot(
+            scenario: .charging,
+            adapterWatts: 48.5,
+            systemWatts: 16.1,
+            batteryNetWatts: -32.4
+        )
+        let onACSample = BatterySample(
+            netW: -32.4,
+            milliamps: 2612,
+            volts: 12.4,
+            charging: true,
+            externalConnected: true,
+            powerFlow: flow
+        )
+        #expect(onACSample.externalConnected)
+        #expect(onACSample.powerFlow != nil)
+
+        let onBatterySample = BatterySample(
+            netW: 14.2,
+            milliamps: 1203,
+            volts: 11.8,
+            charging: false,
+            externalConnected: false,
+            powerFlow: nil
+        )
+        #expect(!onBatterySample.externalConnected)
+        #expect(onBatterySample.powerFlow == nil)
+    }
 }
+

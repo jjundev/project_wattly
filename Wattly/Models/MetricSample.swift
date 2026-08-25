@@ -162,6 +162,8 @@ struct BatterySample: Sendable, Equatable {
     var temperatureCelsius: Double? = nil
     /// Active target charge percentage (50...100, default 100).
     var targetPercentage: Int = 100
+    /// Optional power flow snapshot containing adapter, system load, and scenario routing.
+    var powerFlow: PowerFlowSnapshot? = nil
 }
 
 // MARK: - Temperature (the partial-failure boundary, PRD line 74)

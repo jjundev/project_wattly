@@ -633,5 +633,32 @@ struct SystemMonitorTests {
         // 60 Wh * 0.85 = 51 Wh target. Needed = 21 Wh. 21 / 20 * 60 = 63 min.
         #expect(smoothedSample.projectedTimeRemainingMinutes == 63)
     }
+
+    @Test func smoothedBatteryCardStateCarriesPowerFlowSnapshot() async {
+        let flow = PowerFlowSnapshot(
+            scenario: .charging,
+            adapterWatts: 48.5,
+            systemWatts: 16.1,
+            batteryNetWatts: -32.4
+        )
+        let batterySample = BatterySample(
+            netW: -32.4, milliamps: 2612, volts: 12.4, charging: true,
+            externalConnected: true, remainingWh: 40, maxWh: 60,
+            powerFlow: flow
+        )
+        let batteryProvider = ScriptedProvider(kind: .battery, [.value(.battery(batterySample))])
+        let monitor = SystemMonitor(providers: [batteryProvider], clock: ManualClock())
+
+        await monitor.pollOnce()
+
+        guard case .value(.battery(let smoothedSample)) = monitor.cardState(.battery, smoothed: true) else {
+            Issue.record("Expected smoothed battery sample"); return
+        }
+        #expect(smoothedSample.powerFlow != nil)
+        #expect(smoothedSample.powerFlow?.scenario == .charging)
+        #expect(smoothedSample.powerFlow?.adapterWatts == 48.5)
+        #expect(smoothedSample.powerFlow?.systemWatts == 16.1)
+    }
 }
+
 
