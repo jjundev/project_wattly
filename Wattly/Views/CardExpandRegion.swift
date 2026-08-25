@@ -242,23 +242,52 @@ struct CardExpandRegion: View {
 
     private func batteryExpand(_ s: BatterySample) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            if let value = CardPresentation.batteryAverage1mText(s) {
-                batteryDetailRow(label: CardPresentation.batteryAverage1mLabel, value: value)
+            // [범주 1] 전원 공급 및 소비 전력 — 어댑터 연결 시에만 노출
+            if s.externalConnected, let flow = s.powerFlow {
+                VStack(alignment: .leading, spacing: 6) {
+                    batteryDetailRow(
+                        label: CardPresentation.powerSourceLabel,
+                        value: CardPresentation.powerSourceText(flow.scenario, locale: locale)
+                    )
+                    batteryDetailRow(
+                        label: CardPresentation.adapterPowerLabel,
+                        value: CardPresentation.adapterPowerText(flow.adapterWatts)
+                    )
+                    batteryDetailRow(
+                        label: CardPresentation.systemPowerLabel,
+                        value: CardPresentation.systemPowerText(flow.systemWatts)
+                    )
+                }
+                Divider().background(t.line).opacity(0.6)
             }
-            if let value = CardPresentation.batteryRemainingCapacityText(s) {
-                batteryDetailRow(label: CardPresentation.batteryRemainingCapacityLabel, value: value)
+
+            // [범주 2] 실시간 전기 지표
+            VStack(alignment: .leading, spacing: 6) {
+                if let value = CardPresentation.batteryAverage1mText(s) {
+                    batteryDetailRow(label: CardPresentation.batteryAverage1mLabel, value: value)
+                }
+                batteryDetailRow(label: "전류", value: CardPresentation.batteryCurrentText(s))
+                batteryDetailRow(label: "전압", value: CardPresentation.batteryVoltageText(s))
+                if let value = CardPresentation.batteryTemperatureText(s) {
+                    batteryDetailRow(label: CardPresentation.batteryTemperatureLabel, value: value)
+                }
             }
-            if showBatteryEfficiency, let value = CardPresentation.batteryEfficiencyText(s) {
-                batteryDetailRow(label: CardPresentation.batteryEfficiencyLabel, value: value)
+
+            // [범주 3] 배터리 팩 건강 & 용량
+            if s.remainingWh != nil || (showBatteryEfficiency && s.efficiencyPercent != nil) || s.cycleCount != nil {
+                Divider().background(t.line).opacity(0.6)
+                VStack(alignment: .leading, spacing: 6) {
+                    if let value = CardPresentation.batteryRemainingCapacityText(s) {
+                        batteryDetailRow(label: CardPresentation.batteryRemainingCapacityLabel, value: value)
+                    }
+                    if showBatteryEfficiency, let value = CardPresentation.batteryEfficiencyText(s) {
+                        batteryDetailRow(label: CardPresentation.batteryEfficiencyLabel, value: value)
+                    }
+                    if let value = CardPresentation.batteryCycleText(s) {
+                        batteryDetailRow(label: CardPresentation.batteryCycleLabel, value: value)
+                    }
+                }
             }
-            if let value = CardPresentation.batteryCycleText(s) {
-                batteryDetailRow(label: CardPresentation.batteryCycleLabel, value: value)
-            }
-            if let value = CardPresentation.batteryTemperatureText(s) {
-                batteryDetailRow(label: CardPresentation.batteryTemperatureLabel, value: value)
-            }
-            batteryDetailRow(label: "전류", value: CardPresentation.batteryCurrentText(s))
-            batteryDetailRow(label: "전압", value: CardPresentation.batteryVoltageText(s))
 
             if let scheduleCoordinator,
                let upcoming = BatteryScheduleCoordinator.nextUpcoming(from: scheduleCoordinator.schedules) {
@@ -278,6 +307,7 @@ struct CardExpandRegion: View {
             }
 
             if let batteryControl, s.charging || batteryControl.status.isPowerAdapterConnected {
+                Divider().background(t.line).opacity(0.6)
                 batteryTopUpRow(batteryControl, s)
             }
         }
