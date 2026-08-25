@@ -195,4 +195,36 @@ struct BatteryPowerTests {
         #expect(validatedBatteryCycleCount(-1) == nil)
         #expect(validatedBatteryCycleCount(10_001) == nil)
     }
+
+    @Test func batterySampleAttachesPowerFlowSnapshot() {
+        let netW = -32.4
+        let adapterW = 48.5
+        let systemW = 16.1
+        let scenario = resolvePowerFlowScenario(
+            externalConnected: true,
+            adapterWatts: adapterW,
+            batteryNetWatts: netW,
+            isChargeInhibited: false
+        )
+        let snapshot = PowerFlowSnapshot(
+            scenario: scenario,
+            adapterWatts: adapterW,
+            systemWatts: systemW,
+            batteryNetWatts: netW
+        )
+        let sample = BatterySample(
+            netW: netW,
+            milliamps: 2612,
+            volts: 12.4,
+            charging: true,
+            externalConnected: true,
+            powerFlow: snapshot
+        )
+        #expect(sample.powerFlow != nil)
+        #expect(sample.powerFlow?.scenario == .charging)
+        #expect(sample.powerFlow?.adapterWatts == 48.5)
+        #expect(sample.powerFlow?.systemWatts == 16.1)
+        #expect(sample.powerFlow?.batteryNetWatts == -32.4)
+    }
 }
+
