@@ -65,6 +65,11 @@ public enum BatteryControlPolicy {
             if desired.topUpActive && !configuration.topUpActive {
                 requested.topUpActive = true
             }
+            // Background periodic reconciliation preserves helper's active manual discharge state
+            if desired.manualDischargeActive && !configuration.manualDischargeActive {
+                requested.manualDischargeActive = true
+                requested.manualDischargeTarget = desired.manualDischargeTarget
+            }
             return desired.normalized != requested
         }
         if requested.enabled {

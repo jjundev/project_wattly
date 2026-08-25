@@ -83,8 +83,14 @@ enum BatteryStatusText {
                           locale: locale, remaining)
         case .topUpCharging:
             return String(localized: "한 번만 완충 중 (100%까지 충전)", locale: locale)
-        case .topUpComplete:
+        case .topUpComplete, .topUpHeldAtMax:
             return String(localized: "한 번만 완충 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)", locale: locale)
+        case .dischargingToTarget:
+            return String(format: String(localized: "목표치(%lld%%)까지 방전 중", locale: locale),
+                          locale: locale, target)
+        case .dischargingManual:
+            return String(format: String(localized: "수동 방전 중 (%lld%%까지 방전)", locale: locale),
+                          locale: locale, target)
         case .batterySensorUnreadable:
             return String(localized: "배터리 온도 센서를 읽을 수 없습니다", locale: locale)
         case .persistenceReadFailed:

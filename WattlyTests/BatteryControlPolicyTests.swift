@@ -288,4 +288,85 @@ import Testing
         // When helper holds topUpActive == true, background client check with same base settings must NOT trigger reapply
         #expect(BatteryControlPolicy.shouldReapply(configuration: appConfig, status: status) == false)
     }
+
+    @Test func shouldReapplyPreservesActiveManualDischargeWhenBaseSettingsMatch() {
+        let appConfig = BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            lowerHysteresisDelta: 2,
+            autoDischargeEnabled: true,
+            manualDischargeActive: false,
+            manualDischargeTarget: 80
+        )
+        let daemonConfig = BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            lowerHysteresisDelta: 2,
+            autoDischargeEnabled: true,
+            manualDischargeActive: true,
+            manualDischargeTarget: 70
+        )
+
+        let status = BatteryControlServiceStatus(
+            mode: .charging,
+            currentPercentage: 85,
+            isPowerAdapterConnected: true,
+            detail: "수동 방전 중 (70%까지 방전)",
+            updatedAt: 100.0,
+            desiredConfiguration: daemonConfig,
+            capabilities: [.persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1]
+        )
+
+        // When helper holds manualDischargeActive == true, background client check with same base settings must NOT trigger reapply
+        #expect(BatteryControlPolicy.shouldReapply(configuration: appConfig, status: status) == false)
+    }
+}
+
+@Suite struct BatteryControlDischargePolicyTests {
+    @Test func dischargeConfigurationProperties() {
+        let config = BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            autoDischargeEnabled: true,
+            manualDischargeActive: true,
+            manualDischargeTarget: 70
+        )
+        #expect(config.clampedManualDischargeTarget == 70)
+        #expect(config.autoDischargeEnabled == true)
+        #expect(config.manualDischargeActive == true)
+        #expect(config.isActive == true)
+    }
+
+    @Test func dischargeConfigurationDefaults() {
+        let config = BatteryControlConfiguration()
+        #expect(config.autoDischargeEnabled == true)
+        #expect(config.manualDischargeActive == false)
+        #expect(config.manualDischargeTarget == 80)
+        #expect(config.clampedManualDischargeTarget == 80)
+    }
+
+    @Test func dischargeConfigurationClampingAndNormalization() {
+        let configUnder = BatteryControlConfiguration(
+            enabled: false,
+            limitPercentage: 80,
+            autoDischargeEnabled: false,
+            manualDischargeActive: true,
+            manualDischargeTarget: 30
+        )
+        #expect(configUnder.clampedManualDischargeTarget == 50)
+        #expect(configUnder.normalized.manualDischargeTarget == 50)
+        #expect(configUnder.normalized.autoDischargeEnabled == false)
+        #expect(configUnder.normalized.manualDischargeActive == true)
+        #expect(configUnder.isActive == true)
+
+        let configOver = BatteryControlConfiguration(
+            enabled: false,
+            limitPercentage: 80,
+            autoDischargeEnabled: true,
+            manualDischargeActive: true,
+            manualDischargeTarget: 120
+        )
+        #expect(configOver.clampedManualDischargeTarget == 100)
+        #expect(configOver.normalized.manualDischargeTarget == 100)
+    }
 }

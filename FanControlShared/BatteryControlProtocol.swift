@@ -9,6 +9,9 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
     public var heatProtectionResumeDeltaCelsius: Int
     public var heatProtectionMinCooldownSeconds: TimeInterval
     public var topUpActive: Bool
+    public var autoDischargeEnabled: Bool
+    public var manualDischargeActive: Bool
+    public var manualDischargeTarget: Int
 
     public init(
         enabled: Bool = false,
@@ -18,7 +21,10 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         heatProtectionThresholdCelsius: Int = 35,
         heatProtectionResumeDeltaCelsius: Int = 2,
         heatProtectionMinCooldownSeconds: TimeInterval = 300.0,
-        topUpActive: Bool = false
+        topUpActive: Bool = false,
+        autoDischargeEnabled: Bool = true,
+        manualDischargeActive: Bool = false,
+        manualDischargeTarget: Int = 80
     ) {
         self.enabled = enabled
         self.limitPercentage = limitPercentage
@@ -28,12 +34,16 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         self.heatProtectionResumeDeltaCelsius = heatProtectionResumeDeltaCelsius
         self.heatProtectionMinCooldownSeconds = heatProtectionMinCooldownSeconds
         self.topUpActive = topUpActive
+        self.autoDischargeEnabled = autoDischargeEnabled
+        self.manualDischargeActive = manualDischargeActive
+        self.manualDischargeTarget = manualDischargeTarget
     }
 
     private enum CodingKeys: String, CodingKey {
         case enabled, limitPercentage, lowerHysteresisDelta
         case heatProtectionEnabled, heatProtectionThresholdCelsius, heatProtectionResumeDeltaCelsius, heatProtectionMinCooldownSeconds
         case topUpActive
+        case autoDischargeEnabled, manualDischargeActive, manualDischargeTarget
     }
 
     public init(from decoder: any Decoder) throws {
@@ -46,6 +56,9 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         heatProtectionResumeDeltaCelsius = (try? container.decodeIfPresent(Int.self, forKey: .heatProtectionResumeDeltaCelsius)) ?? 2
         heatProtectionMinCooldownSeconds = (try? container.decodeIfPresent(TimeInterval.self, forKey: .heatProtectionMinCooldownSeconds)) ?? 300.0
         topUpActive = (try? container.decodeIfPresent(Bool.self, forKey: .topUpActive)) ?? false
+        autoDischargeEnabled = (try? container.decodeIfPresent(Bool.self, forKey: .autoDischargeEnabled)) ?? true
+        manualDischargeActive = (try? container.decodeIfPresent(Bool.self, forKey: .manualDischargeActive)) ?? false
+        manualDischargeTarget = (try? container.decodeIfPresent(Int.self, forKey: .manualDischargeTarget)) ?? 80
     }
 
     /// Range-clamped copy. Configurations reach the root daemon through the synthesized
@@ -59,17 +72,21 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         copy.heatProtectionResumeDeltaCelsius = Self.clampResumeDelta(heatProtectionResumeDeltaCelsius)
         copy.heatProtectionMinCooldownSeconds = Self.clampCooldown(heatProtectionMinCooldownSeconds)
         copy.topUpActive = topUpActive
+        copy.autoDischargeEnabled = autoDischargeEnabled
+        copy.manualDischargeActive = manualDischargeActive
+        copy.manualDischargeTarget = Self.clampLimit(manualDischargeTarget)
         return copy
     }
 
     public var isActive: Bool {
-        enabled || heatProtectionEnabled || topUpActive
+        enabled || heatProtectionEnabled || topUpActive || manualDischargeActive
     }
 
     public var clampedLimitPercentage: Int { Self.clampLimit(limitPercentage) }
     public var clampedHeatProtectionThresholdCelsius: Int { Self.clampThreshold(heatProtectionThresholdCelsius) }
     public var clampedHeatProtectionResumeDeltaCelsius: Int { Self.clampResumeDelta(heatProtectionResumeDeltaCelsius) }
     public var clampedHeatProtectionMinCooldownSeconds: TimeInterval { Self.clampCooldown(heatProtectionMinCooldownSeconds) }
+    public var clampedManualDischargeTarget: Int { Self.clampLimit(manualDischargeTarget) }
 
     public var resumePercentage: Int {
         max(45, clampedLimitPercentage - Self.clampDelta(lowerHysteresisDelta))

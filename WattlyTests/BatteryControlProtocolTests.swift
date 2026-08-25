@@ -394,4 +394,35 @@ struct BatteryControlProtocolTests {
         #expect(normalized.topUpActive == true)
         #expect(normalized.clampedLimitPercentage == 80)
     }
+
+    @Test func dischargeConfigurationRoundTrips() throws {
+        let input = BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            lowerHysteresisDelta: 2,
+            heatProtectionEnabled: false,
+            heatProtectionThresholdCelsius: 35,
+            topUpActive: false,
+            autoDischargeEnabled: true,
+            manualDischargeActive: true,
+            manualDischargeTarget: 70
+        )
+        let encoded = try BatteryControlCodec.encode(input)
+        let decoded = try BatteryControlCodec.decode(BatteryControlConfiguration.self, from: encoded)
+        #expect(decoded == input)
+        #expect(decoded.autoDischargeEnabled == true)
+        #expect(decoded.manualDischargeActive == true)
+        #expect(decoded.manualDischargeTarget == 70)
+        #expect(decoded.clampedManualDischargeTarget == 70)
+        #expect(decoded.isActive == true)
+    }
+
+    @Test func decodingConfigurationWithoutDischargeFieldsDefaultsCorrectly() throws {
+        let json = "{\"enabled\":true,\"limitPercentage\":80,\"lowerHysteresisDelta\":2}".data(using: .utf8)!
+        let config = try BatteryControlCodec.decode(BatteryControlConfiguration.self, from: json)
+        #expect(config.autoDischargeEnabled == true)
+        #expect(config.manualDischargeActive == false)
+        #expect(config.manualDischargeTarget == 80)
+        #expect(config.clampedManualDischargeTarget == 80)
+    }
 }
