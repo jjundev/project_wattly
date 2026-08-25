@@ -43,10 +43,6 @@ import Foundation
         #expect(BatterySectionPresentation.sailingDeltaPresets == [2, 5, 10])
     }
 
-    @Test func heatProtectionPresetsMatchExpectedValues() {
-        #expect(BatterySectionPresentation.heatProtectionThresholdPresets == [32, 35, 38, 40])
-    }
-
     @Test func heatProtectionToggleConfigurationIsFixedAt35() {
         #expect(Defaults.batteryHeatProtectionThreshold == 35)
         #expect(Defaults.batteryHeatProtectionEnabled == false)
@@ -61,11 +57,8 @@ import Foundation
 
     @Test func batteryHeatProtectionThresholdCanBePersisted() {
         let defaults = UserDefaults(suiteName: "SettingsBatterySectionTests")!
-        let presets = [32, 35, 38, 40]
-        for preset in presets {
-            defaults.set(preset, forKey: StorageKey.batteryHeatProtectionThreshold)
-            #expect(defaults.integer(forKey: StorageKey.batteryHeatProtectionThreshold) == preset)
-        }
+        defaults.set(35, forKey: StorageKey.batteryHeatProtectionThreshold)
+        #expect(defaults.integer(forKey: StorageKey.batteryHeatProtectionThreshold) == 35)
     }
 
     @Test func systemBatterySettingsURLIsValid() {

@@ -628,10 +628,6 @@ import AppKit
 
     // MARK: - Heat Protection
 
-    @Test func heatProtectionThresholdPresetsAreValid() {
-        #expect(BatterySectionPresentation.heatProtectionThresholdPresets == [32, 35, 38, 40])
-    }
-
     @Test func shouldPollStatusWhenHeatProtectionIsEnabledEvenIfLimitIsOff() {
         #expect(BatterySectionPresentation.shouldPollStatus(
             isLimitOn: false,
