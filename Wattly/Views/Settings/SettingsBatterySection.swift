@@ -147,7 +147,7 @@ struct SettingsBatterySection: View {
                                       divider: false,
                                       isEnabled: isToggleEnabled) {
                         VStack(alignment: .leading, spacing: 2) {
-                            SettingsRowTitle("발열 보호 (Heat Protection)")
+                            SettingsRowTitle("발열 보호")
                             Text("배터리 온도가 35°C를 초과하면 충전을 일시 중단하고, 33°C 이하로 냉각되면 재개합니다.")
                                 .font(WattlyFont.at(10.5, weight: .regular))
                                 .foregroundStyle(t.faint)

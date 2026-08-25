@@ -46658,7 +46658,7 @@
         }
       }
     },
-    "발열 보호 (Heat Protection)": {
+    "발열 보호": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
@@ -46754,7 +46754,7 @@
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "발열 보호 (Heat Protection)"
+            "value": "발열 보호"
           }
         },
         "nb": {
