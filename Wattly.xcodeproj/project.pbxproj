@@ -51,6 +51,7 @@
 		2EB4D74291423268439F3CAD /* SMC.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9717A4622D508E51C16FA8 /* SMC.swift */; };
 		2F21C6921E2896512BD4FF55 /* AccessibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C59C21E293258105C63FB142 /* AccessibilityTests.swift */; };
 		BC1100060000000000000006 /* BatteryChargingScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1100050000000000000005 /* BatteryChargingScheduleTests.swift */; };
+		BC1200020000000000000002 /* BatterySchedulePersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1200010000000000000001 /* BatterySchedulePersistenceTests.swift */; };
 		31926AD6C690491825627C11 /* OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = DECFD3734A1569FA8CFE4AF5 /* OFL.txt */; };
 		31F04BE09B697A6978E859E1 /* BatteryControlProtocolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD2D0B67397C1DDEB96E5299 /* BatteryControlProtocolTests.swift */; };
 		327B519F858C0BCAE3AB2296 /* AppReplacer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124595F06443853225A78F1C /* AppReplacer.swift */; };
@@ -376,6 +377,7 @@
 		C48EFA903806186E968B2D77 /* WattlyFanDaemon */ = {isa = PBXFileReference; includeInIndex = 0; path = WattlyFanDaemon; sourceTree = BUILT_PRODUCTS_DIR; };
 		C59C21E293258105C63FB142 /* AccessibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityTests.swift; sourceTree = "<group>"; };
 		BC1100050000000000000005 /* BatteryChargingScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryChargingScheduleTests.swift; sourceTree = "<group>"; };
+		BC1200010000000000000001 /* BatterySchedulePersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatterySchedulePersistenceTests.swift; sourceTree = "<group>"; };
 		BC1100010000000000000001 /* BatteryChargingSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryChargingSchedule.swift; sourceTree = "<group>"; };
 		BC1100030000000000000003 /* BatteryScheduleLogEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryScheduleLogEntry.swift; sourceTree = "<group>"; };
 		C7B5E285FF8EA4DDD90B3B03 /* WattlyFont.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WattlyFont.swift; sourceTree = "<group>"; };
@@ -582,6 +584,7 @@
 			children = (
 				C59C21E293258105C63FB142 /* AccessibilityTests.swift */,
 				BC1100050000000000000005 /* BatteryChargingScheduleTests.swift */,
+				BC1200010000000000000001 /* BatterySchedulePersistenceTests.swift */,
 				F83934D3000879D7EC333BBA /* AppIdentityTests.swift */,
 				0087639C19083396DB06A189 /* AppReplacerTests.swift */,
 				D987ECF9FA534486FD44FE62 /* AppUninstallerTests.swift */,
@@ -900,6 +903,7 @@
 			files = (
 				2F21C6921E2896512BD4FF55 /* AccessibilityTests.swift in Sources */,
 				BC1100060000000000000006 /* BatteryChargingScheduleTests.swift in Sources */,
+				BC1200020000000000000002 /* BatterySchedulePersistenceTests.swift in Sources */,
 				F3694B232EC487E5AAF39ED2 /* AppIdentityTests.swift in Sources */,
 				D7BADF2FB54956C1BB865849 /* AppReplacerTests.swift in Sources */,
 				98FFEDBA03EB593EF689E781 /* AppUninstallerTests.swift in Sources */,
