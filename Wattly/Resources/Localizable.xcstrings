@@ -46843,6 +46843,191 @@
         }
       }
     },
+    "배터리 온도가 35°C를 초과하면 충전을 일시 중단하고, 33°C 이하로 냉각되면 재개합니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إيقاف الشحن مؤقتًا عندما تتجاوز درجة حرارة البطارية 35°م، واستئنافه بمجرد انخفاضها إلى 33°م أو أقل."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pozastaví nabíjení, když teplota baterie překročí 35°C, a obnoví jej, jakmile se ochladí na 33°C nebo méně."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sætter opladning på pause, når batteritemperaturen overstiger 35°C, og genoptager, når den er afkølet til 33°C eller derunder."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausiert das Laden, wenn die Batterietemperatur 35°C überschreitet, und setzt es fort, sobald sie auf 33°C oder darunter abkühlt."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Διακόπτει προσωρινά τη φόρτιση όταν η θερμοκρασία της μπαταρίας υπερβαίνει τους 35°C και τη συνεχίζει μόλις πέσει στους 33°C ή χαμηλότερα."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pauses charging when the battery temperature exceeds 35°C and resumes once it cools down to 33°C or below."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausa la carga cuando la temperatura de la batería supera los 35°C y la reanuda una vez que se enfría a 33°C o menos."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keskeyttää latauksen, kun akun lämpötila ylittää 35°C, ja jatkaa sitä, kun se jäähtyy 33°C:seen tai alle."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suspend la charge lorsque la température de la batterie dépasse 35°C et la reprend dès qu'elle redescend à 33°C ou moins."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "משהה את הטעינה כאשר טמפרטורת הסוללה עולה מעל 35°C ומחדש אותה כשהיא מתקררת ל-33°C או פחות."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बैटरी का तापमान 35°C से अधिक होने पर चार्जिंग रोक दी जाती है और 33°C या उससे कम होने पर फिर से शुरू होती है।"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Szünetelteti a töltést, ha az akkumulátor hőmérséklete meghaladja a 35°C-ot, és folytatja, amint 33°C-ra vagy az alá hűl."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menjeda pengisian daya saat suhu baterai melebihi 35°C dan melanjutkan setelah mendingin hingga 33°C atau lebih rendah."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sospende la ricarica quando la temperatura della batteria supera i 35°C e la riprende non appena scende a 33°C o meno."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バッテリー温度が35°Cを超えると充電を一時停止し、33°C以下に冷めると再開します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "배터리 온도가 35°C를 초과하면 충전을 일시 중단하고, 33°C 이하로 냉각되면 재개합니다."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Setter ladingen på pause når batteritemperaturen overstiger 35°C, og gjenopptar når den er avkjølt til 33°C eller lavere."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pauzeert het opladen wanneer de batterijtemperatuur hoger is dan 35°C en hervat zodra deze is afgekoeld tot 33°C of lager."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wstrzymuje ładowanie, gdy temperatura baterii przekroczy 35°C, i wznawia, gdy spadnie do 33°C lub poniżej."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausa o carregamento quando a temperatura da bateria excede 35°C e retoma assim que esfriar para 33°C ou menos."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausa o carregamento quando a temperatura da bateria excede 35°C e retoma assim que arrefecer para 33°C ou menos."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Întrerupe încărcarea când temperatura bateriei depășește 35°C și o reia odată ce se răcește la 33°C sau mai puțin."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приостанавливает зарядку при температуре аккумулятора выше 35°C и возобновляет, когда она опустится до 33°C или ниже."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausar laddningen när batteritemperaturen överstiger 35°C och återupptar när den har svalnat till 33°C eller lägre."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "หยุดชาร์จชั่วคราวเมื่ออุณหภูมิแบตเตอรี่เกิน 35°C และเริ่มชาร์จใหม่เมื่ออุณหภูมิลดลงเหลือ 33°C หรือต่ำกว่า"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pil sıcaklığı 35°C'yi aştığında şarjı duraklatır ve 33°C veya altına soğuduğunda devam ettirir."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Призупиняє заряджання, якщо температура акумулятора перевищує 35°C, і відновлює, коли вона охолоне до 33°C або нижче."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tạm dừng sạc khi nhiệt độ pin vượt quá 35°C và tiếp tục lại khi pin nguội xuống 33°C trở xuống."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当电池温度超过 35°C 时暂停充电，当降至 33°C 或以下时恢复充电。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "當電池溫度超過 35°C 時暫停充電，當降至 33°C 或以下時恢復充電。"
+          }
+        }
+      }
+    },
     "배터리 온도가 설정값을 초과하면 충전을 일시 중단하여 배터리 수명을 보호합니다.": {
       "extractionState": "manual",
       "localizations": {

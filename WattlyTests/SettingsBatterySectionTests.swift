@@ -47,6 +47,11 @@ import Foundation
         #expect(BatterySectionPresentation.heatProtectionThresholdPresets == [32, 35, 38, 40])
     }
 
+    @Test func heatProtectionToggleConfigurationIsFixedAt35() {
+        #expect(Defaults.batteryHeatProtectionThreshold == 35)
+        #expect(Defaults.batteryHeatProtectionEnabled == false)
+    }
+
     @Test func batteryHeatProtectionDefaultsAreConsistent() {
         #expect(Defaults.batteryHeatProtectionEnabled == false)
         #expect(Defaults.batteryHeatProtectionThreshold == 35)
