@@ -441,6 +441,8 @@ enum Defaults {
     static let batteryChargingSchedules = ""
     static let batteryScheduleHistory = ""
     static let batteryScheduleNotificationsEnabled = true
+    static let showBatteryTopUp = true
+    static let showBatteryManualDischarge = true
 }
 
 /// `@AppStorage` key names. `loginItem` is a mirror of `SMAppService.mainApp`
@@ -464,6 +466,8 @@ enum StorageKey {
     static let menubarIconStyle = "menubarIconStyle"
     static let powerSmoothed = "powerSmoothed"
     static let showBatteryEfficiency = "showBatteryEfficiency"
+    static let showBatteryTopUp = "showBatteryTopUp"
+    static let showBatteryManualDischarge = "showBatteryManualDischarge"
     static let memoryProcessLimit = "memoryProcessLimit"
     static let powerProcessLimit = "powerProcessLimit"
     static let cardOrder = "cardOrder"
