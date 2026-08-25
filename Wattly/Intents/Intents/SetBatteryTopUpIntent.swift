@@ -18,10 +18,10 @@ public struct SetBatteryTopUpIntent: AppIntent {
         let bridge = BatteryIntentBridge.shared
         _ = try await bridge.applyTopUp(start: start)
 
-        let dialogText = start
-            ? "한 번만 완충을 시작했습니다 (100% 도달 후 어댑터 분리 시 원래 한도로 복귀)."
-            : "한 번만 완충을 취소하고 원래 충전 한도로 복귀했습니다."
+        let dialog: IntentDialog = start
+            ? IntentDialog("한 번만 완충을 시작했습니다 (100% 도달 후 어댑터 분리 시 원래 한도로 복귀).")
+            : IntentDialog("한 번만 완충을 취소하고 원래 충전 한도로 복귀했습니다.")
 
-        return .result(dialog: IntentDialog(stringLiteral: dialogText))
+        return .result(dialog: dialog)
     }
 }

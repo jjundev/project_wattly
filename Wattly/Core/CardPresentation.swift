@@ -182,7 +182,7 @@ enum CardPresentation {
         guard case .value(let sample) = state else { return nil }
         switch sample {
         case .power(let s):
-            return "CPU \(f1(s.cpuW)) W · GPU \(f1(s.gpuW)) W · NPU \(f1(s.npuW)) W"
+            return "CPU \(f1(s.cpuW)) W · GPU \(f1(s.gpuW)) W · ANE \(f1(s.npuW)) W"
         case .battery(let s):
             if s.powerFlow?.scenario == .activeDischarge {
                 let target = s.targetPercentage
@@ -212,11 +212,13 @@ enum CardPresentation {
             }
             return parts.isEmpty ? nil : parts.joined(separator: " · ")
         case .memory(let s):
-            let detail = "고정 \(f1(s.wiredGB)) GB · 압축 \(f1(s.compressedGB)) GB · 스왑 \(f1(s.swapUsedGB)) GB"
-            // Lead with the exact RAM-pressure % (Activity Monitor "메모리 압력") when the kernel
-            // syscall supplied it; drop the segment entirely when it's unavailable (never "0%").
-            guard let p = s.pressurePercent else { return detail }
-            return "압력 \(p)% · \(detail)"
+            if let p = s.pressurePercent {
+                return String(format: String(localized: "압력 %lld%% · 고정 %@ GB · 압축 %@ GB · 스왑 %@ GB", locale: locale),
+                              locale: locale, Int64(p), f1(s.wiredGB), f1(s.compressedGB), f1(s.swapUsedGB))
+            } else {
+                return String(format: String(localized: "고정 %@ GB · 압축 %@ GB · 스왑 %@ GB", locale: locale),
+                              locale: locale, f1(s.wiredGB), f1(s.compressedGB), f1(s.swapUsedGB))
+            }
         case .fan, .temperature:
             return nil
         }

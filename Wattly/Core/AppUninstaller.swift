@@ -15,15 +15,15 @@ enum AppUninstaller: Sendable {
         var errorDescription: String? {
             switch self {
             case .loginItemRemovalFailed(let detail):
-                "로그인 시 자동 실행 해제를 완료하지 못해 Wattly 삭제를 중단했습니다: \(detail)"
+                String(format: String(localized: "로그인 시 자동 실행 해제를 완료하지 못해 Wattly 삭제를 중단했습니다: %@"), detail)
             case .helperUnavailable:
-                "도우미에 연결할 수 없어 충전 허용 상태를 확인하지 못했습니다."
+                String(localized: "도우미에 연결할 수 없어 충전 허용 상태를 확인하지 못했습니다.")
             case .persistenceRejected:
-                "충전 제한 비활성화 설정을 저장하지 못했습니다."
+                String(localized: "충전 제한 비활성화 설정을 저장하지 못했습니다.")
             case .releaseUnverified:
-                "충전 허용 상태를 확인하지 못해 Wattly 삭제를 중단했습니다."
+                String(localized: "충전 허용 상태를 확인하지 못해 Wattly 삭제를 중단했습니다.")
             case .helperRemovalFailed(let detail):
-                "도우미를 제거하지 못했습니다: \(detail)"
+                String(format: String(localized: "도우미를 제거하지 못했습니다: %@"), detail)
             }
         }
     }

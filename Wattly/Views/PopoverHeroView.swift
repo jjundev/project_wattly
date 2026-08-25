@@ -105,7 +105,7 @@ struct PopoverHeroView: View {
         .accessibilityLabel(Accessibility.cardLabel(card, state, locale: locale))
         .accessibilityValue(Accessibility.stateWord(card, state, thresholds) ?? "")
         .accessibilityAddTraits(.isButton)
-        .accessibilityHint("히어로로 강조")
+        .accessibilityHint(Text(LocalizedStringKey("히어로로 강조")))
         .accessibilityAction { heroMetric = card }
     }
 }
@@ -218,13 +218,14 @@ private struct HeroCard: View {
             .font(WattlyFont.at(11, weight: .regular))
             .monospacedDigit()
             .foregroundStyle(Self.subColor)
-            .lineLimit(1)
     }
 
     @ViewBuilder
     private func subTextView(_ fallbackSubText: String?) -> some View {
         if let sub = fallbackSubText, !sub.isEmpty {
             Text(sub)
+                .lineLimit(isExpanded ? 2 : 1)
+                .fixedSize(horizontal: false, vertical: isExpanded)
         }
     }
 

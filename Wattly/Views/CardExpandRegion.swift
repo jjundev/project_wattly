@@ -128,14 +128,14 @@ struct CardExpandRegion: View {
                 .frame(width: 32, alignment: .trailing)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(label), \(Int(usage.rounded())) 퍼센트")
+        .accessibilityLabel(String(format: String(localized: "%@, %lld 퍼센트", locale: locale), locale: locale, String(localized: String.LocalizationValue(label), locale: locale), Int64(usage.rounded())))
     }
 
     private func gpuMemoryRow(label: String, inUse: UInt64, alloc: UInt64) -> some View {
         let frac = CardPresentation.gpuMemoryFraction(inUse: inUse, alloc: alloc)
         let text = CardPresentation.mbText(inUse)
         return HStack(spacing: 9) {
-            Text(label)
+            Text(LocalizedStringKey(label))
                 .font(WattlyFont.at(10.5, weight: .semibold))
                 .foregroundStyle(t.faint)
                 .frame(width: 44, alignment: .leading)
@@ -181,7 +181,7 @@ struct CardExpandRegion: View {
                 .frame(width: 26, alignment: .trailing)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(label), \(Int(usage.rounded())) 퍼센트")
+        .accessibilityLabel(String(format: String(localized: "%@, %lld 퍼센트", locale: locale), locale: locale, label, Int64(usage.rounded())))
     }
 
     // MARK: Memory expand — top processes (issue 05)
@@ -442,7 +442,7 @@ struct CardExpandRegion: View {
 
         HStack(alignment: .center) {
             HStack(spacing: 4) {
-                Text("수동 방전 (\(manualDischargeTarget)%)")
+                Text(LocalizedStringKey("수동 방전 (\(manualDischargeTarget)%)"))
                     .font(WattlyFont.at(10.5, weight: .medium))
                     .foregroundStyle(t.faint)
                 if isDischarging {
@@ -502,7 +502,7 @@ struct CardExpandRegion: View {
             }
             .buttonStyle(.plain)
             .disabled(!isDischarging && !canStartDischarge)
-            .accessibilityLabel(Text("수동 방전 (\(manualDischargeTarget)%)"))
+            .accessibilityLabel(Text(LocalizedStringKey("수동 방전 (\(manualDischargeTarget)%)")))
             .accessibilityValue(Text(verbatim: isDischarging
                 ? String(localized: "방전 중지", locale: locale)
                 : BatterySectionPresentation.startDischargeButtonText(
@@ -517,7 +517,7 @@ struct CardExpandRegion: View {
                 .font(WattlyFont.at(10.5, weight: .semibold))
                 .foregroundStyle(t.faint)
             Spacer(minLength: 8)
-            Text(value)
+            Text(LocalizedStringKey(value))
                 .font(WattlyFont.at(10.5, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(t.sub)
@@ -605,14 +605,14 @@ struct CardExpandRegion: View {
                 }
             }
             .frame(height: 6)
-            (Text("\(CardPresentation.f1(g.average))° · ") + Text("최고") + Text(" \(CardPresentation.f1(g.hottest))°"))
+            (Text("\(CardPresentation.f1(g.average))° · ") + Text(LocalizedStringKey("최고")) + Text(" \(CardPresentation.f1(g.hottest))°"))
                 .font(WattlyFont.at(10.5, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(t.sub)
                 .frame(width: 104, alignment: .trailing)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(g.name), 평균 \(CardPresentation.f1(g.average))도, 최고 \(CardPresentation.f1(g.hottest))도")
+        .accessibilityLabel(String(format: String(localized: "%@, 평균 %@도, 최고 %@도", locale: locale), locale: locale, String(localized: String.LocalizationValue(g.name), locale: locale), CardPresentation.f1(g.average), CardPresentation.f1(g.hottest)))
     }
 
     // MARK: Fan expand — per-fan actual/target (Phase A)
@@ -635,7 +635,7 @@ struct CardExpandRegion: View {
 
     private func fanRow(_ f: FanReading) -> some View {
         HStack(spacing: 9) {
-            (Text("팬") + Text(" \(f.index + 1)"))
+            (Text(LocalizedStringKey("팬")) + Text(" \(f.index + 1)"))
                 .font(WattlyFont.at(10.5, weight: .semibold))
                 .foregroundStyle(t.faint)
                 .frame(width: 44, alignment: .leading)
@@ -648,14 +648,14 @@ struct CardExpandRegion: View {
                 }
             }
             .frame(height: 6)
-            (Text("\(Int(f.actualRPM.rounded())) RPM · ") + Text("목표") + Text(" \(Int(f.targetRPM.rounded()))"))
+            (Text("\(Int(f.actualRPM.rounded())) RPM · ") + Text(LocalizedStringKey("목표")) + Text(" \(Int(f.targetRPM.rounded()))"))
                 .font(WattlyFont.at(10.5, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(t.sub)
                 .frame(width: 128, alignment: .trailing)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("팬 \(f.index + 1), \(Int(f.actualRPM.rounded())) RPM, 목표 \(Int(f.targetRPM.rounded())) RPM")
+        .accessibilityLabel(String(format: String(localized: "팬 %lld, %lld RPM, 목표 %lld RPM", locale: locale), locale: locale, Int64(f.index + 1), Int64(f.actualRPM.rounded()), Int64(f.targetRPM.rounded())))
     }
 
     // Same rule as MetricCardView's headline sparkline: threshold color when the card has

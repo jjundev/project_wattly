@@ -54,7 +54,7 @@ struct SettingsFanCurveSection: View {
                                         .foregroundStyle(t.faint)
                                 }
                                 .buttonStyle(.plain)
-                                .accessibilityLabel("팬 상태 유지 구간 작동 방식 보기")
+                                .accessibilityLabel(Text(LocalizedStringKey("팬 상태 유지 구간 작동 방식 보기")))
                                 .popover(isPresented: $isZeroFanHelpPresented, arrowEdge: .bottom) {
                                     zeroFanHelpPopover(for: holdRange)
                                 }
@@ -159,24 +159,24 @@ struct SettingsFanCurveSection: View {
     }
 
     private func zeroFanHelpPopover(for holdRange: ClosedRange<Double>) -> some View {
-        let entry = Int(holdRange.lowerBound)
-        let exit = Int(holdRange.upperBound)
+        let entry = Int64(holdRange.lowerBound)
+        let exit = Int64(holdRange.upperBound)
         let recoveryBoundary = holdRange.upperBound == FanControlPolicy.zeroRPMExitCelsius
-            ? "\(exit)°C 이상"
-            : "\(exit)°C 초과"
+            ? String(format: String(localized: "%lld°C 이상"), exit)
+            : String(format: String(localized: "%lld°C 초과"), exit)
         return VStack(alignment: .leading, spacing: 10) {
-            Text("팬 상태 유지 구간 안내 · \(entry)–\(exit)°C")
+            Text(String(format: String(localized: "팬 상태 유지 구간 안내 · %lld–%lld°C"), entry, exit))
                 .font(WattlyFont.at(13, weight: .semibold))
                 .foregroundStyle(t.text)
             VStack(alignment: .leading, spacing: 5) {
-                Text("• 곡선이 0 RPM을 지시할 때만 작동")
+                Text(LocalizedStringKey("• 곡선이 0 RPM을 지시할 때만 작동"))
                 if holdRange.lowerBound == FanControlPolicy.zeroRPMEnterCelsius {
-                    Text("• 48°C 미만: 팬 정지")
+                    Text(LocalizedStringKey("• 48°C 미만: 팬 정지"))
                 } else {
-                    Text("• \(entry)°C 미만: 곡선 설정에 따라 제어")
+                    Text(String(format: String(localized: "• %lld°C 미만: 곡선 설정에 따라 제어"), entry))
                 }
-                Text("• \(entry)–\(exit)°C: 현재 정지·회전 상태 유지")
-                Text("• \(recoveryBoundary): 기본 최소 RPM 이상으로 복귀")
+                Text(String(format: String(localized: "• %lld–%lld°C: 현재 정지·회전 상태 유지"), entry, exit))
+                Text(String(format: String(localized: "• %@: 기본 최소 RPM 이상으로 복귀"), recoveryBoundary))
             }
             .font(WattlyFont.at(11, weight: .regular))
             .foregroundStyle(t.sub)
@@ -218,18 +218,18 @@ struct SettingsFanCurveSection: View {
     }
 
     private var fanStatusText: String {
-        guard fanControlEnabled else { return "꺼짐 · macOS 자동 제어" }
-        if fanControl.isInstallingHelper { return "도우미 설치 중… (관리자 인증)" }
+        guard fanControlEnabled else { return String(localized: "꺼짐 · macOS 자동 제어") }
+        if fanControl.isInstallingHelper { return String(localized: "도우미 설치 중… (관리자 인증)") }
         // Just after an edit the curve re-engages, and the daemon can blip through `.failed` for a
         // second or two before `.controlling`. Within the grace window show the reassuring "적용 중…"
         // rather than the alarming "제어 실패"; a failure that outlasts the window still surfaces.
-        if isWithinApplyGrace, fanControl.status.mode == .failed { return "적용 중…" }
+        if isWithinApplyGrace, fanControl.status.mode == .failed { return String(localized: "적용 중…") }
         switch fanControl.status.mode {
-        case .controlling: return "적용 중 · 사용자 지정 곡선으로 제어"
-        case .engaging:    return "연결 중…"
-        case .automatic:   return "대기 중 · macOS 자동 제어"
-        case .unavailable: return "도우미 미설치 — 토글을 켜면 설치됩니다"
-        case .failed:      return "제어 실패 — macOS 자동 제어로 복귀"
+        case .controlling: return String(localized: "적용 중 · 사용자 지정 곡선으로 제어")
+        case .engaging:    return String(localized: "연결 중…")
+        case .automatic:   return String(localized: "대기 중 · macOS 자동 제어")
+        case .unavailable: return String(localized: "도우미 미설치 — 토글을 켜면 설치됩니다")
+        case .failed:      return String(localized: "제어 실패 — macOS 자동 제어로 복귀")
         }
     }
 

@@ -18,7 +18,9 @@ public struct SetBatteryLimitEnabledIntent: AppIntent {
         let bridge = BatteryIntentBridge.shared
         _ = try await bridge.applyLimit(enabled: enabled)
 
-        let dialogText = enabled ? "배터리 충전 제한을 켰습니다." : "배터리 충전 제한을 껐습니다."
-        return .result(dialog: IntentDialog(stringLiteral: dialogText))
+        let dialog: IntentDialog = enabled
+            ? IntentDialog("배터리 충전 제한을 켰습니다.")
+            : IntentDialog("배터리 충전 제한을 껐습니다.")
+        return .result(dialog: dialog)
     }
 }

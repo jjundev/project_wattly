@@ -33,7 +33,7 @@ actor MemoryProvider: MetricProvider, ProcessEnumerating {
 
     func read(at instant: ContinuousClock.Instant) async -> ProviderReading {
         guard let vm = vmStatistics() else {
-            return .unavailable(.providerError("메모리 통계를 읽을 수 없음"))
+            return .unavailable(.providerError(String(localized: "메모리 통계를 읽을 수 없음")))
         }
         let processLimit: Int
         let procs: [ProcessUsage]

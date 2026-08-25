@@ -279,7 +279,7 @@ struct SettingsView: View {
                 }
             } label: {
                 HStack(spacing: 5) {
-                    Text(updateChecker.status == .checking ? "확인 중..." : "업데이트 확인")
+                    Text(updateChecker.status == .checking ? LocalizedStringKey("확인 중...") : LocalizedStringKey("업데이트 확인"))
                         .font(WattlyFont.at(12, weight: .medium))
                         .foregroundStyle(t.text)
                 }

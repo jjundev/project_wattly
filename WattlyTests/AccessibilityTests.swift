@@ -59,9 +59,9 @@ struct AccessibilityTests {
     }
 
     @Test func powerFoldsCpuGpuNpuBreakdown() {
-        // The CPU/GPU/NPU split exists ONLY in subText — it must survive into the label.
+        // The CPU/GPU/ANE split exists ONLY in subText — it must survive into the label.
         #expect(Accessibility.cardLabel(.power, power(8.42))
-                == "프로세서 전력, 8.4 W, CPU 3.0 W · GPU 2.0 W · NPU 1.0 W")
+                == "프로세서 전력, 8.4 W, CPU 3.0 W · GPU 2.0 W · ANE 1.0 W")
     }
 
     @Test func memoryUsesGBSymbolAndFoldsDetail() {

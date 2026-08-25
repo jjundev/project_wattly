@@ -10,7 +10,7 @@ import AppKit
 
     private(set) var status = FanControlServiceStatus(
         mode: .unavailable,
-        detail: "도우미에 연결되지 않음",
+        detail: String(localized: "도우미에 연결되지 않음"),
         updatedAt: 0
     )
     // True while the privileged helper install (admin auth prompt) is running.
@@ -40,7 +40,7 @@ import AppKit
             configuration: .init(enabled: enabled, curve: curve),
             generation: nextCommandGeneration()
         )) else {
-            updateUnavailable("팬 커브를 인코딩할 수 없음")
+            updateUnavailable(String(localized: "팬 커브를 인코딩할 수 없음"))
             return
         }
         await send(.configure(data))
@@ -72,7 +72,7 @@ import AppKit
 
     func release() async {
         guard let data = try? FanControlCodec.encode(FanControlReleaseRequest(generation: nextCommandGeneration())) else {
-            updateUnavailable("팬 제어 해제 요청을 인코딩할 수 없음")
+            updateUnavailable(String(localized: "팬 제어 해제 요청을 인코딩할 수 없음"))
             return
         }
         await send(.release(data))
@@ -121,7 +121,7 @@ import AppKit
             guard let service = connection.remoteObjectProxyWithErrorHandler({ error in
                 completion.finish(.failure(.init(detail: error.localizedDescription)))
             }) as? any FanControlXPCService else {
-                completion.finish(.failure(.init(detail: "도우미 연결을 만들 수 없음")))
+                completion.finish(.failure(.init(detail: String(localized: "도우미 연결을 만들 수 없음"))))
                 return
             }
 
@@ -130,7 +130,7 @@ import AppKit
                       let data,
                       let value = try? FanControlCodec.decode(FanControlServiceStatus.self, from: data)
                 else {
-                    completion.finish(.failure(.init(detail: error?.localizedDescription ?? "도우미 응답 오류")))
+                    completion.finish(.failure(.init(detail: error?.localizedDescription ?? String(localized: "도우미 응답 오류"))))
                     return
                 }
                 completion.finish(.success(value))

@@ -19,7 +19,7 @@ actor GPUProvider: MetricProvider {
         if !clockSetupAttempted { clockSetupAttempted = true; clock = RealGPUClock() }
 
         guard let stats = transport.readPerformanceStatistics() else {
-            return .unavailable(.providerError("GPU 사용률을 읽을 수 없음"))
+            return .unavailable(.providerError(String(localized: "GPU 사용률을 읽을 수 없음")))
         }
 
         let ghz = clock?.sampleGHz()

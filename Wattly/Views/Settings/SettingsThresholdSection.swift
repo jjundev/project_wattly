@@ -61,8 +61,8 @@ struct SettingsThresholdSection: View {
             }
             .contentShape(Rectangle())
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("GPU 사용률 상태 경고")
-            .accessibilityValue(isEnabled ? "켜짐" : "꺼짐")
+            .accessibilityLabel(Text(LocalizedStringKey("GPU 사용률 상태 경고")))
+            .accessibilityValue(Text(LocalizedStringKey(isEnabled ? "켜짐" : "꺼짐")))
             .accessibilityAddTraits(.isButton)
             .accessibilityAction {
                 gpuToggleBinding.wrappedValue.toggle()

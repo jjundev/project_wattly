@@ -42,7 +42,7 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
 
     /// Matches the existing copy in `MetricState`/`FakeProvider` (the orange card).
     static let unreadableMessage =
-        "Energy Model 그룹을 읽을 수 없음 — 이 macOS에서 채널이 바뀌었을 수 있습니다."
+        String(localized: "Energy Model 그룹을 읽을 수 없음 — 이 macOS에서 채널이 바뀌었을 수 있습니다.")
 
     init(now: @escaping @Sendable () -> ContinuousClock.Instant = { .now }) {
         self.now = now

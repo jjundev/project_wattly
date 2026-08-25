@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ScheduleEditorSheet: View {
     @Environment(\.tokens) private var t
+    @Environment(\.locale) private var locale
     @Environment(\.dismiss) private var dismiss
 
     let initialSchedule: BatteryChargingSchedule?
@@ -54,7 +55,7 @@ struct ScheduleEditorSheet: View {
                     .foregroundStyle(t.faint)
                 HStack(spacing: 8) {
                     Picker("시", selection: $hour) {
-                        ForEach(0..<24) { h in Text(String(format: "%02d시", h)).tag(h) }
+                        ForEach(0..<24) { h in Text(String(format: String(localized: "%02d시", locale: locale), locale: locale, h)).tag(h) }
                     }
                     .labelsHidden()
                     .frame(width: 80)
@@ -65,7 +66,7 @@ struct ScheduleEditorSheet: View {
 
                     Picker("분", selection: $minute) {
                         ForEach(Array(stride(from: 0, to: 60, by: 5)), id: \.self) { m in
-                            Text(String(format: "%02d분", m)).tag(m)
+                            Text(String(format: String(localized: "%02d분", locale: locale), locale: locale, m)).tag(m)
                         }
                     }
                     .labelsHidden()
@@ -92,7 +93,7 @@ struct ScheduleEditorSheet: View {
 
                 if actionType == 0 {
                     HStack {
-                        Text("목표 한도: \(targetLimit)%")
+                        Text(String(format: String(localized: "목표 한도: %lld%%", locale: locale), locale: locale, Int64(targetLimit)))
                             .font(WattlyFont.at(11.5, weight: .medium))
                             .foregroundStyle(t.sub)
                         Spacer()
@@ -138,7 +139,7 @@ struct ScheduleEditorSheet: View {
                                     customDays.insert(day)
                                 }
                             } label: {
-                                Text(day.shortLabel)
+                                Text(day.shortLabel(locale: locale))
                                     .font(WattlyFont.at(11, weight: .medium))
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 4)
@@ -156,11 +157,17 @@ struct ScheduleEditorSheet: View {
 
             // Action Buttons
             HStack {
-                Button("취소") { dismiss() }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(t.faint)
+                Button {
+                    dismiss()
+                } label: {
+                    Text(LocalizedStringKey("취소"))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(t.faint)
+
                 Spacer()
-                Button("저장") {
+
+                Button {
                     let repeatRule: ScheduleRepeatRule
                     switch repeatType {
                     case 0: repeatRule = .once(Date())
@@ -192,6 +199,8 @@ struct ScheduleEditorSheet: View {
                     )
                     onSave(schedule)
                     dismiss()
+                } label: {
+                    Text(LocalizedStringKey("저장"))
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(Tokens.accent)

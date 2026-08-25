@@ -11,13 +11,14 @@ public struct GetBatteryStatusIntent: AppIntent {
         let bridge = BatteryIntentBridge.shared
         let state = try await bridge.fetchBatteryState()
 
-        let dialogText: String
+        let dialog: IntentDialog
         if let temp = state.temperatureCelsius {
-            dialogText = "현재 배터리 잔량은 \(state.percentage)%이며, 온도는 \(String(format: "%.1f", temp))°C입니다."
+            let tempString = String(format: "%.1f", temp)
+            dialog = IntentDialog("현재 배터리 잔량은 \(state.percentage)%이며, 온도는 \(tempString)°C입니다.")
         } else {
-            dialogText = "현재 배터리 잔량은 \(state.percentage)%입니다."
+            dialog = IntentDialog("현재 배터리 잔량은 \(state.percentage)%입니다.")
         }
 
-        return .result(value: state, dialog: IntentDialog(stringLiteral: dialogText))
+        return .result(value: state, dialog: dialog)
     }
 }

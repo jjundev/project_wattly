@@ -73,9 +73,11 @@ public enum BatteryNotificationManager {
         let center = UNUserNotificationCenter.current()
         center.getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
+            let appLang = UserDefaults.standard.string(forKey: StorageKey.appLanguage) ?? Defaults.appLanguage
+            let locale = AppLanguage.locale(for: appLang)
             let content = UNMutableNotificationContent()
-            content.title = topUpCompleteTitle(locale: .current)
-            content.body = topUpCompleteBody(locale: .current)
+            content.title = topUpCompleteTitle(locale: locale)
+            content.body = topUpCompleteBody(locale: locale)
             content.sound = .default
 
             let request = UNNotificationRequest(
@@ -92,16 +94,18 @@ public enum BatteryNotificationManager {
     }
 
     public static func dischargeCompleteBody(target: Int, locale: Locale) -> String {
-        String(format: String(localized: "목표 잔량(%lld%%)에 도달하여 전원 어댑터 바이패스 모드로 전환되었습니다.", locale: locale), target)
+        String(format: String(localized: "목표 잔량(%lld%%)에 도달하여 전원 어댑터 바이패스 모드로 전환되었습니다.", locale: locale), locale: locale, target)
     }
 
     public static func postDischargeCompleteNotification(target: Int) {
         let center = UNUserNotificationCenter.current()
         center.getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
+            let appLang = UserDefaults.standard.string(forKey: StorageKey.appLanguage) ?? Defaults.appLanguage
+            let locale = AppLanguage.locale(for: appLang)
             let content = UNMutableNotificationContent()
-            content.title = dischargeCompleteTitle(locale: .current)
-            content.body = dischargeCompleteBody(target: target, locale: .current)
+            content.title = dischargeCompleteTitle(locale: locale)
+            content.body = dischargeCompleteBody(target: target, locale: locale)
             content.sound = .default
             content.categoryIdentifier = "dev.jjundev.Wattly.dischargeComplete"
 
@@ -122,20 +126,22 @@ public enum BatteryNotificationManager {
         if scheduleName.isEmpty {
             return String(localized: "예약 충전 실행됨", locale: locale)
         }
-        return String(localized: "예약 충전: \(scheduleName)", locale: locale)
+        return String(format: String(localized: "예약 충전: %@", locale: locale), locale: locale, scheduleName)
     }
 
     public static func scheduleTriggeredBody(scheduleName: String, actionSummary: String, locale: Locale) -> String {
-        return String(localized: "설정된 작업이 실행되었습니다: \(actionSummary)", locale: locale)
+        return String(format: String(localized: "설정된 작업이 실행되었습니다: %@", locale: locale), locale: locale, actionSummary)
     }
 
     public static func postScheduleTriggeredNotification(scheduleName: String, actionSummary: String) {
         let center = UNUserNotificationCenter.current()
         center.getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
+            let appLang = UserDefaults.standard.string(forKey: StorageKey.appLanguage) ?? Defaults.appLanguage
+            let locale = AppLanguage.locale(for: appLang)
             let content = UNMutableNotificationContent()
-            content.title = scheduleTriggeredTitle(scheduleName: scheduleName, actionSummary: actionSummary, locale: .current)
-            content.body = scheduleTriggeredBody(scheduleName: scheduleName, actionSummary: actionSummary, locale: .current)
+            content.title = scheduleTriggeredTitle(scheduleName: scheduleName, actionSummary: actionSummary, locale: locale)
+            content.body = scheduleTriggeredBody(scheduleName: scheduleName, actionSummary: actionSummary, locale: locale)
             content.sound = .default
 
             let request = UNNotificationRequest(

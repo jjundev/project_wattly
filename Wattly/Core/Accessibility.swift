@@ -18,11 +18,11 @@ enum Accessibility {
         let name = CardPresentation.label(card)
         switch state {
         case .loading:
-            return "\(name), 불러오는 중"
+            return "\(name), \(String(localized: "불러오는 중", locale: locale))"
         case .unavailable(let reason):
-            return "\(name), 사용 불가, \(reason.message)"
+            return "\(name), \(String(localized: "사용 불가", locale: locale)), \(reason.message)"
         case .value:
-            var label = "\(name), \(headPhrase(card, state))"
+            var label = "\(name), \(headPhrase(card, state, locale: locale))"
             // Fold the sub-line in. For the power card the CPU/GPU/NPU breakdown lives ONLY
             // in the sub-line (the power expand shows the per-app Top-3, not the engine
             // split), so dropping it would lose the breakdown for VO.
@@ -43,8 +43,8 @@ enum Accessibility {
     /// computed regardless of whether the visible text is on (issue 15 §1). Decision A: an
     /// empty selection reads just "Wattly". Reuses the MenuBarText assembler so the symbol copy
     /// matches the menubar text exactly.
-    static func menuBarLabel(items: [MenuBarItem], states: [CardKind: MetricState]) -> String {
-        guard let metrics = MenuBarText.assemble(items: items, states: states) else {
+    static func menuBarLabel(items: [MenuBarItem], states: [CardKind: MetricState], locale: Locale = Locale(identifier: "ko")) -> String {
+        guard let metrics = MenuBarText.assemble(items: items, states: states, locale: locale) else {
             return "Wattly"
         }
         return "Wattly, \(metrics)"
@@ -60,9 +60,9 @@ enum Accessibility {
     /// the caller (`MenuBarLabel`) formats them via `MenuBarText.memPressurePart`
     /// before passing them in. Defaults to `[]` so every existing call site is unaffected.
     static func menuBarLabel(selected: Set<CardKind>, states: [CardKind: MetricState],
-                              extraParts: [String] = []) -> String {
+                             extraParts: [String] = [], locale: Locale = Locale(identifier: "ko")) -> String {
         var parts: [String] = []
-        if let metrics = MenuBarText.assemble(selected: selected, states: states) { parts.append(metrics) }
+        if let metrics = MenuBarText.assemble(selected: selected, states: states, locale: locale) { parts.append(metrics) }
         parts.append(contentsOf: extraParts)
         guard !parts.isEmpty else { return "Wattly" }
         return "Wattly, \(parts.joined(separator: "  ·  "))"
@@ -70,11 +70,11 @@ enum Accessibility {
 
     /// The spoken "value unit" for a live card. Symbols per decision B; the battery uses a
     /// 충전/방전 word in place of the ± sign (issue 15 §7).
-    private static func headPhrase(_ card: CardKind, _ state: MetricState) -> String {
+    private static func headPhrase(_ card: CardKind, _ state: MetricState, locale: Locale = Locale(identifier: "ko")) -> String {
         let v = CardPresentation.valueText(card, state)
         switch card {
         case .power: return "\(v) W"
-        case .battery: return batteryPhrase(state) ?? "\(v) W"
+        case .battery: return batteryPhrase(state, locale: locale) ?? "\(v) W"
         case .cpu, .gpu: return "\(v)%"
         case .mem: return "\(v) GB"
         case .cpuTemp, .gpuTemp: return "\(v)°C"
@@ -84,12 +84,12 @@ enum Accessibility {
 
     /// "충전 5.0 W" / "방전 12.3 W" / "0.0 W" — the spoken battery value, a charging word
     /// instead of ± (and no word when |net| rounds to 0, matching the value's #17 rule).
-    private static func batteryPhrase(_ state: MetricState) -> String? {
+    private static func batteryPhrase(_ state: MetricState, locale: Locale = Locale(identifier: "ko")) -> String? {
         guard case .value(.battery(let s)) = state else { return nil }
         let mag = CardPresentation.f1(abs(s.netW))
         switch CardPresentation.batterySign(netW: s.netW, charging: s.charging) {
-        case "+": return "충전 \(mag) W"
-        case "−": return "방전 \(mag) W"
+        case "+": return "\(String(localized: "충전", locale: locale)) \(mag) W"
+        case "−": return "\(String(localized: "방전", locale: locale)) \(mag) W"
         default:  return "\(mag) W"
         }
     }
@@ -97,6 +97,6 @@ enum Accessibility {
     /// Fan-curve editor: the spoken label for one temperature anchor's handle ("40°C 팬 속도")
     /// and its value ("1200 RPM"). Pure so the copy is table-tested (issue 15), matching the
     /// symbol-based unit style of the rest of this file.
-    static func fanAnchorLabel(celsius: Double) -> String { "\(Int(celsius))°C 팬 속도" }
+    static func fanAnchorLabel(celsius: Double, locale: Locale = Locale(identifier: "ko")) -> String { "\(Int(celsius))°C \(String(localized: "팬 속도", locale: locale))" }
     static func fanAnchorValue(rpm: Double) -> String { "\(Int(rpm.rounded())) RPM" }
 }

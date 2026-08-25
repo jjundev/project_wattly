@@ -5,6 +5,17 @@ public struct BatteryScheduleLogEntry: Identifiable, Codable, Equatable, Sendabl
         case success
         case skipped(reason: SkipReason)
         case failed(reason: String)
+
+        public var localizedDescription: String {
+            switch self {
+            case .success:
+                return String(localized: "성공")
+            case .skipped(let reason):
+                return reason.localizedDescription
+            case .failed(let reason):
+                return String(format: String(localized: "실패: %@"), reason)
+            }
+        }
     }
 
     public enum SkipReason: String, Codable, Equatable, Sendable {
@@ -12,6 +23,19 @@ public struct BatteryScheduleLogEntry: Identifiable, Codable, Equatable, Sendabl
         case catchUpWindowExpired = "잠자기 유효 시간 초과"
         case overriddenByHigherPriority = "동일 시각 상위 작업 우선"
         case heatProtectionActive = "발열 보호 작동 중"
+
+        public var localizedDescription: String {
+            switch self {
+            case .adapterDisconnected:
+                return String(localized: "어댑터 미연결")
+            case .catchUpWindowExpired:
+                return String(localized: "잠자기 유효 시간 초과")
+            case .overriddenByHigherPriority:
+                return String(localized: "동일 시각 상위 작업 우선")
+            case .heatProtectionActive:
+                return String(localized: "발열 보호 작동 중")
+            }
+        }
     }
 
     public var id: UUID

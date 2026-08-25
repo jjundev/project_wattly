@@ -20,15 +20,15 @@ public struct SetBatteryLimitIntent: AppIntent {
 
     public func perform() async throws -> some ProvidesDialog {
         guard limit >= 50 && limit <= 100 else {
-            throw BatteryIntentError.invalidParameter("충전 한도는 50%에서 100% 사이여야 합니다.")
+            throw BatteryIntentError.invalidParameter(String(localized: "충전 한도는 50%에서 100% 사이여야 합니다."))
         }
         let bridge = BatteryIntentBridge.shared
         _ = try await bridge.applyLimit(enabled: enableLimit, limitPercentage: limit)
 
-        let dialogText = enableLimit
-            ? "배터리 충전 한도를 \(limit)%로 설정했습니다."
-            : "배터리 충전 한도를 \(limit)%로 변경하고 비활성화했습니다."
+        let dialog: IntentDialog = enableLimit
+            ? IntentDialog("배터리 충전 한도를 \(limit)%로 설정했습니다.")
+            : IntentDialog("배터리 충전 한도를 \(limit)%로 변경하고 비활성화했습니다.")
 
-        return .result(dialog: IntentDialog(stringLiteral: dialogText))
+        return .result(dialog: dialog)
     }
 }

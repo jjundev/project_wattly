@@ -444,7 +444,7 @@ struct WattlyProgressBar: View {
         }
         .frame(width: 80, height: 5)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("다운로드 진행률")
+        .accessibilityLabel(Text(LocalizedStringKey("다운로드 진행률")))
         .accessibilityValue("\(Int(Self.clampedFraction(value) * 100))%")
     }
 }

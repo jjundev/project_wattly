@@ -77,12 +77,12 @@ enum TemperatureProfiles {
     static let m1Base = TemperatureProfile(
         chipModels: ["MacBookAir10,1", "MacBookPro17,1", "Macmini9,1", "iMac21,1", "iMac21,2"],
         cpuGroups: [
-            TemperatureKeyGroup(name: "P-코어", keys: baseCpuKeys),
-            TemperatureKeyGroup(name: "E-코어", keys: commonECoreKeys),
+            TemperatureKeyGroup(name: String(localized: "P-코어"), keys: baseCpuKeys),
+            TemperatureKeyGroup(name: String(localized: "E-코어"), keys: commonECoreKeys),
         ],
         gpuGroups: [
-            TemperatureKeyGroup(name: "클러스터 1", keys: gpuCluster1Keys),
-            TemperatureKeyGroup(name: "클러스터 2", keys: gpuCluster2Keys),
+            TemperatureKeyGroup(name: String(localized: "클러스터 1"), keys: gpuCluster1Keys),
+            TemperatureKeyGroup(name: String(localized: "클러스터 2"), keys: gpuCluster2Keys),
         ],
         validRange: 0...120)
 
@@ -90,12 +90,12 @@ enum TemperatureProfiles {
     static let m1ProMax = TemperatureProfile(
         chipModels: ["MacBookPro18,3", "MacBookPro18,1", "MacBookPro18,4", "MacBookPro18,2", "Mac13,1"],
         cpuGroups: [
-            TemperatureKeyGroup(name: "P-코어", keys: proMaxCpuKeys),
-            TemperatureKeyGroup(name: "E-코어", keys: commonECoreKeys),
+            TemperatureKeyGroup(name: String(localized: "P-코어"), keys: proMaxCpuKeys),
+            TemperatureKeyGroup(name: String(localized: "E-코어"), keys: commonECoreKeys),
         ],
         gpuGroups: [
-            TemperatureKeyGroup(name: "클러스터 1", keys: gpuCluster1Keys),
-            TemperatureKeyGroup(name: "클러스터 2", keys: gpuCluster2Keys),
+            TemperatureKeyGroup(name: String(localized: "클러스터 1"), keys: gpuCluster1Keys),
+            TemperatureKeyGroup(name: String(localized: "클러스터 2"), keys: gpuCluster2Keys),
         ],
         validRange: 0...120)
 
@@ -103,12 +103,12 @@ enum TemperatureProfiles {
     static let m1Ultra = TemperatureProfile(
         chipModels: ["Mac13,2"],
         cpuGroups: [
-            TemperatureKeyGroup(name: "P-코어", keys: ultraCpuKeys),
-            TemperatureKeyGroup(name: "E-코어", keys: ultraECoreKeys),
+            TemperatureKeyGroup(name: String(localized: "P-코어"), keys: ultraCpuKeys),
+            TemperatureKeyGroup(name: String(localized: "E-코어"), keys: ultraECoreKeys),
         ],
         gpuGroups: [
-            TemperatureKeyGroup(name: "다이 1", keys: gpuCluster1Keys + gpuCluster2Keys),
-            TemperatureKeyGroup(name: "다이 2", keys: ultraGpuClusterKeys),
+            TemperatureKeyGroup(name: String(localized: "다이 1"), keys: gpuCluster1Keys + gpuCluster2Keys),
+            TemperatureKeyGroup(name: String(localized: "다이 2"), keys: ultraGpuClusterKeys),
         ],
         validRange: 0...120)
 
@@ -118,12 +118,12 @@ enum TemperatureProfiles {
     static let m2Base = TemperatureProfile(
         chipModels: ["Mac14,2", "Mac14,15", "Mac14,7", "Mac14,3"],
         cpuGroups: [
-            TemperatureKeyGroup(name: "P-코어", keys: baseCpuKeys),
-            TemperatureKeyGroup(name: "E-코어", keys: commonECoreKeys),
+            TemperatureKeyGroup(name: String(localized: "P-코어"), keys: baseCpuKeys),
+            TemperatureKeyGroup(name: String(localized: "E-코어"), keys: commonECoreKeys),
         ],
         gpuGroups: [
-            TemperatureKeyGroup(name: "클러스터 1", keys: gpuCluster1Keys),
-            TemperatureKeyGroup(name: "클러스터 2", keys: gpuCluster2Keys),
+            TemperatureKeyGroup(name: String(localized: "클러스터 1"), keys: gpuCluster1Keys),
+            TemperatureKeyGroup(name: String(localized: "클러스터 2"), keys: gpuCluster2Keys),
         ],
         validRange: 0...120)
 
@@ -131,12 +131,12 @@ enum TemperatureProfiles {
     static let m2ProMax = TemperatureProfile(
         chipModels: ["Mac14,9", "Mac14,10", "Mac14,12", "Mac14,5", "Mac14,6", "Mac14,13"],
         cpuGroups: [
-            TemperatureKeyGroup(name: "P-코어", keys: proMaxCpuKeys),
-            TemperatureKeyGroup(name: "E-코어", keys: commonECoreKeys),
+            TemperatureKeyGroup(name: String(localized: "P-코어"), keys: proMaxCpuKeys),
+            TemperatureKeyGroup(name: String(localized: "E-코어"), keys: commonECoreKeys),
         ],
         gpuGroups: [
-            TemperatureKeyGroup(name: "클러스터 1", keys: gpuCluster1Keys),
-            TemperatureKeyGroup(name: "클러스터 2", keys: gpuCluster2Keys),
+            TemperatureKeyGroup(name: String(localized: "클러스터 1"), keys: gpuCluster1Keys),
+            TemperatureKeyGroup(name: String(localized: "클러스터 2"), keys: gpuCluster2Keys),
         ],
         validRange: 0...120)
 
@@ -144,12 +144,12 @@ enum TemperatureProfiles {
     static let m2Ultra = TemperatureProfile(
         chipModels: ["Mac14,14", "Mac14,8"],
         cpuGroups: [
-            TemperatureKeyGroup(name: "P-코어", keys: ultraCpuKeys),
-            TemperatureKeyGroup(name: "E-코어", keys: ultraECoreKeys),
+            TemperatureKeyGroup(name: String(localized: "P-코어"), keys: ultraCpuKeys),
+            TemperatureKeyGroup(name: String(localized: "E-코어"), keys: ultraECoreKeys),
         ],
         gpuGroups: [
-            TemperatureKeyGroup(name: "다이 1", keys: gpuCluster1Keys + gpuCluster2Keys),
-            TemperatureKeyGroup(name: "다이 2", keys: ultraGpuClusterKeys),
+            TemperatureKeyGroup(name: String(localized: "다이 1"), keys: gpuCluster1Keys + gpuCluster2Keys),
+            TemperatureKeyGroup(name: String(localized: "다이 2"), keys: ultraGpuClusterKeys),
         ],
         validRange: 0...120)
 
@@ -159,12 +159,12 @@ enum TemperatureProfiles {
     static let m3Base = TemperatureProfile(
         chipModels: ["Mac15,3", "Mac15,12", "Mac15,13", "Mac15,4", "Mac15,5"],
         cpuGroups: [
-            TemperatureKeyGroup(name: "P-코어", keys: baseCpuKeys),
-            TemperatureKeyGroup(name: "E-코어", keys: commonECoreKeys),
+            TemperatureKeyGroup(name: String(localized: "P-코어"), keys: baseCpuKeys),
+            TemperatureKeyGroup(name: String(localized: "E-코어"), keys: commonECoreKeys),
         ],
         gpuGroups: [
-            TemperatureKeyGroup(name: "클러스터 1", keys: gpuCluster1Keys),
-            TemperatureKeyGroup(name: "클러스터 2", keys: gpuCluster2Keys),
+            TemperatureKeyGroup(name: String(localized: "클러스터 1"), keys: gpuCluster1Keys),
+            TemperatureKeyGroup(name: String(localized: "클러스터 2"), keys: gpuCluster2Keys),
         ],
         validRange: 0...120)
 
@@ -172,12 +172,12 @@ enum TemperatureProfiles {
     static let m3ProMax = TemperatureProfile(
         chipModels: ["Mac15,6", "Mac15,7", "Mac15,8", "Mac15,9", "Mac15,10", "Mac15,11"],
         cpuGroups: [
-            TemperatureKeyGroup(name: "P-코어", keys: proMaxCpuKeys),
-            TemperatureKeyGroup(name: "E-코어", keys: commonECoreKeys),
+            TemperatureKeyGroup(name: String(localized: "P-코어"), keys: proMaxCpuKeys),
+            TemperatureKeyGroup(name: String(localized: "E-코어"), keys: commonECoreKeys),
         ],
         gpuGroups: [
-            TemperatureKeyGroup(name: "클러스터 1", keys: gpuCluster1Keys),
-            TemperatureKeyGroup(name: "클러스터 2", keys: gpuCluster2Keys),
+            TemperatureKeyGroup(name: String(localized: "클러스터 1"), keys: gpuCluster1Keys),
+            TemperatureKeyGroup(name: String(localized: "클러스터 2"), keys: gpuCluster2Keys),
         ],
         validRange: 0...120)
 
@@ -187,12 +187,12 @@ enum TemperatureProfiles {
     static let m4Base = TemperatureProfile(
         chipModels: ["Mac16,12", "Mac16,13", "Mac16,1", "Mac16,10", "Mac16,2", "Mac16,3"],
         cpuGroups: [
-            TemperatureKeyGroup(name: "P-코어", keys: baseCpuKeys),
-            TemperatureKeyGroup(name: "E-코어", keys: commonECoreKeys),
+            TemperatureKeyGroup(name: String(localized: "P-코어"), keys: baseCpuKeys),
+            TemperatureKeyGroup(name: String(localized: "E-코어"), keys: commonECoreKeys),
         ],
         gpuGroups: [
-            TemperatureKeyGroup(name: "클러스터 1", keys: gpuCluster1Keys),
-            TemperatureKeyGroup(name: "클러스터 2", keys: gpuCluster2Keys),
+            TemperatureKeyGroup(name: String(localized: "클러스터 1"), keys: gpuCluster1Keys),
+            TemperatureKeyGroup(name: String(localized: "클러스터 2"), keys: gpuCluster2Keys),
         ],
         validRange: 0...120)
 
@@ -200,12 +200,12 @@ enum TemperatureProfiles {
     static let m4ProMax = TemperatureProfile(
         chipModels: ["Mac16,8", "Mac16,6", "Mac16,7", "Mac16,5", "Mac16,11"],
         cpuGroups: [
-            TemperatureKeyGroup(name: "P-코어", keys: proMaxCpuKeys),
-            TemperatureKeyGroup(name: "E-코어", keys: commonECoreKeys),
+            TemperatureKeyGroup(name: String(localized: "P-코어"), keys: proMaxCpuKeys),
+            TemperatureKeyGroup(name: String(localized: "E-코어"), keys: commonECoreKeys),
         ],
         gpuGroups: [
-            TemperatureKeyGroup(name: "클러스터 1", keys: gpuCluster1Keys),
-            TemperatureKeyGroup(name: "클러스터 2", keys: gpuCluster2Keys),
+            TemperatureKeyGroup(name: String(localized: "클러스터 1"), keys: gpuCluster1Keys),
+            TemperatureKeyGroup(name: String(localized: "클러스터 2"), keys: gpuCluster2Keys),
         ],
         validRange: 0...120)
 
@@ -215,12 +215,12 @@ enum TemperatureProfiles {
     static let m5Base = TemperatureProfile(
         chipModels: ["Mac17,2"],
         cpuGroups: [
-            TemperatureKeyGroup(name: "S-코어", keys: baseCpuKeys + ["Tp12", "Tp16", "Tp1E"]),
-            TemperatureKeyGroup(name: "E-코어", keys: ["Te04", "Te08", "Te0C", "Te0R"]),
+            TemperatureKeyGroup(name: String(localized: "S-코어"), keys: baseCpuKeys + ["Tp12", "Tp16", "Tp1E"]),
+            TemperatureKeyGroup(name: String(localized: "E-코어"), keys: ["Te04", "Te08", "Te0C", "Te0R"]),
         ],
         gpuGroups: [
-            TemperatureKeyGroup(name: "클러스터 1", keys: gpuCluster1Keys),
-            TemperatureKeyGroup(name: "클러스터 2", keys: gpuCluster2Keys),
+            TemperatureKeyGroup(name: String(localized: "클러스터 1"), keys: gpuCluster1Keys),
+            TemperatureKeyGroup(name: String(localized: "클러스터 2"), keys: gpuCluster2Keys),
         ],
         validRange: 0...120)
 
@@ -228,12 +228,12 @@ enum TemperatureProfiles {
     static let m5ProMax = TemperatureProfile(
         chipModels: ["Mac17,9", "Mac17,8", "Mac17,7", "Mac17,6"],
         cpuGroups: [
-            TemperatureKeyGroup(name: "S-코어", keys: proMaxCpuKeys),
-            TemperatureKeyGroup(name: "E-코어", keys: commonECoreKeys),
+            TemperatureKeyGroup(name: String(localized: "S-코어"), keys: proMaxCpuKeys),
+            TemperatureKeyGroup(name: String(localized: "E-코어"), keys: commonECoreKeys),
         ],
         gpuGroups: [
-            TemperatureKeyGroup(name: "클러스터 1", keys: gpuCluster1Keys),
-            TemperatureKeyGroup(name: "클러스터 2", keys: gpuCluster2Keys),
+            TemperatureKeyGroup(name: String(localized: "클러스터 1"), keys: gpuCluster1Keys),
+            TemperatureKeyGroup(name: String(localized: "클러스터 2"), keys: gpuCluster2Keys),
         ],
         validRange: 0...120)
 

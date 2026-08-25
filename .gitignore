@@ -76,3 +76,5 @@ AuthKey_*.p8
 # Agent execution scratch
 .agents/
 .worktrees/
+__pycache__/
+*.pyc
