@@ -168,12 +168,12 @@ struct PollPolicyTests {
         #expect(dueProviders(intervals: intervals, lastRead: last, now: now, force: true) == [.cpu, .memory])
     }
 
-    @Test func nextDelayNeverExceedsHousekeepingWake() {
+    @Test func nextDelayNeverExceedsFallback() {
         let now = ContinuousClock.now
         #expect(nextPollDelay(intervals: [:], lastRead: [:], now: now,
-                              housekeeping: .seconds(30)) == .seconds(30))
+                              fallback: .seconds(30)) == .seconds(30))
         #expect(nextPollDelay(intervals: [.cpu: .seconds(2)], lastRead: [:], now: now,
-                              housekeeping: .seconds(30)) == .zero)
+                              fallback: .seconds(30)) == .zero)
     }
 
     @Test func nextDelayUsesTheEarliestProviderDeadline() {
@@ -184,7 +184,7 @@ struct PollPolicyTests {
         ]
         #expect(nextPollDelay(intervals: [.cpu: .seconds(5), .memory: .seconds(2)],
                               lastRead: last, now: now,
-                              housekeeping: .seconds(30)) == .seconds(1))
+                              fallback: .seconds(30)) == .seconds(1))
     }
 
     @Test func panelOpenSchedulesEveryProvider() {

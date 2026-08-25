@@ -117,8 +117,8 @@ func dueProviders(intervals: [ProviderKind: Duration],
 func nextPollDelay(intervals: [ProviderKind: Duration],
                    lastRead: [ProviderKind: ContinuousClock.Instant],
                    now: ContinuousClock.Instant,
-                   housekeeping: Duration = .seconds(30)) -> Duration {
-    intervals.reduce(housekeeping) { next, entry in
+                   fallback: Duration = .seconds(5)) -> Duration {
+    intervals.reduce(fallback) { next, entry in
         guard let last = lastRead[entry.key] else { return .zero }
         let remaining = max(0, seconds(entry.value) - seconds(from: last, to: now))
         return min(next, .seconds(remaining))

@@ -55,9 +55,9 @@ enum Accessibility {
     /// empty selection reads just "Wattly". Reuses the #14 assembler so the symbol copy
     /// matches the menubar text exactly.
     ///
-    /// `extraParts` (menubar items update) carries the pre-formatted memory-pressure/self-power
+    /// `extraParts` (menubar items update) carries the pre-formatted extra metric
     /// figures — they have no `CardKind`, so they can't flow through `selected`/`states`, and
-    /// the caller (`MenuBarLabel`) formats them via `MenuBarText.memPressurePart`/`selfPowerPart`
+    /// the caller (`MenuBarLabel`) formats them via `MenuBarText.memPressurePart`
     /// before passing them in. Defaults to `[]` so every existing call site is unaffected.
     static func menuBarLabel(selected: Set<CardKind>, states: [CardKind: MetricState],
                               extraParts: [String] = []) -> String {
