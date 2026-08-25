@@ -509,6 +509,15 @@ struct LocalizationTests {
         #expect(String(localized: "한 번만 완충 유지 중 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)", locale: ko)
                 == "한 번만 완충 유지 중 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)")
     }
+
+    @Test func batteryCardControlVisibilityLocalization() {
+        let en = Locale(identifier: "en")
+        let ko = Locale(identifier: "ko")
+        #expect(String(localized: "한 번만 완충 보기", locale: en) == "Show Top Up")
+        #expect(String(localized: "한 번만 완충 보기", locale: ko) == "한 번만 완충 보기")
+        #expect(String(localized: "수동 방전 보기", locale: en) == "Show Manual Discharge")
+        #expect(String(localized: "수동 방전 보기", locale: ko) == "수동 방전 보기")
+    }
 }
 
 
