@@ -230,6 +230,31 @@ enum CardPresentation {
         "\(f1(s.volts)) V"
     }
 
+    // MARK: - Power Flow Presentation Constants & Helpers
+
+    static let powerSourceLabel = "전원 공급원"
+    static let adapterPowerLabel = "어댑터 전력"
+    static let systemPowerLabel = "시스템 소비 전력"
+
+    static func powerSourceText(_ scenario: PowerFlowScenario, locale: Locale = Locale(identifier: "ko")) -> String {
+        switch scenario {
+        case .charging, .adapterBypass:
+            return String(localized: "전원 어댑터", locale: locale)
+        case .batteryOnly, .activeDischarge:
+            return String(localized: "배터리", locale: locale)
+        case .powerAssist:
+            return String(localized: "전원 어댑터 및 배터리", locale: locale)
+        }
+    }
+
+    static func adapterPowerText(_ watts: Double) -> String {
+        "\(f1(max(0.0, watts))) W"
+    }
+
+    static func systemPowerText(_ watts: Double) -> String {
+        "\(f1(max(0.0, watts))) W"
+    }
+
     static let batteryAverage1mLabel = "1분 평균"
     static let batteryRemainingCapacityLabel = "남은 용량"
     static let batteryEfficiencyLabel = "배터리 효율"
