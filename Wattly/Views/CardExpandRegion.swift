@@ -12,6 +12,8 @@ struct CardExpandRegion: View {
     @Environment(\.tokens) private var t
     @Environment(\.locale) private var locale
     @AppStorage(StorageKey.showBatteryEfficiency) private var showBatteryEfficiency = Defaults.showBatteryEfficiency
+    @AppStorage(StorageKey.showBatteryTopUp) private var showBatteryTopUp = Defaults.showBatteryTopUp
+    @AppStorage(StorageKey.showBatteryManualDischarge) private var showBatteryManualDischarge = Defaults.showBatteryManualDischarge
     @AppStorage(StorageKey.batteryLimitPercentage) private var batteryLimitPercentage = Defaults.batteryLimitPercentage
     @AppStorage(StorageKey.batterySailingEnabled) private var batterySailingEnabled = Defaults.batterySailingEnabled
     @AppStorage(StorageKey.batterySailingDelta) private var batterySailingDelta = Defaults.batterySailingDelta
@@ -341,24 +343,39 @@ struct CardExpandRegion: View {
                     manualDischargeActive: batteryControl.status.desiredConfiguration?.manualDischargeActive == true
                 )
 
-                if showControlRows {
+                let isTopUpActive = batteryControl.status.desiredConfiguration?.topUpActive == true
+                    || batteryControl.status.activity == .topUp
+                let isDischargeActive = batteryControl.status.activity == .discharging
+                    || batteryControl.status.desiredConfiguration?.manualDischargeActive == true
+                let currentSoC = s.percentage ?? batteryControl.status.currentPercentage
+
+                let willShowTopUp = BatterySectionPresentation.shouldShowTopUpRow(
+                    showSetting: showBatteryTopUp,
+                    isTopUpActive: isTopUpActive
+                )
+                let willShowDischarge = BatterySectionPresentation.shouldShowManualDischargeRow(
+                    showSetting: showBatteryManualDischarge,
+                    isDischarging: isDischargeActive,
+                    currentSoC: currentSoC,
+                    targetSoC: manualDischargeTarget
+                )
+
+                if BatterySectionPresentation.shouldShowBatteryControlSection(
+                    showControlRows: showControlRows,
+                    willShowTopUp: willShowTopUp,
+                    willShowDischarge: willShowDischarge
+                ) {
                     Divider().background(t.line).opacity(0.6)
-                    batteryTopUpRow(batteryControl, s)
-                    if shouldShowDischargeRow(batteryControl, s) {
+                    if willShowTopUp {
+                        batteryTopUpRow(batteryControl, s)
+                    }
+                    if willShowDischarge {
                         batteryDischargeRow(batteryControl, s)
                     }
                 }
             }
         }
         .padding(.top, 8)
-    }
-
-    private func shouldShowDischargeRow(_ batteryControl: BatteryControlClient, _ s: BatterySample) -> Bool {
-        let isDischarging = batteryControl.status.activity == .discharging
-            || batteryControl.status.desiredConfiguration?.manualDischargeActive == true
-        if isDischarging { return true }
-        let currentSoC = s.percentage ?? batteryControl.status.currentPercentage
-        return currentSoC > manualDischargeTarget
     }
 
     @ViewBuilder

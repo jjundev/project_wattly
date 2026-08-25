@@ -509,6 +509,19 @@ struct LocalizationTests {
         #expect(String(localized: "한 번만 완충 유지 중 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)", locale: ko)
                 == "한 번만 완충 유지 중 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)")
     }
+
+    @Test func batteryCardControlVisibilityLocalization() {
+        let en = Locale(identifier: "en")
+        let ko = Locale(identifier: "ko")
+        #expect(String(localized: "한 번만 완충 보기", locale: en) == "Show Top Up")
+        #expect(String(localized: "한 번만 완충 보기", locale: ko) == "한 번만 완충 보기")
+        #expect(String(localized: "수동 방전 보기", locale: en) == "Show Manual Discharge")
+        #expect(String(localized: "수동 방전 보기", locale: ko) == "수동 방전 보기")
+        #expect(String(localized: "배터리 카드에서 목표 잔량까지 수동 방전 버튼을 표시합니다. 배터리 잔량이 목표치보다 높을 때만 표시됩니다.", locale: en)
+                == "Displays a button to manually discharge to the target level on the battery card. Only shown when the battery level is above the target.")
+        #expect(String(localized: "배터리 카드에서 목표 잔량까지 수동 방전 버튼을 표시합니다. 배터리 잔량이 목표치보다 높을 때만 표시됩니다.", locale: ko)
+                == "배터리 카드에서 목표 잔량까지 수동 방전 버튼을 표시합니다. 배터리 잔량이 목표치보다 높을 때만 표시됩니다.")
+    }
 }
 
 

@@ -14,6 +14,9 @@ struct PollPolicyBridge: View {
     @State private var visibilitySettings = VisibilitySettings.shared
     @AppStorage(StorageKey.pollInterval) private var pollInterval: PollInterval = Defaults.pollInterval
     @AppStorage(StorageKey.powerMode) private var powerMode: PowerMode = Defaults.powerMode
+    @AppStorage(StorageKey.panelMode) private var panelMode: PanelMode = Defaults.panelMode
+    @AppStorage(StorageKey.heroMetric) private var heroMetric: CardKind = Defaults.heroMetric
+    @AppStorage(StorageKey.cardOrder) private var cardOrder: CardOrder = Defaults.cardOrder
     @AppStorage(StorageKey.menubarTextEnabled) private var menubarTextEnabled = Defaults.menubarTextEnabled
     @AppStorage(StorageKey.kineticNotchMotionEnabled) private var kineticNotchMotionEnabled = Defaults.kineticNotchMotionEnabled
     @AppStorage(StorageKey.kineticNotchSource) private var kineticNotchSource = Defaults.kineticNotchSource
@@ -21,6 +24,12 @@ struct PollPolicyBridge: View {
     private var motionMetrics: Set<CardKind> {
         guard kineticNotchMotionEnabled, !reduceMotion else { return [] }
         return kineticNotchSource.requiredCards
+    }
+
+    private var resolvedHeroCard: CardKind? {
+        guard panelMode == .c else { return nil }
+        let visible = cardOrder.visible(present: { monitor.isPresent($0) }, shown: { visibilitySettings.isShown($0) })
+        return CardPresentation.resolveHero(persisted: heroMetric, visible: visible)
     }
 
     var body: some View {
@@ -37,6 +46,7 @@ struct PollPolicyBridge: View {
                 await monitor.setShownCards(visibilitySettings.activeCards)
                 await monitor.setMenubarMetrics(visibilitySettings.requiredMenuCards)   // before start() (B5): first poll sees the persisted chips
                 await monitor.setMenubarMotionMetrics(motionMetrics)
+                monitor.setHeroCard(resolvedHeroCard)
                 monitor.start()
             }
             // Live updates only (`.onChange` doesn't fire on first appear, so no redundant
@@ -45,10 +55,18 @@ struct PollPolicyBridge: View {
             .onChange(of: powerMode) { _, v in monitor.setPowerMode(v) }
             .onChange(of: pollInterval) { _, v in monitor.setPollInterval(v) }
             .onChange(of: menubarTextEnabled) { _, v in Task { await monitor.setMenubarTextEnabled(v) } }
-            .onChange(of: visibilitySettings.activeCards) { _, v in Task { await monitor.setShownCards(v) } }
+            .onChange(of: visibilitySettings.activeCards) { _, v in
+                Task {
+                    await monitor.setShownCards(v)
+                    monitor.setHeroCard(resolvedHeroCard)
+                }
+            }
             .onChange(of: visibilitySettings.requiredMenuCards) { _, v in Task { await monitor.setMenubarMetrics(v) } }
             .onChange(of: kineticNotchMotionEnabled) { _, _ in Task { await monitor.setMenubarMotionMetrics(motionMetrics) } }
             .onChange(of: kineticNotchSource) { _, _ in Task { await monitor.setMenubarMotionMetrics(motionMetrics) } }
             .onChange(of: reduceMotion) { _, _ in Task { await monitor.setMenubarMotionMetrics(motionMetrics) } }
+            .onChange(of: panelMode) { _, _ in monitor.setHeroCard(resolvedHeroCard) }
+            .onChange(of: heroMetric) { _, _ in monitor.setHeroCard(resolvedHeroCard) }
+            .onChange(of: cardOrder) { _, _ in monitor.setHeroCard(resolvedHeroCard) }
     }
 }

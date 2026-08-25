@@ -21,7 +21,6 @@ final class SystemMonitor {
     private(set) var powerOverlay = SmoothingOverlay<PowerSample>()
     private(set) var batteryOverlay = SmoothingOverlay<BatterySample>()
     private var batteryPipeline = BatteryTelemetryPipeline()
-    private var selfPowerTracker = SelfPowerTracker()
 
     /// Longer battery trend for comparison with slowly changing charge percentage.
     /// Kept separate from the 4 s headline EMA; reset on adapter regime changes.
@@ -40,11 +39,6 @@ final class SystemMonitor {
             states[.battery] = .value(.battery(sample))
         }
     }
-
-    /// Wattly's own EMA-smoothed power draw in watts (issue 16), or nil until the first
-    /// valid interval (the settings footer shows "—"). Doubles as the EMA's previous
-    /// value, so it is never blanked by a transient anomaly — only the cold start is nil.
-    private(set) var selfPower: Double?
 
     /// The maximum hardware RPM reported by SMC across all detected fans, or nil if unavailable/fanless.
     var hardwareMaxFanRPM: Double? {
@@ -68,12 +62,7 @@ final class SystemMonitor {
     private let tempGater: (any TemperatureGating)?
     private let clock: MonotonicClock
     private var pollTask: Task<Void, Never>?
-    private static let selfPowerInterval: Duration = .seconds(30)
     private var lastProviderRead: [ProviderKind: ContinuousClock.Instant] = [:]
-    private var lastSelfPowerSample: ContinuousClock.Instant?
-
-    /// Self-power measurement state (issue 16).
-    private let selfEnergy: any SelfEnergySampling
 
     // MARK: Adaptive-poll policy (issue 09) — pushed in from the views, never read from
     // `UserDefaults` here, so the cadence and gating stay deterministically testable.
@@ -111,16 +100,15 @@ final class SystemMonitor {
     /// Last value pushed to `tempGater.setEnabled`, to detect an off→on transition.
     private var tempEnabled = true
     private var isACConnected = false
+    private var heroCard: CardKind?
 
     init(providers: [any MetricProvider],
-         clock: MonotonicClock = LiveClock(),
-         selfEnergy: any SelfEnergySampling = LiveSelfEnergy()) {
+         clock: MonotonicClock = LiveClock()) {
         self.providers = providers
         self.memEnumerator = providers.first { $0.kind == .memory } as? ProcessEnumerating
         self.powerEnumerator = providers.first { $0.kind == .power } as? ProcessEnumerating
         self.tempGater = providers.compactMap { $0 as? TemperatureGating }.first
         self.clock = clock
-        self.selfEnergy = selfEnergy
         self.states = Dictionary(uniqueKeysWithValues: ProviderKind.allCases.map { ($0, .loading) })
         self.history = Dictionary(uniqueKeysWithValues: CardKind.allCases.map { ($0, HistoryBuffer()) })
     }
@@ -139,7 +127,6 @@ final class SystemMonitor {
             while !Task.isCancelled {
                 guard let self else { return }
                 await self.pollScheduled(forceProviders: forced)
-                self.sampleSelfPowerIfDue(at: self.clock.now())
                 forced = []
                 let delay = self.nextScheduledDelay(at: self.clock.now())
                 try? await Task.sleep(for: delay, tolerance: delay / 5)
@@ -151,12 +138,12 @@ final class SystemMonitor {
         return providerIntervals(mode: powerMode, setting: pollSetting, panelVisible: panelVisible,
                                  menubarLiveContentEnabled: !currentMenubarNeeds.isEmpty,
                                  active: activeProviderKinds, menubarNeeds: currentMenubarNeeds,
-                                 isACConnected: isACConnected)
+                                 heroCard: heroCard, isACConnected: isACConnected)
     }
 
     private func nextScheduledDelay(at instant: ContinuousClock.Instant) -> Duration {
         nextPollDelay(intervals: currentProviderIntervals, lastRead: lastProviderRead,
-                      now: instant, housekeeping: Self.selfPowerInterval)
+                      now: instant)
     }
 
     func stop() {
@@ -276,6 +263,17 @@ final class SystemMonitor {
         if after != before || !forced.isEmpty { reschedule(forceProviders: forced) }
     }
 
+    func setHeroCard(_ card: CardKind?) {
+        guard card != heroCard else { return }
+        let before = currentProviderIntervals
+        heroCard = card
+        let after = currentProviderIntervals
+        if after != before {
+            let forced = panelVisible ? (card.map { Set([$0.provider]) } ?? []) : []
+            reschedule(forceProviders: forced)
+        }
+    }
+
     private func recomputeGating() async -> Set<ProviderKind> {
         let needed = activeProviders(shown: shownCards, menubarNeeds: currentMenubarNeeds)
         var newlyActivated = needed.subtracting(activeProviderKinds)
@@ -298,22 +296,6 @@ final class SystemMonitor {
         start(forceProviders: forceProviders)
     }
 
-    // MARK: Self-power (issue 16) — called by the timer loop, and directly by tests
-
-    /// Diff the per-process energy counter into `selfPower` (EMA-smoothed watts). Driven by
-    /// the timer loop on its cadence; tests call it directly with a `ManualClock` + a fake
-    /// `SelfEnergySampling`, exactly as they drive `pollOnce`. On the first sample (or an
-    /// anomaly — gap / counter reset) it only re-baselines and leaves the displayed value
-    /// untouched, so a transient never blanks a working footer.
-    func sampleSelfPower(at instant: ContinuousClock.Instant) {
-        selfPower = selfPowerTracker.sample(using: selfEnergy, at: instant)
-    }
-
-    func sampleSelfPowerIfDue(at instant: ContinuousClock.Instant) {
-        guard lastSelfPowerSample.map({ seconds(from: $0, to: instant) >= 30 }) != false else { return }
-        sampleSelfPower(at: instant)
-        lastSelfPowerSample = instant
-    }
 
     // MARK: One poll cycle (called directly by tests — the seam)
 

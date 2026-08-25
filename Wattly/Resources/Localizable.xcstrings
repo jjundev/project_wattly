@@ -59064,6 +59064,1116 @@
           }
         }
       }
+    },
+    "한 번만 완충 보기": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إظهار الشحن الكامل لمرة واحدة"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zobrazit jednorázové plné nabití"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vis engangs fuld opladning"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einmalig voll aufladen anzeigen"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Εμφάνιση εφάπαξ πλήρους φόρτισης"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Top Up"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar carga completa puntual"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näytä kertaluonteinen täyteenlataus"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher la recharge complète unique"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "הצג טעינה מלאה חד-פעמית"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "एक बार पूरा चार्ज दिखाएं"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Egyszeri teljes feltöltés megjelenítése"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tampilkan Pengisian Penuh Sekali"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra ricarica completa singola"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1回のみフル充電を表示"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "한 번만 완충 보기"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vis engangs fullading"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toon eenmalig volledig opladen"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pokaż jednorazowe pełne naładowanie"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar Carga Completa Pontual"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar carga completa única"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afișare încărcare completă unică"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показывать разовую полную зарядку"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visa engångs fulladdning"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "แสดงการชาร์จเต็มครั้งเดียว"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tek Seferlik Tam Şarjı Göster"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показувати разове повне заряджання"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiển thị sạc đầy một lần"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示充满一次"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顯示充滿一次"
+          }
+        }
+      }
+    },
+    "배터리 카드에서 일회성 100% 충전 버튼을 표시합니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يعرض زر شحن لمرة واحدة بنسبة 100% على بطاقة البطارية."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zobrazuje tlačítko jednorázového nabití na 100 % na kartě baterie."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viser en knap til engangsopladning til 100 % på batterikortet."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeigt eine Schaltfläche für einmaliges Laden auf 100 % auf der Batteriekarte an."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Εμφανίζει ένα κουμπί εφάπαξ φόρτισης στο 100% στην κάρτα μπαταρίας."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Displays a one-time 100% charge button on the battery card."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muestra un botón de carga única al 100% en la tarjeta de batería."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näyttää akkukortissa painikkeen kertaluonteiseen 100 %:n lataukseen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Affiche un bouton de recharge unique à 100 % sur la carte de la batterie."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "מציג כפתור טעינה חד-פעמית ל-100% בכרטיס הסוללה."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बैटरी कार्ड पर एक बार 100% चार्ज करने का बटन प्रदर्शित करता है।"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gombot jelenít meg az akkumulátorkártyán az egyszeri 100%-ra töltéshez."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menampilkan tombol pengisian 100% sekali pakai pada kartu baterai."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra un pulsante di ricarica singola al 100% sulla scheda della batteria."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バッテリーカードに1回限りの100%充電ボタンを表示します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "배터리 카드에서 일회성 100% 충전 버튼을 표시합니다."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viser en knapp for engangslading til 100 % på batterikortet."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toont een knop voor eenmalig opladen tot 100% op de batterijkaart."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wyświetla przycisk jednorazowego ładowania do 100% na karcie baterii."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exibe um botão de carga única até 100% no cartão da bateria."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apresenta um botão de carga única até 100% no cartão da bateria."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afișează un buton pentru încărcare unică la 100% pe cardul bateriei."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отображает кнопку разовой зарядки до 100% на карточке аккумулятора."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visar en knapp för engångsladdning till 100 % på batterikortet."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "แสดงปุ่มชาร์จ 100% ครั้งเดียวบนการ์ดแบตเตอรี่"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pil kartında tek seferlik %100 şarj etme düğmesini gösterir."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Відображає кнопку разового заряджання до 100% на картці акумулятора."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiển thị nút sạc đầy 100% một lần trên thẻ pin."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在电池卡片上显示一次性充至100%的按钮。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在電池卡片上顯示一次性充至100%的按鈕。"
+          }
+        }
+      }
+    },
+    "수동 방전 보기": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إظهار التفريغ اليدوي"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zobrazit ruční vybíjení"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vis manuel afladning"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manuelle Entladung anzeigen"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Εμφάνιση χειροκίνητης εκφόρτισης"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Manual Discharge"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar descarga manual"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näytä manuaalinen purku"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher la décharge manuelle"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "הצג פריקה ידנית"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मैन्युअल डिस्चार्ज दिखाएं"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kézi lemerítés megjelenítése"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tampilkan Pengosongan Manual"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra scarica manuale"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "手動放電を表示"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "수동 방전 보기"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vis manuell utlading"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toon handmatig ontladen"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pokaż ręczne rozładowywanie"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar Descarga Manual"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar descarga manual"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afișare descărcare manuală"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показывать ручную разрядку"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visa manuell urladdning"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "แสดงการคายประจุแบบกำหนดเอง"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manuel Deşarjı Göster"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показувати ручне розряджання"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiển thị xả pin thủ công"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示手动放电"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顯示手動放電"
+          }
+        }
+      }
+    },
+    "배터리 카드에서 목표 잔량까지 수동 방전 버튼을 표시합니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يعرض زر التفريغ اليدوي حتى المستوى المستهدف على بطاقة البطارية."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zobrazuje tlačítko pro ruční vybití na cílovou úroveň na kartě baterie."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viser en knap til manuel afladning til målniveauet på batterikortet."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeigt eine Schaltfläche zum manuellen Entladen auf den Zielwert auf der Batteriekarte an."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Εμφανίζει ένα κουμπί για χειροκίνητη εκφόρτιση στο επίπεδο-στόχο στην κάρτα μπαταρίας."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Displays a button to manually discharge to the target level on the battery card."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muestra un botón para descargar manualmente hasta el nivel objetivo en la tarjeta de batería."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näyttää akkukortissa painikkeen manuaaliseen purkamiseen tavoitetasolle."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Affiche un bouton sur la carte de la batterie pour décharger manuellement jusqu'au niveau cible."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "מציג כפתור לפריקה ידנית עד לרמת היעד בכרטיס הסוללה."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बैटरी कार्ड पर लक्ष्य स्तर तक मैन्युअल रूप से डिस्चार्ज करने का बटन प्रदर्शित करता है।"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gombot jelenít meg az akkumulátorkártyán a cél szintre történő kézi lemerítéshez."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menampilkan tombol untuk mengosongkan daya secara manual ke tingkat target pada kartu baterai."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra un pulsante per scaricare manualmente fino al livello target sulla scheda della batteria."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バッテリーカードに目標残量まで手動放電するボタンを表示します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "배터리 카드에서 목표 잔량까지 수동 방전 버튼을 표시합니다."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viser en knapp for manuell utlading til målnivået på batterikortet."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toont een knop om handmatig te ontladen naar het doelniveau op de batterijkaart."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wyświetla przycisk ręcznego rozładowywania do poziomu docelowego na karcie baterii."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exibe um botão para descarregar manualmente até o nível desejado no cartão da bateria."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apresenta um botão para descarregar manualmente até ao nível pretendido no cartão da bateria."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afișează un buton pentru descărcarea manuală la nivelul țintă pe cardul bateriei."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отображает кнопку ручной разрядки до целевого уровня на карточке аккумулятора."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visar en knapp för manuell urladdning till målnivån på batterikortet."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "แสดงปุ่มสำหรับคายประจุแบบกำหนดเองไปยังระดับเป้าหมายบนการ์ดแบตเตอรี่"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pil kartında hedef seviyeye kadar manuel deşarj düğmesini gösterir."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Відображає кнопку ручного розряджання до цільового рівня на картці акумулятора."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiển thị nút xả pin thủ công đến mức mục tiêu trên thẻ pin."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在电池卡片上显示手动放电至目标电量的按钮。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在電池卡片上顯示手動放電至目標電量的按鈕。"
+          }
+        }
+      }
+    },
+    "배터리 잔량이 목표치보다 높을 때 수동 방전 버튼을 표시합니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يعرض زر التفريغ اليدوي عندما يكون مستوى البطارية أعلى من المستوى المستهدف."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zobrazuje tlačítko ručního vybití, když je stav baterie nad cílovou úrovní."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viser knappen til manuel afladning, når batteriniveauet er over målniveauet."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeigt die Schaltfläche zum manuellen Entladen an, wenn der Akkustand über dem Zielwert liegt."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Εμφανίζει το κουμπί χειροκίνητης εκφόρτισης όταν η στάθμη της μπαταρίας είναι πάνω από το επίπεδο-στόχο."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Displays the manual discharge button when the battery is above the target level."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muestra el botón de descarga manual cuando la batería está por encima del nivel objetivo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näyttää manuaalisen purkamisen painikkeen, kun akun varaustaso on tavoitetason yläpuolella."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Affiche le bouton de décharge manuelle lorsque le niveau de batterie est supérieur à la cible."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "מציג את כפתור הפריקה הידנית כאשר רמת הסוללה מעל לרמת היעד."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बैटरी का स्तर लक्ष्य से अधिक होने पर मैन्युअल डिस्चार्ज बटन प्रदर्शित करता है।"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Megjeleníti a kézi lemerítés gombot, ha az akkumulátor töltöttsége meghaladja a cél szintet."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menampilkan tombol pengosongan manual saat daya baterai berada di atas target."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra il pulsante di scarica manuale quando la batteria è al di sopra del livello target."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バッテリー残量が目標値より高いときに手動放電ボタンを表示します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "배터리 잔량이 목표치보다 높을 때 수동 방전 버튼을 표시합니다."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viser knappen for manuell utlading når batterinivået er over målnivået."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toont de knop voor handmatig ontladen wanneer het batterijniveau hoger is dan het doel."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wyświetla przycisk ręcznego rozładowywania, gdy poziom baterii jest wyższy niż docelowy."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exibe o botão de descarga manual quando a bateria estiver acima do nível desejado."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apresenta o botão de descarregamento manual quando a bateria estiver acima do nível pretendido."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afișează butonul de descărcare manuală când nivelul bateriei este peste valoarea țintă."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показывает кнопку ручной разрядки, когда уровень заряда выше целевого."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visar knappen för manuell urladdning när batterinivån är över målnivån."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "แสดงปุ่มคายประจุด้วยตนเองเมื่อระดับแบตเตอรี่สูงกว่าเป้าหมาย"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pil seviyesi hedef değerin üzerindeyken manuel deşarj düğmesini gösterir."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показує кнопку ручного розряджання, коли рівень заряду перевищує цільовий."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiển thị nút xả pin thủ công khi mức pin cao hơn mục tiêu."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当电池电量高于目标值时显示手动放电按钮。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "當電池電量高於目標值時顯示手動放電按鈕。"
+          }
+        }
+      }
+    },
+    "배터리 카드에서 목표 잔량까지 수동 방전 버튼을 표시합니다. 배터리 잔량이 목표치보다 높을 때만 표시됩니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يعرض زر التفريغ اليدوي حتى المستوى المستهدف على بطاقة البطارية. يتم عرضه فقط عندما يكون مستوى البطارية أعلى من المستوى المستهدف."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zobrazuje tlačítko pro ruční vybití na cílovou úroveň na kartě baterie. Zobrazuje se pouze tehdy, když je stav baterie nad cílovou úrovní."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viser en knap til manuel afladning til målniveauet på batterikortet. Vises kun, når batteriniveauet er over målniveauet."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeigt eine Schaltfläche zum manuellen Entladen auf den Zielwert auf der Batteriekarte an. Wird nur angezeigt, wenn der Akkustand über dem Zielwert liegt."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Εμφανίζει ένα κουμπί για χειροκίνητη εκφόρτιση στο επίπεδο-στόχο στην κάρτα μπαταρίας. Εμφανίζεται μόνο όταν η στάθμη της μπαταρίας είναι πάνω από το επίπεδο-στόχο."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Displays a button to manually discharge to the target level on the battery card. Only shown when the battery level is above the target."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muestra un botón para descargar manualmente hasta el nivel objetivo en la tarjeta de batería. Solo se muestra cuando el nivel de batería es superior al objetivo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näyttää akkukortissa painikkeen manuaaliseen purkamiseen tavoitetasolle. Näytetään vain, kun akun varaustaso on tavoitetason yläpuolella."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Affiche un bouton sur la carte de la batterie pour décharger manuellement jusqu'au niveau cible. Affiché uniquement lorsque le niveau de la batterie est supérieur à la cible."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "מציג כפתור לפריקה ידנית עד לרמת היעד בכרטיס הסוללה. מוצג רק כאשר רמת הסוללה מעל לרמת היעד."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बैटरी कार्ड पर लक्ष्य स्तर तक मैन्युअल रूप से डिस्चार्ज करने का बटन प्रदर्शित करता है। केवल तब दिखाया जाता है जब बैटरी का स्तर लक्ष्य से अधिक हो।"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gombot jelenít meg az akkumulátorkártyán a cél szintre történő kézi lemerítéshez. Csak akkor jelenik meg, ha az akkumulátor töltöttsége meghaladja a cél szintet."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menampilkan tombol untuk mengosongkan daya secara manual ke tingkat target pada kartu baterai. Hanya ditampilkan saat daya baterai berada di atas target."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra un pulsante per scaricare manualmente fino al livello target sulla scheda della batteria. Mostrato solo quando il livello della batteria è superiore al valore target."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バッテリーカードに目標残量まで手動放電するボタンを表示します。バッテリー残量が目標値より高いときのみ表示されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "배터리 카드에서 목표 잔량까지 수동 방전 버튼을 표시합니다. 배터리 잔량이 목표치보다 높을 때만 표시됩니다."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viser en knapp for manuell utlading til målnivået på batterikortet. Vises bare når batterinivået er over målnivået."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toont een knop om handmatig te ontladen naar het doelniveau op de batterijkaart. Wordt alleen weergegeven wanneer het batterijniveau hoger is dan het doel."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wyświetla przycisk ręcznego rozładowywania do poziomu docelowego na karcie baterii. Wyświetlany tylko wtedy, gdy poziom naładowania baterii jest wyższy niż docelowy."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exibe um botão no cartão da bateria para descarregar manualmente até o nível desejado. Exibido apenas quando o nível da bateria estiver acima da meta."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apresenta um botão no cartão da bateria para descarregar manualmente até ao nível pretendido. Apenas apresentado quando o nível da bateria estiver acima do valor pretendido."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afișează un buton pentru descărcare manuală până la nivelul țintă pe cardul bateriei. Se afișează numai când nivelul bateriei este peste valoarea țintă."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отображает кнопку ручной разрядки до целевого уровня на карточке аккумулятора. Отображается только тогда, когда уровень заряда выше целевого."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visar en knapp för manuell urladdning till målnivån på batterikortet. Visas endast när batterinivån är över målnivån."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "แสดงปุ่มคายประจุด้วยตนเองจนถึงระดับเป้าหมายบนการ์ดแบตเตอรี่ แสดงเฉพาะเมื่อระดับแบตเตอรี่สูงกว่าเป้าหมายเท่านั้น"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pil kartında hedef seviyeye kadar manuel deşarj düğmesini gösterir. Yalnızca pil seviyesi hedefin üzerindeyken gösterilir."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Відображає кнопку ручного розряджання до цільового рівня на картці акумулятора. Відображається лише тоді, коли рівень заряду перевищує цільовий."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiển thị nút xả pin thủ công đến mức mục tiêu trên thẻ pin. Chỉ hiển thị khi mức pin cao hơn mục tiêu."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在电池卡片上显示手动放电至目标电量的按钮。仅在电池电量高于目标值时显示。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在電池卡片上顯示手動放電至目標電量的按鈕。僅在電池電量高於目標值時顯示。"
+          }
+        }
+      }
     }
   }
 }

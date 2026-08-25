@@ -168,12 +168,12 @@ struct PollPolicyTests {
         #expect(dueProviders(intervals: intervals, lastRead: last, now: now, force: true) == [.cpu, .memory])
     }
 
-    @Test func nextDelayNeverExceedsHousekeepingWake() {
+    @Test func nextDelayNeverExceedsFallback() {
         let now = ContinuousClock.now
         #expect(nextPollDelay(intervals: [:], lastRead: [:], now: now,
-                              housekeeping: .seconds(30)) == .seconds(30))
+                              fallback: .seconds(30)) == .seconds(30))
         #expect(nextPollDelay(intervals: [.cpu: .seconds(2)], lastRead: [:], now: now,
-                              housekeeping: .seconds(30)) == .zero)
+                              fallback: .seconds(30)) == .zero)
     }
 
     @Test func nextDelayUsesTheEarliestProviderDeadline() {
@@ -184,7 +184,7 @@ struct PollPolicyTests {
         ]
         #expect(nextPollDelay(intervals: [.cpu: .seconds(5), .memory: .seconds(2)],
                               lastRead: last, now: now,
-                              housekeeping: .seconds(30)) == .seconds(1))
+                              fallback: .seconds(30)) == .seconds(1))
     }
 
     @Test func panelOpenSchedulesEveryProvider() {
@@ -195,4 +195,51 @@ struct PollPolicyTests {
             #expect(ivals[kind] != nil, "\(kind) missing from the panel-open schedule")
         }
     }
+
+    @Test func heroCardForcesOneSecondCadenceWhenPanelIsOpen() {
+        let all = Set(ProviderKind.allCases)
+
+        // In Eco mode, Battery is normally 5s, Memory is 5s, Fan is 5s, Temperature is 2s.
+        // When Battery is the Hero card and panel is open, Battery must be 1s.
+        let heroBattery = providerIntervals(mode: .eco, setting: .auto, panelVisible: true,
+                                            menubarLiveContentEnabled: true, active: all,
+                                            menubarNeeds: [.cpu], heroCard: .battery)
+        #expect(heroBattery[.battery] == .seconds(1))
+        #expect(heroBattery[.memory] == .seconds(5))
+        #expect(heroBattery[.fan] == .seconds(5))
+        #expect(heroBattery[.temperature] == .seconds(2))
+
+        // When Memory is the Hero card, Memory must be 1s while Battery remains 5s.
+        let heroMem = providerIntervals(mode: .eco, setting: .auto, panelVisible: true,
+                                        menubarLiveContentEnabled: true, active: all,
+                                        menubarNeeds: [.cpu], heroCard: .mem)
+        #expect(heroMem[.memory] == .seconds(1))
+        #expect(heroMem[.battery] == .seconds(5))
+
+        // When CPU Temp is the Hero card, Temperature must be 1s (instead of 2s).
+        let heroTemp = providerIntervals(mode: .eco, setting: .auto, panelVisible: true,
+                                         menubarLiveContentEnabled: true, active: all,
+                                         menubarNeeds: [.cpu], heroCard: .cpuTemp)
+        #expect(heroTemp[.temperature] == .seconds(1))
+
+        // When Fan is the Hero card, Fan must be 1s.
+        let heroFan = providerIntervals(mode: .eco, setting: .auto, panelVisible: true,
+                                        menubarLiveContentEnabled: true, active: all,
+                                        menubarNeeds: [.cpu], heroCard: .fan)
+        #expect(heroFan[.fan] == .seconds(1))
+
+        // In Performance mode, Memory is normally 3s. When Memory is Hero card and panel is open, Memory must be 1s.
+        let heroPerfMem = providerIntervals(mode: .performance, setting: .auto, panelVisible: true,
+                                            menubarLiveContentEnabled: true, active: all,
+                                            menubarNeeds: [.cpu], heroCard: .mem)
+        #expect(heroPerfMem[.memory] == .seconds(1))
+        #expect(heroPerfMem[.battery] == .seconds(3))
+
+        // When panel is closed, heroCard does not force 1s cadence.
+        let closedHeroBattery = providerIntervals(mode: .eco, setting: .auto, panelVisible: false,
+                                                  menubarLiveContentEnabled: true, active: all,
+                                                  menubarNeeds: [.battery], heroCard: .battery)
+        #expect(closedHeroBattery[.battery] == .seconds(5))
+    }
 }
+

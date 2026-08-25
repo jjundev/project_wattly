@@ -227,6 +227,19 @@ struct SettingsResetTests {
         #expect(defaults.bool(forKey: StorageKey.showBatteryEfficiency) == false)
     }
 
+    @Test func resetIncludesBatteryCardControlVisibilityKeys() {
+        let d = makeDefaults(#function)
+        d.set(false, forKey: StorageKey.showBatteryTopUp)
+        d.set(false, forKey: StorageKey.showBatteryManualDischarge)
+
+        SettingsReset.applyDefaults(into: d)
+
+        #expect(Defaults.showBatteryTopUp == true)
+        #expect(Defaults.showBatteryManualDischarge == true)
+        #expect(d.bool(forKey: StorageKey.showBatteryTopUp) == true)
+        #expect(d.bool(forKey: StorageKey.showBatteryManualDischarge) == true)
+    }
+
     @Test func cardVisibilityDefaultsAndMutations() {
         var visibility = CardVisibility()
         #expect(visibility.isShown(.cpu))
