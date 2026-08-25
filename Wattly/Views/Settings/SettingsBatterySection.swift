@@ -7,6 +7,7 @@ struct SettingsBatterySection: View {
     @Environment(\.tokens) private var t
     @Environment(\.locale) private var locale
     let batteryControl: BatteryControlClient
+    var scheduleCoordinator: BatteryScheduleCoordinator? = nil
 
     @AppStorage(StorageKey.batteryLimitEnabled) private var batteryLimitEnabled = Defaults.batteryLimitEnabled
     @AppStorage(StorageKey.batteryLimitPercentage) private var batteryLimitPercentage = Defaults.batteryLimitPercentage
@@ -369,6 +370,10 @@ struct SettingsBatterySection: View {
                         batteryHeatProtectionEnabled = false
                     }
                 }
+            }
+            
+            if showsConfigurationControls, let scheduleCoordinator {
+                SettingsScheduleCard(coordinator: scheduleCoordinator)
             }
         }
         .alert("도우미 설치 실패", isPresented: $isInstallFailedAlertPresented) {

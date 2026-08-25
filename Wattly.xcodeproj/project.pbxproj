@@ -44,6 +44,8 @@
 		BC1100020000000000000002 /* BatteryChargingSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1100010000000000000001 /* BatteryChargingSchedule.swift */; };
 		BC1100040000000000000004 /* BatteryScheduleLogEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1100030000000000000003 /* BatteryScheduleLogEntry.swift */; };
 		BC1400020000000000000002 /* BatteryScheduleCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1400010000000000000001 /* BatteryScheduleCoordinator.swift */; };
+		BC1500020000000000000002 /* ScheduleEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1500010000000000000001 /* ScheduleEditorSheet.swift */; };
+		BC1500040000000000000004 /* SettingsScheduleCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1500030000000000000003 /* SettingsScheduleCard.swift */; };
 		2551B8F81C73AAB4388352A4 /* BatteryNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43D95A247BDE0AECF60E98A4 /* BatteryNotificationManager.swift */; };
 		27C614EC4DFE85A7F86C4603 /* FanControlEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AA3E6D04D62D0E0B1F64EF6 /* FanControlEngineTests.swift */; };
 		2AC9061FF4DAA4F40409049C /* FanControlHardware.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D4830FA8F8BCCF06F3E5A6C /* FanControlHardware.swift */; };
@@ -384,6 +386,8 @@
 		BC1100010000000000000001 /* BatteryChargingSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryChargingSchedule.swift; sourceTree = "<group>"; };
 		BC1100030000000000000003 /* BatteryScheduleLogEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryScheduleLogEntry.swift; sourceTree = "<group>"; };
 		BC1400010000000000000001 /* BatteryScheduleCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryScheduleCoordinator.swift; sourceTree = "<group>"; };
+		BC1500010000000000000001 /* ScheduleEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleEditorSheet.swift; sourceTree = "<group>"; };
+		BC1500030000000000000003 /* SettingsScheduleCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScheduleCard.swift; sourceTree = "<group>"; };
 		C7B5E285FF8EA4DDD90B3B03 /* WattlyFont.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WattlyFont.swift; sourceTree = "<group>"; };
 		CB9717A4622D508E51C16FA8 /* SMC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMC.swift; sourceTree = "<group>"; };
 		CE8B45929FB77AE51839080D /* SystemMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMonitorTests.swift; sourceTree = "<group>"; };
@@ -722,11 +726,13 @@
 		D3A4F52DD6D0CED7D727051E /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				BC1500010000000000000001 /* ScheduleEditorSheet.swift */,
 				FE1A8B204198577EEDF66B03 /* SettingsBatterySection.swift */,
 				4FE120FEF8869E1F4BDD7EF9 /* SettingsBehaviorSection.swift */,
 				7554F42F83C83A8A93CFA4A9 /* SettingsDisplaySection.swift */,
 				B86536ADA399D72C4BCB2C78 /* SettingsFanCurveSection.swift */,
 				E2C70F6D347796A4C2CB1949 /* SettingsMenuBarSection.swift */,
+				BC1500030000000000000003 /* SettingsScheduleCard.swift */,
 				1D36F339C0C638F34767B0B8 /* SettingsThresholdSection.swift */,
 			);
 			path = Settings;
@@ -1098,6 +1104,7 @@
 				C8C17525980349E554E5E837 /* SelfPower.swift in Sources */,
 				EA5A91F8C0601F25F17FA0D3 /* SelfPowerTracker.swift in Sources */,
 				7A394705C6834B5A9358DA10 /* Settings.swift in Sources */,
+				BC1500020000000000000002 /* ScheduleEditorSheet.swift in Sources */,
 				180D4DD0B0DE664B3AB8A4E9 /* SettingsBatterySection.swift in Sources */,
 				EE923953EF8412A0896CD8DC /* SettingsBehaviorSection.swift in Sources */,
 				A292F6D7B2D0DAAC999ECBB7 /* SettingsComponents.swift in Sources */,
@@ -1105,6 +1112,7 @@
 				13C461FCBF4207B4B3B64FB9 /* SettingsFanCurveSection.swift in Sources */,
 				BE6AE1D1E6732C6E0961A9F0 /* SettingsMenuBarSection.swift in Sources */,
 				CBE11652E044DD70C60D7A8D /* SettingsReset.swift in Sources */,
+				BC1500040000000000000004 /* SettingsScheduleCard.swift in Sources */,
 				E6C0D1635D71C97F5CD33F38 /* SettingsThresholdSection.swift in Sources */,
 				C9E719E7D0D0152859146746 /* SettingsView.swift in Sources */,
 				1E0778BF5B4D3664E6C18C9B /* SmoothingOverlay.swift in Sources */,
