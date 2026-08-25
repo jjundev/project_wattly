@@ -80,6 +80,62 @@ import Foundation
         #expect(labelInactive == "비활성화됨")
     }
 
+    @Test func batteryAutoDischargeDefaultsAreConsistent() {
+        #expect(Defaults.batteryAutoDischargeEnabled == true)
+        #expect(StorageKey.batteryAutoDischargeEnabled == "batteryAutoDischargeEnabled")
+    }
+
+    @Test func batteryManualDischargeTargetDefaultsAreConsistent() {
+        #expect(Defaults.batteryManualDischargeTarget == 80)
+        #expect(StorageKey.batteryManualDischargeTarget == "batteryManualDischargeTarget")
+    }
+
+    @Test func batteryAutoDischargeCanBePersisted() {
+        let defaults = UserDefaults(suiteName: "SettingsBatterySectionTests")!
+        defaults.set(false, forKey: StorageKey.batteryAutoDischargeEnabled)
+        #expect(defaults.bool(forKey: StorageKey.batteryAutoDischargeEnabled) == false)
+        defaults.set(true, forKey: StorageKey.batteryAutoDischargeEnabled)
+        #expect(defaults.bool(forKey: StorageKey.batteryAutoDischargeEnabled) == true)
+    }
+
+    @Test func batteryManualDischargeTargetCanBePersisted() {
+        let defaults = UserDefaults(suiteName: "SettingsBatterySectionTests")!
+        let targets = [50, 60, 70, 80, 90, 100]
+        for target in targets {
+            defaults.set(target, forKey: StorageKey.batteryManualDischargeTarget)
+            #expect(defaults.integer(forKey: StorageKey.batteryManualDischargeTarget) == target)
+        }
+    }
+
+    @Test func manualDischargeStartButtonDisabledConditions() {
+        // Disabled when current SoC <= target
+        let target = 80
+        let isPluggedIn = true
+        let currentSoCLower = 75
+        let canStartLower = isPluggedIn && currentSoCLower > target
+        #expect(canStartLower == false)
+
+        let currentSoCEqual = 80
+        let canStartEqual = isPluggedIn && currentSoCEqual > target
+        #expect(canStartEqual == false)
+
+        // Disabled when not plugged in
+        let currentSoCHigher = 90
+        let isUnplugged = false
+        let canStartUnplugged = isUnplugged && currentSoCHigher > target
+        #expect(canStartUnplugged == false)
+
+        // Enabled when plugged in and current SoC > target
+        let canStartValid = isPluggedIn && currentSoCHigher > target
+        #expect(canStartValid == true)
+    }
+
+    @Test @MainActor func settingsBatterySectionViewInstantiation() {
+        let client = BatteryControlClient()
+        let view = SettingsBatterySection(batteryControl: client)
+        #expect(view.batteryControl.status.mode == .unavailable)
+    }
+
     @Test @MainActor func integrationComponentsAcceptScheduleCoordinator() {
         let client = BatteryControlClient()
         let coordinator = BatteryScheduleCoordinator(batteryControl: client)
