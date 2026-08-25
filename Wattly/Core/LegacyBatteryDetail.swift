@@ -29,6 +29,7 @@ enum LegacyBatteryDetail {
         case "배터리 전원으로 구동 중": return .init(kind: .onBatteryPower)
         case "한 번만 완충 중 (100%까지 충전)", "Top Up 중 (100%까지 충전)": return .init(kind: .topUpCharging)
         case "한 번만 완충 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)", "Top Up 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)": return .init(kind: .topUpComplete)
+        case "한 번만 완충 유지 중 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)": return .init(kind: .topUpHeldAtMax)
         case "배터리 온도 센서를 읽을 수 없습니다": return .init(kind: .batterySensorUnreadable)
         case "저장된 충전 정책을 읽지 못해 충전 허용 상태로 복구합니다":
             return .init(kind: .persistenceReadFailed)
@@ -50,6 +51,12 @@ enum LegacyBatteryDetail {
         }
         if let limit = number(in: detail, between: "목표치(", and: "%)까지 충전 중") {
             return .init(kind: .chargingToTarget, limitPercentage: limit)
+        }
+        if let limit = number(in: detail, between: "목표치(", and: "%)까지 방전 중") {
+            return .init(kind: .dischargingToTarget, limitPercentage: limit)
+        }
+        if let limit = number(in: detail, between: "수동 방전 중 (", and: "%까지 방전)") {
+            return .init(kind: .dischargingManual, limitPercentage: limit)
         }
         if let resume = number(in: detail, between: "Sailing 중 (", and: "% 도달 시 충전)") {
             return .init(kind: .sailing, limitPercentage: nil, resumePercentage: resume)

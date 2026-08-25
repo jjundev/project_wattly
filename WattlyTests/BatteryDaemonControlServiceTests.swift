@@ -106,6 +106,64 @@ struct BatteryDaemonControlServiceTests {
         #expect(status.isPowerAdapterConnected == false)
     }
 
+    @Test func activeDischargePreservesPluggedInStateWhenAdapterWattsPresent() throws {
+        let hardware = MockBatteryHardware()
+        hardware.reportedGate = .allowed
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501,
+            store: PolicyStoreSpy(),
+            engine: BatteryControlEngine(hardware: hardware),
+            now: { 100 })
+        let service = BatteryDaemonControlService(coordinator: coordinator)
+        
+        // Sample with isPluggedIn false (SMC transient cutoff) but adapterPowerWatts present (68W)
+        let status = service.sample(
+            currentReading: .init(
+                stateOfCharge: 80,
+                isPluggedIn: false,
+                adapterPowerWatts: 68),
+            force: true)
+        
+        #expect(status.isPowerAdapterConnected == true)
+    }
+
+    @Test func activeDischargeIgnoresVirtualDisconnectWhileAdapterDetailsRemain() throws {
+        let hardware = MockBatteryHardware()
+        hardware.reportedGate = .allowed
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501,
+            store: PolicyStoreSpy(),
+            engine: BatteryControlEngine(hardware: hardware),
+            now: { 100 })
+        let service = BatteryDaemonControlService(coordinator: coordinator)
+        let request = BatteryControlConfigurationRequest(
+            configuration: .init(
+                enabled: true,
+                limitPercentage: 90,
+                manualDischargeActive: true,
+                manualDischargeTarget: 69),
+            generation: 1)
+        _ = try service.configure(
+            encodedRequest: BatteryControlCodec.encode(request),
+            currentReading: .init(
+                stateOfCharge: 90,
+                isPluggedIn: true,
+                adapterPowerWatts: 68))
+        #expect(hardware.isDischargeActive)
+
+        let status = service.sample(
+            currentReading: .init(
+                stateOfCharge: 90,
+                isPluggedIn: false,
+                adapterPowerWatts: 68),
+            force: true)
+
+        #expect(status.isPowerAdapterConnected)
+        #expect(status.activity == .discharging)
+        #expect(status.desiredConfiguration?.manualDischargeActive == true)
+        #expect(hardware.isDischargeActive)
+    }
+
     @Test func unchangedAdapterUsesOrdinarySampleWithoutReplacingMaintenance() throws {
         let hardware = MockBatteryHardware()
         hardware.reportedGate = .allowed

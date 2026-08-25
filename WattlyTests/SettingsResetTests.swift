@@ -205,6 +205,17 @@ struct SettingsResetTests {
         #expect(Defaults.batteryHeatProtectionThreshold == 35)
     }
 
+    @Test func batterySectionResetIncludesDischargeSettings() {
+        let d = makeDefaults(#function)
+        d.set(false, forKey: StorageKey.batteryAutoDischargeEnabled)
+        d.set(65, forKey: StorageKey.batteryManualDischargeTarget)
+
+        SettingsReset.applyDefaults(into: d)
+
+        #expect(d.bool(forKey: StorageKey.batteryAutoDischargeEnabled) == Defaults.batteryAutoDischargeEnabled)
+        #expect(d.integer(forKey: StorageKey.batteryManualDischargeTarget) == Defaults.batteryManualDischargeTarget)
+    }
+
     @Test func resetHidesBatteryEfficiency() {
         let defaults = makeDefaults(#function)
         defaults.set(true, forKey: StorageKey.showBatteryEfficiency)

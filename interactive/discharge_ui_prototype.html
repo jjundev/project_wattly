@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wattly - 방전 기능 UI 프로토타입</title>
+  <style>
+    :root {
+      --accent: #0066ff;
+      --status-green: #00bf40;
+      --status-orange: #ff9200;
+      --status-red: #ff4242;
+      --card-radius: 12px;
+      --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    }
+
+    [data-theme="dark"] {
+      --bg: #141517;
+      --panel-bg: #212225;
+      --panel-border: rgba(174, 176, 182, 0.18);
+      --text: #f7f7f8;
+      --sub: rgba(247, 247, 248, 0.6);
+      --faint: rgba(247, 247, 248, 0.45);
+      --card-bg: rgba(174, 176, 182, 0.10);
+      --card-bg-elevated: rgba(255, 255, 255, 0.06);
+      --line: rgba(174, 176, 182, 0.16);
+      --seg-track: rgba(174, 176, 182, 0.14);
+      --seg-thumb: #323338;
+      --row-border: rgba(174, 176, 182, 0.14);
+      --sidebar-bg: #1b1c1e;
+      --spark: rgba(247, 247, 248, 0.6);
+      --spark-fill: rgba(174, 176, 182, 0.12);
+      --btn-bg: rgba(255, 255, 255, 0.08);
+      --btn-hover: rgba(255, 255, 255, 0.14);
+    }
+
+    [data-theme="light"] {
+      --bg: #ebecee;
+      --panel-bg: #ffffff;
+      --panel-border: rgba(112, 115, 124, 0.22);
+      --text: #171719;
+      --sub: rgba(46, 47, 51, 0.65);
+      --faint: rgba(46, 47, 51, 0.45);
+      --card-bg: rgba(112, 115, 124, 0.06);
+      --card-bg-elevated: #f4f4f6;
+      --line: rgba(112, 115, 124, 0.14);
+      --seg-track: rgba(112, 115, 124, 0.12);
+      --seg-thumb: #ffffff;
+      --row-border: rgba(112, 115, 124, 0.18);
+      --sidebar-bg: #f7f7f8;
+      --spark: rgba(46, 47, 51, 0.6);
+      --spark-fill: rgba(112, 115, 124, 0.10);
+      --btn-bg: rgba(0, 0, 0, 0.05);
+      --btn-hover: rgba(0, 0, 0, 0.10);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      font-family: var(--font-stack);
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 20px 100px;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    header.prototype-header {
+      width: 100%;
+      max-width: 960px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .badge-tag {
+      background: rgba(0, 102, 255, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(0, 102, 255, 0.3);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .theme-toggle-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--line);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Main Workspace Layout */
+    .app-workspace {
+      width: 100%;
+      max-width: 960px;
+      display: grid;
+      grid-template-columns: 1fr 310px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .preview-canvas {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 640px;
+    }
+
+    /* Wattly Popover Shell (Width: 320px, Padding: 14px, Radius: 16px) */
+    .wattly-popover-panel {
+      width: 320px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 4px 8px -2px rgba(23,23,23,.18), 0 16px 32px rgba(23,23,23,.28);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .popover-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 2px 4px 6px 4px;
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pulse-w-icon { width: 14px; height: 11px; }
+
+    .brand-text {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: -0.13px;
+      color: var(--text);
+    }
+
+    .status-dot-indicator {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-left: 1px;
+    }
+    .status-dot-green { background: var(--status-green); }
+    .status-dot-orange { background: var(--status-orange); }
+
+    .header-actions { display: flex; gap: 3px; }
+
+    .icon-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
+      border: none;
+      background: transparent;
+      color: var(--faint);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.15s;
+    }
+    .icon-btn:hover {
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+    }
+
+    /* Metric Card Standard */
+    .metric-card {
+      background: var(--card-bg);
+      border-radius: var(--card-radius);
+      padding: 11px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+      border: 1px solid transparent;
+    }
+
+    .metric-card.expandable:hover { background: var(--card-bg-elevated); }
+    .metric-card.active-discharge {
+      border-color: rgba(255, 146, 0, 0.35);
+      background: rgba(255, 146, 0, 0.06);
+    }
+
+    .card-top-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+
+    .card-label-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .card-label { font-size: 11.5px; font-weight: 600; color: var(--sub); }
+
+    .chevron-icon {
+      font-size: 8px;
+      font-weight: 800;
+      color: var(--sub);
+      transition: transform 0.2s ease;
+    }
+    .chevron-icon.expanded { transform: rotate(180deg); }
+
+    .card-value-group {
+      display: flex;
+      align-items: baseline;
+      gap: 3px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .card-value-main {
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.19px;
+      color: var(--text);
+    }
+
+    .card-value-unit { font-size: 12px; font-weight: 600; color: var(--sub); }
+
+    .card-sparkline-svg { width: 100%; height: 24px; overflow: visible; }
+
+    .card-subtext {
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--sub);
+      font-variant-numeric: tabular-nums;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Expand Region */
+    .card-expand-region {
+      margin-top: 4px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10.5px;
+      font-weight: 600;
+    }
+
+    .detail-row-label { color: var(--faint); }
+    .detail-row-value { color: var(--sub); font-variant-numeric: tabular-nums; }
+
+    .expand-divider {
+      height: 1px;
+      background: var(--line);
+      opacity: 0.6;
+      margin: 2px 0;
+    }
+
+    .popover-action-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10.5px;
+    }
+
+    .action-btn-pill {
+      font-size: 10.5px;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--row-border);
+      background: var(--seg-track);
+      color: var(--sub);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s;
+    }
+
+    .action-btn-pill:hover { color: var(--text); background: var(--btn-hover); }
+    .action-btn-pill.active-orange {
+      color: var(--status-orange);
+      background: rgba(255, 146, 0, 0.15);
+      border-color: rgba(255, 146, 0, 0.4);
+      font-weight: 600;
+    }
+
+    .action-btn-pill.active-red {
+      color: var(--status-red);
+      background: rgba(255, 66, 66, 0.15);
+      border-color: rgba(255, 66, 66, 0.4);
+      font-weight: 600;
+    }
+
+    .pulsing-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--status-orange);
+      border-radius: 50%;
+      animation: pulseAnim 1.4s infinite;
+    }
+
+    @keyframes pulseAnim {
+      0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(255, 146, 0, 0.7); }
+      70% { transform: scale(1.05); box-shadow: 0 0 0 5px rgba(255, 146, 0, 0); }
+      100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(255, 146, 0, 0); }
+    }
+
+    /* macOS Settings Window */
+    .macos-settings-window {
+      width: 520px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .window-titlebar {
+      height: 40px;
+      background: var(--sidebar-bg);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      position: relative;
+    }
+
+    .traffic-lights { display: flex; gap: 7px; }
+    .traffic-light { width: 11px; height: 11px; border-radius: 50%; }
+    .traffic-red { background: #ff5f56; }
+    .traffic-yellow { background: #ffbd2e; }
+    .traffic-green { background: #27c93f; }
+
+    .window-title {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .settings-body { padding: 16px 18px; }
+
+    .settings-card {
+      background: var(--card-bg);
+      border: 1px solid var(--line);
+      border-radius: var(--card-radius);
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+
+    .settings-row {
+      padding: 11px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .row-info h4 {
+      font-size: 12.5px;
+      font-weight: 600;
+      margin-bottom: 2px;
+      color: var(--text);
+    }
+
+    .row-info p {
+      font-size: 10.5px;
+      color: var(--faint);
+      line-height: 1.4;
+    }
+
+    .macos-switch {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+    .macos-switch input { opacity: 0; width: 0; height: 0; }
+    .slider-toggle {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: var(--seg-track); border: 1px solid var(--row-border);
+      transition: .2s; border-radius: 20px;
+    }
+    .slider-toggle:before {
+      position: absolute; content: ""; height: 16px; width: 16px; left: 1px; bottom: 1px;
+      background-color: white; box-shadow: 0 1px 3px rgba(0,0,0,0.3); transition: .2s; border-radius: 50%;
+    }
+    input:checked + .slider-toggle { background-color: var(--accent); border-color: var(--accent); }
+    input:checked + .slider-toggle:before { transform: translateX(16px); }
+
+    .wattly-segment {
+      display: flex;
+      background: var(--seg-track);
+      padding: 3px;
+      border-radius: 7px;
+      gap: 2px;
+      margin-top: 6px;
+    }
+    .seg-pill {
+      flex: 1; text-align: center; padding: 4px 0; font-size: 11px; font-weight: 500;
+      border-radius: 5px; cursor: pointer; color: var(--sub); transition: all 0.15s;
+    }
+    .seg-pill.active {
+      background: var(--seg-thumb); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    }
+
+    /* macOS Native-Style Slider */
+    .slider-container {
+      padding: 4px 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .slider-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11.5px;
+      font-weight: 500;
+    }
+
+    .macos-range-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--seg-track);
+      outline: none;
+      margin: 6px 0 2px;
+      accent-color: var(--status-orange);
+      cursor: pointer;
+    }
+
+    .macos-range-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+      cursor: pointer;
+      border: 1px solid rgba(0,0,0,0.1);
+      transition: transform 0.1s ease;
+    }
+
+    .macos-range-slider::-webkit-slider-thumb:active {
+      transform: scale(1.15);
+    }
+
+    .slider-labels-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--faint);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Active Discharging Card in Settings */
+    .active-discharge-box {
+      background: rgba(255, 146, 0, 0.08);
+      border: 1px solid rgba(255, 146, 0, 0.28);
+      border-radius: 9px;
+      padding: 10px 12px;
+      margin: 6px 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .discharge-pulse-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .discharge-pulse-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--status-orange);
+    }
+
+    .stop-discharge-btn {
+      background: rgba(255, 66, 66, 0.15);
+      border: 1px solid rgba(255, 66, 66, 0.35);
+      color: var(--status-red);
+      padding: 4px 10px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .stop-discharge-btn:hover { background: rgba(255, 66, 66, 0.25); }
+
+    .start-discharge-btn {
+      background: rgba(255, 146, 0, 0.15);
+      border: 1px solid rgba(255, 146, 0, 0.35);
+      color: var(--status-orange);
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .start-discharge-btn:hover { background: rgba(255, 146, 0, 0.25); }
+    .start-discharge-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Inspector Sidebar */
+    .inspector-panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+
+    .inspector-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--sub);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sim-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .sim-group label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .sim-range { width: 100%; accent-color: var(--accent); }
+
+    .state-json {
+      background: rgba(0,0,0,0.25);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+      font-size: 10.5px;
+      color: #9cdcfe;
+      line-height: 1.45;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .state-key { color: #4fc1ff; }
+    .state-val-str { color: #ce9178; }
+    .state-val-num { color: #b5cea8; }
+    .state-val-bool { color: #569cd6; }
+
+    /* Floating Navigation */
+    .variant-bar {
+      position: fixed;
+      bottom: 20px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      padding: 5px 6px;
+      border-radius: 30px;
+      display: flex;
+      gap: 5px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      z-index: 999;
+    }
+
+    .variant-btn {
+      background: transparent;
+      border: none;
+      color: var(--sub);
+      padding: 7px 16px;
+      border-radius: 20px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .variant-btn.active {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 2px 8px rgba(0, 102, 255, 0.4);
+    }
+
+    /* Toast */
+    .toast-box {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.35);
+      display: flex;
+      gap: 12px;
+      max-width: 320px;
+      transform: translateY(-90px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+      z-index: 1000;
+    }
+    .toast-box.show { transform: translateY(0); opacity: 1; }
+  </style>
+</head>
+<body data-theme="dark">
+
+  <header class="prototype-header">
+    <div>
+      <h1 style="font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+        Wattly Discharge UI Prototype
+        <span class="badge-tag">MENU BAR & SETTINGS</span>
+      </h1>
+      <p style="font-size: 11.5px; color: var(--sub); margin-top: 2px;">
+        수동 방전 슬라이더 (50%~100%) 설정 및 메뉴바 팝오버 연동 인터랙션
+      </p>
+    </div>
+    <button class="theme-toggle-btn" onclick="toggleTheme()">
+      <span id="theme-icon">☀️</span> 테마 전환
+    </button>
+  </header>
+
+  <main class="app-workspace">
+    <!-- Center Live UI View -->
+    <div class="preview-canvas" id="canvas-container">
+      <!-- Dynamic Variant Injected -->
+    </div>
+
+    <!-- Simulator & Inspector -->
+    <aside class="inspector-panel">
+      <div class="inspector-title">
+        <span>Hardware Simulator</span>
+        <span style="font-size: 10px; color: var(--status-green);">LIVE ⚡</span>
+      </div>
+
+      <div class="sim-group">
+        <label>
+          <span>어댑터 연결 (AC Power)</span>
+          <input type="checkbox" id="sim-plugged" checked onchange="onSimAdapterChange()">
+        </label>
+      </div>
+
+      <div class="sim-group">
+        <label>
+          <span>현재 배터리 잔량</span>
+          <span id="sim-soc-val">88%</span>
+        </label>
+        <input type="range" class="sim-range" id="sim-soc-range" min="10" max="100" value="88" oninput="onSimSocInput(this.value)">
+      </div>
+
+      <div class="sim-group">
+        <label>
+          <span>배터리 온도</span>
+          <span id="sim-temp-val">31.5°C</span>
+        </label>
+        <input type="range" class="sim-range" id="sim-temp-range" min="20" max="42" value="31.5" step="0.5" oninput="onSimTempInput(this.value)">
+      </div>
+
+      <div class="sim-group">
+        <label>
+          <span>시뮬레이션 속도</span>
+          <span id="sim-speed-val">5x</span>
+        </label>
+        <div style="display: flex; gap: 4px;">
+          <button class="seg-pill active" onclick="setSpeed(1, this)">1x</button>
+          <button class="seg-pill" onclick="setSpeed(5, this)">5x</button>
+          <button class="seg-pill" onclick="setSpeed(20, this)">20x</button>
+        </div>
+      </div>
+
+      <div class="inspector-title" style="margin-top: 2px;">
+        <span>SMC & Policy State</span>
+      </div>
+
+      <div class="state-json" id="state-json-view"></div>
+    </aside>
+  </main>
+
+  <!-- Bottom Floating Variant Switcher -->
+  <nav class="variant-bar">
+    <button class="variant-btn active" onclick="switchVariant('settings')">설정 창 (Settings - 슬라이더)</button>
+    <button class="variant-btn" onclick="switchVariant('popover-a')">메뉴바 팝오버 (Popover)</button>
+  </nav>
+
+  <!-- Toast Notification -->
+  <div class="toast-box" id="system-toast">
+    <div style="font-size: 20px;">⚡</div>
+    <div>
+      <h5 style="font-size: 12px; font-weight: 600; margin-bottom: 2px;" id="toast-title">방전 완료</h5>
+      <p style="font-size: 11px; color: var(--sub); line-height: 1.35;" id="toast-body">목표 잔량에 도달하여 어댑터 바이패스 모드로 전환되었습니다.</p>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      variant: 'settings', // 'settings', 'popover-a'
+      theme: 'dark',
+      batteryCardExpanded: true,
+      batteryLimitEnabled: true,
+      batteryLimitPercentage: 80,
+      autoDischargeEnabled: false,
+      manualDischargeActive: false,
+      manualDischargeTarget: 70, // 50% ~ 100% Slider
+      currentSoC: 88,
+      isPluggedIn: true,
+      batteryTemp: 31.5,
+      simSpeed: 5,
+      // SMC & Engine
+      chieRegister: '0x00',
+      chteRegister: '0x01',
+      activity: 'holdingAtLimit'
+    };
+
+    let simInterval = null;
+
+    function init() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const v = urlParams.get('variant');
+      if (v && ['settings', 'popover-a'].includes(v)) {
+        state.variant = v;
+      }
+      renderVariantButtons();
+      evaluateEngine();
+      renderCurrentVariant();
+      startSimulatorLoop();
+    }
+
+    function toggleTheme() {
+      state.theme = state.theme === 'dark' ? 'light' : 'dark';
+      document.body.setAttribute('data-theme', state.theme);
+      document.getElementById('theme-icon').textContent = state.theme === 'dark' ? '☀️' : '🌙';
+    }
+
+    function switchVariant(v) {
+      state.variant = v;
+      const url = new URL(window.location);
+      url.searchParams.set('variant', v);
+      window.history.replaceState({}, '', url);
+      renderVariantButtons();
+      renderCurrentVariant();
+    }
+
+    function renderVariantButtons() {
+      const variants = ['settings', 'popover-a'];
+      document.querySelectorAll('.variant-btn').forEach((btn, idx) => {
+        btn.classList.toggle('active', variants[idx] === state.variant);
+      });
+    }
+
+    function evaluateEngine() {
+      if (!state.isPluggedIn) {
+        state.activity = 'onBatteryPower';
+        state.chieRegister = '0x00';
+        state.manualDischargeActive = false;
+        return;
+      }
+
+      if (state.batteryTemp > 35) {
+        state.activity = 'heatProtection';
+        state.chieRegister = '0x00';
+        state.chteRegister = '0x01';
+        state.manualDischargeActive = false;
+        return;
+      }
+
+      const target = state.manualDischargeActive ? state.manualDischargeTarget : state.batteryLimitPercentage;
+
+      // Discharge evaluation
+      if (state.manualDischargeActive || (state.autoDischargeEnabled && state.currentSoC > state.batteryLimitPercentage + 1)) {
+        if (state.currentSoC <= target) {
+          state.manualDischargeActive = false;
+          state.chieRegister = '0x00';
+          state.chteRegister = state.batteryLimitEnabled ? '0x01' : '0x00';
+          state.activity = state.batteryLimitEnabled ? 'holdingAtLimit' : 'chargingToLimit';
+          triggerToast("방전 완료 (목표 도달)", `목표 잔량(${target}%)에 도달하여 어댑터 바이패스 모드로 전환되었습니다.`);
+        } else {
+          state.activity = 'discharging';
+          state.chieRegister = '0x08';
+          state.chteRegister = '0x00';
+        }
+        return;
+      }
+
+      // Normal hold/charge
+      if (state.batteryLimitEnabled) {
+        if (state.currentSoC >= state.batteryLimitPercentage) {
+          state.activity = 'holdingAtLimit';
+          state.chieRegister = '0x00';
+          state.chteRegister = '0x01';
+        } else {
+          state.activity = 'chargingToLimit';
+          state.chieRegister = '0x00';
+          state.chteRegister = '0x00';
+        }
+      } else {
+        state.activity = 'chargingToLimit';
+        state.chieRegister = '0x00';
+        state.chteRegister = '0x00';
+      }
+    }
+
+    function startManualDischarge(target = state.manualDischargeTarget) {
+      if (!state.isPluggedIn) {
+        alert("방전은 전원 어댑터가 연결된 상태에서 작동합니다.");
+        return;
+      }
+      if (state.currentSoC <= target) {
+        alert(`현재 잔량(${state.currentSoC}%)이 목표치(${target}%) 이하입니다.`);
+        return;
+      }
+      state.manualDischargeTarget = target;
+      state.manualDischargeActive = true;
+      evaluateEngine();
+      renderCurrentVariant();
+      updateStateInspector();
+    }
+
+    function stopManualDischarge() {
+      state.manualDischargeActive = false;
+      evaluateEngine();
+      renderCurrentVariant();
+      updateStateInspector();
+    }
+
+    function triggerToast(title, body) {
+      const toast = document.getElementById('system-toast');
+      document.getElementById('toast-title').textContent = title;
+      document.getElementById('toast-body').textContent = body;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 4000);
+    }
+
+    function onSimSocInput(val) {
+      state.currentSoC = parseInt(val, 10);
+      document.getElementById('sim-soc-val').textContent = val + '%';
+      evaluateEngine();
+      renderCurrentVariant();
+      updateStateInspector();
+    }
+
+    function onSimTempInput(val) {
+      state.batteryTemp = parseFloat(val);
+      document.getElementById('sim-temp-val').textContent = val + '°C';
+      evaluateEngine();
+      renderCurrentVariant();
+      updateStateInspector();
+    }
+
+    function onSimAdapterChange() {
+      state.isPluggedIn = document.getElementById('sim-plugged').checked;
+      evaluateEngine();
+      renderCurrentVariant();
+      updateStateInspector();
+    }
+
+    function setSpeed(speed, el) {
+      state.simSpeed = speed;
+      document.getElementById('sim-speed-val').textContent = speed + 'x';
+      el.parentNode.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      el.classList.add('active');
+    }
+
+    function onManualSliderChange(val) {
+      state.manualDischargeTarget = parseInt(val, 10);
+      evaluateEngine();
+      renderCurrentVariant();
+      updateStateInspector();
+    }
+
+    function startSimulatorLoop() {
+      if (simInterval) clearInterval(simInterval);
+      simInterval = setInterval(() => {
+        if (state.activity === 'discharging') {
+          const target = state.manualDischargeActive ? state.manualDischargeTarget : state.batteryLimitPercentage;
+          if (state.currentSoC > target) {
+            state.currentSoC -= 1;
+            document.getElementById('sim-soc-range').value = state.currentSoC;
+            document.getElementById('sim-soc-val').textContent = state.currentSoC + '%';
+            evaluateEngine();
+            renderCurrentVariant();
+            updateStateInspector();
+          }
+        }
+      }, 3000 / state.simSpeed);
+    }
+
+    function updateStateInspector() {
+      const jsonView = document.getElementById('state-json-view');
+      const target = state.manualDischargeActive ? state.manualDischargeTarget : state.batteryLimitPercentage;
+      const estimatedMin = Math.max(1, (state.currentSoC - target) * 3);
+      const estWatts = state.activity === 'discharging' ? -18.4 : (state.activity === 'holdingAtLimit' ? 0.0 : 28.5);
+
+      jsonView.innerHTML = `{
+  <span class="state-key">"activity"</span>: <span class="state-val-str">"${state.activity}"</span>,
+  <span class="state-key">"currentSoC"</span>: <span class="state-val-num">${state.currentSoC}%</span>,
+  <span class="state-key">"manualSliderTarget"</span>: <span class="state-val-num">${state.manualDischargeTarget}%</span> <span style="color:#6a9955;">// [50%~100%]</span>,
+  <span class="state-key">"isPluggedIn"</span>: <span class="state-val-bool">${state.isPluggedIn}</span>,
+  <span class="state-key">"SMC_CHIE"</span>: <span class="state-val-str">"${state.chieRegister}"</span> <span style="color:#6a9955;">// ${state.chieRegister === '0x08' ? 'Discharge Force ON' : 'Normal / Restored'}</span>,
+  <span class="state-key">"SMC_CHTE"</span>: <span class="state-val-str">"${state.chteRegister}"</span> <span style="color:#6a9955;">// ${state.chteRegister === '0x01' ? 'Inhibit ON' : 'Charging'}</span>,
+  <span class="state-key">"netWatts"</span>: <span class="state-val-num">${estWatts.toFixed(1)} W</span>,
+  <span class="state-key">"remaining"</span>: <span class="state-val-str">"${state.activity === 'discharging' ? '약 ' + estimatedMin + '분 남음' : 'N/A'}"</span>
+}`;
+    }
+
+    function renderCurrentVariant() {
+      const container = document.getElementById('canvas-container');
+      if (state.variant === 'settings') {
+        container.innerHTML = getSettingsHtml();
+      } else if (state.variant === 'popover-a') {
+        container.innerHTML = getPopoverAHtml();
+      }
+      updateStateInspector();
+    }
+
+    // ==========================================
+    // 1. Settings Window (SettingsBatterySection - 50%~100% Slider)
+    // ==========================================
+    function getSettingsHtml() {
+      const isDischarging = state.activity === 'discharging';
+      const isHolding = state.activity === 'holdingAtLimit';
+      const limitTarget = state.batteryLimitPercentage;
+      const manualTarget = state.manualDischargeTarget;
+      const estMin = Math.max(1, (state.currentSoC - manualTarget) * 3);
+
+      return `
+        <div class="macos-settings-window">
+          <div class="window-titlebar">
+            <div class="traffic-lights">
+              <div class="traffic-light traffic-red"></div>
+              <div class="traffic-light traffic-yellow"></div>
+              <div class="traffic-light traffic-green"></div>
+            </div>
+            <div class="window-title">설정 › 배터리 충전 제어</div>
+          </div>
+
+          <div class="settings-body">
+            <!-- Charge Limit Card -->
+            <div class="settings-card">
+              <div class="settings-row">
+                <div class="row-info">
+                  <h4>배터리 충전 제한</h4>
+                  <p>설정한 한도에 도달하면 충전을 멈추고 전원 어댑터로만 작동합니다.</p>
+                </div>
+                <label class="macos-switch">
+                  <input type="checkbox" ${state.batteryLimitEnabled ? 'checked' : ''} onchange="state.batteryLimitEnabled = this.checked; evaluateEngine(); renderCurrentVariant();">
+                  <span class="slider-toggle"></span>
+                </label>
+              </div>
+
+              <div style="padding: 0 14px 12px;">
+                <div style="display: flex; justify-content: space-between; font-size: 11.5px; font-weight: 500;">
+                  <span>최대 충전 한도</span>
+                  <span style="color: var(--sub);">${limitTarget}%</span>
+                </div>
+                <div class="wattly-segment">
+                  ${[80, 85, 90, 95].map(pct => `
+                    <div class="seg-pill ${pct === limitTarget ? 'active' : ''}" onclick="state.batteryLimitPercentage = ${pct}; evaluateEngine(); renderCurrentVariant();">
+                      ${pct}%
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <div style="padding: 9px 14px; background: rgba(174,176,182,0.05); border-top: 1px solid var(--line); display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--sub);">
+                <div style="width: 7px; height: 7px; border-radius: 50%;" class="${isDischarging ? 'status-dot-orange' : (isHolding ? 'status-dot-orange' : 'status-dot-green')}"></div>
+                <span>${isDischarging ? `목표치(${manualTarget}%)까지 방전 중 (전원 어댑터 차단 · -18.4 W)` : (isHolding ? `충전 제한 ${limitTarget}% 도달 (전원 어댑터 바이패스 구동)` : `목표치(${limitTarget}%)까지 충전 중`)}</span>
+              </div>
+            </div>
+
+            <!-- Auto Discharge Section -->
+            <div class="settings-card">
+              <div class="settings-row">
+                <div class="row-info">
+                  <h4>자동 방전 (Auto Discharge)</h4>
+                  <p>충전 한도를 현재 잔량보다 낮게 변경하면 별도 조작 없이 자동으로 한도까지 방전합니다.</p>
+                </div>
+                <label class="macos-switch">
+                  <input type="checkbox" ${state.autoDischargeEnabled ? 'checked' : ''} onchange="state.autoDischargeEnabled = this.checked; evaluateEngine(); renderCurrentVariant();">
+                  <span class="slider-toggle"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Manual Discharge Section with 50%~100% SLIDER -->
+            <div class="settings-card">
+              <div class="settings-row" style="padding-bottom: 4px;">
+                <div class="row-info">
+                  <h4>수동 방전</h4>
+                  <p>원하는 목표 잔량까지 배터리를 전원 어댑터 연결 상태에서 강제로 방전합니다.</p>
+                </div>
+              </div>
+
+              <!-- Slider Container (50% ~ 100%) -->
+              <div class="slider-container">
+                <div class="slider-header-row">
+                  <span style="font-size: 11px; color: var(--sub);">목표 방전 잔량</span>
+                  <strong style="font-size: 13px; color: var(--status-orange);">${manualTarget}%</strong>
+                </div>
+
+                <input type="range" class="macos-range-slider" min="50" max="100" step="1" value="${manualTarget}" oninput="onManualSliderChange(this.value)">
+
+                <div class="slider-labels-row">
+                  <span>50%</span>
+                  <span>60%</span>
+                  <span>70%</span>
+                  <span>80%</span>
+                  <span>90%</span>
+                  <span>100%</span>
+                </div>
+              </div>
+
+              <div style="height: 1px; background: var(--line);"></div>
+
+              ${isDischarging ? `
+                <div class="active-discharge-box">
+                  <div class="discharge-pulse-row">
+                    <div class="discharge-pulse-badge">
+                      <div class="pulsing-dot"></div>
+                      <span>수동 방전 진행 중</span>
+                    </div>
+                    <button class="stop-discharge-btn" onclick="stopManualDischarge()">방전 중지</button>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: var(--sub);">
+                    <span>실시간 소모: <strong>-18.4 W</strong></span>
+                    <span>예상 완료: <strong>약 ${estMin}분 후</strong></span>
+                  </div>
+                </div>
+              ` : `
+                <div class="settings-row">
+                  <span style="font-size: 11px; color: var(--faint);">현재 잔량: <strong>${state.currentSoC}%</strong></span>
+                  <button class="start-discharge-btn" ${state.currentSoC <= manualTarget || !state.isPluggedIn ? 'disabled' : ''} onclick="startManualDischarge(${manualTarget})">
+                    ${manualTarget}%까지 방전 시작
+                  </button>
+                </div>
+              `}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ==========================================
+    // 2. Popover Mode A (Stacked Cards with Configured Manual Target)
+    // ==========================================
+    function getPopoverAHtml() {
+      const isDischarging = state.activity === 'discharging';
+      const isHolding = state.activity === 'holdingAtLimit';
+      const limitTarget = state.batteryLimitPercentage;
+      const manualTarget = state.manualDischargeTarget;
+
+      return `
+        <div class="wattly-popover-panel">
+          <!-- Popover Header -->
+          <div class="popover-header">
+            <div class="brand-title">
+              <svg class="pulse-w-icon" viewBox="0 0 14 11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+                <path d="M1 5.5L3.5 1L5.5 10L8 2L10.5 8.5L13 5.5"/>
+              </svg>
+              <span class="brand-text">Wattly</span>
+              <span class="status-dot-indicator ${isDischarging ? 'status-dot-orange' : 'status-dot-green'}"></span>
+            </div>
+            <div class="header-actions">
+              <button class="icon-btn" title="편집">✏️</button>
+              <button class="icon-btn" title="설정" onclick="switchVariant('settings')">⚙️</button>
+              <button class="icon-btn" title="종료">⏻</button>
+            </div>
+          </div>
+
+          <!-- Card 1: Processor Power -->
+          <div class="metric-card">
+            <div class="card-top-row">
+              <div class="card-label-group">
+                <span class="card-label">프로세서 전력</span>
+              </div>
+              <div class="card-value-group">
+                <span class="card-value-main">14.2</span>
+                <span class="card-value-unit">W</span>
+              </div>
+            </div>
+            <svg class="card-sparkline-svg" viewBox="0 0 280 24">
+              <path d="M0,18 Q35,8 70,16 T140,10 T210,14 T280,11" fill="none" stroke="var(--spark)" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <div class="card-subtext">CPU 8.6 W · GPU 5.6 W</div>
+          </div>
+
+          <!-- Card 2: Memory -->
+          <div class="metric-card">
+            <div class="card-top-row">
+              <div class="card-label-group">
+                <span class="card-label">메모리</span>
+              </div>
+              <div class="card-value-group">
+                <span class="card-value-main">68</span>
+                <span class="card-value-unit">%</span>
+              </div>
+            </div>
+            <svg class="card-sparkline-svg" viewBox="0 0 280 24">
+              <path d="M0,12 L70,12 L140,11 L210,13 L280,12" fill="none" stroke="var(--spark)" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <div class="card-subtext">사용 10.9 GB / 전체 16 GB</div>
+          </div>
+
+          <!-- Card 3: Battery (Expandable & Interactive) -->
+          <div class="metric-card expandable ${isDischarging ? 'active-discharge' : ''}" onclick="state.batteryCardExpanded = !state.batteryCardExpanded; renderCurrentVariant();">
+            <div class="card-top-row">
+              <div class="card-label-group">
+                <span class="card-label">배터리</span>
+                <span class="chevron-icon ${state.batteryCardExpanded ? 'expanded' : ''}">▼</span>
+              </div>
+              <div class="card-value-group">
+                <span class="card-value-main" style="color: ${isDischarging ? 'var(--status-orange)' : 'var(--text)'};">${state.currentSoC}</span>
+                <span class="card-value-unit">%</span>
+              </div>
+            </div>
+
+            <svg class="card-sparkline-svg" viewBox="0 0 280 24">
+              <path d="M0,${isDischarging ? 18 : 6} Q70,${isDischarging ? 16 : 8} 140,${isDischarging ? 14 : 10} T280,${isDischarging ? 10 : 12}" fill="none" stroke="${isDischarging ? 'var(--status-orange)' : 'var(--spark)'}" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+
+            <div class="card-subtext">
+              ${isDischarging ? `
+                <div class="pulsing-dot"></div>
+                <span style="color: var(--status-orange); font-weight: 500;">목표치(${manualTarget}%)까지 방전 중 · -18.4 W</span>
+              ` : (isHolding ? `
+                <span>충전 제한 ${limitTarget}% 도달 (어댑터 바이패스 구동)</span>
+              ` : `
+                <span>약 3시간 30분 남음 · 1분 평균 -10.4 W</span>
+              `)}
+            </div>
+
+            ${state.batteryCardExpanded ? `
+              <div class="card-expand-region" onclick="event.stopPropagation();">
+                <!-- Power Flow Category -->
+                <div class="detail-row">
+                  <span class="detail-row-label">전원 소스</span>
+                  <span class="detail-row-value">${isDischarging ? '배터리 (수동 방전 중)' : (state.isPluggedIn ? '어댑터 바이패스 구동' : '배터리 구동')}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-row-label">어댑터 전력</span>
+                  <span class="detail-row-value">${isDischarging ? '0.0 W (차단됨)' : (state.isPluggedIn ? '18.4 W' : '—')}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-row-label">시스템 소비 전력</span>
+                  <span class="detail-row-value">18.4 W</span>
+                </div>
+
+                <div class="expand-divider"></div>
+
+                <!-- Electrical Metrics -->
+                <div class="detail-row">
+                  <span class="detail-row-label">순 전력 (Net Power)</span>
+                  <span class="detail-row-value" style="color: ${isDischarging ? 'var(--status-orange)' : 'var(--sub)'};">${isDischarging ? '-18.4 W' : '0.0 W'}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-row-label">전류 / 전압</span>
+                  <span class="detail-row-value">${isDischarging ? '-1,420 mA' : '0 mA'} · 12.4 V</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-row-label">배터리 온도</span>
+                  <span class="detail-row-value">${state.batteryTemp.toFixed(1)}°C</span>
+                </div>
+
+                <div class="expand-divider"></div>
+
+                <!-- Battery Top Up & Discharge Actions -->
+                <div class="popover-action-row">
+                  <span class="detail-row-label">한 번만 완충</span>
+                  <button class="action-btn-pill">비활성화됨</button>
+                </div>
+
+                <!-- Discharge Action in Popover (Only shown when discharging or currentSoC > manualTarget) -->
+                ${(isDischarging || state.currentSoC > manualTarget) ? `
+                  <div class="popover-action-row">
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                      <span class="detail-row-label">수동 방전 (${manualTarget}%)</span>
+                      ${isDischarging ? '<div class="pulsing-dot"></div>' : ''}
+                    </div>
+                    ${isDischarging ? `
+                      <button class="action-btn-pill active-red" onclick="stopManualDischarge()">
+                        방전 중지
+                      </button>
+                    ` : `
+                      <button class="action-btn-pill active-orange" onclick="startManualDischarge(${manualTarget})">
+                        ${manualTarget}%까지 방전
+                      </button>
+                    `}
+                  </div>
+                ` : ''}
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

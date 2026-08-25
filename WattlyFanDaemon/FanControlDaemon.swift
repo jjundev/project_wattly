@@ -175,25 +175,57 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
         let current = desc[kIOPSCurrentCapacityKey] as? Int ?? 0
         let maxCap = desc[kIOPSMaxCapacityKey] as? Int ?? 100
         let soc = maxCap > 0 ? Int((Double(current) / Double(maxCap) * 100.0).rounded()) : current
-        let isPlugged = (desc[kIOPSPowerSourceStateKey] as? String) == kIOPSACPowerValue
+        let isPowerSourceAC = (desc[kIOPSPowerSourceStateKey] as? String) == kIOPSACPowerValue
+        let telemetry = readBatteryTelemetryFromRegistry()
+        let hasAdapterWatts = (telemetry.adapterPowerWatts ?? 0) > 0
+        let isExternalConnected = (telemetry.isExternalConnected == true) || hasAdapterWatts
+        let isPlugged = isPowerSourceAC || isExternalConnected
 
-        let tempC = readBatteryTemperatureFromRegistry()
         return BatteryPowerSourceReading(
             stateOfCharge: soc,
             isPluggedIn: isPlugged,
-            temperatureCelsius: tempC)
+            temperatureCelsius: telemetry.temperatureCelsius,
+            adapterPowerWatts: telemetry.adapterPowerWatts)
     }
 
-    private func readBatteryTemperatureFromRegistry() -> Double? {
+    private func readBatteryTelemetryFromRegistry() -> (
+        temperatureCelsius: Double?,
+        isExternalConnected: Bool?,
+        adapterPowerWatts: Int?
+    ) {
         let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"))
-        guard service != 0 else { return nil }
+        guard service != 0 else { return (nil, nil, nil) }
         defer { IOObjectRelease(service) }
-        guard let rawNumber = IORegistryEntryCreateCFProperty(service, "Temperature" as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue() as? NSNumber else {
-            return nil
+
+        var tempC: Double? = nil
+        if let rawNumber = IORegistryEntryCreateCFProperty(service, "Temperature" as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue() as? NSNumber {
+            let centiCelsius = rawNumber.intValue
+            if (0...8000).contains(centiCelsius) {
+                tempC = Double(centiCelsius) / 100.0
+            }
         }
-        let centiCelsius = rawNumber.intValue
-        guard (0...8000).contains(centiCelsius) else { return nil }
-        return Double(centiCelsius) / 100.0
+
+        var extConnected: Bool? = nil
+        if let rawExt = IORegistryEntryCreateCFProperty(service, "ExternalConnected" as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue() {
+            if let num = rawExt as? NSNumber {
+                extConnected = num.boolValue
+            } else if CFGetTypeID(rawExt) == CFBooleanGetTypeID() {
+                extConnected = CFBooleanGetValue((rawExt as! CFBoolean))
+            }
+        }
+
+        var adapterPowerWatts: Int? = nil
+        if let details = IORegistryEntryCreateCFProperty(
+            service,
+            "AdapterDetails" as CFString,
+            kCFAllocatorDefault,
+            0)?.takeRetainedValue() as? [String: Any],
+           let watts = details["Watts"] as? NSNumber,
+           watts.intValue > 0 {
+            adapterPowerWatts = watts.intValue
+        }
+
+        return (tempC, extConnected, adapterPowerWatts)
     }
 
     private func startTimers() {

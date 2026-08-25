@@ -436,6 +436,8 @@ enum Defaults {
     static let batterySailingDelta = 5
     static let batteryHeatProtectionEnabled = false
     static let batteryHeatProtectionThreshold = 35
+    static let batteryAutoDischargeEnabled = false
+    static let batteryManualDischargeTarget = 80
     static let batteryChargingSchedules = ""
     static let batteryScheduleHistory = ""
     static let batteryScheduleNotificationsEnabled = true
@@ -474,6 +476,8 @@ enum StorageKey {
     static let batterySailingDelta = "batterySailingDelta"
     static let batteryHeatProtectionEnabled = "batteryHeatProtectionEnabled"
     static let batteryHeatProtectionThreshold = "batteryHeatProtectionThreshold"
+    static let batteryAutoDischargeEnabled = "batteryAutoDischargeEnabled"
+    static let batteryManualDischargeTarget = "batteryManualDischargeTarget"
     static let batteryChargingSchedules = "batteryChargingSchedules"
     static let batteryScheduleHistory = "batteryScheduleHistory"
     static let batteryScheduleNotificationsEnabled = "batteryScheduleNotificationsEnabled"

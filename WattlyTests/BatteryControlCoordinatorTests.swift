@@ -887,4 +887,176 @@ struct BatteryControlCoordinatorTests {
         #expect(restoreStatus.desiredConfiguration?.topUpActive == false)
         #expect(store.savedRecord?.configuration.topUpActive == false)
     }
+
+    @Test func unplugResetsDischargeState() {
+        let mockStore = MockBatteryPolicyStore()
+        let mockHardware = MockBatteryHardware()
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501,
+            store: mockStore,
+            engine: BatteryControlEngine(hardware: mockHardware),
+            now: { 1000 })
+
+        let config = BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            manualDischargeActive: true,
+            manualDischargeTarget: 70)
+        _ = coordinator.configure(
+            config,
+            trigger: .clientConfiguration,
+            currentSoC: 85,
+            isPluggedIn: true)
+
+        #expect(coordinator.latestStatus.desiredConfiguration?.manualDischargeActive == true)
+        #expect(mockHardware.isDischargeActive == true)
+
+        let status = coordinator.sample(currentSoC: 80, isPluggedIn: false)
+
+        #expect(status.desiredConfiguration?.manualDischargeActive == false)
+        #expect(coordinator.latestStatus.desiredConfiguration?.manualDischargeActive == false)
+        #expect(mockHardware.isDischargeActive == false)
+    }
+
+    @Test func manualDischargeSessionIsNotPersistedToStore() {
+        let mockStore = MockBatteryPolicyStore()
+        let mockHardware = MockBatteryHardware()
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501,
+            store: mockStore,
+            engine: BatteryControlEngine(hardware: mockHardware),
+            now: { 1000 })
+
+        let config = BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            manualDischargeActive: true,
+            manualDischargeTarget: 70)
+        _ = coordinator.configure(
+            config,
+            trigger: .clientConfiguration,
+            currentSoC: 85,
+            isPluggedIn: true)
+
+        #expect(coordinator.latestStatus.desiredConfiguration?.manualDischargeActive == true)
+        #expect(mockStore.savedRecord?.configuration.manualDischargeActive == false)
+        #expect(mockStore.savedRecord?.configuration.limitPercentage == 80)
+        #expect(mockStore.savedRecord?.configuration.manualDischargeTarget == 70)
+
+        // Also test configureWithoutPowerReading
+        _ = coordinator.configureWithoutPowerReading(
+            config,
+            trigger: .clientConfiguration)
+
+        #expect(coordinator.latestStatus.desiredConfiguration?.manualDischargeActive == true)
+        #expect(mockStore.savedRecord?.configuration.manualDischargeActive == false)
+    }
+
+    @Test func restoreNeverRestoresActiveManualDischargeFromStore() throws {
+        let mockStore = MockBatteryPolicyStore()
+        let staleDischarge = BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            manualDischargeActive: true,
+            manualDischargeTarget: 70)
+        try mockStore.save(.init(ownerUID: 501, configuration: staleDischarge, updatedAt: 900.0))
+
+        let mockHardware = MockBatteryHardware()
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501,
+            store: mockStore,
+            engine: BatteryControlEngine(hardware: mockHardware),
+            now: { 1000 })
+
+        let restoreStatus = coordinator.restore(currentSoC: 75, isPluggedIn: true)
+        #expect(restoreStatus.desiredConfiguration?.manualDischargeActive == false)
+        #expect(mockHardware.isDischargeActive == false)
+
+        let powerlessStatus = coordinator.restoreWithoutPowerReading()
+        #expect(powerlessStatus.desiredConfiguration?.manualDischargeActive == false)
+    }
+
+    @Test func mutualExclusionDischargeClearsTopUp() {
+        let mockStore = MockBatteryPolicyStore()
+        let mockHardware = MockBatteryHardware()
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501,
+            store: mockStore,
+            engine: BatteryControlEngine(hardware: mockHardware),
+            now: { 1000 })
+
+        // 1. First enable Top Up
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, topUpActive: true),
+            trigger: .clientConfiguration,
+            currentSoC: 80,
+            isPluggedIn: true)
+        #expect(coordinator.latestStatus.desiredConfiguration?.topUpActive == true)
+        #expect(coordinator.latestStatus.desiredConfiguration?.manualDischargeActive == false)
+
+        // 2. Enable Manual Discharge -> Top Up must be cleared
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, manualDischargeActive: true, manualDischargeTarget: 70),
+            trigger: .clientConfiguration,
+            currentSoC: 85,
+            isPluggedIn: true)
+        #expect(coordinator.latestStatus.desiredConfiguration?.manualDischargeActive == true)
+        #expect(coordinator.latestStatus.desiredConfiguration?.topUpActive == false)
+        #expect(mockStore.savedRecord?.configuration.topUpActive == false)
+        #expect(mockStore.savedRecord?.configuration.manualDischargeActive == false)
+    }
+
+    @Test func mutualExclusionTopUpClearsDischarge() {
+        let mockStore = MockBatteryPolicyStore()
+        let mockHardware = MockBatteryHardware()
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501,
+            store: mockStore,
+            engine: BatteryControlEngine(hardware: mockHardware),
+            now: { 1000 })
+
+        // 1. First enable Manual Discharge
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, manualDischargeActive: true, manualDischargeTarget: 70),
+            trigger: .clientConfiguration,
+            currentSoC: 85,
+            isPluggedIn: true)
+        #expect(coordinator.latestStatus.desiredConfiguration?.manualDischargeActive == true)
+        #expect(coordinator.latestStatus.desiredConfiguration?.topUpActive == false)
+
+        // 2. Enable Top Up -> Manual Discharge must be cleared
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, topUpActive: true),
+            trigger: .clientConfiguration,
+            currentSoC: 80,
+            isPluggedIn: true)
+        #expect(coordinator.latestStatus.desiredConfiguration?.topUpActive == true)
+        #expect(coordinator.latestStatus.desiredConfiguration?.manualDischargeActive == false)
+        #expect(mockStore.savedRecord?.configuration.topUpActive == true)
+        #expect(mockStore.savedRecord?.configuration.manualDischargeActive == false)
+    }
+
+    @Test func terminationReleasesActiveDischargeHardwareState() {
+        let mockStore = MockBatteryPolicyStore()
+        let mockHardware = MockBatteryHardware()
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501,
+            store: mockStore,
+            engine: BatteryControlEngine(hardware: mockHardware),
+            now: { 1000 })
+
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, manualDischargeActive: true, manualDischargeTarget: 70),
+            trigger: .clientConfiguration,
+            currentSoC: 85,
+            isPluggedIn: true)
+        #expect(mockHardware.isDischargeActive == true)
+
+        let safe = coordinator.releaseForTermination()
+        #expect(safe == true)
+        #expect(mockHardware.isDischargeActive == false)
+        #expect(coordinator.latestStatus.lastMaintenance?.trigger == .termination)
+        #expect(coordinator.latestStatus.lastMaintenance?.result == .released)
+    }
 }
+

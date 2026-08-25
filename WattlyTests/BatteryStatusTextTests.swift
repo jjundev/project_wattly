@@ -175,5 +175,30 @@ import Foundation
                 == "한 번만 완충 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)")
         #expect(BatteryStatusText.text(reason: completeReason, detail: "", locale: en)
                 == "Top Up complete (Holding at 100%, normal limit restores on unplug)")
+
+        let heldReason = BatteryControlStatusReason(kind: .topUpHeldAtMax, limitPercentage: 100)
+        #expect(BatteryStatusText.text(reason: heldReason, detail: "", locale: ko)
+                == "한 번만 완충 유지 중 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)")
+        #expect(BatteryStatusText.text(reason: heldReason, detail: "", locale: en)
+                == "Top Up held at 100% (Holding at 100%, normal limit restores on unplug)")
+    }
+
+    @Test func dischargeStatusTextLocalized() {
+        let ko = Locale(identifier: "ko")
+        let en = Locale(identifier: "en")
+
+        let autoDischargeReason = BatteryControlStatusReason(kind: .dischargingToTarget, limitPercentage: 70)
+        let manualDischargeReason = BatteryControlStatusReason(kind: .dischargingManual, limitPercentage: 70)
+
+        #expect(BatteryStatusText.text(reason: autoDischargeReason, detail: "", locale: ko)
+                == "목표치(70%)까지 방전 중")
+        #expect(BatteryStatusText.text(reason: autoDischargeReason, detail: "", locale: en)
+                == "Discharging to 70%")
+
+        #expect(BatteryStatusText.text(reason: manualDischargeReason, detail: "", locale: ko)
+                == "수동 방전 중 (70%까지 방전)")
+        #expect(BatteryStatusText.text(reason: manualDischargeReason, detail: "", locale: en)
+                == "Manual discharge in progress (Discharging to 70%)")
     }
 }
+

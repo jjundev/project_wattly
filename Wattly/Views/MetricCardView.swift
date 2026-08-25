@@ -79,7 +79,19 @@ struct MetricCardView: View {
 
     @ViewBuilder
     private func subTextView(_ fallbackSubText: String?) -> some View {
-        if let sub = fallbackSubText, !sub.isEmpty {
+        if isDischarging, case .value(.battery(let s)) = state {
+            let target = batteryControl?.status.desiredConfiguration?.manualDischargeTarget ?? s.targetPercentage
+            let currentPct = s.percentage ?? (batteryControl?.status.currentPercentage ?? 0)
+            let watts = s.netW > 0 ? -s.netW : s.netW
+            let desc = BatterySectionPresentation.dischargeDescription(target: target, currentSoC: currentPct, watts: watts, locale: locale)
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(Tokens.statusOrange)
+                    .frame(width: 6, height: 6)
+                Text(desc)
+                    .foregroundStyle(Tokens.statusOrange)
+            }
+        } else if let sub = fallbackSubText, !sub.isEmpty {
             Text(sub)
         }
     }
@@ -204,14 +216,29 @@ struct MetricCardView: View {
     private var hasSparkArea: Bool { card.hasSparkArea }   // battery: polyline only (line 100)
     private var hasValue: Bool { if case .value = state { return true }; return false }
 
+    private var isDischarging: Bool {
+        if card == .battery {
+            if batteryControl?.status.activity == .discharging
+                || batteryControl?.status.desiredConfiguration?.manualDischargeActive == true {
+                return true
+            }
+            if case .value(.battery(let s)) = state {
+                return s.powerFlow?.scenario == .activeDischarge
+            }
+        }
+        return false
+    }
+
     // The headline value keeps its neutral/accent color — the threshold color lands only
     // on the sparkline + memory process bars (issue 10, matching the prototype).
     private var valueColor: Color { card.isAccented ? Tokens.accent : t.text }
     private var sparkStroke: Color {
+        if isDischarging { return Tokens.statusOrange }
         if let level = thresholdLevel { return level.stroke }
         return card.isAccented ? Tokens.accent : t.spark
     }
     private var sparkFill: Color {
+        if isDischarging { return Tokens.statusOrange.opacity(0.10) }
         if let level = thresholdLevel { return level.fill }
         return card.isAccented ? Color.rgba(0, 102, 255, 0.10) : t.sparkFill
     }

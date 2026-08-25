@@ -372,3 +372,39 @@ import Testing
         #expect(BatteryControlKeys.drivableRegisterSet(probing: probe) == .modern)
     }
 }
+
+@Suite struct BatteryControlKeysDischargeTests {
+    @Test func dischargeKeyProbingAndWrites() {
+        let registerSet = BatteryControlKeys.registerSet { key in
+            if key == "CHIE" { return ("hex_", 1) }
+            if key == "CHTE" { return ("ui32", 4) }
+            return nil
+        }
+        #expect(registerSet.isDischargeSupported)
+        let writesOn = BatteryControlKeys.dischargeWrites(active: true, registerSet: registerSet)
+        #expect(writesOn.contains(where: { $0.key == "CHIE" && $0.bytes == [0x08] }))
+        let writesOff = BatteryControlKeys.dischargeWrites(active: false, registerSet: registerSet)
+        #expect(writesOff.contains(where: { $0.key == "CHIE" && $0.bytes == [0x00] }))
+    }
+
+    @Test func legacyRegisterSetSupportsDischarge() {
+        let registerSet = BatteryControlKeys.registerSet { key in
+            if key == "CH0B" { return ("hex_", 1) }
+            return nil
+        }
+        #expect(registerSet.isDischargeSupported)
+        let writesOn = BatteryControlKeys.dischargeWrites(active: true, registerSet: registerSet)
+        #expect(writesOn == [BatteryControlKeyWrite(key: "CHIE", bytes: [0x08], isRequired: true)])
+        let writesOff = BatteryControlKeys.dischargeWrites(active: false, registerSet: registerSet)
+        #expect(writesOff == [BatteryControlKeyWrite(key: "CHIE", bytes: [0x00], isRequired: true)])
+    }
+
+    @Test func nonAppleSiliconOrUnsupportedRegisterSetsHaveNoDischargeWrites() {
+        for registerSet: BatteryControlRegisterSet in [.intel, .firmwareManaged, .unsupported] {
+            #expect(!registerSet.isDischargeSupported)
+            #expect(BatteryControlKeys.dischargeWrites(active: true, registerSet: registerSet).isEmpty)
+            #expect(BatteryControlKeys.dischargeWrites(active: false, registerSet: registerSet).isEmpty)
+        }
+    }
+}
+

@@ -41,6 +41,8 @@ enum SettingsReset {
         defaults.set(Defaults.batterySailingDelta, forKey: StorageKey.batterySailingDelta)
         defaults.set(Defaults.batteryHeatProtectionEnabled, forKey: StorageKey.batteryHeatProtectionEnabled)
         defaults.set(Defaults.batteryHeatProtectionThreshold, forKey: StorageKey.batteryHeatProtectionThreshold)
+        defaults.set(Defaults.batteryAutoDischargeEnabled, forKey: StorageKey.batteryAutoDischargeEnabled)
+        defaults.set(Defaults.batteryManualDischargeTarget, forKey: StorageKey.batteryManualDischargeTarget)
         defaults.set(Defaults.batteryChargingSchedules, forKey: StorageKey.batteryChargingSchedules)
         defaults.set(Defaults.batteryScheduleHistory, forKey: StorageKey.batteryScheduleHistory)
         defaults.set(Defaults.batteryScheduleNotificationsEnabled, forKey: StorageKey.batteryScheduleNotificationsEnabled)

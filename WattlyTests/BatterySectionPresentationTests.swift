@@ -722,6 +722,146 @@ import AppKit
         #expect(BatterySectionPresentation.upcomingScheduleText(schedule: nil, triggerDate: triggerDate) == nil)
         #expect(BatterySectionPresentation.upcomingScheduleText(schedule: schedule, triggerDate: nil) == nil)
     }
+
+    // MARK: - Discharge Presentation
+
+    @Test func dischargeIndicatorProperties() {
+        #expect(BatterySectionPresentation.Indicator.discharging.symbolName == "arrow.down.circle.fill")
+        #expect(BatterySectionPresentation.Indicator.discharging.tone == .orange)
+    }
+
+    @Test func dischargePresentationText() {
+        let textKo = BatterySectionPresentation.dischargeDescription(target: 70, currentSoC: 85, watts: -18.4, locale: ko)
+        #expect(textKo == "수동 방전 진행 중")
+
+        let textEn = BatterySectionPresentation.dischargeDescription(target: 70, currentSoC: 85, watts: -18.4, locale: en)
+        #expect(textEn == "Manual discharge in progress")
+    }
+
+    @Test func estimatedDischargeTimeCalculation() {
+        // 85% -> 70% with 70Wh capacity at 18.4W: delta = 15% of 70Wh = 10.5Wh; 10.5 / 18.4 * 60 = 34.23 min -> 34 min
+        let koTime = BatterySectionPresentation.estimatedDischargeTime(
+            currentSoC: 85,
+            targetSoC: 70,
+            netWatts: 18.4,
+            capacityWh: 70.0,
+            locale: ko
+        )
+        #expect(koTime == "약 34분 남음")
+
+        let enTime = BatterySectionPresentation.estimatedDischargeTime(
+            currentSoC: 85,
+            targetSoC: 70,
+            netWatts: -18.4,
+            capacityWh: 70.0,
+            locale: en
+        )
+        #expect(enTime == "About 34 min remaining")
+
+        // Already at or below target
+        #expect(BatterySectionPresentation.estimatedDischargeTime(
+            currentSoC: 70, targetSoC: 70, netWatts: 18.4, capacityWh: 70.0, locale: ko) == nil)
+        #expect(BatterySectionPresentation.estimatedDischargeTime(
+            currentSoC: 60, targetSoC: 70, netWatts: 18.4, capacityWh: 70.0, locale: ko) == nil)
+
+        // Idle power (< 0.5W)
+        #expect(BatterySectionPresentation.estimatedDischargeTime(
+            currentSoC: 85, targetSoC: 70, netWatts: 0.1, capacityWh: 70.0, locale: ko) == nil)
+    }
+
+    @Test func dischargeAndPowerFlowLabels() {
+        #expect(BatterySectionPresentation.adapterPowerBlockedText(locale: ko) == "0.0 W (차단됨)")
+        #expect(BatterySectionPresentation.adapterPowerBlockedText(locale: en) == "0.0 W (Blocked)")
+
+        #expect(BatterySectionPresentation.topUpHoldText(locale: ko) == "완충 완료 (어댑터 전원 구동)")
+        #expect(BatterySectionPresentation.topUpHoldText(locale: en) == "Top-Up Complete (Adapter Power)")
+
+        #expect(BatterySectionPresentation.forcedDischargeText(locale: ko) == "배터리 (수동 방전 중)")
+        #expect(BatterySectionPresentation.forcedDischargeText(locale: en) == "Battery (Manual Discharge)")
+
+        #expect(BatterySectionPresentation.startDischargeButtonText(targetSoC: 70, locale: ko) == "방전 시작")
+        #expect(BatterySectionPresentation.startDischargeButtonText(targetSoC: 70, locale: en) == "Start Discharge")
+    }
+
+    @Test func powerSupplyVisibilityUsesEffectiveAdapterStateDuringForcedDischarge() {
+        #expect(BatterySectionPresentation.shouldShowPowerSupplySection(
+            sampleExternalConnected: false,
+            serviceAdapterConnected: true,
+            activity: .discharging,
+            manualDischargeActive: true,
+            powerFlowScenario: .batteryOnly
+        ))
+
+        #expect(BatterySectionPresentation.shouldShowPowerSupplySection(
+            sampleExternalConnected: false,
+            serviceAdapterConnected: false,
+            activity: .discharging,
+            manualDischargeActive: false,
+            powerFlowScenario: .batteryOnly
+        ))
+
+        #expect(BatterySectionPresentation.shouldShowPowerSupplySection(
+            sampleExternalConnected: false,
+            serviceAdapterConnected: false,
+            activity: nil,
+            manualDischargeActive: false,
+            powerFlowScenario: .activeDischarge
+        ))
+
+        #expect(!BatterySectionPresentation.shouldShowPowerSupplySection(
+            sampleExternalConnected: false,
+            serviceAdapterConnected: false,
+            activity: nil,
+            manualDischargeActive: false,
+            powerFlowScenario: .batteryOnly
+        ))
+
+        #expect(!BatterySectionPresentation.shouldShowPowerSupplySection(
+            sampleExternalConnected: true,
+            serviceAdapterConnected: true,
+            activity: .discharging,
+            manualDischargeActive: true,
+            powerFlowScenario: nil
+        ))
+    }
+
+    @Test func batteryControlRowsVisibilityPolicy() {
+        // 1. Normal plugged in with adapter connected -> true
+        #expect(BatterySectionPresentation.shouldShowBatteryControlRows(
+            sampleCharging: false,
+            sampleExternalConnected: true,
+            serviceAdapterConnected: true,
+            activity: .holdingAtLimit,
+            manualDischargeActive: false
+        ))
+
+        // 2. Active forced discharge -> true
+        #expect(BatterySectionPresentation.shouldShowBatteryControlRows(
+            sampleCharging: false,
+            sampleExternalConnected: false,
+            serviceAdapterConnected: false,
+            activity: .discharging,
+            manualDischargeActive: true
+        ))
+
+        // 3. Forced discharge stop transition (activity holding, desired config active) -> true
+        #expect(BatterySectionPresentation.shouldShowBatteryControlRows(
+            sampleCharging: false,
+            sampleExternalConnected: false,
+            serviceAdapterConnected: false,
+            activity: .holdingAtLimit,
+            manualDischargeActive: true
+        ))
+
+        // 4. Pure battery unplugged (all false) -> false
+        #expect(!BatterySectionPresentation.shouldShowBatteryControlRows(
+            sampleCharging: false,
+            sampleExternalConnected: false,
+            serviceAdapterConnected: false,
+            activity: nil,
+            manualDischargeActive: false
+        ))
+    }
 }
 
 

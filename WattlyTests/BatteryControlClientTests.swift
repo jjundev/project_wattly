@@ -644,5 +644,179 @@ struct BatteryControlClientTests {
         #expect(recordedRequest?.configuration.topUpActive == false)
         #expect(recordedRequest?.configuration.limitPercentage == 80)
     }
+
+    @MainActor @Test func startManualDischargeAppliesManualDischargeActiveTrueAndTarget() async {
+        let receiver = RequestReceiver()
+        let client = BatteryControlClient(requestHandler: { req in
+            await receiver.set(req)
+            if case .configure = req {
+                let status = BatteryControlServiceStatus(
+                    mode: .charging,
+                    currentPercentage: 85,
+                    isPowerAdapterConnected: true,
+                    detail: "수동 방전 중 (70%까지 방전)",
+                    updatedAt: 1.0,
+                    activity: .discharging,
+                    desiredConfiguration: .init(manualDischargeActive: true, manualDischargeTarget: 70)
+                )
+                let replyData = try? BatteryControlCodec.encode(status)
+                return (replyData, nil)
+            }
+            return (nil, nil)
+        })
+
+        let status = await client.startManualDischarge(target: 70)
+        #expect(status?.desiredConfiguration?.manualDischargeTarget == 70)
+        #expect(status?.desiredConfiguration?.manualDischargeActive == true)
+
+        let receivedRequest = await receiver.request
+        var recordedRequest: BatteryControlConfigurationRequest?
+        if case .configure(let data) = receivedRequest {
+            recordedRequest = try? BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data)
+        }
+        #expect(recordedRequest?.configuration.manualDischargeActive == true)
+        #expect(recordedRequest?.configuration.manualDischargeTarget == 70)
+        #expect(recordedRequest?.configuration.topUpActive == false)
+        #expect(recordedRequest?.configuration.enabled == true)
+    }
+
+    @MainActor @Test func stopManualDischargeAppliesManualDischargeActiveFalse() async {
+        let receiver = RequestReceiver()
+        let client = BatteryControlClient(requestHandler: { req in
+            await receiver.set(req)
+            if case .configure = req {
+                let status = BatteryControlServiceStatus(
+                    mode: .inhibited,
+                    currentPercentage: 70,
+                    isPowerAdapterConnected: true,
+                    detail: "충전 제한 80% 도달",
+                    updatedAt: 1.0,
+                    activity: .holdingAtLimit,
+                    desiredConfiguration: .init(manualDischargeActive: false, manualDischargeTarget: 80)
+                )
+                let replyData = try? BatteryControlCodec.encode(status)
+                return (replyData, nil)
+            }
+            return (nil, nil)
+        })
+
+        await client.stopManualDischarge(limitPercentage: 80)
+
+        let receivedRequest = await receiver.request
+        var recordedRequest: BatteryControlConfigurationRequest?
+        if case .configure(let data) = receivedRequest {
+            recordedRequest = try? BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data)
+        }
+        #expect(recordedRequest?.configuration.manualDischargeActive == false)
+        #expect(recordedRequest?.configuration.topUpActive == false)
+    }
+
+    @MainActor @Test func setAutoDischargeAppliesAutoDischargeEnabled() async {
+        let receiver = RequestReceiver()
+        let client = BatteryControlClient(requestHandler: { req in
+            await receiver.set(req)
+            if case .configure = req {
+                let status = BatteryControlServiceStatus(
+                    mode: .inhibited,
+                    currentPercentage: 80,
+                    isPowerAdapterConnected: true,
+                    detail: "충전 제한 80% 도달",
+                    updatedAt: 1.0
+                )
+                let replyData = try? BatteryControlCodec.encode(status)
+                return (replyData, nil)
+            }
+            return (nil, nil)
+        })
+
+        await client.setAutoDischarge(enabled: false, limitPercentage: 80)
+        var receivedRequest = await receiver.request
+        if case .configure(let data) = receivedRequest {
+            let recorded = try? BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data)
+            #expect(recorded?.configuration.autoDischargeEnabled == false)
+        } else {
+            Issue.record("Expected configure request")
+        }
+
+        await client.setAutoDischarge(enabled: true, limitPercentage: 80)
+        receivedRequest = await receiver.request
+        if case .configure(let data) = receivedRequest {
+            let recorded = try? BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data)
+            #expect(recorded?.configuration.autoDischargeEnabled == true)
+        } else {
+            Issue.record("Expected configure request")
+        }
+    }
+
+    @MainActor @Test func startTopUpClearsManualDischargeActive() async {
+        let receiver = RequestReceiver()
+        let client = BatteryControlClient(requestHandler: { req in
+            await receiver.set(req)
+            if case .configure = req {
+                let status = BatteryControlServiceStatus(
+                    mode: .charging,
+                    currentPercentage: 70,
+                    isPowerAdapterConnected: true,
+                    detail: "한 번만 완충 중",
+                    updatedAt: 1.0,
+                    activity: .topUp
+                )
+                let replyData = try? BatteryControlCodec.encode(status)
+                return (replyData, nil)
+            }
+            return (nil, nil)
+        })
+
+        await client.startTopUp(limitPercentage: 80)
+        let receivedRequest = await receiver.request
+        if case .configure(let data) = receivedRequest {
+            let recorded = try? BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data)
+            #expect(recorded?.configuration.topUpActive == true)
+            #expect(recorded?.configuration.manualDischargeActive == false)
+        } else {
+            Issue.record("Expected configure request")
+        }
+    }
+
+    @MainActor @Test func reconcileWhenLimitDisabledButManualDischargeActiveMaintainsEnabledTrue() async {
+        let receiver = RequestReceiver()
+        let activeDischargeStatus = BatteryControlServiceStatus(
+            mode: .charging,
+            currentPercentage: 85,
+            isPowerAdapterConnected: true,
+            detail: "수동 방전 중",
+            updatedAt: 1.0,
+            activity: .discharging,
+            desiredConfiguration: .init(
+                enabled: true,
+                limitPercentage: 80,
+                autoDischargeEnabled: false,
+                manualDischargeActive: true,
+                manualDischargeTarget: 70
+            )
+        )
+        let client = BatteryControlClient(requestHandler: { req in
+            await receiver.set(req)
+            if case .status = req {
+                let replyData = try? BatteryControlCodec.encode(activeDischargeStatus)
+                return (replyData, nil)
+            }
+            if case .configure = req {
+                let replyData = try? BatteryControlCodec.encode(activeDischargeStatus)
+                return (replyData, nil)
+            }
+            return (nil, nil)
+        })
+
+        // Reconcile with limit disabled (enabled: false)
+        await client.reconcile(
+            enabled: false,
+            limitPercentage: 80,
+            manualDischargeActive: true,
+            manualDischargeTarget: 70
+        )
+        // Since status already has same desiredConfiguration, shouldReapply is false, no redundant write
+        #expect(client.status.desiredConfiguration?.manualDischargeActive == true)
+    }
 }
 

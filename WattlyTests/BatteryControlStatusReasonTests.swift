@@ -135,4 +135,27 @@ import Foundation
         let complete = BatteryControlStatusReason(kind: .topUpComplete, limitPercentage: 100)
         #expect(complete.legacyKoreanDetail == "한 번만 완충 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)")
     }
+
+    @Test func dischargeReasonsRoundTripAndProvideLegacyKoreanDetail() throws {
+        let autoDischarge = BatteryControlStatusReason(kind: .dischargingToTarget, limitPercentage: 80)
+        let autoData = try JSONEncoder().encode(autoDischarge)
+        let decodedAuto = try JSONDecoder().decode(BatteryControlStatusReason.self, from: autoData)
+        #expect(decodedAuto.kind == .dischargingToTarget)
+        #expect(decodedAuto.limitPercentage == 80)
+        #expect(decodedAuto.legacyKoreanDetail == "목표치(80%)까지 방전 중")
+
+        let manualDischarge = BatteryControlStatusReason(kind: .dischargingManual, limitPercentage: 70)
+        let manualData = try JSONEncoder().encode(manualDischarge)
+        let decodedManual = try JSONDecoder().decode(BatteryControlStatusReason.self, from: manualData)
+        #expect(decodedManual.kind == .dischargingManual)
+        #expect(decodedManual.limitPercentage == 70)
+        #expect(decodedManual.legacyKoreanDetail == "수동 방전 중 (70%까지 방전)")
+
+        let topUpHeld = BatteryControlStatusReason(kind: .topUpHeldAtMax, limitPercentage: 100)
+        let heldData = try JSONEncoder().encode(topUpHeld)
+        let decodedHeld = try JSONDecoder().decode(BatteryControlStatusReason.self, from: heldData)
+        #expect(decodedHeld.kind == .topUpHeldAtMax)
+        #expect(decodedHeld.limitPercentage == 100)
+        #expect(decodedHeld.legacyKoreanDetail == "한 번만 완충 유지 중 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)")
+    }
 }

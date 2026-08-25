@@ -112,6 +112,11 @@ enum CardPresentation {
             // % of each fan's own ceiling, not raw RPM — see `FanSample.loadPercent`.
             // No readable ceiling → nil → the card stays neutral.
             return s.loadPercent.map { thresholds.fan.level($0) }
+        case (.battery, .battery(let s)):
+            if s.powerFlow?.scenario == .activeDischarge {
+                return .warn
+            }
+            return nil
         default: return nil   // power/battery (fixed) + any state/sample mismatch
         }
     }
@@ -179,6 +184,12 @@ enum CardPresentation {
         case .power(let s):
             return "CPU \(f1(s.cpuW)) W · GPU \(f1(s.gpuW)) W · NPU \(f1(s.npuW)) W"
         case .battery(let s):
+            if s.powerFlow?.scenario == .activeDischarge {
+                let target = s.targetPercentage
+                let currentPct = s.percentage ?? (s.remainingWh != nil && s.maxWh != nil && s.maxWh! > 0 ? Int((s.remainingWh! / s.maxWh! * 100.0).rounded()) : 0)
+                let watts = s.netW > 0 ? -s.netW : s.netW
+                return BatterySectionPresentation.dischargeDescription(target: target, currentSoC: currentPct, watts: watts, locale: locale)
+            }
             return batteryRemainingTimeSummary(s, locale: locale)
         case .cpu(let s):
             // Order-based (not name-coupled): runtime perf-level names ("Performance"/
@@ -240,8 +251,10 @@ enum CardPresentation {
         switch scenario {
         case .charging, .adapterBypass:
             return String(localized: "전원 어댑터", locale: locale)
-        case .batteryOnly, .activeDischarge:
+        case .batteryOnly:
             return String(localized: "배터리", locale: locale)
+        case .activeDischarge:
+            return BatterySectionPresentation.forcedDischargeText(locale: locale)
         case .powerAssist:
             return String(localized: "전원 어댑터 및 배터리", locale: locale)
         }

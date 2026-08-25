@@ -458,5 +458,57 @@ struct LocalizationTests {
         #expect(String(localized: "이 Mac은 배터리 충전 제어를 지원하지 않는 하드웨어입니다.", locale: en)
                 == "This Mac hardware does not support battery charge control.")
     }
+
+    @Test func dischargeTranslations() {
+        let en = Locale(identifier: "en")
+        let ko = Locale(identifier: "ko")
+
+        #expect(String(localized: "수동 방전", locale: en) == "Manual Discharge")
+        #expect(String(localized: "수동 방전", locale: ko) == "수동 방전")
+
+        #expect(String(localized: "자동 방전", locale: en) == "Auto Discharge")
+        #expect(String(localized: "자동 방전", locale: ko) == "자동 방전")
+
+        #expect(String(localized: "충전 한도를 현재 잔량보다 낮게 변경하면 별도 조작 없이 자동으로 한도까지 방전합니다.", locale: en)
+                == "Automatically discharge to the limit when a lower charge limit is set.")
+        #expect(String(localized: "원하는 목표 잔량까지 배터리를 전원 어댑터 연결 상태에서 강제로 방전합니다.", locale: en)
+                == "Forcefully discharge the battery to your target while connected to power adapter.")
+
+        #expect(String(localized: "목표 방전 잔량", locale: en) == "Target Discharge Level")
+        #expect(String(localized: "목표 방전 잔량", locale: ko) == "목표 방전 잔량")
+
+        #expect(String(localized: "%d%%까지 방전 시작", locale: en) == "Start discharge to %d%%")
+        #expect(String(localized: "%d%%까지 방전 시작", locale: ko) == "%d%%까지 방전 시작")
+
+        #expect(String(localized: "방전 시작", locale: en) == "Start Discharge")
+        #expect(String(localized: "방전 시작", locale: ko) == "방전 시작")
+
+        #expect(String(localized: "방전 중지", locale: en) == "Stop Discharge")
+        #expect(String(localized: "방전 중지", locale: ko) == "방전 중지")
+
+        #expect(String(localized: "수동 방전 진행 중", locale: en) == "Manual discharge in progress")
+        #expect(String(localized: "수동 방전 진행 중", locale: ko) == "수동 방전 진행 중")
+
+        #expect(String(localized: "수동 방전 진행 중 (%d%% → %d%%)", locale: en) == "Discharging in progress (%d%% → %d%%)")
+        #expect(String(localized: "수동 방전 진행 중 (%d%% → %d%%)", locale: ko) == "수동 방전 진행 중 (%d%% → %d%%)")
+
+        #expect(String(localized: "목표치(%d%%)까지 방전 중", locale: en) == "Discharging to target (%d%%)")
+        #expect(String(localized: "목표치(%d%%)까지 방전 중", locale: ko) == "목표치(%d%%)까지 방전 중")
+
+        #expect(String(localized: "배터리 (수동 방전 중)", locale: en) == "Battery (Manual Discharge)")
+        #expect(String(localized: "배터리 (수동 방전 중)", locale: ko) == "배터리 (수동 방전 중)")
+
+        #expect(String(localized: "0.0 W (차단됨)", locale: en) == "0.0 W (Blocked)")
+        #expect(String(localized: "0.0 W (차단됨)", locale: ko) == "0.0 W (차단됨)")
+
+        #expect(String(localized: "완충 완료 (어댑터 전원 구동)", locale: en) == "Top-Up Complete (Adapter Power)")
+        #expect(String(localized: "완충 완료 (어댑터 전원 구동)", locale: ko) == "완충 완료 (어댑터 전원 구동)")
+
+        #expect(String(localized: "한 번만 완충 유지 중 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)", locale: en)
+                == "Top Up held at 100% (Holding at 100%, normal limit restores on unplug)")
+        #expect(String(localized: "한 번만 완충 유지 중 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)", locale: ko)
+                == "한 번만 완충 유지 중 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)")
+    }
 }
+
 

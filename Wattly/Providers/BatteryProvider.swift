@@ -105,7 +105,9 @@ actor BatteryProvider: MetricProvider {
         defer { IOObjectRelease(service) }
 
         let volts = number(service, "Voltage").map { Double($0.int64Value) / 1000.0 }
-        let externalConnected = bool(service, "ExternalConnected") ?? false
+        let rawExternalConnected = bool(service, "ExternalConnected") ?? false
+        let adapterWatts = (dict(service, "AdapterDetails")?["Watts"] as? NSNumber)?.intValue ?? 0
+        let externalConnected = rawExternalConnected || adapterWatts > 0
         let batteryMilliwatts: Int?
         if let telemetry = dict(service, "PowerTelemetryData"),
            let raw = (telemetry["BatteryPower"] as? NSNumber)?.uint64Value {

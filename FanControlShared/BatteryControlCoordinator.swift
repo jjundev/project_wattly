@@ -51,7 +51,9 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
             var (desired, ownershipFailure) = try resolvedStoredPolicy()
             if !isPluggedIn && desired.topUpActive {
                 desired.topUpActive = false
-                try? store.save(.init(ownerUID: ownerUID, configuration: desired, updatedAt: now()))
+                var persisted = desired
+                persisted.manualDischargeActive = false
+                try? store.save(.init(ownerUID: ownerUID, configuration: persisted, updatedAt: now()))
             }
             engine.configure(desired)
             if !desired.isActive {
@@ -147,11 +149,18 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         isPluggedIn: Bool,
         temperatureCelsius: Double? = nil
     ) -> BatteryControlServiceStatus {
-        let normalized = requested.normalized
+        var normalized = requested.normalized
+        if normalized.manualDischargeActive {
+            normalized.topUpActive = false
+        } else if normalized.topUpActive {
+            normalized.manualDischargeActive = false
+        }
+        var persisted = normalized
+        persisted.manualDischargeActive = false
         do {
             try store.save(.init(
                 ownerUID: ownerUID,
-                configuration: normalized,
+                configuration: persisted,
                 updatedAt: now()))
         } catch {
             if isRollbackFailure(error) {
@@ -201,11 +210,18 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         _ requested: BatteryControlConfiguration,
         trigger: BatteryMaintenanceTrigger
     ) -> BatteryControlServiceStatus {
-        let normalized = requested.normalized
+        var normalized = requested.normalized
+        if normalized.manualDischargeActive {
+            normalized.topUpActive = false
+        } else if normalized.topUpActive {
+            normalized.manualDischargeActive = false
+        }
+        var persisted = normalized
+        persisted.manualDischargeActive = false
         do {
             try store.save(.init(
                 ownerUID: ownerUID,
-                configuration: normalized,
+                configuration: persisted,
                 updatedAt: now()))
         } catch {
             if isRollbackFailure(error) {
@@ -246,6 +262,11 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         isPluggedIn: Bool,
         temperatureCelsius: Double? = nil
     ) -> BatteryControlServiceStatus {
+        if !isPluggedIn && engine.configuration.manualDischargeActive {
+            var updatedConfig = engine.configuration
+            updatedConfig.manualDischargeActive = false
+            engine.configure(updatedConfig)
+        }
         var status = engine.update(
             currentSoC: currentSoC,
             isPluggedIn: isPluggedIn,
@@ -267,14 +288,17 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
             engine.beginRecoveryWindow()
         }
 
-        // Auto-terminate Top Up whenever on battery power
-        if !isPluggedIn && engine.configuration.topUpActive {
+        // Auto-terminate Top Up & Manual Discharge whenever on battery power
+        if !isPluggedIn && (engine.configuration.topUpActive || engine.configuration.manualDischargeActive) {
             var updatedConfig = engine.configuration
             updatedConfig.topUpActive = false
+            updatedConfig.manualDischargeActive = false
+            var persisted = updatedConfig
+            persisted.manualDischargeActive = false
             do {
                 try store.save(.init(
                     ownerUID: ownerUID,
-                    configuration: updatedConfig,
+                    configuration: persisted,
                     updatedAt: now()))
             } catch {
                 // If persistence write fails, proceed with in-memory policy reset
@@ -352,7 +376,9 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
                 .init(enabled: false),
                 .init(kind: .policyOwnerMismatch))
         }
-        return (stored.configuration, nil)
+        var config = stored.configuration
+        config.manualDischargeActive = false
+        return (config, nil)
     }
 
     private func publishDisabledRestore(

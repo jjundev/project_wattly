@@ -357,10 +357,11 @@ enum BatterySectionPresentation {
     static func shouldPollStatus(isLimitOn: Bool,
                                  isHeatProtectionOn: Bool = false,
                                  isTopUpOn: Bool = false,
+                                 isDischargeOn: Bool = false,
                                  mode: BatteryControlServiceMode,
                                  isHardwareSupported: Bool?) -> Bool {
         if isHardwareSupported == false { return false }
-        if isLimitOn || isHeatProtectionOn || isTopUpOn { return true }
+        if isLimitOn || isHeatProtectionOn || isTopUpOn || isDischargeOn { return true }
         switch mode {
         case .inhibited, .unsupported: return true
         case .charging, .unavailable: return false
@@ -376,6 +377,122 @@ enum BatterySectionPresentation {
         guard let schedule, let triggerDate else { return nil }
         let timeStr = schedule.time.formattedText
         return "다음: \(timeStr) \(schedule.action.summary)"
+    }
+
+    // MARK: - Discharge & Power Flow Presentation
+
+    /// Format duration in minutes into localized string (e.g. "34분", "1시간 10분", "34 min", "1 hr 10 min")
+    static func formatDuration(minutes: Int, locale: Locale = Locale(identifier: "ko")) -> String {
+        let h = minutes / 60
+        let m = minutes % 60
+        if h == 0 {
+            return String(format: String(localized: "%@분", locale: locale), locale: locale, "\(m)")
+        } else if m == 0 {
+            return String(format: String(localized: "%@시간", locale: locale), locale: locale, "\(h)")
+        } else {
+            return String(format: String(localized: "%@시간 %@분", locale: locale), locale: locale, "\(h)", "\(m)")
+        }
+    }
+
+    /// Calculate estimated discharge remaining time in minutes
+    static func estimatedDischargeTimeMinutes(
+        currentSoC: Int,
+        targetSoC: Int,
+        netWatts: Double,
+        capacityWh: Double
+    ) -> Int? {
+        guard currentSoC > targetSoC, capacityWh > 0 else { return nil }
+        let rate = abs(netWatts)
+        guard rate >= 0.5 else { return nil }
+        let deltaSoC = Double(currentSoC - targetSoC) / 100.0
+        let energyToDischargeWh = capacityWh * deltaSoC
+        let hours = energyToDischargeWh / rate
+        let minutes = Int((hours * 60.0).rounded())
+        return max(1, minutes)
+    }
+
+    /// Format estimated discharge remaining time string (e.g. "약 34분 남음", "About 34 min remaining")
+    static func estimatedDischargeTime(
+        currentSoC: Int,
+        targetSoC: Int,
+        netWatts: Double,
+        capacityWh: Double,
+        locale: Locale = Locale(identifier: "ko")
+    ) -> String? {
+        guard let minutes = estimatedDischargeTimeMinutes(
+            currentSoC: currentSoC,
+            targetSoC: targetSoC,
+            netWatts: netWatts,
+            capacityWh: capacityWh
+        ) else {
+            return nil
+        }
+        let duration = formatDuration(minutes: minutes, locale: locale)
+        return String(format: String(localized: "약 %@ 남음", locale: locale), locale: locale, duration)
+    }
+
+    /// Format discharge status description (e.g. "수동 방전 진행 중", "Manual discharge in progress")
+    static func dischargeDescription(
+        target _: Int = 0,
+        currentSoC _: Int = 0,
+        watts _: Double = 0,
+        locale: Locale = Locale(identifier: "ko")
+    ) -> String {
+        String(localized: "수동 방전 진행 중", locale: locale)
+    }
+
+    /// Blocked adapter power text during forced discharge (e.g. "0.0 W (차단됨)", "0.0 W (Blocked)")
+    static func adapterPowerBlockedText(locale: Locale = Locale(identifier: "ko")) -> String {
+        String(localized: "0.0 W (차단됨)", locale: locale)
+    }
+
+    /// Top-up hold status text (e.g. "완충 완료 (어댑터 전원 구동)", "Top-Up Complete (Adapter Power)")
+    static func topUpHoldText(locale: Locale = Locale(identifier: "ko")) -> String {
+        String(localized: "완충 완료 (어댑터 전원 구동)", locale: locale)
+    }
+
+    /// Forced discharge label (e.g. "배터리 (수동 방전 중)", "Battery (Manual Discharge)")
+    static func forcedDischargeText(locale: Locale = Locale(identifier: "ko")) -> String {
+        String(localized: "배터리 (수동 방전 중)", locale: locale)
+    }
+
+    /// Start discharge button label (e.g. "방전 시작", "Start Discharge")
+    static func startDischargeButtonText(targetSoC _: Int, locale: Locale = Locale(identifier: "ko")) -> String {
+        String(localized: "방전 시작", locale: locale)
+    }
+
+    /// Gate for showing the Power Supply section in the expanded battery card.
+    /// Returns true if power flow exists and either external power is connected or active discharge is underway.
+    static func shouldShowPowerSupplySection(
+        sampleExternalConnected: Bool,
+        serviceAdapterConnected: Bool,
+        activity: BatteryControlActivity?,
+        manualDischargeActive: Bool,
+        powerFlowScenario: PowerFlowScenario?
+    ) -> Bool {
+        guard let powerFlowScenario else { return false }
+        return sampleExternalConnected
+            || serviceAdapterConnected
+            || activity == .discharging
+            || manualDischargeActive
+            || powerFlowScenario == .activeDischarge
+    }
+
+    /// Gate for showing battery control rows (Top-up, Discharge) in the expanded battery card.
+    /// Returns true if power adapter is connected or active discharge/top-up is underway/requested.
+    static func shouldShowBatteryControlRows(
+        sampleCharging: Bool,
+        sampleExternalConnected: Bool,
+        serviceAdapterConnected: Bool,
+        activity: BatteryControlActivity?,
+        manualDischargeActive: Bool
+    ) -> Bool {
+        sampleCharging
+            || sampleExternalConnected
+            || serviceAdapterConnected
+            || activity == .discharging
+            || activity == .topUp
+            || manualDischargeActive
     }
 }
 

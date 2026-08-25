@@ -4,11 +4,32 @@ public struct BatteryPowerSourceReading: Equatable, Sendable {
     public let stateOfCharge: Int
     public let isPluggedIn: Bool
     public let temperatureCelsius: Double?
+    /// Negotiated adapter capacity from AppleSmartBattery `AdapterDetails.Watts`. Unlike
+    /// `ExternalConnected`, this remains present while CHIE intentionally isolates the adapter.
+    public let adapterPowerWatts: Int?
 
-    public init(stateOfCharge: Int, isPluggedIn: Bool, temperatureCelsius: Double? = nil) {
+    public init(
+        stateOfCharge: Int,
+        isPluggedIn: Bool,
+        temperatureCelsius: Double? = nil,
+        adapterPowerWatts: Int? = nil
+    ) {
         self.stateOfCharge = stateOfCharge
         self.isPluggedIn = isPluggedIn
         self.temperatureCelsius = temperatureCelsius
+        self.adapterPowerWatts = adapterPowerWatts
+    }
+
+    func resolvingAdapterIsolation(whileDischarging: Bool = false) -> Self {
+        guard !isPluggedIn,
+              let adapterPowerWatts,
+              adapterPowerWatts > 0
+        else { return self }
+        return .init(
+            stateOfCharge: stateOfCharge,
+            isPluggedIn: true,
+            temperatureCelsius: temperatureCelsius,
+            adapterPowerWatts: adapterPowerWatts)
     }
 }
 
@@ -72,9 +93,11 @@ public final class BatteryDaemonControlService {
         guard force || coordinator.needsSampling else {
             return coordinator.latestStatus
         }
-        guard let reading = currentReading ?? lastPowerReading else {
+        guard let rawReading = currentReading ?? lastPowerReading else {
             return coordinator.latestStatus
         }
+        let reading = rawReading.resolvingAdapterIsolation(
+            whileDischarging: coordinator.latestStatus.activity == .discharging)
         let adapterChanged = lastPowerReading?.isPluggedIn != reading.isPluggedIn
         lastPowerReading = reading
         if adapterChanged {
