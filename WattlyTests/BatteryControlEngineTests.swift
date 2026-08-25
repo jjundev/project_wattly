@@ -14,6 +14,9 @@ final class MockBatteryHardware: BatteryControlHardwareProtocol, @unchecked Send
     var readCount: Int = 0
     var writeShouldFail: Bool = false
     var onWrite: (() -> Void)?
+    var isDischargeActive: Bool = false
+    var dischargeWriteCount: Int = 0
+    var dischargeWriteShouldFail: Bool = false
     var holdReportedGateAfterWrite = false
     var releaseVerification = BatteryReleaseVerification(verdict: .verifiedAllowed)
     var releaseVerdict: BatteryReleaseVerdict {
@@ -42,10 +45,18 @@ final class MockBatteryHardware: BatteryControlHardwareProtocol, @unchecked Send
         return true
     }
 
+    func setDischargingActive(_ active: Bool) -> Bool {
+        dischargeWriteCount += 1
+        if dischargeWriteShouldFail { return false }
+        isDischargeActive = active
+        return true
+    }
+
     func releaseChargingControlAndVerify() -> BatteryReleaseVerification {
         releaseAttemptCount += 1
         if releaseVerification.isSafeToRemove {
             chargingInhibited = false
+            isDischargeActive = false
             appliedLimit = 100
             reportedGate = releaseVerification.verdict == .verifiedAllowed ? .allowed : .unreadable
         }

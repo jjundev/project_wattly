@@ -7,6 +7,7 @@ public protocol BatteryControlHardwareProtocol: Sendable {
     var registerSet: BatteryControlRegisterSet { get }
     func readChargingGate(targetLimit: Int) -> BatteryHardwareGate
     func setChargingInhibited(_ inhibited: Bool, targetLimit: Int) -> Bool
+    func setDischargingActive(_ active: Bool) -> Bool
     func releaseChargingControlAndVerify() -> BatteryReleaseVerification
 }
 
@@ -51,6 +52,11 @@ public final class BatteryControlEngine: @unchecked Sendable {
     /// unsupported is the one that never reports it.
     public var isHardwareSupported: Bool {
         hardware.registerSet.canDriveCharging
+    }
+
+    /// Whether the Mac's hardware supports active discharge control via CHIE.
+    public var isDischargeHardwareSupported: Bool {
+        hardware.registerSet.isDischargeSupported
     }
 
     public init(

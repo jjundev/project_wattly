@@ -45,6 +45,19 @@ public final class SMCBatteryControlHardware: BatteryControlHardwareProtocol, @u
         return requiredWritesSucceeded
     }
 
+    public func setDischargingActive(_ active: Bool) -> Bool {
+        let writes = BatteryControlKeys.dischargeWrites(active: active, registerSet: registerSet)
+        guard !writes.isEmpty else { return false }
+
+        var requiredWritesSucceeded = true
+        for write in writes {
+            let reply = smc.write(write.key, bytes: write.bytes)
+            let succeeded = reply?.kernel == KERN_SUCCESS && reply?.smcResult == 0
+            if !succeeded && write.isRequired { requiredWritesSucceeded = false }
+        }
+        return requiredWritesSucceeded
+    }
+
     public func releaseChargingControlAndVerify() -> BatteryReleaseVerification {
         let releaseRegisterSet: BatteryControlRegisterSet
         switch runtimeDrivableRegisterProbe {

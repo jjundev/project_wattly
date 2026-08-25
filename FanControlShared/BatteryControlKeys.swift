@@ -59,6 +59,15 @@ public enum BatteryControlRegisterSet: String, Codable, Equatable, Sendable {
         case .firmwareManaged, .unsupported: return false
         }
     }
+
+    /// Whether this register set supports hardware discharge control (CHIE).
+    /// Modern and legacy Apple silicon firmware support CHIE; Intel and firmwareManaged do not.
+    public var isDischargeSupported: Bool {
+        switch self {
+        case .modern, .legacy: return true
+        case .intel, .firmwareManaged, .unsupported: return false
+        }
+    }
 }
 
 /// One SMC register write that a charge-limit transition needs.
@@ -327,5 +336,24 @@ public enum BatteryControlKeys {
             // of the table instead of a special case at every call site.
             return []
         }
+    }
+
+    /// Probes whether the hardware exposes the CHIE discharge register with the expected 1-byte payload.
+    public static func isDischargeSupported(probing keyInfo: (String) -> (type: String, size: Int)?) -> Bool {
+        guard let info = keyInfo("CHIE"), info.size == 1 else { return false }
+        return true
+    }
+
+    /// Generates the SMC writes needed to control manual/automatic discharge via CHIE.
+    /// CHIE is a 1-byte register (`hex_`): 0x08 activates discharging from AC power, 0x00 restores idle/normal.
+    public static func dischargeWrites(
+        active: Bool,
+        registerSet: BatteryControlRegisterSet
+    ) -> [BatteryControlKeyWrite] {
+        guard registerSet.isDischargeSupported else { return [] }
+        let byte: UInt8 = active ? 0x08 : 0x00
+        return [
+            BatteryControlKeyWrite(key: "CHIE", bytes: [byte], isRequired: true)
+        ]
     }
 }
