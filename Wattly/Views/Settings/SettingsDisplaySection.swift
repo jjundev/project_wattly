@@ -8,6 +8,8 @@ struct SettingsDisplaySection: View {
     @AppStorage(StorageKey.theme) private var theme = Defaults.theme
     @AppStorage(StorageKey.panelMode) private var panelMode = Defaults.panelMode
     @AppStorage(StorageKey.showBatteryEfficiency) private var showBatteryEfficiency = Defaults.showBatteryEfficiency
+    @AppStorage(StorageKey.showBatteryTopUp) private var showBatteryTopUp = Defaults.showBatteryTopUp
+    @AppStorage(StorageKey.showBatteryManualDischarge) private var showBatteryManualDischarge = Defaults.showBatteryManualDischarge
     @AppStorage(StorageKey.memoryProcessLimit) private var memoryProcessLimit = Defaults.memoryProcessLimit
     @AppStorage(StorageKey.powerProcessLimit) private var powerProcessLimit = Defaults.powerProcessLimit
 
@@ -83,6 +85,40 @@ struct SettingsDisplaySection: View {
                         VStack(alignment: .leading, spacing: 2) {
                             SettingsRowTitle("배터리 효율 보기")
                             Text("배터리 효율 수치가 신경 쓰인다면, 필요할 때만 표시하세요.")
+                                .font(WattlyFont.at(11.5, weight: .regular))
+                                .foregroundStyle(t.faint)
+                            if !monitor.isPresent(.battery) {
+                                Text("이 Mac에서는 사용할 수 없습니다")
+                                    .font(WattlyFont.at(11.5, weight: .regular))
+                                    .foregroundStyle(t.faint)
+                            }
+                        }
+                    }
+                    .padding(.leading, 14)
+
+                    SettingsToggleRow(isOn: $showBatteryTopUp, divider: true,
+                                      isEnabled: monitor.isPresent(.battery),
+                                      disabledReason: monitor.isPresent(.battery) ? nil : "이 Mac에서는 사용할 수 없습니다") {
+                        VStack(alignment: .leading, spacing: 2) {
+                            SettingsRowTitle("한 번만 완충 보기")
+                            Text("배터리 카드에서 일회성 100% 충전 버튼을 표시합니다.")
+                                .font(WattlyFont.at(11.5, weight: .regular))
+                                .foregroundStyle(t.faint)
+                            if !monitor.isPresent(.battery) {
+                                Text("이 Mac에서는 사용할 수 없습니다")
+                                    .font(WattlyFont.at(11.5, weight: .regular))
+                                    .foregroundStyle(t.faint)
+                            }
+                        }
+                    }
+                    .padding(.leading, 14)
+
+                    SettingsToggleRow(isOn: $showBatteryManualDischarge, divider: true,
+                                      isEnabled: monitor.isPresent(.battery),
+                                      disabledReason: monitor.isPresent(.battery) ? nil : "이 Mac에서는 사용할 수 없습니다") {
+                        VStack(alignment: .leading, spacing: 2) {
+                            SettingsRowTitle("수동 방전 보기")
+                            Text("배터리 카드에서 목표 잔량까지 수동 방전 버튼을 표시합니다.")
                                 .font(WattlyFont.at(11.5, weight: .regular))
                                 .foregroundStyle(t.faint)
                             if !monitor.isPresent(.battery) {
