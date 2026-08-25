@@ -339,7 +339,7 @@ import Testing
 
     @Test func dischargeConfigurationDefaults() {
         let config = BatteryControlConfiguration()
-        #expect(config.autoDischargeEnabled == true)
+        #expect(config.autoDischargeEnabled == false)
         #expect(config.manualDischargeActive == false)
         #expect(config.manualDischargeTarget == 80)
         #expect(config.clampedManualDischargeTarget == 80)

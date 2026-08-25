@@ -420,7 +420,7 @@ struct BatteryControlProtocolTests {
     @Test func decodingConfigurationWithoutDischargeFieldsDefaultsCorrectly() throws {
         let json = "{\"enabled\":true,\"limitPercentage\":80,\"lowerHysteresisDelta\":2}".data(using: .utf8)!
         let config = try BatteryControlCodec.decode(BatteryControlConfiguration.self, from: json)
-        #expect(config.autoDischargeEnabled == true)
+        #expect(config.autoDischargeEnabled == false)
         #expect(config.manualDischargeActive == false)
         #expect(config.manualDischargeTarget == 80)
         #expect(config.clampedManualDischargeTarget == 80)

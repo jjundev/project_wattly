@@ -81,7 +81,7 @@ import Foundation
     }
 
     @Test func batteryAutoDischargeDefaultsAreConsistent() {
-        #expect(Defaults.batteryAutoDischargeEnabled == true)
+        #expect(Defaults.batteryAutoDischargeEnabled == false)
         #expect(StorageKey.batteryAutoDischargeEnabled == "batteryAutoDischargeEnabled")
     }
 

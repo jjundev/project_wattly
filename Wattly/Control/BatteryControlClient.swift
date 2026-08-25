@@ -71,7 +71,7 @@ import AppKit
         heatProtectionEnabled: Bool = false,
         heatProtectionThresholdCelsius: Int = 35,
         topUpActive: Bool = false,
-        autoDischargeEnabled: Bool = true,
+        autoDischargeEnabled: Bool = false,
         manualDischargeActive: Bool = false,
         manualDischargeTarget: Int = 80
     ) async -> BatteryControlServiceStatus? {
@@ -101,7 +101,7 @@ import AppKit
         lowerHysteresisDelta: Int = 2,
         heatProtectionEnabled: Bool = false,
         heatProtectionThresholdCelsius: Int = 35,
-        autoDischargeEnabled: Bool = true,
+        autoDischargeEnabled: Bool = false,
         manualDischargeTarget: Int = 80
     ) async -> BatteryControlServiceStatus? {
         BatteryNotificationManager.requestAuthorization()
@@ -124,7 +124,7 @@ import AppKit
         lowerHysteresisDelta: Int = 2,
         heatProtectionEnabled: Bool = false,
         heatProtectionThresholdCelsius: Int = 35,
-        autoDischargeEnabled: Bool = true,
+        autoDischargeEnabled: Bool = false,
         manualDischargeTarget: Int = 80
     ) async -> BatteryControlServiceStatus? {
         await apply(
@@ -147,7 +147,7 @@ import AppKit
         lowerHysteresisDelta: Int = 2,
         heatProtectionEnabled: Bool = false,
         heatProtectionThresholdCelsius: Int = 35,
-        autoDischargeEnabled: Bool = true
+        autoDischargeEnabled: Bool = false
     ) async -> BatteryControlServiceStatus? {
         BatteryNotificationManager.requestAuthorization()
         return await apply(
@@ -169,7 +169,7 @@ import AppKit
         lowerHysteresisDelta: Int = 2,
         heatProtectionEnabled: Bool = false,
         heatProtectionThresholdCelsius: Int = 35,
-        autoDischargeEnabled: Bool = true,
+        autoDischargeEnabled: Bool = false,
         manualDischargeTarget: Int = 80
     ) async -> BatteryControlServiceStatus? {
         await apply(
@@ -211,7 +211,7 @@ import AppKit
     public func disableAndConfirm(
         limitPercentage: Int = 100,
         lowerHysteresisDelta: Int = 2,
-        autoDischargeEnabled: Bool = true,
+        autoDischargeEnabled: Bool = false,
         manualDischargeTarget: Int = 80
     ) async -> DisableFailure? {
         guard let acknowledged = await apply(
@@ -246,6 +246,9 @@ import AppKit
                 lowerHysteresisDelta: 2,
                 heatProtectionEnabled: false,
                 heatProtectionThresholdCelsius: 35,
+                autoDischargeEnabled: false,
+                manualDischargeActive: false,
+                manualDischargeTarget: 80,
                 transferringOwnership: false,
                 window: window) != nil {
                 return .helperUnavailable
@@ -267,7 +270,7 @@ import AppKit
         lowerHysteresisDelta: Int = 2,
         heatProtectionEnabled: Bool = false,
         heatProtectionThresholdCelsius: Int = 35,
-        autoDischargeEnabled: Bool = true,
+        autoDischargeEnabled: Bool = false,
         manualDischargeActive: Bool = false,
         manualDischargeTarget: Int = 80
     ) async {

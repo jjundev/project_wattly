@@ -22,7 +22,7 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         heatProtectionResumeDeltaCelsius: Int = 2,
         heatProtectionMinCooldownSeconds: TimeInterval = 300.0,
         topUpActive: Bool = false,
-        autoDischargeEnabled: Bool = true,
+        autoDischargeEnabled: Bool = false,
         manualDischargeActive: Bool = false,
         manualDischargeTarget: Int = 80
     ) {
@@ -56,7 +56,7 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         heatProtectionResumeDeltaCelsius = (try? container.decodeIfPresent(Int.self, forKey: .heatProtectionResumeDeltaCelsius)) ?? 2
         heatProtectionMinCooldownSeconds = (try? container.decodeIfPresent(TimeInterval.self, forKey: .heatProtectionMinCooldownSeconds)) ?? 300.0
         topUpActive = (try? container.decodeIfPresent(Bool.self, forKey: .topUpActive)) ?? false
-        autoDischargeEnabled = (try? container.decodeIfPresent(Bool.self, forKey: .autoDischargeEnabled)) ?? true
+        autoDischargeEnabled = (try? container.decodeIfPresent(Bool.self, forKey: .autoDischargeEnabled)) ?? false
         manualDischargeActive = (try? container.decodeIfPresent(Bool.self, forKey: .manualDischargeActive)) ?? false
         manualDischargeTarget = (try? container.decodeIfPresent(Int.self, forKey: .manualDischargeTarget)) ?? 80
     }
