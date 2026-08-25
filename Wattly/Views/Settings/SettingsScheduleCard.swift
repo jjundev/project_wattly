@@ -16,7 +16,7 @@ struct SettingsScheduleCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     SettingsRowTitle("예약 충전")
-                    Text("지정한 시각과 요일에 맞춰 충전 한도 변경 또는 100% 완충을 자동 실행합니다.")
+                    Text(LocalizedStringKey("지정한 시각과 요일에 맞춰 충전 한도 변경 또는 100% 완충을 자동 실행합니다."))
                         .font(WattlyFont.at(10.5, weight: .regular))
                         .foregroundStyle(t.faint)
                 }
@@ -28,7 +28,7 @@ struct SettingsScheduleCard: View {
                     HStack(spacing: 4) {
                         Image(systemName: "plus")
                             .font(.system(size: 10, weight: .bold))
-                        Text("일정 추가")
+                        Text(LocalizedStringKey("일정 추가"))
                             .font(WattlyFont.at(11.5, weight: .medium))
                     }
                     .padding(.horizontal, 8)
@@ -41,7 +41,7 @@ struct SettingsScheduleCard: View {
             .padding(14)
 
             if coordinator.schedules.isEmpty {
-                Text("등록된 예약 충전 일정이 없습니다.")
+                Text(LocalizedStringKey("등록된 예약 충전 일정이 없습니다."))
                     .font(WattlyFont.at(11, weight: .regular))
                     .foregroundStyle(t.faint)
                     .padding(.horizontal, 14)
@@ -59,7 +59,7 @@ struct SettingsScheduleCard: View {
 
             HStack {
                 Toggle(isOn: $notificationsEnabled) {
-                    Text("예약 실행 완료 시 알림")
+                    Text(LocalizedStringKey("예약 실행 완료 시 알림"))
                         .font(WattlyFont.at(11.5, weight: .regular))
                         .foregroundStyle(t.sub)
                 }
@@ -73,7 +73,7 @@ struct SettingsScheduleCard: View {
                     HStack(spacing: 4) {
                         Image(systemName: "clock.arrow.circlepath")
                             .font(.system(size: 10, weight: .medium))
-                        Text("실행 이력 (\(coordinator.history.count))")
+                        Text(String(format: String(localized: "실행 이력 (%lld)", locale: locale), locale: locale, Int64(coordinator.history.count)))
                             .font(WattlyFont.at(11, weight: .medium))
                     }
                     .foregroundStyle(t.faint)
@@ -114,7 +114,7 @@ struct SettingsScheduleCard: View {
                         .monospacedDigit()
                         .foregroundStyle(schedule.isEnabled ? t.text : t.faint)
 
-                    Text(schedule.action.summary)
+                    Text(schedule.action.summary(locale: locale))
                         .font(WattlyFont.at(11.5, weight: .semibold))
                         .foregroundStyle(schedule.isEnabled ? Tokens.accent : t.faint)
                 }
@@ -128,7 +128,7 @@ struct SettingsScheduleCard: View {
                     Text("•")
                         .font(WattlyFont.at(10, weight: .regular))
                         .foregroundStyle(t.faint)
-                    Text(repeatSummary(schedule.repeatRule))
+                    Text(repeatSummary(schedule.repeatRule, locale: locale))
                         .font(WattlyFont.at(10.5, weight: .regular))
                         .foregroundStyle(t.faint)
                 }
@@ -164,13 +164,15 @@ struct SettingsScheduleCard: View {
     private var historyPopover: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("예약 충전 실행 이력")
+                Text(LocalizedStringKey("예약 충전 실행 이력"))
                     .font(WattlyFont.at(12.5, weight: .bold))
                     .foregroundStyle(t.text)
                 Spacer()
                 if !coordinator.history.isEmpty {
-                    Button("기록 지우기") {
+                    Button {
                         coordinator.clearHistory()
+                    } label: {
+                        Text(LocalizedStringKey("기록 지우기"))
                     }
                     .font(WattlyFont.at(10.5, weight: .medium))
                     .foregroundStyle(t.faint)
@@ -179,7 +181,7 @@ struct SettingsScheduleCard: View {
             }
 
             if coordinator.history.isEmpty {
-                Text("최근 실행된 이력이 없습니다.")
+                Text(LocalizedStringKey("최근 실행된 이력이 없습니다."))
                     .font(WattlyFont.at(11, weight: .regular))
                     .foregroundStyle(t.faint)
                     .padding(.vertical, 10)
@@ -222,28 +224,28 @@ struct SettingsScheduleCard: View {
     private func statusBadge(_ status: BatteryScheduleLogEntry.Status) -> some View {
         switch status {
         case .success:
-            Text("성공")
+            Text(status.localizedDescription)
                 .font(WattlyFont.at(9.5, weight: .semibold))
                 .foregroundStyle(Tokens.statusGreen)
         case .skipped(let reason):
-            Text(reason.rawValue)
+            Text(reason.localizedDescription)
                 .font(WattlyFont.at(9.5, weight: .medium))
                 .foregroundStyle(Tokens.statusOrange)
         case .failed(let err):
-            Text("실패: \(err)")
+            Text(String(format: String(localized: "실패: %@", locale: locale), locale: locale, err))
                 .font(WattlyFont.at(9.5, weight: .medium))
                 .foregroundStyle(.red)
         }
     }
 
-    private func repeatSummary(_ rule: ScheduleRepeatRule) -> String {
+    private func repeatSummary(_ rule: ScheduleRepeatRule, locale: Locale = Locale(identifier: "ko")) -> String {
         switch rule {
-        case .once: return "1회"
-        case .daily: return "매일"
-        case .weekdays: return "평일"
-        case .weekends: return "주말"
+        case .once: return String(localized: "1회", locale: locale)
+        case .daily: return String(localized: "매일", locale: locale)
+        case .weekdays: return String(localized: "평일", locale: locale)
+        case .weekends: return String(localized: "주말", locale: locale)
         case .custom(let set):
-            return set.sorted().map(\.shortLabel).joined(separator: "·")
+            return set.sorted().map { $0.shortLabel(locale: locale) }.joined(separator: "·")
         }
     }
 }

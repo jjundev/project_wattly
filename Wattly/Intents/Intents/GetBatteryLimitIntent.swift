@@ -11,9 +11,10 @@ public struct GetBatteryLimitIntent: AppIntent {
         let bridge = BatteryIntentBridge.shared
         let config = try await bridge.fetchLimitConfig()
 
-        let statusText = config.isEnabled ? "\(config.limitPercentage)%로 설정됨" : "비활성화됨"
-        let dialogText = "배터리 충전 제한이 \(statusText)."
+        let dialog: IntentDialog = config.isEnabled
+            ? IntentDialog("배터리 충전 제한이 \(config.limitPercentage)%로 설정되어 있습니다.")
+            : IntentDialog("배터리 충전 제한이 비활성화되어 있습니다.")
 
-        return .result(value: config, dialog: IntentDialog(stringLiteral: dialogText))
+        return .result(value: config, dialog: dialog)
     }
 }

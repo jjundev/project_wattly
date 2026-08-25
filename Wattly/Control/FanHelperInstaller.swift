@@ -27,9 +27,9 @@ enum FanHelperInstaller {
         var errorDescription: String? {
             switch self {
             case .ownedByDifferentUser:
-                "다른 사용자가 이 Mac의 충전 정책을 관리하고 있습니다."
+                String(localized: "다른 사용자가 이 Mac의 충전 정책을 관리하고 있습니다.")
             case .invalidInstalledMetadata:
-                "설치된 도우미의 소유자 정보를 확인할 수 없습니다."
+                String(localized: "설치된 도우미의 소유자 정보를 확인할 수 없습니다.")
             }
         }
     }
@@ -41,8 +41,8 @@ enum FanHelperInstaller {
 
         var errorDescription: String? {
             switch self {
-            case .daemonMissing: "앱 번들에서 도우미 실행 파일을 찾을 수 없습니다."
-            case .scriptWriteFailed: "설치 스크립트를 임시 폴더에 쓰지 못했습니다."
+            case .daemonMissing: String(localized: "앱 번들에서 도우미 실행 파일을 찾을 수 없습니다.")
+            case .scriptWriteFailed: String(localized: "설치 스크립트를 임시 폴더에 쓰지 못했습니다.")
             case .authFailedOrCancelled(let detail): detail
             }
         }
@@ -251,7 +251,7 @@ enum FanHelperInstaller {
                     let msg = String(data: errData, encoding: .utf8)?
                         .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     cont.resume(throwing: InstallError.authFailedOrCancelled(
-                        msg.isEmpty ? "관리자 인증이 취소되었거나 실패했습니다." : msg))
+                        msg.isEmpty ? String(localized: "관리자 인증이 취소되었거나 실패했습니다.") : msg))
                 }
             }
         }

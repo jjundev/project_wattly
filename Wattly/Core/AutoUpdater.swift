@@ -82,7 +82,7 @@ public final class AutoUpdater: NSObject, Sendable, URLSessionDownloadDelegate {
             try FileManager.default.moveItem(at: location, to: stagedZip)
         } catch {
             Task { @MainActor in
-                self.state = .failed(reason: "임시 파일 저장 실패: \(error.localizedDescription)")
+                self.state = .failed(reason: String(format: String(localized: "임시 파일 저장 실패: %@"), error.localizedDescription))
             }
             return
         }
@@ -98,7 +98,7 @@ public final class AutoUpdater: NSObject, Sendable, URLSessionDownloadDelegate {
             Task { @MainActor in
                 // Only set failure if we were still in a downloading state
                 if case .downloading = self.state {
-                    self.state = .failed(reason: "다운로드 실패: \(error.localizedDescription)")
+                    self.state = .failed(reason: String(format: String(localized: "다운로드 실패: %@"), error.localizedDescription))
                 }
             }
         }
@@ -116,7 +116,7 @@ public final class AutoUpdater: NSObject, Sendable, URLSessionDownloadDelegate {
 
                 guard ditto.terminationStatus == 0 else {
                     await MainActor.run {
-                        self.state = .failed(reason: "압축 해제에 실패했습니다.")
+                        self.state = .failed(reason: String(localized: "압축 해제에 실패했습니다."))
                     }
                     return
                 }
@@ -140,7 +140,7 @@ public final class AutoUpdater: NSObject, Sendable, URLSessionDownloadDelegate {
 
                 guard let appURL = foundAppURL else {
                     await MainActor.run {
-                        self.state = .failed(reason: "업데이트 앱 번들을 찾을 수 없습니다.")
+                        self.state = .failed(reason: String(localized: "업데이트 앱 번들을 찾을 수 없습니다."))
                     }
                     return
                 }
@@ -150,12 +150,12 @@ public final class AutoUpdater: NSObject, Sendable, URLSessionDownloadDelegate {
                     do {
                         try AppReplacer.replaceAndRelaunch(newAppURL: appURL)
                     } catch {
-                        self.state = .failed(reason: "앱 교체 실행 실패: \(error.localizedDescription)")
+                        self.state = .failed(reason: String(format: String(localized: "앱 교체 실행 실패: %@"), error.localizedDescription))
                     }
                 }
             } catch {
                 await MainActor.run {
-                    self.state = .failed(reason: "업데이트 처리 중 오류: \(error.localizedDescription)")
+                    self.state = .failed(reason: String(format: String(localized: "업데이트 처리 중 오류: %@"), error.localizedDescription))
                 }
             }
         }

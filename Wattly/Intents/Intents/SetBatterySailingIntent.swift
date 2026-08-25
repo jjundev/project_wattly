@@ -20,15 +20,15 @@ public struct SetBatterySailingIntent: AppIntent {
 
     public func perform() async throws -> some ProvidesDialog {
         guard delta >= 1 && delta <= 10 else {
-            throw BatteryIntentError.invalidParameter("Sailing 범위는 1%에서 10% 사이여야 합니다.")
+            throw BatteryIntentError.invalidParameter(String(localized: "Sailing 범위는 1%에서 10% 사이여야 합니다."))
         }
         let bridge = BatteryIntentBridge.shared
         _ = try await bridge.applySailing(enabled: enabled, delta: delta)
 
-        let dialogText = enabled
-            ? "Sailing 모드를 켰습니다 (범위: \(delta)%)."
-            : "Sailing 모드를 껐습니다."
+        let dialog: IntentDialog = enabled
+            ? IntentDialog("Sailing 모드를 켰습니다 (범위: \(delta)%).")
+            : IntentDialog("Sailing 모드를 껐습니다.")
 
-        return .result(dialog: IntentDialog(stringLiteral: dialogText))
+        return .result(dialog: dialog)
     }
 }

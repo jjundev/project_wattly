@@ -13,36 +13,36 @@ public enum MenuBarIconStyle: String, CaseIterable, Identifiable, Sendable {
 
     public var label: String {
         switch self {
-        case .turbine: "쿨링 터빈"
-        case .pulseWave: "펄스 웨이브"
-        case .vuMeter: "VU 파워 미터"
-        case .cube3D: "3D 큐브"
-        case .equalizer: "디지털 이퀄라이저"
-        case .hillRunner: "러너"
-        case .sailboat: "종이배"
+        case .turbine: String(localized: "쿨링 터빈")
+        case .pulseWave: String(localized: "펄스 웨이브")
+        case .vuMeter: String(localized: "VU 파워 미터")
+        case .cube3D: String(localized: "3D 큐브")
+        case .equalizer: String(localized: "디지털 이퀄라이저")
+        case .hillRunner: String(localized: "러너")
+        case .sailboat: String(localized: "종이배")
         }
     }
 
     public var category: String {
         switch self {
-        case .turbine: "쿨링 / 팬"
-        case .pulseWave: "전력 / 신호"
-        case .vuMeter: "정밀 계측기"
-        case .cube3D: "3D 기하학"
-        case .equalizer: "디지털 스펙트럼"
-        case .hillRunner, .sailboat: "캐릭터 / 라이프"
+        case .turbine: String(localized: "쿨링 / 팬")
+        case .pulseWave: String(localized: "전력 / 신호")
+        case .vuMeter: String(localized: "정밀 계측기")
+        case .cube3D: String(localized: "3D 기하학")
+        case .equalizer: String(localized: "디지털 스펙트럼")
+        case .hillRunner, .sailboat: String(localized: "캐릭터 / 라이프")
         }
     }
 
     public var summary: String {
         switch self {
-        case .turbine: "맥북 쿨링 팬 블레이드가 부하에 맞춰 고속 회전합니다."
-        case .pulseWave: "Wattly 시그니처 W 파형이 좌에서 우로 전파되며 전력 부하에 따라 가속됩니다."
-        case .vuMeter: "아날로그 전력 계측기 바늘이 전력량에 맞춰 기민하게 스윙합니다."
-        case .cube3D: "3차원 대각선 축을 기준으로 와이어프레임 큐브가 자전합니다."
-        case .equalizer: "4개의 수직 디지털 바가 연산 및 전력 부하에 맞춰 상하 바운스합니다."
-        case .hillRunner: "부하(0%~100%)에 따라 오르막 힘겨운 걸음 → 평지 조깅 → 내리막 폭풍 질주로 지형 경사와 캐릭터 자세가 연속 전환됩니다."
-        case .sailboat: "잔잔한 바다를 순항하다가 시스템 부하가 높아지면 거센 파도와 함께 종이배가 역동적으로 출렁입니다."
+        case .turbine: String(localized: "맥북 쿨링 팬 블레이드가 부하에 맞춰 고속 회전합니다.")
+        case .pulseWave: String(localized: "Wattly 시그니처 W 파형이 좌에서 우로 전파되며 전력 부하에 따라 가속됩니다.")
+        case .vuMeter: String(localized: "아날로그 전력 계측기 바늘이 전력량에 맞춰 기민하게 스윙합니다.")
+        case .cube3D: String(localized: "3차원 대각선 축을 기준으로 와이어프레임 큐브가 자전합니다.")
+        case .equalizer: String(localized: "4개의 수직 디지털 바가 연산 및 전력 부하에 맞춰 상하 바운스합니다.")
+        case .hillRunner: String(localized: "부하(0%~100%)에 따라 오르막 힘겨운 걸음 → 평지 조깅 → 내리막 폭풍 질주로 지형 경사와 캐릭터 자세가 연속 전환됩니다.")
+        case .sailboat: String(localized: "잔잔한 바다를 순항하다가 시스템 부하가 높아지면 거센 파도와 함께 종이배가 역동적으로 출렁입니다.")
         }
     }
 

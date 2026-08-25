@@ -28,16 +28,20 @@ public enum ScheduleRepeatRule: Codable, Equatable, Hashable, Sendable {
             lhs.rawValue < rhs.rawValue
         }
 
-        public var shortLabel: String {
+        public func shortLabel(locale: Locale = Locale(identifier: "ko")) -> String {
             switch self {
-            case .sunday: return "일"
-            case .monday: return "월"
-            case .tuesday: return "화"
-            case .wednesday: return "수"
-            case .thursday: return "목"
-            case .friday: return "금"
-            case .saturday: return "토"
+            case .sunday: return String(localized: "일", locale: locale)
+            case .monday: return String(localized: "월", locale: locale)
+            case .tuesday: return String(localized: "화", locale: locale)
+            case .wednesday: return String(localized: "수", locale: locale)
+            case .thursday: return String(localized: "목", locale: locale)
+            case .friday: return String(localized: "금", locale: locale)
+            case .saturday: return String(localized: "토", locale: locale)
             }
+        }
+
+        public var shortLabel: String {
+            shortLabel()
         }
     }
 
@@ -66,15 +70,19 @@ public enum ScheduleAction: Codable, Equatable, Hashable, Sendable {
     case startTopUp
     case pauseCharging
 
-    public var summary: String {
+    public func summary(locale: Locale = Locale(identifier: "ko")) -> String {
         switch self {
         case .setLimit(let pct):
-            return "충전 한도 \(pct)%"
+            return String(format: String(localized: "충전 한도 %lld%%", locale: locale), locale: locale, Int64(pct))
         case .startTopUp:
-            return "한 번만 100% 완충"
+            return String(localized: "한 번만 100% 완충", locale: locale)
         case .pauseCharging:
-            return "충전 일시 정지"
+            return String(localized: "충전 일시 정지", locale: locale)
         }
+    }
+
+    public var summary: String {
+        summary()
     }
 }
 

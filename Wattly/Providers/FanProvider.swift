@@ -35,8 +35,8 @@ struct RawFan: Sendable, Equatable {
 actor FanProvider: MetricProvider {
     let kind: ProviderKind = .fan
 
-    static let fanlessMessage = "팬 없음 — 팬리스 Mac"
-    static let unreadableMessage = "팬 센서에 연결할 수 없음 — 재시도 중"
+    static let fanlessMessage = String(localized: "팬 없음 — 팬리스 Mac")
+    static let unreadableMessage = String(localized: "팬 센서에 연결할 수 없음 — 재시도 중")
     /// Plausibility band (RPM). A finite reading outside this is rejected as bogus.
     private static let rpmRange = 0.0...12000.0
     /// Plausibility cap on `FNum` itself — no real Mac has anywhere near this many fans.

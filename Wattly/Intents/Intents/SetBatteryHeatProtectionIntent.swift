@@ -20,15 +20,15 @@ public struct SetBatteryHeatProtectionIntent: AppIntent {
 
     public func perform() async throws -> some ProvidesDialog {
         guard thresholdCelsius >= 30 && thresholdCelsius <= 45 else {
-            throw BatteryIntentError.invalidParameter("발열 보호 온도는 30°C에서 45°C 사이여야 합니다.")
+            throw BatteryIntentError.invalidParameter(String(localized: "발열 보호 온도는 30°C에서 45°C 사이여야 합니다."))
         }
         let bridge = BatteryIntentBridge.shared
         _ = try await bridge.applyHeatProtection(enabled: enabled, thresholdCelsius: thresholdCelsius)
 
-        let dialogText = enabled
-            ? "발열 보호를 켰습니다 (임계 온도: \(thresholdCelsius)°C)."
-            : "발열 보호를 껐습니다."
+        let dialog: IntentDialog = enabled
+            ? IntentDialog("발열 보호를 켰습니다 (임계 온도: \(thresholdCelsius)°C).")
+            : IntentDialog("발열 보호를 껐습니다.")
 
-        return .result(dialog: IntentDialog(stringLiteral: dialogText))
+        return .result(dialog: dialog)
     }
 }

@@ -97,7 +97,7 @@ public final class UpdateChecker {
         status = .checking
 
         guard let url = URL(string: "https://api.github.com/repos/\(repo)/releases/latest") else {
-            status = .failed(reason: "잘못된 저장소 주소입니다.")
+            status = .failed(reason: String(localized: "잘못된 저장소 주소입니다."))
             return
         }
 
@@ -109,7 +109,7 @@ public final class UpdateChecker {
         do {
             let (data, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse else {
-                status = .failed(reason: "응답을 받을 수 없습니다.")
+                status = .failed(reason: String(localized: "응답을 받을 수 없습니다."))
                 return
             }
 
@@ -119,7 +119,7 @@ public final class UpdateChecker {
             }
 
             guard (200...299).contains(httpResponse.statusCode) else {
-                status = .failed(reason: "서버 응답 오류 (\(httpResponse.statusCode))")
+                status = .failed(reason: String(format: String(localized: "서버 응답 오류 (%lld)"), Int64(httpResponse.statusCode)))
                 return
             }
 
@@ -130,7 +130,7 @@ public final class UpdateChecker {
                 status = .upToDate
             }
         } catch {
-            status = .failed(reason: "업데이트 확인 중 오류 발생")
+            status = .failed(reason: String(localized: "업데이트 확인 중 오류 발생"))
         }
     }
 }

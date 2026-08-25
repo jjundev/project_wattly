@@ -90,9 +90,13 @@ struct MetricCardView: View {
                     .frame(width: 6, height: 6)
                 Text(desc)
                     .foregroundStyle(Tokens.statusOrange)
+                    .lineLimit(isExpanded ? 2 : 1)
+                    .fixedSize(horizontal: false, vertical: isExpanded)
             }
         } else if let sub = fallbackSubText, !sub.isEmpty {
             Text(sub)
+                .lineLimit(isExpanded ? 2 : 1)
+                .fixedSize(horizontal: false, vertical: isExpanded)
         }
     }
 

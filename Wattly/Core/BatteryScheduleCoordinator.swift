@@ -154,7 +154,7 @@ import AppKit
             if status != nil && status?.mode != .unavailable {
                 recordLog(schedule: schedule, status: .success, timestamp: date)
             } else {
-                recordLog(schedule: schedule, status: .failed(reason: "도우미 연결 실패"), timestamp: date)
+                recordLog(schedule: schedule, status: .failed(reason: String(localized: "도우미 연결 실패")), timestamp: date)
             }
 
         case .startTopUp:
@@ -171,7 +171,7 @@ import AppKit
                 if status != nil && status?.mode != .unavailable {
                     recordLog(schedule: schedule, status: .success, timestamp: date)
                 } else {
-                    recordLog(schedule: schedule, status: .failed(reason: "도우미 연결 실패"), timestamp: date)
+                    recordLog(schedule: schedule, status: .failed(reason: String(localized: "도우미 연결 실패")), timestamp: date)
                 }
             }
 
@@ -188,7 +188,7 @@ import AppKit
             if status != nil && status?.mode != .unavailable {
                 recordLog(schedule: schedule, status: .success, timestamp: date)
             } else {
-                recordLog(schedule: schedule, status: .failed(reason: "도우미 연결 실패"), timestamp: date)
+                recordLog(schedule: schedule, status: .failed(reason: String(localized: "도우미 연결 실패")), timestamp: date)
             }
         }
 

@@ -18,7 +18,7 @@ actor CPUProvider: MetricProvider {
 
     func read(at instant: ContinuousClock.Instant) async -> ProviderReading {
         guard let curr = sampleTicks() else {
-            return .unavailable(.providerError("CPU 사용률을 읽을 수 없음"))
+            return .unavailable(.providerError(String(localized: "CPU 사용률을 읽을 수 없음")))
         }
         if topology == nil { topology = Self.readTopology() }
         if !clockSetupAttempted { clockSetupAttempted = true; clock = RealCPUClock() }

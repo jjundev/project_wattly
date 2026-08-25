@@ -27,9 +27,12 @@ public struct BatteryStateEntity: TransientAppEntity, Sendable {
     public var healthPercentage: Int?
 
     public var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(
+        let subtitle: LocalizedStringResource = isCharging
+            ? "충전 중"
+            : (isPowerAdapterConnected ? "전원 연결됨" : "배터리 사용 중")
+        return DisplayRepresentation(
             title: "\(percentage)%",
-            subtitle: isCharging ? "충전 중" : (isPowerAdapterConnected ? "전원 연결됨" : "배터리 사용 중")
+            subtitle: subtitle
         )
     }
 

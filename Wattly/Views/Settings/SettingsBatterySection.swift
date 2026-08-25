@@ -75,7 +75,7 @@ struct SettingsBatterySection: View {
                                     .foregroundStyle(t.faint)
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel("배터리 충전 최적화 안내 보기")
+                            .accessibilityLabel(Text(LocalizedStringKey("배터리 충전 최적화 안내 보기")))
                             .popover(isPresented: $isHelpPopoverPresented, arrowEdge: .bottom) {
                                 batteryHelpPopover
                             }
@@ -759,7 +759,7 @@ struct SettingsBatterySection: View {
                                 .foregroundStyle(t.sub)
                             Spacer()
                             let durationStr = BatterySectionPresentation.formatDuration(minutes: estMin, locale: locale)
-                            Text("예상 완료: 약 \(durationStr) 후")
+                            Text(String(format: String(localized: "예상 완료: 약 %@ 후", locale: locale), durationStr))
                                 .font(WattlyFont.at(10.5, weight: .regular))
                                 .foregroundStyle(t.sub)
                         }

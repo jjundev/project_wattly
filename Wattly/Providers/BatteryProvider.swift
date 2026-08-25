@@ -19,7 +19,7 @@ actor BatteryProvider: MetricProvider {
     let kind: ProviderKind = .battery
 
     /// Matches `FakeProvider`'s desktop copy and the `desktopBatteryIsHidden` test.
-    static let notPresentMessage = "배터리 없음 — 데스크톱 Mac"
+    static let notPresentMessage = String(localized: "배터리 없음 — 데스크톱 Mac")
 
     /// One-shot lazy SMC open (like `PowerProvider`'s subscription). A nil after the attempt
     /// just means we use the AppleSmartBattery fallback — we don't re-open every poll.

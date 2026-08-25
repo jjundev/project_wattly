@@ -471,7 +471,7 @@ struct CardPresentationTests {
     @Test func powerValueSubAndTint() {
         let st = MetricState.value(.power(PowerSample(totalW: 12.34, cpuW: 5.62, gpuW: 2.10, npuW: 0.30)))
         #expect(CardPresentation.valueText(.power, st) == "12.3")
-        #expect(CardPresentation.subText(st) == "CPU 5.6 W · GPU 2.1 W · NPU 0.3 W")
+        #expect(CardPresentation.subText(st) == "CPU 5.6 W · GPU 2.1 W · ANE 0.3 W")
         #expect(CardPresentation.display(.power, st).tint == .accent)
         #expect(CardPresentation.display(.cpu, .loading).tint == .neutral)
     }
