@@ -436,4 +436,27 @@ struct LocalizationTests {
         #expect(CardPresentation.batteryRemainingTimeSummary(passthrough, locale: zhHans) == "由电源适配器供电")
         #expect(CardPresentation.batteryRemainingTimeSummary(standby, locale: zhHans) == "待机模式")
     }
+
+    @Test func appShortcutsAndIntentsTranslations() {
+        let en = Locale(identifier: "en")
+        let ja = Locale(identifier: "ja")
+
+        #expect(String(localized: "배터리 상태 가져오기", locale: en) == "Get Battery Status")
+        #expect(String(localized: "배터리 상태 가져오기", locale: ja) == "バッテリー状態を取得")
+        #expect(String(localized: "충전 제한 설정 가져오기", locale: en) == "Get Charge Limit Settings")
+        #expect(String(localized: "충전 한도 설정", locale: en) == "Set Charge Limit")
+        #expect(String(localized: "충전 제한 켜기/끄기", locale: en) == "Toggle Charge Limit")
+        #expect(String(localized: "Sailing 모드 설정", locale: en) == "Set Sailing Mode")
+        #expect(String(localized: "한 번만 완충 (Top Up)", locale: en) == "Top Up (100% Once)")
+        #expect(String(localized: "발열 보호 설정", locale: en) == "Set Heat Protection")
+
+        #expect(String(localized: "한 번만 완충 시작", locale: en) == "Start Top Up")
+        #expect(String(localized: "충전 제한 켜기", locale: en) == "Turn On Charge Limit")
+
+        #expect(String(localized: "Wattly 도우미가 설치되지 않았습니다. Wattly 앱 설정에서 도우미를 먼저 설치해주세요.", locale: en)
+                == "Wattly helper is not installed. Please install the helper from Wattly settings first.")
+        #expect(String(localized: "이 Mac은 배터리 충전 제어를 지원하지 않는 하드웨어입니다.", locale: en)
+                == "This Mac hardware does not support battery charge control.")
+    }
 }
+
