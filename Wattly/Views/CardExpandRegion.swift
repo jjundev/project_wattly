@@ -1,5 +1,4 @@
 import SwiftUI
-import AppKit   // NSWorkspace for per-process app icons (issue 05)
 
 /// The "tap to reveal detail" region for `isExpandable` cards (processor-power per-app
 /// top processor-power apps, battery voltage/current, CPU per-core, memory process list, CPU/GPU-temp clusters, fan
@@ -190,20 +189,18 @@ struct CardExpandRegion: View {
     /// at 05; threshold color once issue 10 lands — §M12). Bars are proportional to
     /// the largest process; empty → a faint line (§M16).
     @ViewBuilder
-    private func memExpand(_ s: MemorySample) -> some View {
-        let maxBytes = s.processes.first?.footprintBytes ?? 0
+    private func memExpand(_ sample: MemorySample) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            if s.processes.isEmpty {
+            if sample.processes.isEmpty {
                 Text(LocalizedStringKey("프로세스를 읽을 수 없음"))
                     .font(WattlyFont.at(10.5, weight: .semibold))
                     .foregroundStyle(t.faint)
             } else {
-                ForEach(s.processes) { p in
-                    processRow(name: p.name,
-                               valueText: CardPresentation.gbText(p.footprintBytes),
-                               fraction: barFraction(footprint: p.footprintBytes, maxBytes: maxBytes),
-                               iconPath: p.iconPath)
-                }
+                ProcessListRowsView(
+                    rows: memoryProcessRowPresentations(sample.processes),
+                    tokens: t,
+                    barColor: sparkStroke)
+                .equatable()
             }
         }
         .padding(.top, 4)
@@ -217,25 +214,23 @@ struct CardExpandRegion: View {
     /// Watts cover CPU+GPU compute only and your readable apps, so they don't sum to the
     /// card's Combined headline (label-honest, not a breakdown).
     @ViewBuilder
-    private func powerExpand(_ s: PowerSample) -> some View {
+    private func powerExpand(_ sample: PowerSample) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            switch s.processes {
+            switch sample.processes {
             case .none:
                 Text(LocalizedStringKey("측정 중…"))
                     .font(WattlyFont.at(10.5, weight: .semibold))
                     .foregroundStyle(t.faint)
-            case .some(let procs) where procs.isEmpty:
+            case .some(let processes) where processes.isEmpty:
                 Text(LocalizedStringKey("프로세스를 읽을 수 없음"))
                     .font(WattlyFont.at(10.5, weight: .semibold))
                     .foregroundStyle(t.faint)
-            case .some(let procs):
-                let maxW = procs.first?.watts ?? 0
-                ForEach(procs) { p in
-                    processRow(name: p.name,
-                               valueText: CardPresentation.wattText(p.watts),
-                               fraction: wattFraction(watts: p.watts, maxWatts: maxW),
-                               iconPath: p.iconPath)
-                }
+            case .some(let processes):
+                ProcessListRowsView(
+                    rows: powerProcessRowPresentations(processes),
+                    tokens: t,
+                    barColor: sparkStroke)
+                .equatable()
             }
         }
         .padding(.top, 4)
@@ -524,52 +519,6 @@ struct CardExpandRegion: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(label), \(value)")
-    }
-
-    // Process row, pixel-matched to the prototype (lines 138–141): name 74 ellipsis
-    // · bar h6 r3 · value 46 right. Generalized over the value (bytes "GB" / watts "W") and
-    // its bar fraction so memory (05) and power (16) share one row. Borrows coreRow's
-    // structure, not its sizing (§M13).
-    private func processRow(name: String, valueText: String, fraction: Double, iconPath: String?) -> some View {
-        HStack(spacing: 9) {
-            appIcon(iconPath)
-                .frame(width: 15, height: 15)
-            Text(name)
-                .font(WattlyFont.at(11, weight: .semibold))
-                .foregroundStyle(t.text)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .frame(width: 74, alignment: .leading)
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 3).fill(t.sparkFill)
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(sparkStroke)
-                        .frame(width: geo.size.width * fraction)
-                }
-            }
-            .frame(height: 6)
-            Text(valueText)
-                .font(WattlyFont.at(10.5, weight: .semibold))
-                .monospacedDigit()
-                .foregroundStyle(t.sub)
-                .frame(width: 46, alignment: .trailing)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(name), \(valueText)")
-    }
-
-    /// Small app icon from the resolved bundle/executable path (NSWorkspace caches
-    /// these). nil path → a faint placeholder so the rows stay aligned.
-    @ViewBuilder
-    private func appIcon(_ path: String?) -> some View {
-        if let path {
-            Image(nsImage: NSWorkspace.shared.icon(forFile: path))
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-        } else {
-            RoundedRectangle(cornerRadius: 3).fill(t.sparkFill)
-        }
     }
 
     // MARK: Temperature expand — per-cluster summary (issue 08 follow-up)
