@@ -13,7 +13,6 @@ struct SettingsBatterySection: View {
     @AppStorage(StorageKey.batterySailingEnabled) private var batterySailingEnabled = Defaults.batterySailingEnabled
     @AppStorage(StorageKey.batterySailingDelta) private var batterySailingDelta = Defaults.batterySailingDelta
     @AppStorage(StorageKey.batteryHeatProtectionEnabled) private var batteryHeatProtectionEnabled = Defaults.batteryHeatProtectionEnabled
-    @AppStorage(StorageKey.batteryHeatProtectionThreshold) private var batteryHeatProtectionThreshold = Defaults.batteryHeatProtectionThreshold
     @State private var isInstallFailedAlertPresented = false
     @State private var installErrorMessage = ""
     @State private var isHelpPopoverPresented = false
@@ -148,35 +147,12 @@ struct SettingsBatterySection: View {
                                       divider: false,
                                       isEnabled: isToggleEnabled) {
                         VStack(alignment: .leading, spacing: 2) {
-                            SettingsRowTitle("발열 보호 (Heat Protection)")
-                            Text("배터리 온도가 설정값을 초과하면 충전을 일시 중단하여 배터리 수명을 보호합니다.")
+                            SettingsRowTitle("발열 보호")
+                            Text("배터리 온도가 35°C를 초과하면 충전을 일시 중단하고, 33°C 이하로 냉각되면 재개합니다.")
                                 .font(WattlyFont.at(10.5, weight: .regular))
                                 .foregroundStyle(t.faint)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                    }
-
-                    if batteryHeatProtectionEnabled {
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text("보호 시작 온도")
-                                    .font(WattlyFont.at(12, weight: .medium))
-                                    .foregroundStyle(t.text)
-                                Spacer()
-                                Text(String(format: String(localized: "%lld°C 초과 시 정지, %lld°C 이하 시 재개", locale: locale),
-                                            locale: locale, Int64(batteryHeatProtectionThreshold), Int64(batteryHeatProtectionThreshold - 2)))
-                                    .font(WattlyFont.at(10.5, weight: .medium))
-                                    .foregroundStyle(t.sub)
-                            }
-
-                            WattlySegment(
-                                selection: $batteryHeatProtectionThreshold,
-                                options: BatterySectionPresentation.heatProtectionThresholdPresets.map { ($0, "\($0)°C") },
-                                pillVPadding: 6,
-                                isEnabled: true
-                            )
-                        }
-                        .padding(EdgeInsets(top: 0, leading: 14, bottom: 14, trailing: 14))
                     }
 
                     Rectangle().fill(t.line).frame(height: 1)
@@ -197,7 +173,7 @@ struct SettingsBatterySection: View {
                             let limit = batteryLimitPercentage
                             let delta = effectiveDelta
                             let heatEnabled = batteryHeatProtectionEnabled
-                            let heatThreshold = batteryHeatProtectionThreshold
+                            let heatThreshold = Defaults.batteryHeatProtectionThreshold
                             Task {
                                 if isTopUp {
                                     await batteryControl.cancelTopUp(
@@ -272,7 +248,7 @@ struct SettingsBatterySection: View {
                             limitPercentage: batteryLimitPercentage,
                             lowerHysteresisDelta: effectiveDelta,
                             heatProtectionEnabled: batteryHeatProtectionEnabled,
-                            heatProtectionThresholdCelsius: batteryHeatProtectionThreshold)
+                            heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold)
                     }
                     return
                 }
@@ -280,7 +256,7 @@ struct SettingsBatterySection: View {
                 let limit = batteryLimitPercentage
                 let delta = effectiveDelta
                 let heatEnabled = batteryHeatProtectionEnabled
-                let heatThreshold = batteryHeatProtectionThreshold
+                let heatThreshold = Defaults.batteryHeatProtectionThreshold
                 Task {
                     let mode = batteryControl.status.mode
                     if BatteryControlPolicy.shouldRunInstaller(mode: mode) {
@@ -325,7 +301,7 @@ struct SettingsBatterySection: View {
                         limitPercentage: newLimit,
                         lowerHysteresisDelta: effectiveDelta,
                         heatProtectionEnabled: batteryHeatProtectionEnabled,
-                        heatProtectionThresholdCelsius: batteryHeatProtectionThreshold)
+                        heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold)
                 }
             }
             .onChange(of: batterySailingEnabled) { _, isSailing in
@@ -337,7 +313,7 @@ struct SettingsBatterySection: View {
                         limitPercentage: batteryLimitPercentage,
                         lowerHysteresisDelta: delta,
                         heatProtectionEnabled: batteryHeatProtectionEnabled,
-                        heatProtectionThresholdCelsius: batteryHeatProtectionThreshold)
+                        heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold)
                 }
             }
             .onChange(of: batterySailingDelta) { _, newDelta in
@@ -348,7 +324,7 @@ struct SettingsBatterySection: View {
                         limitPercentage: batteryLimitPercentage,
                         lowerHysteresisDelta: newDelta,
                         heatProtectionEnabled: batteryHeatProtectionEnabled,
-                        heatProtectionThresholdCelsius: batteryHeatProtectionThreshold)
+                        heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold)
                 }
             }
             .onChange(of: batteryHeatProtectionEnabled) { _, isEnabled in
@@ -359,7 +335,7 @@ struct SettingsBatterySection: View {
                             limitPercentage: batteryLimitPercentage,
                             lowerHysteresisDelta: effectiveDelta,
                             heatProtectionEnabled: isEnabled,
-                            heatProtectionThresholdCelsius: batteryHeatProtectionThreshold)
+                            heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold)
                     }
                     return
                 }
@@ -374,7 +350,7 @@ struct SettingsBatterySection: View {
                                 limitPercentage: batteryLimitPercentage,
                                 lowerHysteresisDelta: effectiveDelta,
                                 heatProtectionEnabled: true,
-                                heatProtectionThresholdCelsius: batteryHeatProtectionThreshold,
+                                heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
                                 window: window) {
                                 installErrorMessage = Self.message(for: failure, locale: locale)
                                 isInstallFailedAlertPresented = true
@@ -388,21 +364,10 @@ struct SettingsBatterySection: View {
                         limitPercentage: batteryLimitPercentage,
                         lowerHysteresisDelta: effectiveDelta,
                         heatProtectionEnabled: true,
-                        heatProtectionThresholdCelsius: batteryHeatProtectionThreshold)
+                        heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold)
                     if batteryControl.status.isHardwareSupported == false {
                         batteryHeatProtectionEnabled = false
                     }
-                }
-            }
-            .onChange(of: batteryHeatProtectionThreshold) { _, newThreshold in
-                guard batteryLimitEnabled || batteryHeatProtectionEnabled else { return }
-                Task {
-                    await batteryControl.apply(
-                        enabled: batteryLimitEnabled,
-                        limitPercentage: batteryLimitPercentage,
-                        lowerHysteresisDelta: effectiveDelta,
-                        heatProtectionEnabled: batteryHeatProtectionEnabled,
-                        heatProtectionThresholdCelsius: newThreshold)
                 }
             }
         }
@@ -478,7 +443,7 @@ struct SettingsBatterySection: View {
                     let limit = batteryLimitPercentage
                     let delta = effectiveDelta
                     let heatEnabled = batteryHeatProtectionEnabled
-                    let heatThreshold = batteryHeatProtectionThreshold
+                    let heatThreshold = Defaults.batteryHeatProtectionThreshold
                     Task {
                         if let failure = await batteryControl.installAndApply(
                             enabled: batteryLimitEnabled,
@@ -567,7 +532,7 @@ struct SettingsBatterySection: View {
                                        limitPercentage: limit,
                                        lowerHysteresisDelta: delta,
                                        heatProtectionEnabled: batteryHeatProtectionEnabled,
-                                       heatProtectionThresholdCelsius: batteryHeatProtectionThreshold)
+                                       heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold)
         }
     }
 
@@ -581,7 +546,7 @@ struct SettingsBatterySection: View {
                 limitPercentage: limit,
                 lowerHysteresisDelta: delta,
                 heatProtectionEnabled: batteryHeatProtectionEnabled,
-                heatProtectionThresholdCelsius: batteryHeatProtectionThreshold,
+                heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
                 transferringOwnership: transferringOwnership,
                 window: window) {
                 installErrorMessage = Self.message(for: failure, locale: locale)
