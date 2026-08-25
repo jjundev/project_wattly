@@ -783,10 +783,51 @@ import AppKit
         #expect(BatterySectionPresentation.forcedDischargeText(locale: ko) == "배터리 강제 방전 중 ⚡")
         #expect(BatterySectionPresentation.forcedDischargeText(locale: en) == "Forced Battery Discharge ⚡")
 
-        #expect(BatterySectionPresentation.startDischargeButtonText(targetSoC: 70, locale: ko) == "70%까지 방전 시작")
-        #expect(BatterySectionPresentation.startDischargeButtonText(targetSoC: 70, locale: en) == "Start discharge to 70%")
+        #expect(BatterySectionPresentation.startDischargeButtonText(targetSoC: 70, locale: ko) == "방전 시작")
+        #expect(BatterySectionPresentation.startDischargeButtonText(targetSoC: 70, locale: en) == "Start Discharge")
+    }
+
+    @Test func powerSupplyVisibilityUsesEffectiveAdapterStateDuringForcedDischarge() {
+        #expect(BatterySectionPresentation.shouldShowPowerSupplySection(
+            sampleExternalConnected: false,
+            serviceAdapterConnected: true,
+            activity: .discharging,
+            manualDischargeActive: true,
+            powerFlowScenario: .batteryOnly
+        ))
+
+        #expect(BatterySectionPresentation.shouldShowPowerSupplySection(
+            sampleExternalConnected: false,
+            serviceAdapterConnected: false,
+            activity: .discharging,
+            manualDischargeActive: false,
+            powerFlowScenario: .batteryOnly
+        ))
+
+        #expect(BatterySectionPresentation.shouldShowPowerSupplySection(
+            sampleExternalConnected: false,
+            serviceAdapterConnected: false,
+            activity: nil,
+            manualDischargeActive: false,
+            powerFlowScenario: .activeDischarge
+        ))
+
+        #expect(!BatterySectionPresentation.shouldShowPowerSupplySection(
+            sampleExternalConnected: false,
+            serviceAdapterConnected: false,
+            activity: nil,
+            manualDischargeActive: false,
+            powerFlowScenario: .batteryOnly
+        ))
+
+        #expect(!BatterySectionPresentation.shouldShowPowerSupplySection(
+            sampleExternalConnected: true,
+            serviceAdapterConnected: true,
+            activity: .discharging,
+            manualDischargeActive: true,
+            powerFlowScenario: nil
+        ))
     }
 }
-
 
 

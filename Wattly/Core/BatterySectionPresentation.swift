@@ -463,10 +463,26 @@ enum BatterySectionPresentation {
         String(localized: "배터리 강제 방전 중 ⚡", locale: locale)
     }
 
-    /// Start discharge button label (e.g. "70%까지 방전 시작", "Start discharge to 70%")
-    static func startDischargeButtonText(targetSoC: Int, locale: Locale = Locale(identifier: "ko")) -> String {
-        String(format: String(localized: "%d%%까지 방전 시작", locale: locale), locale: locale, targetSoC)
+    /// Start discharge button label (e.g. "방전 시작", "Start Discharge")
+    static func startDischargeButtonText(targetSoC _: Int, locale: Locale = Locale(identifier: "ko")) -> String {
+        String(localized: "방전 시작", locale: locale)
+    }
+
+    /// Gate for showing the Power Supply section in the expanded battery card.
+    /// Returns true if power flow exists and either external power is connected or active discharge is underway.
+    static func shouldShowPowerSupplySection(
+        sampleExternalConnected: Bool,
+        serviceAdapterConnected: Bool,
+        activity: BatteryControlActivity?,
+        manualDischargeActive: Bool,
+        powerFlowScenario: PowerFlowScenario?
+    ) -> Bool {
+        guard let powerFlowScenario else { return false }
+        return sampleExternalConnected
+            || serviceAdapterConnected
+            || activity == .discharging
+            || manualDischargeActive
+            || powerFlowScenario == .activeDischarge
     }
 }
-
 

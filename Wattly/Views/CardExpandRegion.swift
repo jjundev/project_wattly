@@ -243,34 +243,48 @@ struct CardExpandRegion: View {
 
     private func batteryExpand(_ s: BatterySample) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            // [범주 1] 전원 공급 및 소비 전력 — 어댑터 연결 시에만 노출
-            if s.externalConnected, let flow = s.powerFlow {
-                let isDischarging = (batteryControl?.status.activity == .discharging)
-                    || (batteryControl?.status.desiredConfiguration?.manualDischargeActive == true)
-                    || (flow.scenario == .activeDischarge)
+            // [범주 1] 전원 공급 및 소비 전력 — 물리 어댑터 연결 또는 강제 방전 중 노출
+            if let flow = s.powerFlow {
+                let activity = batteryControl?.status.activity
+                let manualDischargeActive =
+                    batteryControl?.status.desiredConfiguration?.manualDischargeActive == true
+                let isDischarging = activity == .discharging
+                    || manualDischargeActive
+                    || flow.scenario == .activeDischarge
+                let shouldShowPowerSupply =
+                    BatterySectionPresentation.shouldShowPowerSupplySection(
+                        sampleExternalConnected: s.externalConnected,
+                        serviceAdapterConnected:
+                            batteryControl?.status.isPowerAdapterConnected == true,
+                        activity: activity,
+                        manualDischargeActive: manualDischargeActive,
+                        powerFlowScenario: flow.scenario
+                    )
 
-                let powerSourceValue = isDischarging
-                    ? BatterySectionPresentation.forcedDischargeText(locale: locale)
-                    : CardPresentation.powerSourceText(flow.scenario, locale: locale)
-                let adapterPowerValue = isDischarging
-                    ? BatterySectionPresentation.adapterPowerBlockedText(locale: locale)
-                    : CardPresentation.adapterPowerText(flow.adapterWatts)
+                if shouldShowPowerSupply {
+                    let powerSourceValue = isDischarging
+                        ? BatterySectionPresentation.forcedDischargeText(locale: locale)
+                        : CardPresentation.powerSourceText(flow.scenario, locale: locale)
+                    let adapterPowerValue = isDischarging
+                        ? BatterySectionPresentation.adapterPowerBlockedText(locale: locale)
+                        : CardPresentation.adapterPowerText(flow.adapterWatts)
 
-                VStack(alignment: .leading, spacing: 10) {
-                    batteryDetailRow(
-                        label: CardPresentation.powerSourceLabel,
-                        value: powerSourceValue
-                    )
-                    batteryDetailRow(
-                        label: CardPresentation.adapterPowerLabel,
-                        value: adapterPowerValue
-                    )
-                    batteryDetailRow(
-                        label: CardPresentation.systemPowerLabel,
-                        value: CardPresentation.systemPowerText(flow.systemWatts)
-                    )
+                    VStack(alignment: .leading, spacing: 10) {
+                        batteryDetailRow(
+                            label: CardPresentation.powerSourceLabel,
+                            value: powerSourceValue
+                        )
+                        batteryDetailRow(
+                            label: CardPresentation.adapterPowerLabel,
+                            value: adapterPowerValue
+                        )
+                        batteryDetailRow(
+                            label: CardPresentation.systemPowerLabel,
+                            value: CardPresentation.systemPowerText(flow.systemWatts)
+                        )
+                    }
+                    Divider().background(t.line).opacity(0.6)
                 }
-                Divider().background(t.line).opacity(0.6)
             }
 
             // [범주 2] 실시간 전기 지표
@@ -447,20 +461,26 @@ struct CardExpandRegion: View {
                         .overlay(RoundedRectangle(cornerRadius: 4).stroke(Tokens.statusRed.opacity(0.4), lineWidth: 1))
                         .contentShape(Rectangle())
                 } else {
-                    Text(LocalizedStringKey("\(manualDischargeTarget)%까지 방전"))
+                    Text(verbatim: BatterySectionPresentation.startDischargeButtonText(
+                        targetSoC: manualDischargeTarget,
+                        locale: locale))
                         .font(WattlyFont.at(10.5, weight: .medium))
-                        .foregroundStyle(canStartDischarge ? Tokens.statusOrange : t.faint)
+                        .foregroundStyle(t.sub)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(RoundedRectangle(cornerRadius: 4).fill(canStartDischarge ? Tokens.statusOrange.opacity(0.15) : t.segTrack))
-                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(canStartDischarge ? Tokens.statusOrange.opacity(0.4) : t.rowBorder, lineWidth: 1))
+                        .background(RoundedRectangle(cornerRadius: 4).fill(t.segTrack))
+                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(t.rowBorder, lineWidth: 1))
                         .contentShape(Rectangle())
                 }
             }
             .buttonStyle(.plain)
             .disabled(!isDischarging && !canStartDischarge)
             .accessibilityLabel(Text("수동 방전 (\(manualDischargeTarget)%)"))
-            .accessibilityValue(Text(LocalizedStringKey(isDischarging ? "방전 중지" : "\(manualDischargeTarget)%까지 방전")))
+            .accessibilityValue(Text(verbatim: isDischarging
+                ? String(localized: "방전 중지", locale: locale)
+                : BatterySectionPresentation.startDischargeButtonText(
+                    targetSoC: manualDischargeTarget,
+                    locale: locale)))
         }
     }
 
