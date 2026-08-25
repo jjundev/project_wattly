@@ -494,5 +494,36 @@ enum BatterySectionPresentation {
             || activity == .topUp
             || manualDischargeActive
     }
+
+    /// Determines whether the "한 번만 완충 (Top-Up)" row should be visible in the expanded battery card.
+    /// Returns true if enabled by user settings, or if top-up is currently active.
+    static func shouldShowTopUpRow(
+        showSetting: Bool,
+        isTopUpActive: Bool
+    ) -> Bool {
+        showSetting || isTopUpActive
+    }
+
+    /// Determines whether the "수동 방전 (Manual Discharge)" row should be visible in the expanded battery card.
+    /// Returns true if currently discharging (safety override), or if enabled by settings and current SoC exceeds target.
+    static func shouldShowManualDischargeRow(
+        showSetting: Bool,
+        isDischarging: Bool,
+        currentSoC: Int,
+        targetSoC: Int
+    ) -> Bool {
+        if isDischarging { return true }
+        guard showSetting else { return false }
+        return currentSoC > targetSoC
+    }
+
+    /// Determines whether the battery control section container and divider should be rendered.
+    static func shouldShowBatteryControlSection(
+        showControlRows: Bool,
+        willShowTopUp: Bool,
+        willShowDischarge: Bool
+    ) -> Bool {
+        showControlRows && (willShowTopUp || willShowDischarge)
+    }
 }
 

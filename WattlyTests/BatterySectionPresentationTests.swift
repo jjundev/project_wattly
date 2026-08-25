@@ -862,6 +862,81 @@ import AppKit
             manualDischargeActive: false
         ))
     }
+
+    @Test func topUpRowVisibilityPolicy() {
+        // Setting ON + Inactive -> Shown
+        #expect(BatterySectionPresentation.shouldShowTopUpRow(showSetting: true, isTopUpActive: false))
+        // Setting OFF + Inactive -> Hidden
+        #expect(!BatterySectionPresentation.shouldShowTopUpRow(showSetting: false, isTopUpActive: false))
+        // Setting OFF + Active -> Shown (Safety override)
+        #expect(BatterySectionPresentation.shouldShowTopUpRow(showSetting: false, isTopUpActive: true))
+        // Setting ON + Active -> Shown
+        #expect(BatterySectionPresentation.shouldShowTopUpRow(showSetting: true, isTopUpActive: true))
+    }
+
+    @Test func manualDischargeRowVisibilityPolicy() {
+        // Setting ON, current SoC 90 > target 80, not discharging -> Shown
+        #expect(BatterySectionPresentation.shouldShowManualDischargeRow(
+            showSetting: true,
+            isDischarging: false,
+            currentSoC: 90,
+            targetSoC: 80
+        ))
+
+        // Setting ON, current SoC 70 <= target 80, not discharging -> Hidden (SoC below target)
+        #expect(!BatterySectionPresentation.shouldShowManualDischargeRow(
+            showSetting: true,
+            isDischarging: false,
+            currentSoC: 70,
+            targetSoC: 80
+        ))
+
+        // Setting OFF, not discharging -> Hidden even if SoC > target
+        #expect(!BatterySectionPresentation.shouldShowManualDischargeRow(
+            showSetting: false,
+            isDischarging: false,
+            currentSoC: 90,
+            targetSoC: 80
+        ))
+
+        // Setting OFF, but actively discharging -> Shown (Safety override to allow stopping)
+        #expect(BatterySectionPresentation.shouldShowManualDischargeRow(
+            showSetting: false,
+            isDischarging: true,
+            currentSoC: 70,
+            targetSoC: 80
+        ))
+    }
+
+    @Test func batteryControlSectionDividerAndContainerGating() {
+        // Both rows hidden -> Entire section hidden (no Divider rendered)
+        #expect(!BatterySectionPresentation.shouldShowBatteryControlSection(
+            showControlRows: true,
+            willShowTopUp: false,
+            willShowDischarge: false
+        ))
+
+        // Top up shown -> Section shown
+        #expect(BatterySectionPresentation.shouldShowBatteryControlSection(
+            showControlRows: true,
+            willShowTopUp: true,
+            willShowDischarge: false
+        ))
+
+        // Discharge shown -> Section shown
+        #expect(BatterySectionPresentation.shouldShowBatteryControlSection(
+            showControlRows: true,
+            willShowTopUp: false,
+            willShowDischarge: true
+        ))
+
+        // showControlRows false (e.g. unplugged and not discharging) -> Section hidden regardless
+        #expect(!BatterySectionPresentation.shouldShowBatteryControlSection(
+            showControlRows: false,
+            willShowTopUp: true,
+            willShowDischarge: true
+        ))
+    }
 }
 
 
