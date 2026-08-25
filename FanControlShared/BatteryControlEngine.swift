@@ -275,7 +275,10 @@ public final class BatteryControlEngine: @unchecked Sendable {
             target = manualTarget
             if currentSoC >= 15 && isDischargeHardwareSupported && currentSoC > manualTarget {
                 shouldDischarge = true
-                shouldInhibit = false
+                // Forced discharge needs both gates: CHIE isolates the adapter while the normal
+                // charging gate remains inhibited. Releasing CHTE/CH0B here leaves CHIE active but
+                // does not make the battery supply the system on current Apple silicon firmware.
+                shouldInhibit = true
             } else {
                 shouldDischarge = false
                 shouldInhibit = true
@@ -294,7 +297,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
             // Auto Discharge Mode
             target = config.clampedLimitPercentage
             shouldDischarge = true
-            shouldInhibit = false
+            shouldInhibit = true
         } else if config.enabled {
             // Standard Hysteresis
             target = config.clampedLimitPercentage

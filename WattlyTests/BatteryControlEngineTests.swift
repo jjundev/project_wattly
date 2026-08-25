@@ -1186,7 +1186,7 @@ struct BatteryControlEngineTests {
         #expect(status1.detailReason?.kind == .dischargingManual)
         #expect(status1.detailReason?.limitPercentage == 70)
         #expect(mockHardware.isDischargeActive == true)
-        #expect(mockHardware.isInhibited == false)
+        #expect(mockHardware.isInhibited == true)
 
         // 2. Drops to 75% -> Still discharging
         let status2 = engine.update(currentSoC: 75, isPluggedIn: true)
@@ -1206,6 +1206,30 @@ struct BatteryControlEngineTests {
         let status4 = engine.update(currentSoC: 69, isPluggedIn: true)
         #expect(status4.activity == .holdingAtLimit)
         #expect(mockHardware.isDischargeActive == false)
+        #expect(mockHardware.isInhibited == true)
+    }
+
+    @Test func startingManualDischargeFromChargeLimitKeepsChargingInhibited() {
+        let mockHardware = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHardware)
+        engine.configure(BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80
+        ))
+
+        _ = engine.update(currentSoC: 85, isPluggedIn: true)
+        #expect(mockHardware.isInhibited == true)
+
+        engine.configure(BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            manualDischargeActive: true,
+            manualDischargeTarget: 70
+        ))
+        let status = engine.update(currentSoC: 85, isPluggedIn: true)
+
+        #expect(status.activity == .discharging)
+        #expect(mockHardware.isDischargeActive == true)
         #expect(mockHardware.isInhibited == true)
     }
 
@@ -1230,7 +1254,7 @@ struct BatteryControlEngineTests {
         #expect(s82.detailReason?.kind == .dischargingToTarget)
         #expect(s82.detailReason?.limitPercentage == 80)
         #expect(mockHardware.isDischargeActive == true)
-        #expect(mockHardware.isInhibited == false)
+        #expect(mockHardware.isInhibited == true)
 
         // 3. Descending at 81% -> Stays discharging until reaching limit
         let s81Desc = engine.update(currentSoC: 81, isPluggedIn: true)
