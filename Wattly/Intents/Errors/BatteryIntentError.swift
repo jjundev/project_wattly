@@ -1,7 +1,7 @@
 import Foundation
 import AppIntents
 
-public enum BatteryIntentError: Swift.Error, CustomLocalizedStringResourceConvertible, LocalizedError, Sendable {
+public enum BatteryIntentError: Swift.Error, CustomLocalizedStringResourceConvertible, LocalizedError, Sendable, Equatable {
     case helperNotInstalled
     case hardwareUnsupported
     case xpcCommunicationFailed(String)
