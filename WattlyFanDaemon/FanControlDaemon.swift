@@ -177,17 +177,24 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
         let soc = maxCap > 0 ? Int((Double(current) / Double(maxCap) * 100.0).rounded()) : current
         let isPowerSourceAC = (desc[kIOPSPowerSourceStateKey] as? String) == kIOPSACPowerValue
         let telemetry = readBatteryTelemetryFromRegistry()
-        let isPlugged = telemetry.isExternalConnected ?? isPowerSourceAC
+        let hasAdapterWatts = (telemetry.adapterPowerWatts ?? 0) > 0
+        let isExternalConnected = (telemetry.isExternalConnected == true) || hasAdapterWatts
+        let isPlugged = isPowerSourceAC || isExternalConnected
 
         return BatteryPowerSourceReading(
             stateOfCharge: soc,
             isPluggedIn: isPlugged,
-            temperatureCelsius: telemetry.temperatureCelsius)
+            temperatureCelsius: telemetry.temperatureCelsius,
+            adapterPowerWatts: telemetry.adapterPowerWatts)
     }
 
-    private func readBatteryTelemetryFromRegistry() -> (temperatureCelsius: Double?, isExternalConnected: Bool?) {
+    private func readBatteryTelemetryFromRegistry() -> (
+        temperatureCelsius: Double?,
+        isExternalConnected: Bool?,
+        adapterPowerWatts: Int?
+    ) {
         let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"))
-        guard service != 0 else { return (nil, nil) }
+        guard service != 0 else { return (nil, nil, nil) }
         defer { IOObjectRelease(service) }
 
         var tempC: Double? = nil
@@ -207,7 +214,18 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
             }
         }
 
-        return (tempC, extConnected)
+        var adapterPowerWatts: Int? = nil
+        if let details = IORegistryEntryCreateCFProperty(
+            service,
+            "AdapterDetails" as CFString,
+            kCFAllocatorDefault,
+            0)?.takeRetainedValue() as? [String: Any],
+           let watts = details["Watts"] as? NSNumber,
+           watts.intValue > 0 {
+            adapterPowerWatts = watts.intValue
+        }
+
+        return (tempC, extConnected, adapterPowerWatts)
     }
 
     private func startTimers() {
