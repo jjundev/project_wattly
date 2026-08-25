@@ -8,27 +8,27 @@
       background-color: #0d1117;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif;
       color: #e6edf3;
-      padding: 32px;
-      width: 800px;
+      padding: 24px;
+      width: 960px;
       margin: 0 auto;
     }
     .diagram-container {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
     }
     /* Main Layers */
     .layer-card {
       background: #161b22;
       border: 1px solid #30363d;
       border-radius: 12px;
-      padding: 20px 22px;
+      padding: 18px 20px;
     }
     .layer-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
       padding-bottom: 12px;
       border-bottom: 1px solid #21262d;
     }
@@ -56,13 +56,20 @@
       border: 1px solid #30363d;
       background: #0d1117;
       color: #c9d1d9;
+      white-space: nowrap;
     }
-    /* 3 Column Grid */
+    /* 4 Column Grid for Top Layer */
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    /* 3 Column Grid for Bottom Layer */
     .grid-3 {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 12px;
-      margin-bottom: 14px;
     }
     .sub-card {
       background: #0d1117;
@@ -71,36 +78,42 @@
       padding: 12px 14px;
     }
     .sub-card-title {
-      font-size: 12.5px;
+      font-size: 12px;
       font-weight: 600;
       color: #ffffff;
       margin-bottom: 8px;
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .item-list {
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
     }
     .item-list li {
       font-size: 11px;
       color: #8b949e;
-      line-height: 1.4;
+      line-height: 1.35;
+      letter-spacing: -0.1px;
       display: flex;
       align-items: flex-start;
       gap: 6px;
+      white-space: nowrap;
     }
     .item-list li::before {
       content: "–";
       color: #6e7681;
+      flex-shrink: 0;
     }
     /* Convergence Bar */
     .convergence-bar {
       background: #0d1117;
       border: 1px solid #30363d;
       border-radius: 6px;
-      padding: 10px 14px;
+      padding: 9px 14px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -114,12 +127,12 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 4px;
-      padding: 2px 0;
+      gap: 3px;
+      padding: 1px 0;
     }
     .xpc-line {
       width: 1px;
-      height: 12px;
+      height: 10px;
       background: #484f58;
     }
     .xpc-pill {
@@ -138,12 +151,6 @@
       color: #ffffff;
       font-weight: 600;
     }
-    /* 2 Column Grid for Daemon */
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
   </style>
 </head>
 <body>
@@ -159,11 +166,11 @@
         <span class="tag">100% Unprivileged User-Space (No Root / No sudo / SIP On)</span>
       </div>
 
-      <div class="grid-3">
+      <div class="grid-4">
         <div class="sub-card">
           <div class="sub-card-title">IOReport Energy</div>
           <ul class="item-list">
-            <li>Private energy channel subscription</li>
+            <li>Private energy channel subscriptions</li>
             <li>CPU · GPU · ANE real-time mW</li>
             <li>4-second EMA smoothing filter</li>
           </ul>
@@ -183,7 +190,16 @@
           <ul class="item-list">
             <li>host_statistics64 memory pressure</li>
             <li>host_processor_info core ticks</li>
-            <li>sysctl(hw.perflevel) cluster GHz</li>
+            <li>sysctl(hw.perflevel) cluster clocks</li>
+          </ul>
+        </div>
+
+        <div class="sub-card">
+          <div class="sub-card-title">Shortcuts (App Intents)</div>
+          <ul class="item-list">
+            <li>Charge limit & Sailing mode control</li>
+            <li>Real-time battery & power telemetry</li>
+            <li>Native Shortcuts & Siri automation</li>
           </ul>
         </div>
       </div>
@@ -202,31 +218,41 @@
       <div class="xpc-line"></div>
     </div>
 
-    <!-- Bottom Layer: WattlyFanDaemon (Privileged Helper) -->
+    <!-- Bottom Layer: WattlyHelperDaemon (Privileged Helper) -->
     <div class="layer-card">
       <div class="layer-header">
         <div class="layer-title-group">
-          <span class="layer-title">WattlyFanDaemon</span>
-          <span class="layer-subtitle">(/Library/PrivilegedHelperTools)</span>
+          <span class="layer-title">WattlyHelperDaemon</span>
+          <span class="layer-subtitle">(dev.jjundev.WattlyFanDaemon)</span>
         </div>
-        <span class="tag">Isolated Root Helper (Active Only When Fan Control is Enabled)</span>
+        <span class="tag">Isolated Root Helper (Active Only When Fan or Battery Control is Enabled)</span>
       </div>
 
-      <div class="grid-2">
+      <div class="grid-3">
         <div class="sub-card">
-          <div class="sub-card-title">SMC Fan Target Write</div>
+          <div class="sub-card-title">SMC Fan Curve Control</div>
           <ul class="item-list">
             <li>F0Tg / F0md register write isolation</li>
-            <li>48°C–55°C Zero-RPM Hysteresis hold band</li>
+            <li>48°C–55°C Zero-RPM Hysteresis band</li>
             <li>Quiet · Balanced · Performance spline curves</li>
           </ul>
         </div>
 
         <div class="sub-card">
-          <div class="sub-card-title">Hardware Failsafes</div>
+          <div class="sub-card-title">SMC Battery Management</div>
           <ul class="item-list">
-            <li>Automatic 100% max RPM override at 100°C</li>
-            <li>Auto-return to macOS kernel control on sleep/exit</li>
+            <li>CHTE (Tahoe/M5) · CH0B/CH0C (Legacy)</li>
+            <li>CHIE (Discharge) · BCLM (Intel) control</li>
+            <li>35°C thermal safety & Sailing mode</li>
+          </ul>
+        </div>
+
+        <div class="sub-card">
+          <div class="sub-card-title">Hardware Safety & Verified Release</div>
+          <ul class="item-list">
+            <li>100°C emergency max RPM override</li>
+            <li>15-second heartbeat watchdog safety</li>
+            <li>Verified Release state restoration on exit</li>
           </ul>
         </div>
       </div>
