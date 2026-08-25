@@ -722,6 +722,71 @@ import AppKit
         #expect(BatterySectionPresentation.upcomingScheduleText(schedule: nil, triggerDate: triggerDate) == nil)
         #expect(BatterySectionPresentation.upcomingScheduleText(schedule: schedule, triggerDate: nil) == nil)
     }
+
+    // MARK: - Discharge Presentation
+
+    @Test func dischargeIndicatorProperties() {
+        #expect(BatterySectionPresentation.Indicator.discharging.symbolName == "arrow.down.circle.fill")
+        #expect(BatterySectionPresentation.Indicator.discharging.tone == .orange)
+    }
+
+    @Test func dischargePresentationText() {
+        let textKo = BatterySectionPresentation.dischargeDescription(target: 70, currentSoC: 85, watts: -18.4, locale: ko)
+        #expect(textKo.contains("70%"))
+        #expect(textKo.contains("85%"))
+        #expect(textKo.contains("-18.4 W"))
+
+        let textEn = BatterySectionPresentation.dischargeDescription(target: 70, currentSoC: 85, watts: -18.4, locale: en)
+        #expect(textEn.contains("70%"))
+        #expect(textEn.contains("85%"))
+        #expect(textEn.contains("-18.4 W"))
+    }
+
+    @Test func estimatedDischargeTimeCalculation() {
+        // 85% -> 70% with 70Wh capacity at 18.4W: delta = 15% of 70Wh = 10.5Wh; 10.5 / 18.4 * 60 = 34.23 min -> 34 min
+        let koTime = BatterySectionPresentation.estimatedDischargeTime(
+            currentSoC: 85,
+            targetSoC: 70,
+            netWatts: 18.4,
+            capacityWh: 70.0,
+            locale: ko
+        )
+        #expect(koTime == "약 34분 남음")
+
+        let enTime = BatterySectionPresentation.estimatedDischargeTime(
+            currentSoC: 85,
+            targetSoC: 70,
+            netWatts: -18.4,
+            capacityWh: 70.0,
+            locale: en
+        )
+        #expect(enTime == "About 34 min remaining")
+
+        // Already at or below target
+        #expect(BatterySectionPresentation.estimatedDischargeTime(
+            currentSoC: 70, targetSoC: 70, netWatts: 18.4, capacityWh: 70.0, locale: ko) == nil)
+        #expect(BatterySectionPresentation.estimatedDischargeTime(
+            currentSoC: 60, targetSoC: 70, netWatts: 18.4, capacityWh: 70.0, locale: ko) == nil)
+
+        // Idle power (< 0.5W)
+        #expect(BatterySectionPresentation.estimatedDischargeTime(
+            currentSoC: 85, targetSoC: 70, netWatts: 0.1, capacityWh: 70.0, locale: ko) == nil)
+    }
+
+    @Test func dischargeAndPowerFlowLabels() {
+        #expect(BatterySectionPresentation.adapterPowerBlockedText(locale: ko) == "0.0 W (차단됨)")
+        #expect(BatterySectionPresentation.adapterPowerBlockedText(locale: en) == "0.0 W (Blocked)")
+
+        #expect(BatterySectionPresentation.topUpHoldText(locale: ko) == "완충 완료 (어댑터 전원 구동)")
+        #expect(BatterySectionPresentation.topUpHoldText(locale: en) == "Top-Up Complete (Adapter Power)")
+
+        #expect(BatterySectionPresentation.forcedDischargeText(locale: ko) == "배터리 강제 방전 중 ⚡")
+        #expect(BatterySectionPresentation.forcedDischargeText(locale: en) == "Forced Battery Discharge ⚡")
+
+        #expect(BatterySectionPresentation.startDischargeButtonText(targetSoC: 70, locale: ko) == "70%까지 방전 시작")
+        #expect(BatterySectionPresentation.startDischargeButtonText(targetSoC: 70, locale: en) == "Start discharge to 70%")
+    }
 }
+
 
 

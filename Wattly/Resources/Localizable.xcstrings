@@ -58741,6 +58741,312 @@
           }
         }
       }
+    },
+    "수동 방전": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manual Discharge"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "수동 방전"
+          }
+        }
+      }
+    },
+    "자동 방전": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto Discharge"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "자동 방전"
+          }
+        }
+      }
+    },
+    "충전 한도를 현재 잔량보다 낮게 변경하면 별도 조작 없이 자동으로 한도까지 방전합니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatically discharge to the limit when a lower charge limit is set."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "충전 한도를 현재 잔량보다 낮게 변경하면 별도 조작 없이 자동으로 한도까지 방전합니다."
+          }
+        }
+      }
+    },
+    "원하는 목표 잔량까지 배터리를 전원 어댑터 연결 상태에서 강제로 방전합니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forcefully discharge the battery to your target while connected to power adapter."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원하는 목표 잔량까지 배터리를 전원 어댑터 연결 상태에서 강제로 방전합니다."
+          }
+        }
+      }
+    },
+    "목표 방전 잔량": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Target Discharge Level"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "목표 방전 잔량"
+          }
+        }
+      }
+    },
+    "%d%%까지 방전 시작": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start discharge to %d%%"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d%%까지 방전 시작"
+          }
+        }
+      }
+    },
+    "%lld%%까지 방전 시작": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start discharge to %lld%%"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld%%까지 방전 시작"
+          }
+        }
+      }
+    },
+    "방전 시작": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start Discharge"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "방전 시작"
+          }
+        }
+      }
+    },
+    "방전 중지": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop Discharge"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "방전 중지"
+          }
+        }
+      }
+    },
+    "수동 방전 진행 중 (%d%% → %d%%)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discharging in progress (%d%% → %d%%)"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "수동 방전 진행 중 (%d%% → %d%%)"
+          }
+        }
+      }
+    },
+    "수동 방전 진행 중 (%lld%% → %lld%%)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discharging in progress (%lld%% → %lld%%)"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "수동 방전 진행 중 (%lld%% → %lld%%)"
+          }
+        }
+      }
+    },
+    "목표치(%d%%)까지 방전 중": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discharging to target (%d%%)"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "목표치(%d%%)까지 방전 중"
+          }
+        }
+      }
+    },
+    "목표치(%lld%%)까지 방전 중": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discharging to %lld%%"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "목표치(%lld%%)까지 방전 중"
+          }
+        }
+      }
+    },
+    "수동 방전 중 (%lld%%까지 방전)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manual discharge in progress (Discharging to %lld%%)"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "수동 방전 중 (%lld%%까지 방전)"
+          }
+        }
+      }
+    },
+    "배터리 강제 방전 중 ⚡": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forced Battery Discharge ⚡"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "배터리 강제 방전 중 ⚡"
+          }
+        }
+      }
+    },
+    "0.0 W (차단됨)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "0.0 W (Blocked)"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "0.0 W (차단됨)"
+          }
+        }
+      }
+    },
+    "완충 완료 (어댑터 전원 구동)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Top-Up Complete (Adapter Power)"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "완충 완료 (어댑터 전원 구동)"
+          }
+        }
+      }
+    },
+    "한 번만 완충 유지 중 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Top Up held at 100% (Holding at 100%, normal limit restores on unplug)"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "한 번만 완충 유지 중 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)"
+          }
+        }
+      }
     }
   }
 }

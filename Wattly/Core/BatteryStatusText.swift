@@ -83,8 +83,10 @@ enum BatteryStatusText {
                           locale: locale, remaining)
         case .topUpCharging:
             return String(localized: "한 번만 완충 중 (100%까지 충전)", locale: locale)
-        case .topUpComplete, .topUpHeldAtMax:
+        case .topUpComplete:
             return String(localized: "한 번만 완충 완료 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)", locale: locale)
+        case .topUpHeldAtMax:
+            return String(localized: "한 번만 완충 유지 중 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)", locale: locale)
         case .dischargingToTarget:
             return String(format: String(localized: "목표치(%lld%%)까지 방전 중", locale: locale),
                           locale: locale, target)
