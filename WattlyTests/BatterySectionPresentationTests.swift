@@ -732,14 +732,10 @@ import AppKit
 
     @Test func dischargePresentationText() {
         let textKo = BatterySectionPresentation.dischargeDescription(target: 70, currentSoC: 85, watts: -18.4, locale: ko)
-        #expect(textKo.contains("70%"))
-        #expect(textKo.contains("85%"))
-        #expect(textKo.contains("-18.4 W"))
+        #expect(textKo == "수동 방전 진행 중")
 
         let textEn = BatterySectionPresentation.dischargeDescription(target: 70, currentSoC: 85, watts: -18.4, locale: en)
-        #expect(textEn.contains("70%"))
-        #expect(textEn.contains("85%"))
-        #expect(textEn.contains("-18.4 W"))
+        #expect(textEn == "Manual discharge in progress")
     }
 
     @Test func estimatedDischargeTimeCalculation() {
@@ -780,8 +776,8 @@ import AppKit
         #expect(BatterySectionPresentation.topUpHoldText(locale: ko) == "완충 완료 (어댑터 전원 구동)")
         #expect(BatterySectionPresentation.topUpHoldText(locale: en) == "Top-Up Complete (Adapter Power)")
 
-        #expect(BatterySectionPresentation.forcedDischargeText(locale: ko) == "배터리 (강제 방전 중)")
-        #expect(BatterySectionPresentation.forcedDischargeText(locale: en) == "Battery (Forced Discharge)")
+        #expect(BatterySectionPresentation.forcedDischargeText(locale: ko) == "배터리 (수동 방전 중)")
+        #expect(BatterySectionPresentation.forcedDischargeText(locale: en) == "Battery (Manual Discharge)")
 
         #expect(BatterySectionPresentation.startDischargeButtonText(targetSoC: 70, locale: ko) == "방전 시작")
         #expect(BatterySectionPresentation.startDischargeButtonText(targetSoC: 70, locale: en) == "Start Discharge")

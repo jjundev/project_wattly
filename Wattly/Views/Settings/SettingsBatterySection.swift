@@ -724,7 +724,7 @@ struct SettingsBatterySection: View {
                                 Circle()
                                     .fill(Tokens.statusOrange)
                                     .frame(width: 7, height: 7)
-                                Text("수동 방전 진행 중 (\(currentSoC)% → \(target)%)")
+                                Text(LocalizedStringKey("수동 방전 진행 중"))
                                     .font(WattlyFont.at(11.5, weight: .semibold))
                                     .foregroundStyle(Tokens.statusOrange)
                             }
@@ -797,18 +797,20 @@ struct SettingsBatterySection: View {
                                 )
                             }
                         } label: {
-                            Text("\(manualDischargeTarget)%까지 방전 시작")
+                            Text(verbatim: BatterySectionPresentation.startDischargeButtonText(
+                                targetSoC: manualDischargeTarget,
+                                locale: locale))
                                 .font(WattlyFont.at(11.5, weight: .semibold))
-                                .foregroundStyle(canStartDischarge ? Tokens.statusOrange : t.faint)
+                                .foregroundStyle(t.sub)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 5)
                                 .background(
                                     RoundedRectangle(cornerRadius: 6)
-                                        .fill(canStartDischarge ? Tokens.statusOrange.opacity(0.15) : t.segTrack)
+                                        .fill(t.segTrack)
                                 )
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 6)
-                                        .stroke(canStartDischarge ? Tokens.statusOrange.opacity(0.35) : t.rowBorder, lineWidth: 1)
+                                        .stroke(t.rowBorder, lineWidth: 1)
                                 )
                         }
                         .buttonStyle(.plain)

@@ -715,7 +715,7 @@ struct CardPresentationTests {
         #expect(CardPresentation.powerSourceText(.charging) == "전원 어댑터")
         #expect(CardPresentation.powerSourceText(.adapterBypass) == "전원 어댑터")
         #expect(CardPresentation.powerSourceText(.batteryOnly) == "배터리")
-        #expect(CardPresentation.powerSourceText(.activeDischarge) == "배터리 (강제 방전 중)")
+        #expect(CardPresentation.powerSourceText(.activeDischarge) == "배터리 (수동 방전 중)")
         #expect(CardPresentation.powerSourceText(.powerAssist) == "전원 어댑터 및 배터리")
     }
 
@@ -738,7 +738,7 @@ struct CardPresentationTests {
         )
         let state = MetricState.value(.battery(dischargeSample))
         #expect(CardPresentation.thresholdLevel(.battery, state, Defaults.thresholds) == .warn)
-        #expect(CardPresentation.subText(state) == "수동 방전 진행 중 (85% → 70%) · -18.4 W")
+        #expect(CardPresentation.subText(state) == "수동 방전 진행 중")
         #expect(dischargeSample.percentage == 85)
     }
 

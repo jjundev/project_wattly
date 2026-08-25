@@ -486,14 +486,17 @@ struct LocalizationTests {
         #expect(String(localized: "방전 중지", locale: en) == "Stop Discharge")
         #expect(String(localized: "방전 중지", locale: ko) == "방전 중지")
 
+        #expect(String(localized: "수동 방전 진행 중", locale: en) == "Manual discharge in progress")
+        #expect(String(localized: "수동 방전 진행 중", locale: ko) == "수동 방전 진행 중")
+
         #expect(String(localized: "수동 방전 진행 중 (%d%% → %d%%)", locale: en) == "Discharging in progress (%d%% → %d%%)")
         #expect(String(localized: "수동 방전 진행 중 (%d%% → %d%%)", locale: ko) == "수동 방전 진행 중 (%d%% → %d%%)")
 
         #expect(String(localized: "목표치(%d%%)까지 방전 중", locale: en) == "Discharging to target (%d%%)")
         #expect(String(localized: "목표치(%d%%)까지 방전 중", locale: ko) == "목표치(%d%%)까지 방전 중")
 
-        #expect(String(localized: "배터리 (강제 방전 중)", locale: en) == "Battery (Forced Discharge)")
-        #expect(String(localized: "배터리 (강제 방전 중)", locale: ko) == "배터리 (강제 방전 중)")
+        #expect(String(localized: "배터리 (수동 방전 중)", locale: en) == "Battery (Manual Discharge)")
+        #expect(String(localized: "배터리 (수동 방전 중)", locale: ko) == "배터리 (수동 방전 중)")
 
         #expect(String(localized: "0.0 W (차단됨)", locale: en) == "0.0 W (Blocked)")
         #expect(String(localized: "0.0 W (차단됨)", locale: ko) == "0.0 W (차단됨)")

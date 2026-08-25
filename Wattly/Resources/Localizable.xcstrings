@@ -58980,19 +58980,36 @@
         }
       }
     },
-    "배터리 (강제 방전 중)": {
+    "수동 방전 진행 중": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Battery (Forced Discharge)"
+            "value": "Manual discharge in progress"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "배터리 (강제 방전 중)"
+            "value": "수동 방전 진행 중"
+          }
+        }
+      }
+    },
+    "배터리 (수동 방전 중)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Battery (Manual Discharge)"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "배터리 (수동 방전 중)"
           }
         }
       }

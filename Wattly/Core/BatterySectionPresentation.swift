@@ -431,21 +431,14 @@ enum BatterySectionPresentation {
         return String(format: String(localized: "약 %@ 남음", locale: locale), locale: locale, duration)
     }
 
-    /// Format discharge status description (e.g. "수동 방전 진행 중 (85% → 70%) · -18.4 W")
+    /// Format discharge status description (e.g. "수동 방전 진행 중", "Manual discharge in progress")
     static func dischargeDescription(
-        target: Int,
-        currentSoC: Int,
-        watts: Double,
+        target _: Int = 0,
+        currentSoC _: Int = 0,
+        watts _: Double = 0,
         locale: Locale = Locale(identifier: "ko")
     ) -> String {
-        let progress = String(
-            format: String(localized: "수동 방전 진행 중 (%d%% → %d%%)", locale: locale),
-            locale: locale,
-            currentSoC,
-            target
-        )
-        let wattsStr = String(format: "%.1f W", watts)
-        return "\(progress) · \(wattsStr)"
+        String(localized: "수동 방전 진행 중", locale: locale)
     }
 
     /// Blocked adapter power text during forced discharge (e.g. "0.0 W (차단됨)", "0.0 W (Blocked)")
@@ -458,9 +451,9 @@ enum BatterySectionPresentation {
         String(localized: "완충 완료 (어댑터 전원 구동)", locale: locale)
     }
 
-    /// Forced discharge label (e.g. "배터리 (강제 방전 중)", "Battery (Forced Discharge)")
+    /// Forced discharge label (e.g. "배터리 (수동 방전 중)", "Battery (Manual Discharge)")
     static func forcedDischargeText(locale: Locale = Locale(identifier: "ko")) -> String {
-        String(localized: "배터리 (강제 방전 중)", locale: locale)
+        String(localized: "배터리 (수동 방전 중)", locale: locale)
     }
 
     /// Start discharge button label (e.g. "방전 시작", "Start Discharge")
