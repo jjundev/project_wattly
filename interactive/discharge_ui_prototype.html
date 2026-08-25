@@ -1232,22 +1232,24 @@
                   <button class="action-btn-pill">비활성화됨</button>
                 </div>
 
-                <!-- Discharge Action in Popover (Syncs with slider target) -->
-                <div class="popover-action-row">
-                  <div style="display: flex; align-items: center; gap: 4px;">
-                    <span class="detail-row-label">수동 방전 (${manualTarget}%)</span>
-                    ${isDischarging ? '<div class="pulsing-dot"></div>' : ''}
+                <!-- Discharge Action in Popover (Only shown when discharging or currentSoC > manualTarget) -->
+                ${(isDischarging || state.currentSoC > manualTarget) ? `
+                  <div class="popover-action-row">
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                      <span class="detail-row-label">수동 방전 (${manualTarget}%)</span>
+                      ${isDischarging ? '<div class="pulsing-dot"></div>' : ''}
+                    </div>
+                    ${isDischarging ? `
+                      <button class="action-btn-pill active-red" onclick="stopManualDischarge()">
+                        방전 중지
+                      </button>
+                    ` : `
+                      <button class="action-btn-pill active-orange" onclick="startManualDischarge(${manualTarget})">
+                        ${manualTarget}%까지 방전
+                      </button>
+                    `}
                   </div>
-                  ${isDischarging ? `
-                    <button class="action-btn-pill active-red" onclick="stopManualDischarge()">
-                      방전 중지
-                    </button>
-                  ` : `
-                    <button class="action-btn-pill ${state.currentSoC > manualTarget ? 'active-orange' : ''}" ${state.currentSoC <= manualTarget ? 'disabled' : ''} onclick="startManualDischarge(${manualTarget})">
-                      ${manualTarget}%까지 방전
-                    </button>
-                  `}
-                </div>
+                ` : ''}
               </div>
             ` : ''}
           </div>

@@ -321,10 +321,20 @@ struct CardExpandRegion: View {
             if let batteryControl, s.charging || batteryControl.status.isPowerAdapterConnected || s.externalConnected {
                 Divider().background(t.line).opacity(0.6)
                 batteryTopUpRow(batteryControl, s)
-                batteryDischargeRow(batteryControl, s)
+                if shouldShowDischargeRow(batteryControl, s) {
+                    batteryDischargeRow(batteryControl, s)
+                }
             }
         }
         .padding(.top, 8)
+    }
+
+    private func shouldShowDischargeRow(_ batteryControl: BatteryControlClient, _ s: BatterySample) -> Bool {
+        let isDischarging = batteryControl.status.activity == .discharging
+            || batteryControl.status.desiredConfiguration?.manualDischargeActive == true
+        if isDischarging { return true }
+        let currentSoC = s.percentage ?? batteryControl.status.currentPercentage
+        return currentSoC > manualDischargeTarget
     }
 
     @ViewBuilder
