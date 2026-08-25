@@ -118,7 +118,7 @@ struct SettingsDisplaySection: View {
                                       disabledReason: monitor.isPresent(.battery) ? nil : "이 Mac에서는 사용할 수 없습니다") {
                         VStack(alignment: .leading, spacing: 2) {
                             SettingsRowTitle("수동 방전 보기")
-                            Text("배터리 잔량이 목표치보다 높을 때 수동 방전 버튼을 표시합니다.")
+                            Text("배터리 카드에서 목표 잔량까지 수동 방전 버튼을 표시합니다. 배터리 잔량이 목표치보다 높을 때만 표시됩니다.")
                                 .font(WattlyFont.at(11.5, weight: .regular))
                                 .foregroundStyle(t.faint)
                             if !monitor.isPresent(.battery) {
