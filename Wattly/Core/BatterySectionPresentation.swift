@@ -484,5 +484,22 @@ enum BatterySectionPresentation {
             || manualDischargeActive
             || powerFlowScenario == .activeDischarge
     }
+
+    /// Gate for showing battery control rows (Top-up, Discharge) in the expanded battery card.
+    /// Returns true if power adapter is connected or active discharge/top-up is underway/requested.
+    static func shouldShowBatteryControlRows(
+        sampleCharging: Bool,
+        sampleExternalConnected: Bool,
+        serviceAdapterConnected: Bool,
+        activity: BatteryControlActivity?,
+        manualDischargeActive: Bool
+    ) -> Bool {
+        sampleCharging
+            || sampleExternalConnected
+            || serviceAdapterConnected
+            || activity == .discharging
+            || activity == .topUp
+            || manualDischargeActive
+    }
 }
 

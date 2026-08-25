@@ -828,6 +828,44 @@ import AppKit
             powerFlowScenario: nil
         ))
     }
+
+    @Test func batteryControlRowsVisibilityPolicy() {
+        // 1. Normal plugged in with adapter connected -> true
+        #expect(BatterySectionPresentation.shouldShowBatteryControlRows(
+            sampleCharging: false,
+            sampleExternalConnected: true,
+            serviceAdapterConnected: true,
+            activity: .holdingAtLimit,
+            manualDischargeActive: false
+        ))
+
+        // 2. Active forced discharge -> true
+        #expect(BatterySectionPresentation.shouldShowBatteryControlRows(
+            sampleCharging: false,
+            sampleExternalConnected: false,
+            serviceAdapterConnected: false,
+            activity: .discharging,
+            manualDischargeActive: true
+        ))
+
+        // 3. Forced discharge stop transition (activity holding, desired config active) -> true
+        #expect(BatterySectionPresentation.shouldShowBatteryControlRows(
+            sampleCharging: false,
+            sampleExternalConnected: false,
+            serviceAdapterConnected: false,
+            activity: .holdingAtLimit,
+            manualDischargeActive: true
+        ))
+
+        // 4. Pure battery unplugged (all false) -> false
+        #expect(!BatterySectionPresentation.shouldShowBatteryControlRows(
+            sampleCharging: false,
+            sampleExternalConnected: false,
+            serviceAdapterConnected: false,
+            activity: nil,
+            manualDischargeActive: false
+        ))
+    }
 }
 
 

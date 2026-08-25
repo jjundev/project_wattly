@@ -332,11 +332,21 @@ struct CardExpandRegion: View {
                 }
             }
 
-            if let batteryControl, s.charging || batteryControl.status.isPowerAdapterConnected || s.externalConnected {
-                Divider().background(t.line).opacity(0.6)
-                batteryTopUpRow(batteryControl, s)
-                if shouldShowDischargeRow(batteryControl, s) {
-                    batteryDischargeRow(batteryControl, s)
+            if let batteryControl {
+                let showControlRows = BatterySectionPresentation.shouldShowBatteryControlRows(
+                    sampleCharging: s.charging,
+                    sampleExternalConnected: s.externalConnected,
+                    serviceAdapterConnected: batteryControl.status.isPowerAdapterConnected,
+                    activity: batteryControl.status.activity,
+                    manualDischargeActive: batteryControl.status.desiredConfiguration?.manualDischargeActive == true
+                )
+
+                if showControlRows {
+                    Divider().background(t.line).opacity(0.6)
+                    batteryTopUpRow(batteryControl, s)
+                    if shouldShowDischargeRow(batteryControl, s) {
+                        batteryDischargeRow(batteryControl, s)
+                    }
                 }
             }
         }
