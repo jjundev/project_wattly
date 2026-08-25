@@ -517,6 +517,10 @@ struct LocalizationTests {
         #expect(String(localized: "한 번만 완충 보기", locale: ko) == "한 번만 완충 보기")
         #expect(String(localized: "수동 방전 보기", locale: en) == "Show Manual Discharge")
         #expect(String(localized: "수동 방전 보기", locale: ko) == "수동 방전 보기")
+        #expect(String(localized: "배터리 잔량이 목표치보다 높을 때 수동 방전 버튼을 표시합니다.", locale: en)
+                == "Displays the manual discharge button when the battery is above the target level.")
+        #expect(String(localized: "배터리 잔량이 목표치보다 높을 때 수동 방전 버튼을 표시합니다.", locale: ko)
+                == "배터리 잔량이 목표치보다 높을 때 수동 방전 버튼을 표시합니다.")
     }
 }
 

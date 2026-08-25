@@ -59804,6 +59804,191 @@
           }
         }
       }
+    },
+    "배터리 잔량이 목표치보다 높을 때 수동 방전 버튼을 표시합니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يعرض زر التفريغ اليدوي عندما يكون مستوى البطارية أعلى من المستوى المستهدف."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zobrazuje tlačítko ručního vybití, když je stav baterie nad cílovou úrovní."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viser knappen til manuel afladning, når batteriniveauet er over målniveauet."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeigt die Schaltfläche zum manuellen Entladen an, wenn der Akkustand über dem Zielwert liegt."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Εμφανίζει το κουμπί χειροκίνητης εκφόρτισης όταν η στάθμη της μπαταρίας είναι πάνω από το επίπεδο-στόχο."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Displays the manual discharge button when the battery is above the target level."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muestra el botón de descarga manual cuando la batería está por encima del nivel objetivo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näyttää manuaalisen purkamisen painikkeen, kun akun varaustaso on tavoitetason yläpuolella."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Affiche le bouton de décharge manuelle lorsque le niveau de batterie est supérieur à la cible."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "מציג את כפתור הפריקה הידנית כאשר רמת הסוללה מעל לרמת היעד."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बैटरी का स्तर लक्ष्य से अधिक होने पर मैन्युअल डिस्चार्ज बटन प्रदर्शित करता है।"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Megjeleníti a kézi lemerítés gombot, ha az akkumulátor töltöttsége meghaladja a cél szintet."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menampilkan tombol pengosongan manual saat daya baterai berada di atas target."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra il pulsante di scarica manuale quando la batteria è al di sopra del livello target."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バッテリー残量が目標値より高いときに手動放電ボタンを表示します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "배터리 잔량이 목표치보다 높을 때 수동 방전 버튼을 표시합니다."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viser knappen for manuell utlading når batterinivået er over målnivået."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toont de knop voor handmatig ontladen wanneer het batterijniveau hoger is dan het doel."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wyświetla przycisk ręcznego rozładowywania, gdy poziom baterii jest wyższy niż docelowy."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exibe o botão de descarga manual quando a bateria estiver acima do nível desejado."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apresenta o botão de descarregamento manual quando a bateria estiver acima do nível pretendido."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afișează butonul de descărcare manuală când nivelul bateriei este peste valoarea țintă."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показывает кнопку ручной разрядки, когда уровень заряда выше целевого."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visar knappen för manuell urladdning när batterinivån är över målnivån."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "แสดงปุ่มคายประจุด้วยตนเองเมื่อระดับแบตเตอรี่สูงกว่าเป้าหมาย"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pil seviyesi hedef değerin üzerindeyken manuel deşarj düğmesini gösterir."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показує кнопку ручного розряджання, коли рівень заряду перевищує цільовий."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiển thị nút xả pin thủ công khi mức pin cao hơn mục tiêu."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当电池电量高于目标值时显示手动放电按钮。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "當電池電量高於目標值時顯示手動放電按鈕。"
+          }
+        }
+      }
     }
   }
 }
