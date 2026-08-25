@@ -244,7 +244,7 @@ struct CardExpandRegion: View {
         VStack(alignment: .leading, spacing: 10) {
             // [범주 1] 전원 공급 및 소비 전력 — 어댑터 연결 시에만 노출
             if s.externalConnected, let flow = s.powerFlow {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 10) {
                     batteryDetailRow(
                         label: CardPresentation.powerSourceLabel,
                         value: CardPresentation.powerSourceText(flow.scenario, locale: locale)
@@ -262,7 +262,7 @@ struct CardExpandRegion: View {
             }
 
             // [범주 2] 실시간 전기 지표
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 10) {
                 if let value = CardPresentation.batteryAverage1mText(s) {
                     batteryDetailRow(label: CardPresentation.batteryAverage1mLabel, value: value)
                 }
@@ -276,7 +276,7 @@ struct CardExpandRegion: View {
             // [범주 3] 배터리 팩 건강 & 용량
             if s.remainingWh != nil || (showBatteryEfficiency && s.efficiencyPercent != nil) || s.cycleCount != nil {
                 Divider().background(t.line).opacity(0.6)
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 10) {
                     if let value = CardPresentation.batteryRemainingCapacityText(s) {
                         batteryDetailRow(label: CardPresentation.batteryRemainingCapacityLabel, value: value)
                     }
