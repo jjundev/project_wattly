@@ -637,7 +637,7 @@ struct BatteryControlEngineTests {
         // Re-plug above the resume threshold: the limit is working and no write is due, so the
         // engine must stop calling itself unsupported.
         mockHW.writeShouldFail = false
-        let healthy = engine.update(currentSoC: 90, isPluggedIn: true)
+        let healthy = engine.update(currentSoC: 85, isPluggedIn: true)
         #expect(healthy.mode == .inhibited)
         #expect(healthy.appliedLimitPercentage == 85)
     }
@@ -778,7 +778,7 @@ struct BatteryControlEngineTests {
         let mockHW = MockBatteryHardware()
         let engine = BatteryControlEngine(hardware: mockHW)
         engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
-        _ = engine.update(currentSoC: 90, isPluggedIn: true)
+        _ = engine.update(currentSoC: 85, isPluggedIn: true)
         #expect(mockHW.chargingInhibited)
 
         // Something cleared it while the Mac slept. No status field could reveal this.
@@ -806,14 +806,14 @@ struct BatteryControlEngineTests {
         let mockHW = MockBatteryHardware()
         let engine = BatteryControlEngine(hardware: mockHW)
         engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
-        _ = engine.update(currentSoC: 90, isPluggedIn: true)
+        _ = engine.update(currentSoC: 85, isPluggedIn: true)
         #expect(mockHW.chargingInhibited)
 
         mockHW.writeShouldFail = true
         engine.reassertHardwareState()
 
         // The register's real state is now unknown, so the engine must stop claiming health.
-        let parked = engine.update(currentSoC: 90, isPluggedIn: true)
+        let parked = engine.update(currentSoC: 85, isPluggedIn: true)
         #expect(parked.mode == .unsupported)
         #expect(parked.appliedLimitPercentage == nil)
     }
@@ -822,7 +822,7 @@ struct BatteryControlEngineTests {
         let mockHW = MockBatteryHardware()
         let engine = BatteryControlEngine(hardware: mockHW)
         engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 85))
-        _ = engine.update(currentSoC: 90, isPluggedIn: true)
+        _ = engine.update(currentSoC: 85, isPluggedIn: true)
         #expect(mockHW.chargingInhibited)
 
         // Disable while the release write keeps failing: the engine still believes it is inhibiting.
@@ -1154,19 +1154,310 @@ struct BatteryControlEngineTests {
     @Test func topUpCancelsImmediatelyRestoringNormalLimit() {
         let mockHW = MockBatteryHardware()
         let engine = BatteryControlEngine(hardware: mockHW)
-        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 80, topUpActive: true))
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 80, topUpActive: true, autoDischargeEnabled: false))
 
         // At 85% during Top Up: still charging
         _ = engine.update(currentSoC: 85, isPluggedIn: true)
         #expect(mockHW.isInhibited == false)
 
         // User cancels Top Up: configuration re-applied with topUpActive: false
-        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 80, topUpActive: false))
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 80, topUpActive: false, autoDischargeEnabled: false))
         let afterCancel = engine.update(currentSoC: 85, isPluggedIn: true)
 
-        // Since currentSoC (85%) >= normal limit (80%), charging is immediately inhibited
+        // Since currentSoC (85%) >= normal limit (80%) and autoDischargeEnabled is false, charging is immediately inhibited
         #expect(afterCancel.mode == .inhibited)
         #expect(afterCancel.activity == .holdingAtLimit)
         #expect(mockHW.isInhibited == true)
+    }
+
+    @Test func manualDischargeTransitionsToTargetAndHoldsAtLimit() {
+        let mockHardware = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHardware)
+        engine.configure(BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            manualDischargeActive: true,
+            manualDischargeTarget: 70
+        ))
+
+        // 1. Above target (85% > 70%) -> Engages manual discharge
+        let status1 = engine.update(currentSoC: 85, isPluggedIn: true)
+        #expect(status1.activity == .discharging)
+        #expect(status1.detailReason?.kind == .dischargingManual)
+        #expect(status1.detailReason?.limitPercentage == 70)
+        #expect(mockHardware.isDischargeActive == true)
+        #expect(mockHardware.isInhibited == false)
+
+        // 2. Drops to 75% -> Still discharging
+        let status2 = engine.update(currentSoC: 75, isPluggedIn: true)
+        #expect(status2.activity == .discharging)
+        #expect(status2.detailReason?.kind == .dischargingManual)
+        #expect(mockHardware.isDischargeActive == true)
+
+        // 3. Reaches target (70%) -> Completes discharge and holds at limit
+        let status3 = engine.update(currentSoC: 70, isPluggedIn: true)
+        #expect(status3.activity == .holdingAtLimit)
+        #expect(status3.detailReason?.kind == .inhibitedAtLimit)
+        #expect(status3.detailReason?.limitPercentage == 70)
+        #expect(mockHardware.isDischargeActive == false)
+        #expect(mockHardware.isInhibited == true)
+
+        // 4. Below target (69%) -> Stays holding at limit
+        let status4 = engine.update(currentSoC: 69, isPluggedIn: true)
+        #expect(status4.activity == .holdingAtLimit)
+        #expect(mockHardware.isDischargeActive == false)
+        #expect(mockHardware.isInhibited == true)
+    }
+
+    @Test func autoDischargeEngagesAboveLimitPlusOneAndCompletesAtLimit() {
+        let mockHardware = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHardware)
+        engine.configure(BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            autoDischargeEnabled: true
+        ))
+
+        // 1. At 81% (limit 80 + 1) -> Does NOT auto-discharge yet (hysteresis threshold)
+        let s81 = engine.update(currentSoC: 81, isPluggedIn: true)
+        #expect(s81.activity == .holdingAtLimit)
+        #expect(mockHardware.isDischargeActive == false)
+        #expect(mockHardware.isInhibited == true)
+
+        // 2. At 82% (> limit 80 + 1) -> Auto-discharge engages!
+        let s82 = engine.update(currentSoC: 82, isPluggedIn: true)
+        #expect(s82.activity == .discharging)
+        #expect(s82.detailReason?.kind == .dischargingToTarget)
+        #expect(s82.detailReason?.limitPercentage == 80)
+        #expect(mockHardware.isDischargeActive == true)
+        #expect(mockHardware.isInhibited == false)
+
+        // 3. Descending at 81% -> Stays discharging until reaching limit
+        let s81Desc = engine.update(currentSoC: 81, isPluggedIn: true)
+        #expect(s81Desc.activity == .discharging)
+        #expect(s81Desc.detailReason?.kind == .dischargingToTarget)
+        #expect(mockHardware.isDischargeActive == true)
+
+        // 4. Reaches limit (80%) -> Auto discharge completes, transitions to holdingAtLimit
+        let s80 = engine.update(currentSoC: 80, isPluggedIn: true)
+        #expect(s80.activity == .holdingAtLimit)
+        #expect(s80.detailReason?.kind == .inhibitedAtLimit)
+        #expect(s80.detailReason?.limitPercentage == 80)
+        #expect(mockHardware.isDischargeActive == false)
+        #expect(mockHardware.isInhibited == true)
+    }
+
+    @Test func autoDischargeDisabledDoesNotDischarge() {
+        let mockHardware = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHardware)
+        engine.configure(BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            autoDischargeEnabled: false
+        ))
+
+        let status = engine.update(currentSoC: 85, isPluggedIn: true)
+        #expect(status.activity == .holdingAtLimit)
+        #expect(mockHardware.isDischargeActive == false)
+        #expect(mockHardware.isInhibited == true)
+    }
+
+    @Test func thermalProtectionOverridesManualAndAutoDischarge() {
+        let mockHardware = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHardware)
+        engine.configure(BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            heatProtectionEnabled: true,
+            heatProtectionThresholdCelsius: 35,
+            manualDischargeActive: true,
+            manualDischargeTarget: 70
+        ))
+
+        // Normal temp: manual discharge active
+        let cool = engine.update(currentSoC: 85, isPluggedIn: true, temperatureCelsius: 30.0)
+        #expect(cool.activity == .discharging)
+        #expect(mockHardware.isDischargeActive == true)
+
+        // Heat protection triggers at 36°C: immediately cancels discharge and inhibits charging
+        let hot = engine.update(currentSoC: 85, isPluggedIn: true, temperatureCelsius: 36.0)
+        #expect(hot.activity == .heatProtection)
+        #expect(hot.detailReason?.kind == .heatProtectionActive)
+        #expect(mockHardware.isDischargeActive == false)
+        #expect(mockHardware.isInhibited == true)
+    }
+
+    @Test func lowSoCCancelsDischargeImmediately() {
+        let mockHardware = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHardware)
+        engine.configure(BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            manualDischargeActive: true,
+            manualDischargeTarget: 50
+        ))
+
+        // SoC < 15%: discharge cannot engage
+        let status = engine.update(currentSoC: 14, isPluggedIn: true)
+        #expect(status.activity != .discharging)
+        #expect(mockHardware.isDischargeActive == false)
+    }
+
+    @Test func topUpCompletesAt100AndHoldsWithoutAutoDischarging() {
+        let mockHardware = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHardware)
+        engine.configure(BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            topUpActive: true,
+            autoDischargeEnabled: true
+        ))
+
+        // 1. Top-Up charging to 100%
+        let s85 = engine.update(currentSoC: 85, isPluggedIn: true)
+        #expect(s85.activity == .topUp)
+        #expect(s85.detailReason?.kind == .topUpCharging)
+        #expect(mockHardware.isDischargeActive == false)
+        #expect(mockHardware.isInhibited == false)
+
+        // 2. Reaches 100%: completes top-up and holds at 100%
+        let s100 = engine.update(currentSoC: 100, isPluggedIn: true)
+        #expect(s100.activity == .topUp)
+        #expect(s100.detailReason?.kind == .topUpComplete)
+        #expect(mockHardware.isDischargeActive == false)
+        #expect(mockHardware.isInhibited == true)
+
+        // 3. Subsequent tick at 100%: stays holding at 100%, does NOT auto-discharge
+        let s100Hold = engine.update(currentSoC: 100, isPluggedIn: true)
+        #expect(s100Hold.activity == .topUp)
+        #expect(mockHardware.isDischargeActive == false)
+        #expect(mockHardware.isInhibited == true)
+    }
+
+    @Test func topUpHoldResetsOnUnplugAndAutoDischargeKicksInWhenReconnected() {
+        let mockHardware = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHardware)
+        engine.configure(BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            topUpActive: true,
+            autoDischargeEnabled: true
+        ))
+
+        // Complete top up at 100%
+        _ = engine.update(currentSoC: 100, isPluggedIn: true)
+
+        // Unplug: resets topUpCompletedHold
+        let sUnplug = engine.update(currentSoC: 95, isPluggedIn: false)
+        #expect(sUnplug.activity == .onBatteryPower)
+        #expect(mockHardware.isDischargeActive == false)
+
+        // User reconnects with topUpActive: false -> Auto-discharge activates!
+        engine.configure(BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            topUpActive: false,
+            autoDischargeEnabled: true
+        ))
+        let sReconnect = engine.update(currentSoC: 95, isPluggedIn: true)
+        #expect(sReconnect.activity == .discharging)
+        #expect(sReconnect.detailReason?.kind == .dischargingToTarget)
+        #expect(mockHardware.isDischargeActive == true)
+    }
+
+    @Test func topUpHoldResetsWhenLimitPercentageChanges() {
+        let mockHardware = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHardware)
+        engine.configure(BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            topUpActive: true,
+            autoDischargeEnabled: true
+        ))
+
+        // Complete top-up
+        _ = engine.update(currentSoC: 100, isPluggedIn: true)
+
+        // Limit changed from 80 to 75 and topUp cleared
+        engine.configure(BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 75,
+            topUpActive: false,
+            autoDischargeEnabled: true
+        ))
+
+        // Auto discharge kicks in at 95% down to 75%
+        let status = engine.update(currentSoC: 95, isPluggedIn: true)
+        #expect(status.activity == .discharging)
+        #expect(status.detailReason?.kind == .dischargingToTarget)
+        #expect(status.detailReason?.limitPercentage == 75)
+        #expect(mockHardware.isDischargeActive == true)
+    }
+
+    @Test func firstUpdateNormalizesDischargeState() {
+        let mockHardware = MockBatteryHardware()
+        mockHardware.isDischargeActive = true
+        let engine = BatteryControlEngine(hardware: mockHardware)
+        engine.configure(BatteryControlConfiguration(enabled: true, limitPercentage: 80))
+
+        _ = engine.update(currentSoC: 70, isPluggedIn: true)
+        #expect(mockHardware.isDischargeActive == false)
+    }
+
+    @Test func unpluggingCancelsActiveDischargeImmediately() {
+        let mockHardware = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHardware)
+        engine.configure(BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            manualDischargeActive: true,
+            manualDischargeTarget: 70
+        ))
+
+        _ = engine.update(currentSoC: 85, isPluggedIn: true)
+        #expect(mockHardware.isDischargeActive == true)
+
+        let status = engine.update(currentSoC: 85, isPluggedIn: false)
+        #expect(status.activity == .onBatteryPower)
+        #expect(mockHardware.isDischargeActive == false)
+    }
+
+    @Test func releaseAndReleaseVerifiedCancelDischarge() {
+        let mockHardware = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHardware)
+        engine.configure(BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            manualDischargeActive: true,
+            manualDischargeTarget: 70
+        ))
+
+        _ = engine.update(currentSoC: 85, isPluggedIn: true)
+        #expect(mockHardware.isDischargeActive == true)
+
+        engine.release()
+        #expect(mockHardware.isDischargeActive == false)
+
+        _ = engine.update(currentSoC: 85, isPluggedIn: true)
+        #expect(mockHardware.isDischargeActive == true)
+
+        _ = engine.releaseVerified()
+        #expect(mockHardware.isDischargeActive == false)
+    }
+
+    @Test func unsupportedDischargeHardwareDoesNotDischarge() {
+        let mockHardware = MockBatteryHardware()
+        mockHardware.registerSet = .intel
+        let engine = BatteryControlEngine(hardware: mockHardware)
+        engine.configure(BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            manualDischargeActive: true,
+            manualDischargeTarget: 70
+        ))
+
+        let status = engine.update(currentSoC: 85, isPluggedIn: true)
+        #expect(status.activity != .discharging)
+        #expect(mockHardware.isDischargeActive == false)
     }
 }

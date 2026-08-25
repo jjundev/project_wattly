@@ -27,6 +27,8 @@ public final class BatteryControlEngine: @unchecked Sendable {
     private let hardware: BatteryControlHardwareProtocol
     private var config: BatteryControlConfiguration
     private var isCurrentlyInhibited: Bool = false
+    private var isCurrentlyDischarging: Bool = false
+    private var topUpCompletedHold: Bool = false
     private var hasInitializedState: Bool = false
     private var lastWriteFailed: Bool = false
     private var consecutiveWriteFailures: Int = 0
@@ -43,7 +45,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
     /// hardware is still inhibiting and the release will not land — the state where the Mac
     /// silently refuses to charge. A failure on work nobody asked for stays quiet.
     private var hasActionableFailure: Bool {
-        lastWriteFailed && (config.isActive || isCurrentlyInhibited)
+        lastWriteFailed && (config.isActive || isCurrentlyInhibited || isCurrentlyDischarging)
     }
 
     /// A permanent fact about the Mac, not a state the engine can retry its way out of. Public
@@ -75,10 +77,11 @@ public final class BatteryControlEngine: @unchecked Sendable {
         temperatureCelsius: Double? = nil,
         now: TimeInterval = Date().timeIntervalSince1970
     ) -> BatteryControlServiceStatus {
-        status(
+        let target = config.topUpActive ? 100 : (config.manualDischargeActive ? config.clampedManualDischargeTarget : config.clampedLimitPercentage)
+        return status(
             currentSoC: currentSoC,
             isPluggedIn: isPluggedIn,
-            target: config.clampedLimitPercentage,
+            target: target,
             temperatureCelsius: temperatureCelsius,
             now: now)
     }
@@ -169,23 +172,33 @@ public final class BatteryControlEngine: @unchecked Sendable {
         // the daemon for one. The XPC status path forces a sample regardless, so the settings
         // screen still gets a fresh answer to show.
         guard isHardwareSupported else { return false }
-        return config.isActive || isCurrentlyInhibited || (!hasInitializedState && !isWriteLatched)
+        return config.isActive || isCurrentlyInhibited || isCurrentlyDischarging || (!hasInitializedState && !isWriteLatched)
     }
 
     public func configure(_ newConfig: BatteryControlConfiguration) {
         // A new configuration is the user — or the app's reconcile pass — asking again, so clear
         // the latch and let the next tick spend a fresh set of attempts.
         beginRecoveryWindow()
-        config = newConfig.normalized
+        let normalized = newConfig.normalized
+        if normalized.topUpActive != config.topUpActive || normalized.clampedLimitPercentage != config.clampedLimitPercentage || normalized.topUpActive {
+            topUpCompletedHold = false
+        }
+        config = normalized
     }
 
     /// Legacy wake entry point retained until the daemon moves to `verifyAndUpdate`. It reasserts
     /// only a believed active hold and still verifies the write through `attemptWrite`.
     public func reassertHardwareState() {
-        guard config.isActive, isCurrentlyInhibited else { return }
-        if !attemptWrite(inhibited: true, targetLimit: config.clampedLimitPercentage) {
-            // The reassertion did not verify, so the next update must rebuild a known baseline.
-            hasInitializedState = false
+        guard config.isActive else { return }
+        if isCurrentlyDischarging {
+            _ = attemptDischargeWrite(active: true)
+        }
+        if isCurrentlyInhibited {
+            let target = config.topUpActive ? 100 : (config.manualDischargeActive ? config.clampedManualDischargeTarget : config.clampedLimitPercentage)
+            if !attemptWrite(inhibited: true, targetLimit: target) {
+                // The reassertion did not verify, so the next update must rebuild a known baseline.
+                hasInitializedState = false
+            }
         }
     }
 
@@ -208,6 +221,10 @@ public final class BatteryControlEngine: @unchecked Sendable {
         guard normalizeOnFirstUpdate() else {
             return status(currentSoC: currentSoC, isPluggedIn: isPluggedIn,
                           target: config.clampedLimitPercentage, temperatureCelsius: temperatureCelsius, now: now)
+        }
+
+        if !isPluggedIn {
+            topUpCompletedHold = false
         }
 
         // 1. Evaluate Heat Protection
@@ -238,40 +255,104 @@ public final class BatteryControlEngine: @unchecked Sendable {
             heatProtectionTriggeredAt = nil
         }
 
-        // 2. Evaluate shouldInhibit
-        let target = config.topUpActive ? 100 : config.clampedLimitPercentage
-        let shouldInhibit: Bool
-        if isInHeatProtection {
+        // 2. Evaluate State Pipeline
+        let target: Int
+        var shouldDischarge: Bool = false
+        var shouldInhibit: Bool = false
+
+        if !isPluggedIn {
+            target = config.clampedLimitPercentage
+            shouldDischarge = false
+            shouldInhibit = false
+        } else if isInHeatProtection {
+            // Thermal Protection (>= 35°C): Immediately CHIE = 0x00, CHTE = 0x01, cancel discharge.
+            target = config.clampedLimitPercentage
+            shouldDischarge = false
             shouldInhibit = true
-        } else if config.topUpActive && isPluggedIn {
-            shouldInhibit = currentSoC >= 100
-        } else if config.enabled && isPluggedIn {
-            // Hysteresis: cross up at the target, come back down only at the resume threshold.
+        } else if config.manualDischargeActive {
+            // Manual Discharge Mode
+            let manualTarget = config.clampedManualDischargeTarget
+            target = manualTarget
+            if currentSoC >= 15 && isDischargeHardwareSupported && currentSoC > manualTarget {
+                shouldDischarge = true
+                shouldInhibit = false
+            } else {
+                shouldDischarge = false
+                shouldInhibit = true
+            }
+        } else if config.topUpActive {
+            // Top-Up Mode
+            target = 100
+            shouldDischarge = false
+            if currentSoC >= 100 {
+                topUpCompletedHold = true
+                shouldInhibit = true
+            } else {
+                shouldInhibit = false
+            }
+        } else if config.enabled && config.autoDischargeEnabled && !topUpCompletedHold && currentSoC >= 15 && isDischargeHardwareSupported && (isCurrentlyDischarging ? currentSoC > config.clampedLimitPercentage : currentSoC > config.clampedLimitPercentage + 1) {
+            // Auto Discharge Mode
+            target = config.clampedLimitPercentage
+            shouldDischarge = true
+            shouldInhibit = false
+        } else if config.enabled {
+            // Standard Hysteresis
+            target = config.clampedLimitPercentage
+            shouldDischarge = false
             shouldInhibit = isCurrentlyInhibited
                 ? currentSoC > config.resumePercentage
                 : currentSoC >= target
         } else {
+            // Disabled
+            target = config.clampedLimitPercentage
+            shouldDischarge = false
             shouldInhibit = false
         }
 
-        if shouldInhibit != isCurrentlyInhibited {
-            // Only a transition writes. A failed write deliberately leaves `isCurrentlyInhibited`
-            // alone, so the very same comparison is re-entered on the next tick — that IS the
-            // retry. `attemptWrite` is what stops it after the bound.
-            if attemptWrite(inhibited: shouldInhibit, targetLimit: shouldInhibit ? target : 100) {
-                isCurrentlyInhibited = shouldInhibit
+        // 3. Hardware Transitions
+        var transitionFailed = false
+
+        // A. If discharge needs to stop, turn off discharge first
+        if !shouldDischarge && isCurrentlyDischarging {
+            if attemptDischargeWrite(active: false) {
+                isCurrentlyDischarging = false
+            } else {
+                transitionFailed = true
             }
-        } else {
-            // Nothing is due, so nothing is failing. Without this a single transient failure would
-            // mislabel a perfectly healthy engine as unsupported until the next transition — which
-            // can be hours away, or never. A verified-release failure is different: only verified
-            // hardware success or an explicit recovery boundary may reopen that shared budget.
+        }
+
+        // B. Inhibit transition
+        if shouldInhibit != isCurrentlyInhibited {
+            let inhibitTarget = shouldInhibit ? target : 100
+            if attemptWrite(inhibited: shouldInhibit, targetLimit: inhibitTarget) {
+                isCurrentlyInhibited = shouldInhibit
+            } else {
+                transitionFailed = true
+            }
+        }
+
+        // C. If discharge needs to start, turn on discharge
+        if shouldDischarge && !isCurrentlyDischarging {
+            if attemptDischargeWrite(active: true) {
+                isCurrentlyDischarging = true
+            } else {
+                transitionFailed = true
+            }
+        }
+
+        if !transitionFailed && shouldDischarge == isCurrentlyDischarging && shouldInhibit == isCurrentlyInhibited {
             if failureProvenance != .verifiedRelease {
                 beginRecoveryWindow()
             }
         }
 
-        return status(currentSoC: currentSoC, isPluggedIn: isPluggedIn, target: target, temperatureCelsius: temperatureCelsius, now: now)
+        return status(
+            currentSoC: currentSoC,
+            isPluggedIn: isPluggedIn,
+            target: target,
+            temperatureCelsius: temperatureCelsius,
+            now: now
+        )
     }
 
     /// Hands the hardware back to a known state before the state machine runs for the first time.
@@ -290,6 +371,8 @@ public final class BatteryControlEngine: @unchecked Sendable {
     /// re-arms far apart.
     private func normalizeOnFirstUpdate() -> Bool {
         guard !hasInitializedState else { return true }
+        _ = hardware.setDischargingActive(false)
+        isCurrentlyDischarging = false
         guard attemptWrite(inhibited: false, targetLimit: 100) else { return false }
         isCurrentlyInhibited = false
         hasInitializedState = true
@@ -299,6 +382,8 @@ public final class BatteryControlEngine: @unchecked Sendable {
     /// Legacy shutdown entry point retained until daemon coordination uses `releaseVerified`.
     /// Unlike all new paths, it preserves the installed helper's one unverified last-chance write.
     public func release() {
+        _ = hardware.setDischargingActive(false)
+        isCurrentlyDischarging = false
         guard isCurrentlyInhibited || !hasInitializedState else { return }
         if hardware.setChargingInhibited(false, targetLimit: 100) {
             isCurrentlyInhibited = false
@@ -309,6 +394,8 @@ public final class BatteryControlEngine: @unchecked Sendable {
     }
 
     public func releaseVerified() -> BatteryReleaseVerification {
+        _ = hardware.setDischargingActive(false)
+        isCurrentlyDischarging = false
         guard !isWriteLatched else { return .init(verdict: .failed) }
         let verification = hardware.releaseChargingControlAndVerify()
         guard verification.isSafeToRemove else {
@@ -363,6 +450,20 @@ public final class BatteryControlEngine: @unchecked Sendable {
         return true
     }
 
+    private func attemptDischargeWrite(active: Bool) -> Bool {
+        guard !isWriteLatched else { return false }
+        guard hardware.setDischargingActive(active) else {
+            consecutiveWriteFailures += 1
+            lastWriteFailed = true
+            if failureProvenance == nil {
+                failureProvenance = .ordinary
+            }
+            return false
+        }
+        beginRecoveryWindow()
+        return true
+    }
+
     private func detailReason(
         isPluggedIn: Bool,
         target: Int,
@@ -399,11 +500,23 @@ public final class BatteryControlEngine: @unchecked Sendable {
                 resumeTemperatureCelsius: resume
             )
         }
-        if config.topUpActive && isPluggedIn {
-            if currentSoC >= 100 {
+        if !isPluggedIn {
+            return .init(kind: .onBatteryPower)
+        }
+        if config.manualDischargeActive {
+            if isCurrentlyDischarging {
+                return .init(kind: .dischargingManual, limitPercentage: target)
+            }
+            return .init(kind: .inhibitedAtLimit, limitPercentage: target)
+        }
+        if config.topUpActive {
+            if currentSoC >= 100 || topUpCompletedHold {
                 return .init(kind: .topUpComplete, limitPercentage: 100)
             }
             return .init(kind: .topUpCharging, limitPercentage: 100)
+        }
+        if isCurrentlyDischarging {
+            return .init(kind: .dischargingToTarget, limitPercentage: target)
         }
         if isCurrentlyInhibited {
             if currentSoC < target {
@@ -412,9 +525,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
             return .init(kind: .inhibitedAtLimit, limitPercentage: target)
         }
         if !config.enabled { return .init(kind: .limitDisabled) }
-        return isPluggedIn
-            ? .init(kind: .chargingToTarget, limitPercentage: target)
-            : .init(kind: .onBatteryPower)
+        return .init(kind: .chargingToTarget, limitPercentage: target)
     }
 
     private func status(
@@ -433,6 +544,12 @@ public final class BatteryControlEngine: @unchecked Sendable {
         } else {
             mode = .charging
         }
+        let appliedLimit: Int?
+        if isHardwareSupported && !hasActionableFailure && (config.enabled || config.manualDischargeActive || config.topUpActive) {
+            appliedLimit = target
+        } else {
+            appliedLimit = nil
+        }
         return BatteryControlServiceStatus(
             mode: mode,
             currentPercentage: currentSoC,
@@ -444,8 +561,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
             // Report the limit actually being enforced. A failed write means nothing is, and so
             // does a Mac with no register — reporting `nil` is what makes the app's reconcile pass
             // re-push and clear the latch in the one of those two cases that can recover.
-            appliedLimitPercentage: (isHardwareSupported && config.enabled && !hasActionableFailure)
-                ? config.clampedLimitPercentage : nil,
+            appliedLimitPercentage: appliedLimit,
             isHardwareSupported: isHardwareSupported,
             detailReason: reason,
             // The reason is already the single authoritative decision for this sample. Deriving
