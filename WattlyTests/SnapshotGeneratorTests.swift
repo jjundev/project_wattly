@@ -439,7 +439,7 @@ struct SnapshotGeneratorTests {
         targetWidth: CGFloat = 320,
         scale: CGFloat = 2.0
     ) {
-        var outputDir = URL(fileURLWithPath: "/Users/hyunjun_macbook_pro/.gemini/antigravity/worktrees/project_wattly/draft_project_readme_docs/docs/assets")
+        var outputDir = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("docs/assets")
         if let subfolder = subfolder {
             outputDir = outputDir.appendingPathComponent(subfolder)
         }
@@ -487,7 +487,7 @@ struct SnapshotGeneratorTests {
         targetWidth: CGFloat = 720,
         scale: CGFloat = 2.0
     ) {
-        let outputDir = URL(fileURLWithPath: "/Users/hyunjun_macbook_pro/.gemini/antigravity/worktrees/project_wattly/draft_project_readme_docs/docs/assets")
+        let outputDir = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("docs/assets")
         try? FileManager.default.createDirectory(at: outputDir, withIntermediateDirectories: true)
         let fileURL = outputDir.appendingPathComponent(filename)
 
@@ -560,6 +560,49 @@ struct SnapshotGeneratorTests {
         let isEnglish = (language == "en")
 
         let (monitor, fanControl, sampleMap) = await setupRichMonitor(isEnglish: isEnglish)
+
+        // Mock Battery Control State for optimal representative showcase
+        UserDefaults.standard.set(true, forKey: StorageKey.batteryLimitEnabled)
+        UserDefaults.standard.set(80, forKey: StorageKey.batteryLimitPercentage)
+        UserDefaults.standard.set(true, forKey: StorageKey.batterySailingEnabled)
+        UserDefaults.standard.set(5, forKey: StorageKey.batterySailingDelta)
+        UserDefaults.standard.set(true, forKey: StorageKey.batteryHeatProtectionEnabled)
+        UserDefaults.standard.set(true, forKey: StorageKey.batteryAutoDischargeEnabled)
+        UserDefaults.standard.set(80, forKey: StorageKey.batteryManualDischargeTarget)
+
+        let mockBatteryStatus = BatteryControlServiceStatus(
+            mode: .inhibited,
+            currentPercentage: 80,
+            isPowerAdapterConnected: true,
+            detail: isEnglish ? "Charge limit reached · Powering from adapter" : "충전 제한 도달 · 전원 어댑터로만 작동",
+            updatedAt: Date().timeIntervalSince1970,
+            appliedLimitPercentage: 80,
+            isHardwareSupported: true,
+            detailReason: BatteryControlStatusReason(kind: .sailing, limitPercentage: 80, resumePercentage: 75),
+            activity: .sailing,
+            desiredConfiguration: BatteryControlConfiguration(
+                enabled: true,
+                limitPercentage: 80,
+                lowerHysteresisDelta: 5,
+                heatProtectionEnabled: true,
+                topUpActive: false,
+                autoDischargeEnabled: true,
+                manualDischargeActive: false,
+                manualDischargeTarget: 80
+            ),
+            actualGate: .inhibited(appliedLimitPercentage: 80),
+            capabilities: [.persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1]
+        )
+
+        let mockBatteryHandler: BatteryControlClient.RequestHandler = { _ in
+            if let data = try? BatteryControlCodec.encode(mockBatteryStatus) {
+                return (data, nil)
+            }
+            return (nil, nil)
+        }
+        let batteryControlClient = BatteryControlClient(requestHandler: mockBatteryHandler)
+        await batteryControlClient.refreshStatus()
+        let scheduleCoordinator = BatteryScheduleCoordinator(batteryControl: batteryControlClient)
 
         // 1. Popover Mode A: Full Stacked Cards
         let modeAView = ThemedRoot {
@@ -656,7 +699,18 @@ struct SnapshotGeneratorTests {
         }
         saveSnapshot(view: expandThermalsView, filename: "expand-thermals.png", subfolder: subfolder, targetWidth: 320)
 
-        // 10. Settings: Fan Curve Section
+        // 10. Settings: Battery Section
+        let batterySectionView = ThemedRoot {
+            VStack(spacing: 0) {
+                SettingsBatterySection(batteryControl: batteryControlClient, scheduleCoordinator: scheduleCoordinator)
+            }
+            .padding(16)
+            .frame(width: 440)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color(nsColor: .windowBackgroundColor)))
+        }
+        saveSnapshot(view: batterySectionView, filename: "settings-battery.png", subfolder: subfolder, targetWidth: 440)
+
+        // 11. Settings: Fan Curve Section
         UserDefaults.standard.set(true, forKey: StorageKey.fanControlEnabled)
         await fanControl.refreshStatus()
         let fanSectionView = ThemedRoot {
@@ -669,7 +723,7 @@ struct SnapshotGeneratorTests {
         }
         saveSnapshot(view: fanSectionView, filename: "settings-fan-curve.png", subfolder: subfolder, targetWidth: 440)
 
-        // 11. Settings: Menu Bar Section
+        // 12. Settings: Menu Bar Section
         let menubarSectionView = ThemedRoot {
             VStack(spacing: 0) {
                 SettingsMenuBarSection(monitor: monitor)
@@ -680,7 +734,7 @@ struct SnapshotGeneratorTests {
         }
         saveSnapshot(view: menubarSectionView, filename: "settings-menubar.png", subfolder: subfolder, targetWidth: 440)
 
-        // 12. Settings: Thresholds Section
+        // 13. Settings: Thresholds Section
         let thresholdSectionView = ThemedRoot {
             VStack(spacing: 0) {
                 SettingsThresholdSection(showsFan: monitor.isPresent(.fan))
@@ -691,7 +745,7 @@ struct SnapshotGeneratorTests {
         }
         saveSnapshot(view: thresholdSectionView, filename: "settings-thresholds.png", subfolder: subfolder, targetWidth: 440)
 
-        // 13. Settings: Display Section
+        // 14. Settings: Display Section
         let displaySectionView = ThemedRoot {
             VStack(spacing: 0) {
                 SettingsDisplaySection(monitor: monitor)
