@@ -78,4 +78,23 @@ controlled protocol above.
   - **Expanded mean:** `0.015716 W`
 - **Expansion delta:** `+0.000397 W` (`0.015716 - 0.015319`)
 
+### Optimized (after caching process row views)
 
+- **Date:** 2026-08-25
+- **Commit:** `0b9195a0ab384030760515a4cfcc8ef497755bbb`
+- **Machine / macOS:** Mac17,2 / macOS 26.6.2 (Build 25G83)
+- **Power source:** AC Power (90%, AC attached)
+- **Settings:** Mode A, pollInterval=auto (Eco), powerProcessLimit=7, menubarIconStyle=sailboat, kineticNotchMotionEnabled=1, menubarTextEnabled=0, Wattly Settings closed
+- **Collapsed runs (60s):**
+  - Run 1: `0.019095 W`
+  - Run 2: `0.019210 W`
+  - Run 3: `0.018904 W`
+  - **Collapsed mean:** `0.019070 W`
+- **Expanded runs (60s):**
+  - Run 1: `0.019287 W`
+  - Run 2: `0.019068 W`
+  - Run 3: `0.019239 W`
+  - **Expanded mean:** `0.019198 W`
+- **Expansion delta:** `+0.000128 W` (`0.019198 - 0.019070`)
+- **Delta reduction vs pre-change:** `67.76%` reduction (`(0.000397 - 0.000128) / 0.000397 = 67.76%`)
+- **Acceptance gate:** `PASS` (pre-delta < 0.03 W, post-delta 0.000128 W <= 0.03 W)
