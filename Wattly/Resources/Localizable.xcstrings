@@ -58980,7 +58980,7 @@
         }
       }
     },
-    "배터리(강제 방전 중)": {
+    "배터리 (강제 방전 중)": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -58992,7 +58992,7 @@
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "배터리(강제 방전 중)"
+            "value": "배터리 (강제 방전 중)"
           }
         }
       }

@@ -492,8 +492,8 @@ struct LocalizationTests {
         #expect(String(localized: "목표치(%d%%)까지 방전 중", locale: en) == "Discharging to target (%d%%)")
         #expect(String(localized: "목표치(%d%%)까지 방전 중", locale: ko) == "목표치(%d%%)까지 방전 중")
 
-        #expect(String(localized: "배터리(강제 방전 중)", locale: en) == "Battery (Forced Discharge)")
-        #expect(String(localized: "배터리(강제 방전 중)", locale: ko) == "배터리(강제 방전 중)")
+        #expect(String(localized: "배터리 (강제 방전 중)", locale: en) == "Battery (Forced Discharge)")
+        #expect(String(localized: "배터리 (강제 방전 중)", locale: ko) == "배터리 (강제 방전 중)")
 
         #expect(String(localized: "0.0 W (차단됨)", locale: en) == "0.0 W (Blocked)")
         #expect(String(localized: "0.0 W (차단됨)", locale: ko) == "0.0 W (차단됨)")
