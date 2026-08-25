@@ -405,7 +405,8 @@ final class SystemMonitor {
             cycleCount: raw.cycleCount,
             average1mW: raw.average1mW,
             temperatureCelsius: raw.temperatureCelsius,
-            targetPercentage: raw.targetPercentage)
+            targetPercentage: raw.targetPercentage,
+            powerFlow: raw.powerFlow)
     }
 
     // MARK: Derivation — the 8-card fan-out
