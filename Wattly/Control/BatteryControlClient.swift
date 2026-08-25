@@ -282,8 +282,9 @@ import AppKit
         // is a WRITE — unlike the fan heartbeat this loop is modelled on. Without this check a
         // straggler iteration would re-enable a limit the user just switched off, carrying a higher
         // generation than the disable that raced it, and nothing would ever repair it.
+        let effectiveEnabled = enabled || isTopUp || isManualDischarge
         let targetConfig = BatteryControlConfiguration(
-            enabled: enabled,
+            enabled: effectiveEnabled,
             limitPercentage: limitPercentage,
             lowerHysteresisDelta: lowerHysteresisDelta,
             heatProtectionEnabled: heatProtectionEnabled,
@@ -299,7 +300,7 @@ import AppKit
                 status: status) else { return }
         if enabled || heatProtectionEnabled || isTopUp || isManualDischarge {
             await apply(
-                enabled: enabled,
+                enabled: effectiveEnabled,
                 limitPercentage: limitPercentage,
                 lowerHysteresisDelta: lowerHysteresisDelta,
                 heatProtectionEnabled: heatProtectionEnabled,

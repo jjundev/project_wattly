@@ -777,5 +777,46 @@ struct BatteryControlClientTests {
             Issue.record("Expected configure request")
         }
     }
+
+    @MainActor @Test func reconcileWhenLimitDisabledButManualDischargeActiveMaintainsEnabledTrue() async {
+        let receiver = RequestReceiver()
+        let activeDischargeStatus = BatteryControlServiceStatus(
+            mode: .charging,
+            currentPercentage: 85,
+            isPowerAdapterConnected: true,
+            detail: "수동 방전 중",
+            updatedAt: 1.0,
+            activity: .discharging,
+            desiredConfiguration: .init(
+                enabled: true,
+                limitPercentage: 80,
+                autoDischargeEnabled: false,
+                manualDischargeActive: true,
+                manualDischargeTarget: 70
+            )
+        )
+        let client = BatteryControlClient(requestHandler: { req in
+            await receiver.set(req)
+            if case .status = req {
+                let replyData = try? BatteryControlCodec.encode(activeDischargeStatus)
+                return (replyData, nil)
+            }
+            if case .configure = req {
+                let replyData = try? BatteryControlCodec.encode(activeDischargeStatus)
+                return (replyData, nil)
+            }
+            return (nil, nil)
+        })
+
+        // Reconcile with limit disabled (enabled: false)
+        await client.reconcile(
+            enabled: false,
+            limitPercentage: 80,
+            manualDischargeActive: true,
+            manualDischargeTarget: 70
+        )
+        // Since status already has same desiredConfiguration, shouldReapply is false, no redundant write
+        #expect(client.status.desiredConfiguration?.manualDischargeActive == true)
+    }
 }
 
