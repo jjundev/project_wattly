@@ -13,11 +13,18 @@ struct PopoverContentView: View {
     let monitor: SystemMonitor
     let fanControl: FanControlClient
     let batteryControl: BatteryControlClient
+    var scheduleCoordinator: BatteryScheduleCoordinator? = nil
 
-    init(monitor: SystemMonitor, fanControl: FanControlClient, batteryControl: BatteryControlClient = BatteryControlClient()) {
+    init(
+        monitor: SystemMonitor,
+        fanControl: FanControlClient,
+        batteryControl: BatteryControlClient = BatteryControlClient(),
+        scheduleCoordinator: BatteryScheduleCoordinator? = nil
+    ) {
         self.monitor = monitor
         self.fanControl = fanControl
         self.batteryControl = batteryControl
+        self.scheduleCoordinator = scheduleCoordinator
     }
 
     @Environment(\.tokens) private var t
@@ -240,7 +247,8 @@ struct PopoverContentView: View {
             scrollCapped {
                 PopoverHeroView(cards: visibleCards, monitor: monitor,
                                 thresholds: thresholds, powerSmoothed: powerSmoothed,
-                                batteryControl: batteryControl)
+                                batteryControl: batteryControl,
+                                scheduleCoordinator: scheduleCoordinator)
             }
         }
     }
@@ -409,7 +417,8 @@ struct PopoverContentView: View {
                 isExpanded: expanded.contains(card),
                 onToggleExpand: editMode ? nil : (card.isExpandable ? { toggleExpand(card) } : nil),
                 thresholds: thresholds,
-                batteryControl: batteryControl
+                batteryControl: batteryControl,
+                scheduleCoordinator: scheduleCoordinator
             )
         }
     }

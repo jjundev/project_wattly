@@ -29,6 +29,7 @@ struct PopoverHeroView: View {
     var thresholds: Thresholds = Defaults.thresholds
     var powerSmoothed: Bool
     var batteryControl: BatteryControlClient? = nil
+    var scheduleCoordinator: BatteryScheduleCoordinator? = nil
 
     @AppStorage(StorageKey.heroMetric) private var heroMetric = Defaults.heroMetric
     // Shared with mode A's `PopoverContentView.expandedRaw` — same key, same CSV Set (see the
@@ -52,7 +53,8 @@ struct PopoverHeroView: View {
                          thresholds: thresholds,
                          isExpanded: expanded.contains(hero),
                          onToggleExpand: hero.isExpandable ? { toggleExpand(hero) } : nil,
-                         batteryControl: batteryControl)
+                         batteryControl: batteryControl,
+                         scheduleCoordinator: scheduleCoordinator)
                 list(excluding: hero)
             }
         }
@@ -121,6 +123,7 @@ private struct HeroCard: View {
     var isExpanded: Bool = false
     var onToggleExpand: (() -> Void)? = nil
     var batteryControl: BatteryControlClient? = nil
+    var scheduleCoordinator: BatteryScheduleCoordinator? = nil
 
     // Hardcoded light-on-dark surface/text (prototype line 208).
     private static let heroBg = Color(hex: "#171719")
@@ -134,8 +137,14 @@ private struct HeroCard: View {
                 .contentShape(Rectangle())
                 .onTapGesture { if hasChevron { onToggleExpand?() } }
             if isExpanded, hasChevron {
-                CardExpandRegion(card: card, state: state, thresholds: thresholds, batteryControl: batteryControl)
-                    .environment(\.tokens, Tokens.dark)
+                CardExpandRegion(
+                    card: card,
+                    state: state,
+                    thresholds: thresholds,
+                    batteryControl: batteryControl,
+                    scheduleCoordinator: scheduleCoordinator
+                )
+                .environment(\.tokens, Tokens.dark)
             }
         }
         .padding(16)

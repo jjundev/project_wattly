@@ -10,6 +10,7 @@ struct BatteryControlBridge: View {
 
     let client: BatteryControlClient
     var monitor: SystemMonitor? = nil
+    var scheduleCoordinator: BatteryScheduleCoordinator? = nil
 
     @AppStorage(StorageKey.batteryLimitEnabled) private var enabled = Defaults.batteryLimitEnabled
     @AppStorage(StorageKey.batteryLimitPercentage) private var limit = Defaults.batteryLimitPercentage
@@ -53,165 +54,70 @@ struct BatteryControlBridge: View {
             .frame(width: 0, height: 0)
             .accessibilityHidden(true)
             .task {
-                syncMonitorTarget()
-                await client.refreshStatus()
-                syncMonitorTarget()
-                let requested = configuration
-                guard BatteryControlPolicy.shouldReapply(
-                    configuration: requested, status: client.status) else { return }
-                if requested.isActive {
-                    await client.apply(
-                        enabled: requested.enabled,
-                        limitPercentage: requested.limitPercentage,
-                        lowerHysteresisDelta: requested.lowerHysteresisDelta,
-                        heatProtectionEnabled: requested.heatProtectionEnabled,
-                        heatProtectionThresholdCelsius: requested.heatProtectionThresholdCelsius)
-                } else {
-                    _ = await client.disableAndConfirm(
-                        limitPercentage: requested.limitPercentage,
-                        lowerHysteresisDelta: requested.lowerHysteresisDelta)
-                }
+                await handleInitialTask()
             }
             .onChange(of: enabled) { _, val in
                 syncMonitorTarget()
                 Task {
-                    if val || heatProtectionEnabled {
-                        await client.apply(
-                            enabled: val, limitPercentage: limit,
-                            lowerHysteresisDelta: effectiveDelta,
-                            heatProtectionEnabled: heatProtectionEnabled,
-                            heatProtectionThresholdCelsius: heatProtectionThreshold)
-                    } else {
-                        _ = await client.disableAndConfirm(
-                            limitPercentage: limit,
-                            lowerHysteresisDelta: effectiveDelta)
-                    }
+                    await handleConfigChange(val: val, limit: limit, delta: effectiveDelta, heatEnabled: heatProtectionEnabled, heatThreshold: heatProtectionThreshold)
                 }
             }
             .onChange(of: limit) { _, val in
                 syncMonitorTarget()
                 Task {
-                    if enabled || heatProtectionEnabled {
-                        await client.apply(
-                            enabled: enabled, limitPercentage: val,
-                            lowerHysteresisDelta: effectiveDelta,
-                            heatProtectionEnabled: heatProtectionEnabled,
-                            heatProtectionThresholdCelsius: heatProtectionThreshold)
-                    } else {
-                        _ = await client.disableAndConfirm(
-                            limitPercentage: val,
-                            lowerHysteresisDelta: effectiveDelta)
-                    }
+                    await handleConfigChange(val: enabled, limit: val, delta: effectiveDelta, heatEnabled: heatProtectionEnabled, heatThreshold: heatProtectionThreshold)
                 }
             }
             .onChange(of: sailingEnabled) { _, isSailing in
                 let delta = isSailing ? sailingDelta : 2
                 Task {
-                    if enabled || heatProtectionEnabled {
-                        await client.apply(
-                            enabled: enabled, limitPercentage: limit,
-                            lowerHysteresisDelta: delta,
-                            heatProtectionEnabled: heatProtectionEnabled,
-                            heatProtectionThresholdCelsius: heatProtectionThreshold)
-                    } else {
-                        _ = await client.disableAndConfirm(
-                            limitPercentage: limit,
-                            lowerHysteresisDelta: delta)
-                    }
+                    await handleConfigChange(val: enabled, limit: limit, delta: delta, heatEnabled: heatProtectionEnabled, heatThreshold: heatProtectionThreshold)
                 }
             }
             .onChange(of: sailingDelta) { _, newDelta in
                 guard sailingEnabled else { return }
                 Task {
-                    if enabled || heatProtectionEnabled {
-                        await client.apply(
-                            enabled: enabled, limitPercentage: limit,
-                            lowerHysteresisDelta: newDelta,
-                            heatProtectionEnabled: heatProtectionEnabled,
-                            heatProtectionThresholdCelsius: heatProtectionThreshold)
-                    } else {
-                        _ = await client.disableAndConfirm(
-                            limitPercentage: limit,
-                            lowerHysteresisDelta: newDelta)
-                    }
+                    await handleConfigChange(val: enabled, limit: limit, delta: newDelta, heatEnabled: heatProtectionEnabled, heatThreshold: heatProtectionThreshold)
                 }
             }
             .onChange(of: heatProtectionEnabled) { _, isHeatEnabled in
                 Task {
-                    if enabled || isHeatEnabled {
-                        await client.apply(
-                            enabled: enabled, limitPercentage: limit,
-                            lowerHysteresisDelta: effectiveDelta,
-                            heatProtectionEnabled: isHeatEnabled,
-                            heatProtectionThresholdCelsius: heatProtectionThreshold)
-                    } else {
-                        _ = await client.disableAndConfirm(
-                            limitPercentage: limit,
-                            lowerHysteresisDelta: effectiveDelta)
-                    }
+                    await handleConfigChange(val: enabled, limit: limit, delta: effectiveDelta, heatEnabled: isHeatEnabled, heatThreshold: heatProtectionThreshold)
                 }
             }
             .onChange(of: heatProtectionThreshold) { _, threshold in
                 Task {
-                    if enabled || heatProtectionEnabled {
-                        await client.apply(
-                            enabled: enabled, limitPercentage: limit,
-                            lowerHysteresisDelta: effectiveDelta,
-                            heatProtectionEnabled: heatProtectionEnabled,
-                            heatProtectionThresholdCelsius: threshold)
-                    } else {
-                        _ = await client.disableAndConfirm(
-                            limitPercentage: limit,
-                            lowerHysteresisDelta: effectiveDelta)
-                    }
+                    await handleConfigChange(val: enabled, limit: limit, delta: effectiveDelta, heatEnabled: heatProtectionEnabled, heatThreshold: threshold)
                 }
             }
             .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)) { _ in
                 Task {
-                    switch Self.wakeAction(configuration: configuration, status: client.status) {
-                    case .refreshStatus:
-                        await client.refreshStatus()
-                    case .apply:
-                        await client.apply(
-                            enabled: enabled, limitPercentage: limit,
-                            lowerHysteresisDelta: effectiveDelta,
-                            heatProtectionEnabled: heatProtectionEnabled,
-                            heatProtectionThresholdCelsius: heatProtectionThreshold)
-                    case .disableAndConfirm:
-                        let requested = configuration
-                        _ = await client.disableAndConfirm(
-                            limitPercentage: requested.limitPercentage,
-                            lowerHysteresisDelta: requested.lowerHysteresisDelta)
+                    await handleWake()
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .NSSystemClockDidChange)) { _ in
+                Task {
+                    if let scheduleCoordinator {
+                        await scheduleCoordinator.evaluateSchedules(at: Date(), isWake: false)
                     }
                 }
             }
-            // The helper restarts with an empty configuration (KeepAlive relaunch, kickstart, a
-            // crash) and nothing else would notice: `onChange` needs a user edit, the wake handler
-            // needs a sleep. The id covers BOTH values so an edit mid-loop restarts the task —
-            // otherwise a stale captured `limit` could be reconciled back over the new one.
-            .task(id: "\(enabled)-\(limit)-\(sailingEnabled)-\(sailingDelta)-\(heatProtectionEnabled)-\(heatProtectionThreshold)") {
-                var consecutiveUnsupported = 0
-                while !Task.isCancelled {
-                    try? await Task.sleep(
-                        for: .seconds(BatteryControlPolicy.reconcileInterval(
-                            consecutiveUnsupported: consecutiveUnsupported))
-                    )
-                    guard !Task.isCancelled else { return }
-                    await client.reconcile(
-                        enabled: enabled,
-                        limitPercentage: limit,
-                        lowerHysteresisDelta: effectiveDelta,
-                        heatProtectionEnabled: heatProtectionEnabled,
-                        heatProtectionThresholdCelsius: heatProtectionThreshold)
-                    // A Mac that rejects the write will keep rejecting it; back the cadence off
-                    // rather than re-arming its budget every minute forever.
-                    consecutiveUnsupported = client.status.mode == .unsupported
-                        ? consecutiveUnsupported + 1
-                        : 0
-                    // A Mac with no charge-control register will report the same thing forever, and
-                    // the register set is probed once per helper process. Stop rather than back off.
-                    if client.status.isHardwareSupported == false { return }
+            .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
+                Task {
+                    if let scheduleCoordinator {
+                        await scheduleCoordinator.evaluateSchedules(at: Date(), isWake: false)
+                    }
                 }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+                Task {
+                    if let scheduleCoordinator {
+                        await scheduleCoordinator.evaluateSchedules(at: Date(), isWake: false)
+                    }
+                }
+            }
+            .task(id: "\(enabled)-\(limit)-\(sailingEnabled)-\(sailingDelta)-\(heatProtectionEnabled)-\(heatProtectionThreshold)") {
+                await handleReconcileLoop()
             }
             .onChange(of: client.status) { _, newStatus in
                 syncMonitorTarget()
@@ -219,5 +125,83 @@ struct BatteryControlBridge: View {
                     BatteryNotificationManager.postTopUpCompleteNotification()
                 }
             }
+    }
+
+    private func handleInitialTask() async {
+        syncMonitorTarget()
+        await client.refreshStatus()
+        syncMonitorTarget()
+        let requested = configuration
+        guard BatteryControlPolicy.shouldReapply(
+            configuration: requested, status: client.status) else { return }
+        if requested.isActive {
+            await client.apply(
+                enabled: requested.enabled,
+                limitPercentage: requested.limitPercentage,
+                lowerHysteresisDelta: requested.lowerHysteresisDelta,
+                heatProtectionEnabled: requested.heatProtectionEnabled,
+                heatProtectionThresholdCelsius: requested.heatProtectionThresholdCelsius)
+        } else {
+            _ = await client.disableAndConfirm(
+                limitPercentage: requested.limitPercentage,
+                lowerHysteresisDelta: requested.lowerHysteresisDelta)
+        }
+    }
+
+    private func handleConfigChange(val: Bool, limit: Int, delta: Int, heatEnabled: Bool, heatThreshold: Int) async {
+        if val || heatEnabled {
+            await client.apply(
+                enabled: val,
+                limitPercentage: limit,
+                lowerHysteresisDelta: delta,
+                heatProtectionEnabled: heatEnabled,
+                heatProtectionThresholdCelsius: heatThreshold)
+        } else {
+            _ = await client.disableAndConfirm(
+                limitPercentage: limit,
+                lowerHysteresisDelta: delta)
+        }
+    }
+
+    private func handleWake() async {
+        switch Self.wakeAction(configuration: configuration, status: client.status) {
+        case .refreshStatus:
+            await client.refreshStatus()
+        case .apply:
+            await client.apply(
+                enabled: enabled, limitPercentage: limit,
+                lowerHysteresisDelta: effectiveDelta,
+                heatProtectionEnabled: heatProtectionEnabled,
+                heatProtectionThresholdCelsius: heatProtectionThreshold)
+        case .disableAndConfirm:
+            let requested = configuration
+            _ = await client.disableAndConfirm(
+                limitPercentage: requested.limitPercentage,
+                lowerHysteresisDelta: requested.lowerHysteresisDelta)
+        }
+        if let scheduleCoordinator {
+            await scheduleCoordinator.evaluateSchedules(at: Date(), isWake: true)
+        }
+    }
+
+    private func handleReconcileLoop() async {
+        var consecutiveUnsupported = 0
+        while !Task.isCancelled {
+            try? await Task.sleep(
+                for: .seconds(BatteryControlPolicy.reconcileInterval(
+                    consecutiveUnsupported: consecutiveUnsupported))
+            )
+            guard !Task.isCancelled else { return }
+            await client.reconcile(
+                enabled: enabled,
+                limitPercentage: limit,
+                lowerHysteresisDelta: effectiveDelta,
+                heatProtectionEnabled: heatProtectionEnabled,
+                heatProtectionThresholdCelsius: heatProtectionThreshold)
+            consecutiveUnsupported = client.status.mode == .unsupported
+                ? consecutiveUnsupported + 1
+                : 0
+            if client.status.isHardwareSupported == false { return }
+        }
     }
 }

@@ -366,4 +366,16 @@ enum BatterySectionPresentation {
         case .charging, .unavailable: return false
         }
     }
+
+    // MARK: - Upcoming Schedule Presentation
+
+    public static func upcomingScheduleText(
+        schedule: BatteryChargingSchedule?,
+        triggerDate: Date?
+    ) -> String? {
+        guard let schedule, let triggerDate else { return nil }
+        let timeStr = schedule.time.formattedText
+        return "다음: \(timeStr) \(schedule.action.summary)"
+    }
 }
+

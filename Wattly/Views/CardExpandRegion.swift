@@ -21,6 +21,7 @@ struct CardExpandRegion: View {
     let state: MetricState
     var thresholds: Thresholds = Defaults.thresholds
     var batteryControl: BatteryControlClient? = nil
+    var scheduleCoordinator: BatteryScheduleCoordinator? = nil
 
     @ViewBuilder
     var body: some View {
@@ -258,6 +259,23 @@ struct CardExpandRegion: View {
             }
             batteryDetailRow(label: "전류", value: CardPresentation.batteryCurrentText(s))
             batteryDetailRow(label: "전압", value: CardPresentation.batteryVoltageText(s))
+
+            if let scheduleCoordinator,
+               let upcoming = BatteryScheduleCoordinator.nextUpcoming(from: scheduleCoordinator.schedules) {
+                if let upcomingText = BatterySectionPresentation.upcomingScheduleText(schedule: upcoming.schedule, triggerDate: upcoming.triggerDate) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "calendar")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(Tokens.accent)
+                        Text(upcomingText)
+                            .font(WattlyFont.at(10.5, weight: .medium))
+                            .foregroundStyle(t.sub)
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(RoundedRectangle(cornerRadius: 4).fill(Tokens.accent.opacity(0.1)))
+                }
+            }
 
             if let batteryControl, s.charging || batteryControl.status.isPowerAdapterConnected {
                 batteryTopUpRow(batteryControl, s)

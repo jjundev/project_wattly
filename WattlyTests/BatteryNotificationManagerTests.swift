@@ -36,4 +36,34 @@ import Testing
         #expect(detector.update(reasonKind: .topUpCharging) == false)
         #expect(detector.update(reasonKind: .topUpComplete) == true)
     }
+
+    @Test func scheduleTriggeredNotificationIsLocalized() {
+        let ko = Locale(identifier: "ko")
+        let en = Locale(identifier: "en")
+
+        let titleKo = BatteryNotificationManager.scheduleTriggeredTitle(
+            scheduleName: "출근 준비",
+            actionSummary: "한 번만 100% 완충",
+            locale: ko)
+        let bodyKo = BatteryNotificationManager.scheduleTriggeredBody(
+            scheduleName: "출근 준비",
+            actionSummary: "한 번만 100% 완충",
+            locale: ko)
+
+        #expect(titleKo.contains("출근 준비") || titleKo.contains("예약 충전"))
+        #expect(bodyKo.contains("한 번만 100% 완충"))
+
+        let titleEn = BatteryNotificationManager.scheduleTriggeredTitle(
+            scheduleName: "Morning Commute",
+            actionSummary: "Top Up to 100%",
+            locale: en)
+        let bodyEn = BatteryNotificationManager.scheduleTriggeredBody(
+            scheduleName: "Morning Commute",
+            actionSummary: "Top Up to 100%",
+            locale: en)
+
+        #expect(titleEn.contains("Scheduled Charge") || titleEn.contains("Morning Commute"))
+        #expect(bodyEn.contains("Top Up to 100%"))
+    }
 }
+

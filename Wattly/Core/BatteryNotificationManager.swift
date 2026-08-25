@@ -47,4 +47,34 @@ public enum BatteryNotificationManager {
             center.add(request)
         }
     }
+
+    public static func scheduleTriggeredTitle(scheduleName: String, actionSummary: String, locale: Locale) -> String {
+        if scheduleName.isEmpty {
+            return String(localized: "예약 충전 실행됨", locale: locale)
+        }
+        return String(localized: "예약 충전: \(scheduleName)", locale: locale)
+    }
+
+    public static func scheduleTriggeredBody(scheduleName: String, actionSummary: String, locale: Locale) -> String {
+        return String(localized: "설정된 작업이 실행되었습니다: \(actionSummary)", locale: locale)
+    }
+
+    public static func postScheduleTriggeredNotification(scheduleName: String, actionSummary: String) {
+        let center = UNUserNotificationCenter.current()
+        center.getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
+            let content = UNMutableNotificationContent()
+            content.title = scheduleTriggeredTitle(scheduleName: scheduleName, actionSummary: actionSummary, locale: .current)
+            content.body = scheduleTriggeredBody(scheduleName: scheduleName, actionSummary: actionSummary, locale: .current)
+            content.sound = .default
+
+            let request = UNNotificationRequest(
+                identifier: "dev.jjundev.Wattly.scheduleTriggered.\(UUID().uuidString)",
+                content: content,
+                trigger: nil
+            )
+            center.add(request)
+        }
+    }
 }
+

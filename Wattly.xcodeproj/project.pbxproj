@@ -45,6 +45,11 @@
 		2139581318B3DA81262E21EE /* BatteryControlClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC8C18034B5461609C27D17F /* BatteryControlClientTests.swift */; };
 		222AEAEE28AEA0F1432E10D0 /* SparklineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00082133CD88B0F35342BB85 /* SparklineView.swift */; };
 		24E614EA3299409018DD6491 /* Glyphs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 416979B2919C07DC814AE533 /* Glyphs.swift */; };
+		BC1100020000000000000002 /* BatteryChargingSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1100010000000000000001 /* BatteryChargingSchedule.swift */; };
+		BC1100040000000000000004 /* BatteryScheduleLogEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1100030000000000000003 /* BatteryScheduleLogEntry.swift */; };
+		BC1400020000000000000002 /* BatteryScheduleCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1400010000000000000001 /* BatteryScheduleCoordinator.swift */; };
+		BC1500020000000000000002 /* ScheduleEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1500010000000000000001 /* ScheduleEditorSheet.swift */; };
+		BC1500040000000000000004 /* SettingsScheduleCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1500030000000000000003 /* SettingsScheduleCard.swift */; };
 		2551B8F81C73AAB4388352A4 /* BatteryNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43D95A247BDE0AECF60E98A4 /* BatteryNotificationManager.swift */; };
 		27C614EC4DFE85A7F86C4603 /* FanControlEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AA3E6D04D62D0E0B1F64EF6 /* FanControlEngineTests.swift */; };
 		299C745CE8201FE44D8C72E7 /* SetBatterySailingIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA003D6FD18426AA656705DB /* SetBatterySailingIntent.swift */; };
@@ -53,6 +58,9 @@
 		2E7C67D524ED5BB3C4DB0F1C /* ContactDeveloperHelperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42A2AAD1ABE517C684E0D643 /* ContactDeveloperHelperTests.swift */; };
 		2EB4D74291423268439F3CAD /* SMC.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9717A4622D508E51C16FA8 /* SMC.swift */; };
 		2F21C6921E2896512BD4FF55 /* AccessibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C59C21E293258105C63FB142 /* AccessibilityTests.swift */; };
+		BC1100060000000000000006 /* BatteryChargingScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1100050000000000000005 /* BatteryChargingScheduleTests.swift */; };
+		BC1200020000000000000002 /* BatterySchedulePersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1200010000000000000001 /* BatterySchedulePersistenceTests.swift */; };
+		BC1400040000000000000004 /* BatteryScheduleCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1400030000000000000003 /* BatteryScheduleCoordinatorTests.swift */; };
 		31926AD6C690491825627C11 /* OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = DECFD3734A1569FA8CFE4AF5 /* OFL.txt */; };
 		31F04BE09B697A6978E859E1 /* BatteryControlProtocolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD2D0B67397C1DDEB96E5299 /* BatteryControlProtocolTests.swift */; };
 		327B519F858C0BCAE3AB2296 /* AppReplacer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124595F06443853225A78F1C /* AppReplacer.swift */; };
@@ -405,6 +413,14 @@
 		C07B167FB08E7FB516557461 /* SpecialBatteryIntentsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpecialBatteryIntentsTests.swift; sourceTree = "<group>"; };
 		C48EFA903806186E968B2D77 /* WattlyFanDaemon */ = {isa = PBXFileReference; includeInIndex = 0; path = WattlyFanDaemon; sourceTree = BUILT_PRODUCTS_DIR; };
 		C59C21E293258105C63FB142 /* AccessibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityTests.swift; sourceTree = "<group>"; };
+		BC1100050000000000000005 /* BatteryChargingScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryChargingScheduleTests.swift; sourceTree = "<group>"; };
+		BC1200010000000000000001 /* BatterySchedulePersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatterySchedulePersistenceTests.swift; sourceTree = "<group>"; };
+		BC1400030000000000000003 /* BatteryScheduleCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryScheduleCoordinatorTests.swift; sourceTree = "<group>"; };
+		BC1100010000000000000001 /* BatteryChargingSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryChargingSchedule.swift; sourceTree = "<group>"; };
+		BC1100030000000000000003 /* BatteryScheduleLogEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryScheduleLogEntry.swift; sourceTree = "<group>"; };
+		BC1400010000000000000001 /* BatteryScheduleCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryScheduleCoordinator.swift; sourceTree = "<group>"; };
+		BC1500010000000000000001 /* ScheduleEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleEditorSheet.swift; sourceTree = "<group>"; };
+		BC1500030000000000000003 /* SettingsScheduleCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScheduleCard.swift; sourceTree = "<group>"; };
 		C7B5E285FF8EA4DDD90B3B03 /* WattlyFont.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WattlyFont.swift; sourceTree = "<group>"; };
 		C9461EE0905313DCF0554D1A /* GetBatteryIntentsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetBatteryIntentsTests.swift; sourceTree = "<group>"; };
 		CB9717A4622D508E51C16FA8 /* SMC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMC.swift; sourceTree = "<group>"; };
@@ -491,9 +507,12 @@
 				124595F06443853225A78F1C /* AppReplacer.swift */,
 				26D090D32552BB2923E4E526 /* AppUninstaller.swift */,
 				7FF3A85EC269993CF6023AEB /* AutoUpdater.swift */,
+				BC1100010000000000000001 /* BatteryChargingSchedule.swift */,
 				43D95A247BDE0AECF60E98A4 /* BatteryNotificationManager.swift */,
 				F0BB325E6C8D3C6B7207404B /* BatteryPower.swift */,
 				5B0B9C6EF5A318DFB992A8FF /* BatteryRuntimeProjection.swift */,
+				BC1100030000000000000003 /* BatteryScheduleLogEntry.swift */,
+				BC1400010000000000000001 /* BatteryScheduleCoordinator.swift */,
 				04F1ADCC2562478FC621CF57 /* BatterySectionPresentation.swift */,
 				ABB8CAFE2C2774B233386F90 /* BatteryStatusText.swift */,
 				8CA6F0813668973FD7B387F6 /* BatteryTelemetryPipeline.swift */,
@@ -630,6 +649,9 @@
 			isa = PBXGroup;
 			children = (
 				C59C21E293258105C63FB142 /* AccessibilityTests.swift */,
+				BC1100050000000000000005 /* BatteryChargingScheduleTests.swift */,
+				BC1200010000000000000001 /* BatterySchedulePersistenceTests.swift */,
+				BC1400030000000000000003 /* BatteryScheduleCoordinatorTests.swift */,
 				F83934D3000879D7EC333BBA /* AppIdentityTests.swift */,
 				0087639C19083396DB06A189 /* AppReplacerTests.swift */,
 				D987ECF9FA534486FD44FE62 /* AppUninstallerTests.swift */,
@@ -790,11 +812,13 @@
 		D3A4F52DD6D0CED7D727051E /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				BC1500010000000000000001 /* ScheduleEditorSheet.swift */,
 				FE1A8B204198577EEDF66B03 /* SettingsBatterySection.swift */,
 				4FE120FEF8869E1F4BDD7EF9 /* SettingsBehaviorSection.swift */,
 				7554F42F83C83A8A93CFA4A9 /* SettingsDisplaySection.swift */,
 				B86536ADA399D72C4BCB2C78 /* SettingsFanCurveSection.swift */,
 				E2C70F6D347796A4C2CB1949 /* SettingsMenuBarSection.swift */,
+				BC1500030000000000000003 /* SettingsScheduleCard.swift */,
 				1D36F339C0C638F34767B0B8 /* SettingsThresholdSection.swift */,
 			);
 			path = Settings;
@@ -976,6 +1000,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				2F21C6921E2896512BD4FF55 /* AccessibilityTests.swift in Sources */,
+				BC1100060000000000000006 /* BatteryChargingScheduleTests.swift in Sources */,
+				BC1200020000000000000002 /* BatterySchedulePersistenceTests.swift in Sources */,
+				BC1400040000000000000004 /* BatteryScheduleCoordinatorTests.swift in Sources */,
 				F3694B232EC487E5AAF39ED2 /* AppIdentityTests.swift in Sources */,
 				D7BADF2FB54956C1BB865849 /* AppReplacerTests.swift in Sources */,
 				98FFEDBA03EB593EF689E781 /* AppUninstallerTests.swift in Sources */,
@@ -1089,6 +1116,7 @@
 				327B519F858C0BCAE3AB2296 /* AppReplacer.swift in Sources */,
 				CB7EC9C8F05538B7AAA385E6 /* AppUninstaller.swift in Sources */,
 				55D146D89F01CBC8A4224B66 /* AutoUpdater.swift in Sources */,
+				BC1100020000000000000002 /* BatteryChargingSchedule.swift in Sources */,
 				3BD1982FD6CD538B49E62046 /* BatteryControlActivity.swift in Sources */,
 				4ECD1E882C68C267079A4550 /* BatteryControlBridge.swift in Sources */,
 				7E244A09F67D1A27EDEFC6B9 /* BatteryControlClient.swift in Sources */,
@@ -1107,6 +1135,8 @@
 				9164682B8D7954ADA22F3710 /* BatteryPower.swift in Sources */,
 				54CC1A4B35743BD034DC72F0 /* BatteryProvider.swift in Sources */,
 				7201A0807B1C1BD88E71F64F /* BatteryRuntimeProjection.swift in Sources */,
+				BC1100040000000000000004 /* BatteryScheduleLogEntry.swift in Sources */,
+				BC1400020000000000000002 /* BatteryScheduleCoordinator.swift in Sources */,
 				E34EAB55115ADF3F3FF5C420 /* BatterySectionPresentation.swift in Sources */,
 				1BDA2834177F662ACC57E584 /* BatteryStateEntity.swift in Sources */,
 				81892FF122AA60B6C563F115 /* BatteryStatusText.swift in Sources */,
@@ -1177,6 +1207,7 @@
 				299C745CE8201FE44D8C72E7 /* SetBatterySailingIntent.swift in Sources */,
 				1ED56DE226F4EF0924F9A181 /* SetBatteryTopUpIntent.swift in Sources */,
 				7A394705C6834B5A9358DA10 /* Settings.swift in Sources */,
+				BC1500020000000000000002 /* ScheduleEditorSheet.swift in Sources */,
 				180D4DD0B0DE664B3AB8A4E9 /* SettingsBatterySection.swift in Sources */,
 				EE923953EF8412A0896CD8DC /* SettingsBehaviorSection.swift in Sources */,
 				A292F6D7B2D0DAAC999ECBB7 /* SettingsComponents.swift in Sources */,
@@ -1184,6 +1215,7 @@
 				13C461FCBF4207B4B3B64FB9 /* SettingsFanCurveSection.swift in Sources */,
 				BE6AE1D1E6732C6E0961A9F0 /* SettingsMenuBarSection.swift in Sources */,
 				CBE11652E044DD70C60D7A8D /* SettingsReset.swift in Sources */,
+				BC1500040000000000000004 /* SettingsScheduleCard.swift in Sources */,
 				E6C0D1635D71C97F5CD33F38 /* SettingsThresholdSection.swift in Sources */,
 				C9E719E7D0D0152859146746 /* SettingsView.swift in Sources */,
 				1E0778BF5B4D3664E6C18C9B /* SmoothingOverlay.swift in Sources */,
