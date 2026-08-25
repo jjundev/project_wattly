@@ -17,6 +17,7 @@ struct CardExpandRegion: View {
     @AppStorage(StorageKey.batterySailingDelta) private var batterySailingDelta = Defaults.batterySailingDelta
     @AppStorage(StorageKey.batteryHeatProtectionEnabled) private var batteryHeatProtectionEnabled = Defaults.batteryHeatProtectionEnabled
     @AppStorage(StorageKey.batteryHeatProtectionThreshold) private var batteryHeatProtectionThreshold = Defaults.batteryHeatProtectionThreshold
+    @AppStorage(StorageKey.batteryManualDischargeTarget) private var manualDischargeTarget = Defaults.batteryManualDischargeTarget
     let card: CardKind
     let state: MetricState
     var thresholds: Thresholds = Defaults.thresholds
@@ -244,14 +245,25 @@ struct CardExpandRegion: View {
         VStack(alignment: .leading, spacing: 10) {
             // [범주 1] 전원 공급 및 소비 전력 — 어댑터 연결 시에만 노출
             if s.externalConnected, let flow = s.powerFlow {
+                let isDischarging = (batteryControl?.status.activity == .discharging)
+                    || (batteryControl?.status.desiredConfiguration?.manualDischargeActive == true)
+                    || (flow.scenario == .activeDischarge)
+
+                let powerSourceValue = isDischarging
+                    ? BatterySectionPresentation.forcedDischargeText(locale: locale)
+                    : CardPresentation.powerSourceText(flow.scenario, locale: locale)
+                let adapterPowerValue = isDischarging
+                    ? BatterySectionPresentation.adapterPowerBlockedText(locale: locale)
+                    : CardPresentation.adapterPowerText(flow.adapterWatts)
+
                 VStack(alignment: .leading, spacing: 10) {
                     batteryDetailRow(
                         label: CardPresentation.powerSourceLabel,
-                        value: CardPresentation.powerSourceText(flow.scenario, locale: locale)
+                        value: powerSourceValue
                     )
                     batteryDetailRow(
                         label: CardPresentation.adapterPowerLabel,
-                        value: CardPresentation.adapterPowerText(flow.adapterWatts)
+                        value: adapterPowerValue
                     )
                     batteryDetailRow(
                         label: CardPresentation.systemPowerLabel,
@@ -306,9 +318,10 @@ struct CardExpandRegion: View {
                 }
             }
 
-            if let batteryControl, s.charging || batteryControl.status.isPowerAdapterConnected {
+            if let batteryControl, s.charging || batteryControl.status.isPowerAdapterConnected || s.externalConnected {
                 Divider().background(t.line).opacity(0.6)
                 batteryTopUpRow(batteryControl, s)
+                batteryDischargeRow(batteryControl, s)
             }
         }
         .padding(.top, 8)
@@ -335,19 +348,22 @@ struct CardExpandRegion: View {
                 let delta = batterySailingEnabled ? batterySailingDelta : 2
                 let heatEnabled = batteryHeatProtectionEnabled
                 let heatThreshold = batteryHeatProtectionThreshold
+                let target = manualDischargeTarget
                 Task {
                     if isTopUp {
                         await batteryControl.cancelTopUp(
                             limitPercentage: limit,
                             lowerHysteresisDelta: delta,
                             heatProtectionEnabled: heatEnabled,
-                            heatProtectionThresholdCelsius: heatThreshold)
+                            heatProtectionThresholdCelsius: heatThreshold,
+                            manualDischargeTarget: target)
                     } else {
                         await batteryControl.startTopUp(
                             limitPercentage: limit,
                             lowerHysteresisDelta: delta,
                             heatProtectionEnabled: heatEnabled,
-                            heatProtectionThresholdCelsius: heatThreshold)
+                            heatProtectionThresholdCelsius: heatThreshold,
+                            manualDischargeTarget: target)
                     }
                 }
             } label: {
@@ -363,6 +379,78 @@ struct CardExpandRegion: View {
             .buttonStyle(.plain)
             .accessibilityLabel(Text(LocalizedStringKey("한 번만 완충")))
             .accessibilityValue(Text(LocalizedStringKey(isTopUp ? "활성화됨" : "비활성화됨")))
+        }
+    }
+
+    @ViewBuilder
+    private func batteryDischargeRow(_ batteryControl: BatteryControlClient, _ s: BatterySample) -> some View {
+        let isDischarging = batteryControl.status.activity == .discharging
+            || batteryControl.status.desiredConfiguration?.manualDischargeActive == true
+        let currentSoC = s.percentage ?? batteryControl.status.currentPercentage
+        let canStartDischarge = s.externalConnected && currentSoC > manualDischargeTarget
+
+        HStack(alignment: .center) {
+            HStack(spacing: 4) {
+                Text("수동 방전 (\(manualDischargeTarget)%)")
+                    .font(WattlyFont.at(10.5, weight: .medium))
+                    .foregroundStyle(t.faint)
+                if isDischarging {
+                    Circle()
+                        .fill(Tokens.statusOrange)
+                        .frame(width: 6, height: 6)
+                }
+            }
+            Spacer()
+            Button {
+                let limit = batteryLimitPercentage
+                let delta = batterySailingEnabled ? batterySailingDelta : 2
+                let heatEnabled = batteryHeatProtectionEnabled
+                let heatThreshold = batteryHeatProtectionThreshold
+                let target = manualDischargeTarget
+                Task {
+                    if isDischarging {
+                        await batteryControl.stopManualDischarge(
+                            limitPercentage: limit,
+                            lowerHysteresisDelta: delta,
+                            heatProtectionEnabled: heatEnabled,
+                            heatProtectionThresholdCelsius: heatThreshold,
+                            manualDischargeTarget: target
+                        )
+                    } else {
+                        await batteryControl.startManualDischarge(
+                            target: target,
+                            limitPercentage: limit,
+                            lowerHysteresisDelta: delta,
+                            heatProtectionEnabled: heatEnabled,
+                            heatProtectionThresholdCelsius: heatThreshold
+                        )
+                    }
+                }
+            } label: {
+                if isDischarging {
+                    Text(LocalizedStringKey("방전 중지"))
+                        .font(WattlyFont.at(10.5, weight: .medium))
+                        .foregroundStyle(Tokens.statusRed)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(RoundedRectangle(cornerRadius: 4).fill(Tokens.statusRed.opacity(0.15)))
+                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Tokens.statusRed.opacity(0.4), lineWidth: 1))
+                        .contentShape(Rectangle())
+                } else {
+                    Text(LocalizedStringKey("\(manualDischargeTarget)%까지 방전"))
+                        .font(WattlyFont.at(10.5, weight: .medium))
+                        .foregroundStyle(canStartDischarge ? Tokens.statusOrange : t.faint)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(RoundedRectangle(cornerRadius: 4).fill(canStartDischarge ? Tokens.statusOrange.opacity(0.15) : t.segTrack))
+                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(canStartDischarge ? Tokens.statusOrange.opacity(0.4) : t.rowBorder, lineWidth: 1))
+                        .contentShape(Rectangle())
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(!isDischarging && !canStartDischarge)
+            .accessibilityLabel(Text("수동 방전 (\(manualDischargeTarget)%)"))
+            .accessibilityValue(Text(LocalizedStringKey(isDischarging ? "방전 중지" : "\(manualDischargeTarget)%까지 방전")))
         }
     }
 

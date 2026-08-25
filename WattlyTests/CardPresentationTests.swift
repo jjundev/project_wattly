@@ -715,8 +715,31 @@ struct CardPresentationTests {
         #expect(CardPresentation.powerSourceText(.charging) == "전원 어댑터")
         #expect(CardPresentation.powerSourceText(.adapterBypass) == "전원 어댑터")
         #expect(CardPresentation.powerSourceText(.batteryOnly) == "배터리")
-        #expect(CardPresentation.powerSourceText(.activeDischarge) == "배터리")
+        #expect(CardPresentation.powerSourceText(.activeDischarge) == "배터리 강제 방전 중 ⚡")
         #expect(CardPresentation.powerSourceText(.powerAssist) == "전원 어댑터 및 배터리")
+    }
+
+    @Test func batteryDischargePresentationAndThreshold() {
+        let dischargeSample = BatterySample(
+            netW: 18.4,
+            milliamps: 1500,
+            volts: 12.0,
+            charging: false,
+            externalConnected: true,
+            remainingWh: 85.0,
+            maxWh: 100.0,
+            targetPercentage: 70,
+            powerFlow: PowerFlowSnapshot(
+                scenario: .activeDischarge,
+                adapterWatts: 0.0,
+                systemWatts: 18.4,
+                batteryNetWatts: 18.4
+            )
+        )
+        let state = MetricState.value(.battery(dischargeSample))
+        #expect(CardPresentation.thresholdLevel(.battery, state, Defaults.thresholds) == .warn)
+        #expect(CardPresentation.subText(state) == "수동 방전 진행 중 (85% → 70%) · -18.4 W")
+        #expect(dischargeSample.percentage == 85)
     }
 
     @Test func powerFlowLabels() {
@@ -730,5 +753,6 @@ struct CardPresentationTests {
         #expect(CardPresentation.systemPowerText(16.12) == "16.1 W")
     }
 }
+
 
 

@@ -164,6 +164,12 @@ struct BatterySample: Sendable, Equatable {
     var targetPercentage: Int = 100
     /// Optional power flow snapshot containing adapter, system load, and scenario routing.
     var powerFlow: PowerFlowSnapshot? = nil
+
+    /// Current State of Charge percentage (0...100), computed from remainingWh and maxWh.
+    public var percentage: Int? {
+        guard let remainingWh, let maxWh, maxWh > 0 else { return nil }
+        return Int((remainingWh / maxWh * 100.0).rounded())
+    }
 }
 
 // MARK: - Temperature (the partial-failure boundary, PRD line 74)
