@@ -780,8 +780,8 @@ import AppKit
         #expect(BatterySectionPresentation.topUpHoldText(locale: ko) == "완충 완료 (어댑터 전원 구동)")
         #expect(BatterySectionPresentation.topUpHoldText(locale: en) == "Top-Up Complete (Adapter Power)")
 
-        #expect(BatterySectionPresentation.forcedDischargeText(locale: ko) == "배터리 강제 방전 중 ⚡")
-        #expect(BatterySectionPresentation.forcedDischargeText(locale: en) == "Forced Battery Discharge ⚡")
+        #expect(BatterySectionPresentation.forcedDischargeText(locale: ko) == "배터리(강제 방전 중)")
+        #expect(BatterySectionPresentation.forcedDischargeText(locale: en) == "Battery (Forced Discharge)")
 
         #expect(BatterySectionPresentation.startDischargeButtonText(targetSoC: 70, locale: ko) == "방전 시작")
         #expect(BatterySectionPresentation.startDischargeButtonText(targetSoC: 70, locale: en) == "Start Discharge")

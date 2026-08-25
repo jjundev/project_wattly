@@ -715,7 +715,7 @@ struct CardPresentationTests {
         #expect(CardPresentation.powerSourceText(.charging) == "전원 어댑터")
         #expect(CardPresentation.powerSourceText(.adapterBypass) == "전원 어댑터")
         #expect(CardPresentation.powerSourceText(.batteryOnly) == "배터리")
-        #expect(CardPresentation.powerSourceText(.activeDischarge) == "배터리 강제 방전 중 ⚡")
+        #expect(CardPresentation.powerSourceText(.activeDischarge) == "배터리(강제 방전 중)")
         #expect(CardPresentation.powerSourceText(.powerAssist) == "전원 어댑터 및 배터리")
     }
 

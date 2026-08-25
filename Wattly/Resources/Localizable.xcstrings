@@ -58980,19 +58980,19 @@
         }
       }
     },
-    "배터리 강제 방전 중 ⚡": {
+    "배터리(강제 방전 중)": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forced Battery Discharge ⚡"
+            "value": "Battery (Forced Discharge)"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "배터리 강제 방전 중 ⚡"
+            "value": "배터리(강제 방전 중)"
           }
         }
       }

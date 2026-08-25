@@ -458,9 +458,9 @@ enum BatterySectionPresentation {
         String(localized: "완충 완료 (어댑터 전원 구동)", locale: locale)
     }
 
-    /// Forced discharge label (e.g. "배터리 강제 방전 중 ⚡", "Forced Battery Discharge ⚡")
+    /// Forced discharge label (e.g. "배터리(강제 방전 중)", "Battery (Forced Discharge)")
     static func forcedDischargeText(locale: Locale = Locale(identifier: "ko")) -> String {
-        String(localized: "배터리 강제 방전 중 ⚡", locale: locale)
+        String(localized: "배터리(강제 방전 중)", locale: locale)
     }
 
     /// Start discharge button label (e.g. "방전 시작", "Start Discharge")
