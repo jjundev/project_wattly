@@ -696,4 +696,32 @@ import AppKit
             isHardwareSupported: true
         ) == true)
     }
+
+    // MARK: - Schedule Chip Presentation
+
+    @Test func upcomingSchedulePresentationFormatting() {
+        let schedule = BatteryChargingSchedule(
+            name: "출근 완충",
+            time: ScheduleTime(hour: 7, minute: 30),
+            action: .startTopUp
+        )
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let triggerDate = calendar.date(from: DateComponents(year: 2026, month: 8, day: 25, hour: 7, minute: 30))!
+
+        let text = BatterySectionPresentation.upcomingScheduleText(
+            schedule: schedule,
+            triggerDate: triggerDate
+        )
+
+        #expect(text != nil)
+        #expect(text?.contains("07:30") == true)
+        #expect(text?.contains("완충") == true)
+
+        #expect(BatterySectionPresentation.upcomingScheduleText(schedule: nil, triggerDate: triggerDate) == nil)
+        #expect(BatterySectionPresentation.upcomingScheduleText(schedule: schedule, triggerDate: nil) == nil)
+    }
 }
+
+
