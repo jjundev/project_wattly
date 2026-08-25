@@ -79,4 +79,24 @@ import Foundation
         let labelInactive = isTopUpInactive ? "활성화됨" : "비활성화됨"
         #expect(labelInactive == "비활성화됨")
     }
+
+    @Test @MainActor func integrationComponentsAcceptScheduleCoordinator() {
+        let client = BatteryControlClient()
+        let coordinator = BatteryScheduleCoordinator(batteryControl: client)
+        let bridge = BatteryControlBridge(client: client, scheduleCoordinator: coordinator)
+        #expect(bridge.scheduleCoordinator != nil)
+
+        let monitor = SystemMonitor(providers: FakeProviders.all(scenario: .laptop))
+        let fanControl = FanControlClient()
+        let settingsView = SettingsView(
+            monitor: monitor,
+            fanControl: fanControl,
+            batteryControl: client,
+            scheduleCoordinator: coordinator
+        )
+        #expect(settingsView.scheduleCoordinator != nil)
+
+        let section = SettingsBatterySection(batteryControl: client, scheduleCoordinator: coordinator)
+        #expect(section.scheduleCoordinator != nil)
+    }
 }

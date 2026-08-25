@@ -6,7 +6,8 @@ import SwiftUI
 struct WattlyApp: App {
     @State private var monitor: SystemMonitor
     @State private var fanControl = FanControlClient()
-    @State private var batteryControl = BatteryControlClient()
+    @State private var batteryControl: BatteryControlClient
+    @State private var scheduleCoordinator: BatteryScheduleCoordinator
 
     init() {
         FontRegistration.register()   // bundle Pretendard before any view renders (A17)
@@ -20,12 +21,20 @@ struct WattlyApp: App {
         // Cadence is adaptive now (issue 09): `PollPolicyBridge` seeds the user's PollInterval
         // setting + starts the loop, which runs at 1 s open / 2–5 s closed under `.auto`.
         _monitor = State(initialValue: SystemMonitor(providers: FakeProviders.all(scenario: scenario)))
+        let bc = BatteryControlClient()
+        _batteryControl = State(initialValue: bc)
+        _scheduleCoordinator = State(initialValue: BatteryScheduleCoordinator(batteryControl: bc))
     }
 
     var body: some Scene {
         MenuBarExtra {
             ThemedRoot {
-                PopoverContentView(monitor: monitor, fanControl: fanControl, batteryControl: batteryControl)
+                PopoverContentView(
+                    monitor: monitor,
+                    fanControl: fanControl,
+                    batteryControl: batteryControl,
+                    scheduleCoordinator: scheduleCoordinator
+                )
             }
         } label: {
             MenuBarLabel(monitor: monitor)
@@ -35,13 +44,22 @@ struct WattlyApp: App {
                 // The fan bridge is likewise always mounted. Closing a Settings window must
                 // never release control; only disabling the persisted opt-in may do that.
                 .background(FanControlBridge(client: fanControl))
-                .background(BatteryControlBridge(client: batteryControl, monitor: monitor))
+                .background(BatteryControlBridge(
+                    client: batteryControl,
+                    monitor: monitor,
+                    scheduleCoordinator: scheduleCoordinator
+                ))
         }
         .menuBarExtraStyle(.window)
 
         Settings {
             ThemedRoot {
-                SettingsView(monitor: monitor, fanControl: fanControl, batteryControl: batteryControl)
+                SettingsView(
+                    monitor: monitor,
+                    fanControl: fanControl,
+                    batteryControl: batteryControl,
+                    scheduleCoordinator: scheduleCoordinator
+                )
             }
         }
         // Lock the prefs window to its 440-wide content (issue 13 §1) — a Settings NSWindow
