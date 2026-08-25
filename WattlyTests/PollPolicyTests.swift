@@ -228,6 +228,13 @@ struct PollPolicyTests {
                                         menubarNeeds: [.cpu], heroCard: .fan)
         #expect(heroFan[.fan] == .seconds(1))
 
+        // In Performance mode, Memory is normally 3s. When Memory is Hero card and panel is open, Memory must be 1s.
+        let heroPerfMem = providerIntervals(mode: .performance, setting: .auto, panelVisible: true,
+                                            menubarLiveContentEnabled: true, active: all,
+                                            menubarNeeds: [.cpu], heroCard: .mem)
+        #expect(heroPerfMem[.memory] == .seconds(1))
+        #expect(heroPerfMem[.battery] == .seconds(3))
+
         // When panel is closed, heroCard does not force 1s cadence.
         let closedHeroBattery = providerIntervals(mode: .eco, setting: .auto, panelVisible: false,
                                                   menubarLiveContentEnabled: true, active: all,
