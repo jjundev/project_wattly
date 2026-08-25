@@ -48240,6 +48240,40 @@
         }
       }
     },
+    "방전 완료 (목표 도달)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discharge Complete (Target Reached)"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "방전 완료 (목표 도달)"
+          }
+        }
+      }
+    },
+    "목표 잔량(%lld%%)에 도달하여 전원 어댑터 바이패스 모드로 전환되었습니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reached target level (%lld%%). Switched to power adapter bypass mode."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "목표 잔량(%lld%%)에 도달하여 전원 어댑터 바이패스 모드로 전환되었습니다."
+          }
+        }
+      }
+    },
     "활성화됨": {
       "extractionState": "manual",
       "localizations": {

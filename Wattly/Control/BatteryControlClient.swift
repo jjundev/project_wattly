@@ -70,7 +70,10 @@ import AppKit
         lowerHysteresisDelta: Int = 2,
         heatProtectionEnabled: Bool = false,
         heatProtectionThresholdCelsius: Int = 35,
-        topUpActive: Bool = false
+        topUpActive: Bool = false,
+        autoDischargeEnabled: Bool = true,
+        manualDischargeActive: Bool = false,
+        manualDischargeTarget: Int = 80
     ) async -> BatteryControlServiceStatus? {
         commandGeneration &+= 1
         let config = BatteryControlConfiguration(
@@ -79,7 +82,10 @@ import AppKit
             lowerHysteresisDelta: lowerHysteresisDelta,
             heatProtectionEnabled: heatProtectionEnabled,
             heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
-            topUpActive: topUpActive
+            topUpActive: topUpActive,
+            autoDischargeEnabled: autoDischargeEnabled,
+            manualDischargeActive: manualDischargeActive,
+            manualDischargeTarget: manualDischargeTarget
         )
         let request = BatteryControlConfigurationRequest(configuration: config, generation: commandGeneration)
         guard let data = try? BatteryControlCodec.encode(request) else {
@@ -94,7 +100,9 @@ import AppKit
         limitPercentage: Int,
         lowerHysteresisDelta: Int = 2,
         heatProtectionEnabled: Bool = false,
-        heatProtectionThresholdCelsius: Int = 35
+        heatProtectionThresholdCelsius: Int = 35,
+        autoDischargeEnabled: Bool = true,
+        manualDischargeTarget: Int = 80
     ) async -> BatteryControlServiceStatus? {
         BatteryNotificationManager.requestAuthorization()
         return await apply(
@@ -103,7 +111,10 @@ import AppKit
             lowerHysteresisDelta: lowerHysteresisDelta,
             heatProtectionEnabled: heatProtectionEnabled,
             heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
-            topUpActive: true
+            topUpActive: true,
+            autoDischargeEnabled: autoDischargeEnabled,
+            manualDischargeActive: false,
+            manualDischargeTarget: manualDischargeTarget
         )
     }
 
@@ -112,7 +123,9 @@ import AppKit
         limitPercentage: Int,
         lowerHysteresisDelta: Int = 2,
         heatProtectionEnabled: Bool = false,
-        heatProtectionThresholdCelsius: Int = 35
+        heatProtectionThresholdCelsius: Int = 35,
+        autoDischargeEnabled: Bool = true,
+        manualDischargeTarget: Int = 80
     ) async -> BatteryControlServiceStatus? {
         await apply(
             enabled: true,
@@ -120,20 +133,97 @@ import AppKit
             lowerHysteresisDelta: lowerHysteresisDelta,
             heatProtectionEnabled: heatProtectionEnabled,
             heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
-            topUpActive: false
+            topUpActive: false,
+            autoDischargeEnabled: autoDischargeEnabled,
+            manualDischargeActive: false,
+            manualDischargeTarget: manualDischargeTarget
+        )
+    }
+
+    @discardableResult
+    public func startManualDischarge(
+        target: Int,
+        limitPercentage: Int = 80,
+        lowerHysteresisDelta: Int = 2,
+        heatProtectionEnabled: Bool = false,
+        heatProtectionThresholdCelsius: Int = 35,
+        autoDischargeEnabled: Bool = true
+    ) async -> BatteryControlServiceStatus? {
+        BatteryNotificationManager.requestAuthorization()
+        return await apply(
+            enabled: true,
+            limitPercentage: limitPercentage,
+            lowerHysteresisDelta: lowerHysteresisDelta,
+            heatProtectionEnabled: heatProtectionEnabled,
+            heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
+            topUpActive: false,
+            autoDischargeEnabled: autoDischargeEnabled,
+            manualDischargeActive: true,
+            manualDischargeTarget: target
+        )
+    }
+
+    @discardableResult
+    public func stopManualDischarge(
+        limitPercentage: Int = 80,
+        lowerHysteresisDelta: Int = 2,
+        heatProtectionEnabled: Bool = false,
+        heatProtectionThresholdCelsius: Int = 35,
+        autoDischargeEnabled: Bool = true,
+        manualDischargeTarget: Int = 80
+    ) async -> BatteryControlServiceStatus? {
+        await apply(
+            enabled: true,
+            limitPercentage: limitPercentage,
+            lowerHysteresisDelta: lowerHysteresisDelta,
+            heatProtectionEnabled: heatProtectionEnabled,
+            heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
+            topUpActive: false,
+            autoDischargeEnabled: autoDischargeEnabled,
+            manualDischargeActive: false,
+            manualDischargeTarget: manualDischargeTarget
+        )
+    }
+
+    @discardableResult
+    public func setAutoDischarge(
+        enabled: Bool,
+        limitPercentage: Int = 80,
+        lowerHysteresisDelta: Int = 2,
+        heatProtectionEnabled: Bool = false,
+        heatProtectionThresholdCelsius: Int = 35,
+        limitEnabled: Bool = true,
+        manualDischargeTarget: Int = 80
+    ) async -> BatteryControlServiceStatus? {
+        await apply(
+            enabled: limitEnabled,
+            limitPercentage: limitPercentage,
+            lowerHysteresisDelta: lowerHysteresisDelta,
+            heatProtectionEnabled: heatProtectionEnabled,
+            heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
+            topUpActive: false,
+            autoDischargeEnabled: enabled,
+            manualDischargeActive: false,
+            manualDischargeTarget: manualDischargeTarget
         )
     }
 
     public func disableAndConfirm(
         limitPercentage: Int = 100,
-        lowerHysteresisDelta: Int = 2
+        lowerHysteresisDelta: Int = 2,
+        autoDischargeEnabled: Bool = true,
+        manualDischargeTarget: Int = 80
     ) async -> DisableFailure? {
         guard let acknowledged = await apply(
             enabled: false,
             limitPercentage: limitPercentage,
             lowerHysteresisDelta: lowerHysteresisDelta,
             heatProtectionEnabled: false,
-            heatProtectionThresholdCelsius: 35) else {
+            heatProtectionThresholdCelsius: 35,
+            topUpActive: false,
+            autoDischargeEnabled: autoDischargeEnabled,
+            manualDischargeActive: false,
+            manualDischargeTarget: manualDischargeTarget) else {
             return .helperUnavailable
         }
         guard acknowledged.desiredConfiguration?.enabled == false else {
@@ -176,36 +266,51 @@ import AppKit
         limitPercentage: Int,
         lowerHysteresisDelta: Int = 2,
         heatProtectionEnabled: Bool = false,
-        heatProtectionThresholdCelsius: Int = 35
+        heatProtectionThresholdCelsius: Int = 35,
+        autoDischargeEnabled: Bool = true,
+        manualDischargeActive: Bool = false,
+        manualDischargeTarget: Int = 80
     ) async {
         await refreshStatus()
         let isTopUp = status.desiredConfiguration?.topUpActive == true
+        let isManualDischarge = manualDischargeActive || (status.desiredConfiguration?.manualDischargeActive == true)
+        let dischargeTarget = isManualDischarge ? (status.desiredConfiguration?.manualDischargeTarget ?? manualDischargeTarget) : manualDischargeTarget
         // The caller's task may have been cancelled while that read was in flight, and a reconcile
         // is a WRITE — unlike the fan heartbeat this loop is modelled on. Without this check a
         // straggler iteration would re-enable a limit the user just switched off, carrying a higher
         // generation than the disable that raced it, and nothing would ever repair it.
+        let targetConfig = BatteryControlConfiguration(
+            enabled: enabled,
+            limitPercentage: limitPercentage,
+            lowerHysteresisDelta: lowerHysteresisDelta,
+            heatProtectionEnabled: heatProtectionEnabled,
+            heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
+            topUpActive: isTopUp,
+            autoDischargeEnabled: autoDischargeEnabled,
+            manualDischargeActive: isManualDischarge,
+            manualDischargeTarget: dischargeTarget
+        )
         guard !Task.isCancelled,
               BatteryControlPolicy.shouldReapply(
-                configuration: .init(
-                    enabled: enabled,
-                    limitPercentage: limitPercentage,
-                    lowerHysteresisDelta: lowerHysteresisDelta,
-                    heatProtectionEnabled: heatProtectionEnabled,
-                    heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
-                    topUpActive: isTopUp),
+                configuration: targetConfig,
                 status: status) else { return }
-        if enabled || heatProtectionEnabled || isTopUp {
+        if enabled || heatProtectionEnabled || isTopUp || isManualDischarge {
             await apply(
                 enabled: enabled,
                 limitPercentage: limitPercentage,
                 lowerHysteresisDelta: lowerHysteresisDelta,
                 heatProtectionEnabled: heatProtectionEnabled,
                 heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
-                topUpActive: isTopUp)
+                topUpActive: isTopUp,
+                autoDischargeEnabled: autoDischargeEnabled,
+                manualDischargeActive: isManualDischarge,
+                manualDischargeTarget: dischargeTarget)
         } else {
             _ = await disableAndConfirm(
                 limitPercentage: limitPercentage,
-                lowerHysteresisDelta: lowerHysteresisDelta)
+                lowerHysteresisDelta: lowerHysteresisDelta,
+                autoDischargeEnabled: autoDischargeEnabled,
+                manualDischargeTarget: dischargeTarget)
         }
     }
 
@@ -220,6 +325,9 @@ import AppKit
         lowerHysteresisDelta: Int = 2,
         heatProtectionEnabled: Bool = false,
         heatProtectionThresholdCelsius: Int = 35,
+        autoDischargeEnabled: Bool = true,
+        manualDischargeActive: Bool = false,
+        manualDischargeTarget: Int = 80,
         transferringOwnership: Bool = false,
         window: NSWindow?
     ) async -> InstallFailure? {
@@ -231,7 +339,11 @@ import AppKit
                 limitPercentage: limitPercentage,
                 lowerHysteresisDelta: lowerHysteresisDelta,
                 heatProtectionEnabled: heatProtectionEnabled,
-                heatProtectionThresholdCelsius: heatProtectionThresholdCelsius)
+                heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
+                topUpActive: false,
+                autoDischargeEnabled: autoDischargeEnabled,
+                manualDischargeActive: manualDischargeActive,
+                manualDischargeTarget: manualDischargeTarget)
         }) {
             return .install(failure)
         }
@@ -242,7 +354,11 @@ import AppKit
             limitPercentage: limitPercentage,
             lowerHysteresisDelta: lowerHysteresisDelta,
             heatProtectionEnabled: heatProtectionEnabled,
-            heatProtectionThresholdCelsius: heatProtectionThresholdCelsius)
+            heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
+            topUpActive: false,
+            autoDischargeEnabled: autoDischargeEnabled,
+            manualDischargeActive: manualDischargeActive,
+            manualDischargeTarget: manualDischargeTarget)
         guard BatteryControlPolicy.accepted(configuration: configuration, by: status) else {
             return .configureRejected(reason: status.detailReason, detail: status.detail)
         }

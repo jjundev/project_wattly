@@ -65,5 +65,83 @@ import Testing
         #expect(titleEn.contains("Scheduled Charge") || titleEn.contains("Morning Commute"))
         #expect(bodyEn.contains("Top Up to 100%"))
     }
+
+    @Test func dischargeNotificationTitleAndBodyAreLocalized() {
+        let ko = Locale(identifier: "ko")
+        let en = Locale(identifier: "en")
+
+        #expect(BatteryNotificationManager.dischargeCompleteTitle(locale: ko) == "방전 완료 (목표 도달)")
+        #expect(BatteryNotificationManager.dischargeCompleteTitle(locale: en) == "Discharge Complete (Target Reached)")
+
+        let bodyKo = BatteryNotificationManager.dischargeCompleteBody(target: 80, locale: ko)
+        #expect(bodyKo == "목표 잔량(80%)에 도달하여 전원 어댑터 바이패스 모드로 전환되었습니다.")
+
+        let bodyEn = BatteryNotificationManager.dischargeCompleteBody(target: 80, locale: en)
+        #expect(bodyEn == "Reached target level (80%). Switched to power adapter bypass mode.")
+    }
+
+    @Test func dischargeTransitionDetectionFiresOnlyOnTransitionToComplete() {
+        var detector = BatteryDischargeTransitionDetector()
+
+        // 1. Initial manual discharge state: no notification
+        #expect(detector.update(reasonKind: .dischargingManual) == false)
+
+        // 2. Still manual discharging: no notification
+        #expect(detector.update(reasonKind: .dischargingManual) == false)
+
+        // 3. Transition to inhibitedAtLimit (holding bypass): notification FIRES
+        #expect(detector.update(reasonKind: .inhibitedAtLimit) == true)
+
+        // 4. Continued inhibited state: does not repeat
+        #expect(detector.update(reasonKind: .inhibitedAtLimit) == false)
+
+        // 5. Transition to auto discharging
+        #expect(detector.update(reasonKind: .dischargingToTarget) == false)
+
+        // 6. Transition to inhibitedAtLimit: FIRES again
+        #expect(detector.update(reasonKind: .inhibitedAtLimit) == true)
+
+        // 7. Unplugged does not trigger completion
+        #expect(detector.update(reasonKind: .dischargingManual) == false)
+        #expect(detector.update(reasonKind: .onBatteryPower) == false)
+
+        // 8. Heat protection does not trigger completion
+        #expect(detector.update(reasonKind: .dischargingManual) == false)
+        #expect(detector.update(reasonKind: .heatProtectionActive) == false)
+    }
+
+    @Test func dischargeTransitionDetectionWithActivityAndStatus() {
+        var detector = BatteryDischargeTransitionDetector()
+
+        // Using activity directly
+        #expect(detector.update(activity: .discharging) == false)
+        #expect(detector.update(activity: .holdingAtLimit) == true)
+        #expect(detector.update(activity: .holdingAtLimit) == false)
+
+        // Using status
+        let dischargingStatus = BatteryControlServiceStatus(
+            mode: .charging,
+            currentPercentage: 85,
+            isPowerAdapterConnected: true,
+            detail: "목표치(80%)까지 방전 중",
+            updatedAt: 1.0,
+            detailReason: .init(kind: .dischargingToTarget, limitPercentage: 80),
+            activity: .discharging
+        )
+        let completeStatus = BatteryControlServiceStatus(
+            mode: .inhibited,
+            currentPercentage: 80,
+            isPowerAdapterConnected: true,
+            detail: "충전 제한 80% 도달 (전원 어댑터 바이패스 구동)",
+            updatedAt: 2.0,
+            detailReason: .init(kind: .inhibitedAtLimit, limitPercentage: 80),
+            activity: .holdingAtLimit
+        )
+
+        var statusDetector = BatteryDischargeTransitionDetector()
+        #expect(statusDetector.update(status: dischargingStatus) == false)
+        #expect(statusDetector.update(status: completeStatus) == true)
+        #expect(statusDetector.update(status: completeStatus) == false)
+    }
 }
 
