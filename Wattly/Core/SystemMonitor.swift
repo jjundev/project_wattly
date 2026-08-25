@@ -100,6 +100,7 @@ final class SystemMonitor {
     /// Last value pushed to `tempGater.setEnabled`, to detect an off→on transition.
     private var tempEnabled = true
     private var isACConnected = false
+    private var heroCard: CardKind?
 
     init(providers: [any MetricProvider],
          clock: MonotonicClock = LiveClock()) {
@@ -137,7 +138,7 @@ final class SystemMonitor {
         return providerIntervals(mode: powerMode, setting: pollSetting, panelVisible: panelVisible,
                                  menubarLiveContentEnabled: !currentMenubarNeeds.isEmpty,
                                  active: activeProviderKinds, menubarNeeds: currentMenubarNeeds,
-                                 isACConnected: isACConnected)
+                                 heroCard: heroCard, isACConnected: isACConnected)
     }
 
     private func nextScheduledDelay(at instant: ContinuousClock.Instant) -> Duration {
@@ -260,6 +261,17 @@ final class SystemMonitor {
         let forced = Set(after.keys).subtracting(before.keys)
             .union(newlyActivated.intersection(Set(after.keys)))
         if after != before || !forced.isEmpty { reschedule(forceProviders: forced) }
+    }
+
+    func setHeroCard(_ card: CardKind?) {
+        guard card != heroCard else { return }
+        let before = currentProviderIntervals
+        heroCard = card
+        let after = currentProviderIntervals
+        if after != before {
+            let forced = panelVisible ? (card.map { Set([$0.provider]) } ?? []) : []
+            reschedule(forceProviders: forced)
+        }
     }
 
     private func recomputeGating() async -> Set<ProviderKind> {

@@ -588,6 +588,28 @@ struct SystemMonitorTests {
         #expect(smoothedSample.powerFlow?.adapterWatts == 48.5)
         #expect(smoothedSample.powerFlow?.systemWatts == 16.1)
     }
+
+    @Test func heroCardSpeedsUpScheduledPollWhenPanelVisible() async {
+        let clock = ManualClock()
+        let provider = CountingProvider(kind: .battery)
+        let monitor = SystemMonitor(providers: [provider], clock: clock)
+        monitor.setPanelVisible(true)
+
+        // Initial poll
+        await monitor.pollScheduled(force: false)
+        #expect(await provider.reads == 1)
+
+        // Advance by 1 second without hero card -> Battery is 5s, not due yet
+        clock.advance(by: .seconds(1))
+        await monitor.pollScheduled(force: false)
+        #expect(await provider.reads == 1)
+
+        // Set Battery as hero card -> Battery becomes 1s cadence
+        monitor.setHeroCard(.battery)
+        clock.advance(by: .seconds(1))
+        await monitor.pollScheduled(force: false)
+        #expect(await provider.reads == 2)
+    }
 }
 
 
