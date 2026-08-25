@@ -78,12 +78,17 @@ struct ScheduleEditorSheet: View {
                 Text("동작")
                     .font(WattlyFont.at(11, weight: .medium))
                     .foregroundStyle(t.faint)
-                Picker("동작", selection: $actionType) {
-                    Text("충전 한도 설정").tag(0)
-                    Text("한 번만 100% 완충").tag(1)
-                    Text("충전 일시 정지").tag(2)
-                }
-                .pickerStyle(.segmented)
+
+                WattlySegment(
+                    selection: $actionType,
+                    options: [
+                        (0, "충전 한도 설정"),
+                        (1, "100% 완충"),
+                        (2, "충전 일시 정지")
+                    ],
+                    fontSize: 11.5,
+                    pillVPadding: 5
+                )
 
                 if actionType == 0 {
                     HStack {
@@ -94,9 +99,10 @@ struct ScheduleEditorSheet: View {
                         WattlySegment(
                             selection: $targetLimit,
                             options: [80, 85, 90, 95].map { ($0, "\($0)%") },
+                            fontSize: 11.5,
                             pillVPadding: 4
                         )
-                        .frame(width: 200)
+                        .frame(width: 190)
                     }
                     .padding(.top, 4)
                 }
@@ -107,14 +113,19 @@ struct ScheduleEditorSheet: View {
                 Text("반복")
                     .font(WattlyFont.at(11, weight: .medium))
                     .foregroundStyle(t.faint)
-                Picker("반복", selection: $repeatType) {
-                    Text("매일").tag(1)
-                    Text("평일").tag(2)
-                    Text("주말").tag(3)
-                    Text("요일 선택").tag(4)
-                    Text("1회만").tag(0)
-                }
-                .pickerStyle(.segmented)
+
+                WattlySegment(
+                    selection: $repeatType,
+                    options: [
+                        (1, "매일"),
+                        (2, "평일"),
+                        (3, "주말"),
+                        (4, "요일 선택"),
+                        (0, "1회만")
+                    ],
+                    fontSize: 11.5,
+                    pillVPadding: 5
+                )
 
                 if repeatType == 4 {
                     HStack(spacing: 4) {
@@ -188,7 +199,7 @@ struct ScheduleEditorSheet: View {
             }
         }
         .padding(18)
-        .frame(width: 360, height: 420)
+        .frame(width: 380, height: 430)
         .background(t.cardBg)
         .onAppear {
             if let initial = initialSchedule {
