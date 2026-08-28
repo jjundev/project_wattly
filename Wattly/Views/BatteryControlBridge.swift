@@ -18,20 +18,57 @@ struct BatteryControlBridge: View {
     @AppStorage(StorageKey.batterySailingDelta) private var sailingDelta = Defaults.batterySailingDelta
     @AppStorage(StorageKey.batteryHeatProtectionEnabled) private var heatProtectionEnabled = Defaults.batteryHeatProtectionEnabled
     @AppStorage(StorageKey.batteryHeatProtectionThreshold) private var heatProtectionThreshold = Defaults.batteryHeatProtectionThreshold
+    @AppStorage(StorageKey.batteryAutoDischargeEnabled) private var autoDischargeEnabled = Defaults.batteryAutoDischargeEnabled
+    @AppStorage(StorageKey.batteryManualDischargeTarget) private var manualDischargeTarget = Defaults.batteryManualDischargeTarget
 
     @State private var topUpDetector = BatteryTopUpTransitionDetector()
 
-    private var effectiveDelta: Int {
+    /// Sailing off means the fixed 2-point hysteresis the daemon assumes by default.
+    static func effectiveDelta(sailingEnabled: Bool, sailingDelta: Int) -> Int {
         sailingEnabled ? sailingDelta : 2
     }
 
-    private var configuration: BatteryControlConfiguration {
+    /// Every stored battery preference this bridge is responsible for, assembled in exactly one
+    /// place. Pure, so a unit test can prove no `@AppStorage` value is dropped on the way to the
+    /// daemon — the omission that had this always-alive bridge reconciling the user's
+    /// auto-discharge opt-in back off once a minute. `topUpActive` and `manualDischargeActive` are
+    /// deliberately absent: they are transient daemon activity, and `BatteryControlPolicy`
+    /// preserves them from the helper's own status rather than from preferences.
+    static func makeConfiguration(
+        enabled: Bool,
+        limitPercentage: Int,
+        sailingEnabled: Bool,
+        sailingDelta: Int,
+        heatProtectionEnabled: Bool,
+        heatProtectionThresholdCelsius: Int,
+        autoDischargeEnabled: Bool,
+        manualDischargeTarget: Int
+    ) -> BatteryControlConfiguration {
         BatteryControlConfiguration(
             enabled: enabled,
-            limitPercentage: limit,
-            lowerHysteresisDelta: effectiveDelta,
+            limitPercentage: limitPercentage,
+            lowerHysteresisDelta: effectiveDelta(
+                sailingEnabled: sailingEnabled, sailingDelta: sailingDelta),
             heatProtectionEnabled: heatProtectionEnabled,
-            heatProtectionThresholdCelsius: heatProtectionThreshold)
+            heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
+            autoDischargeEnabled: autoDischargeEnabled,
+            manualDischargeTarget: manualDischargeTarget)
+    }
+
+    private var configuration: BatteryControlConfiguration {
+        Self.makeConfiguration(
+            enabled: enabled,
+            limitPercentage: limit,
+            sailingEnabled: sailingEnabled,
+            sailingDelta: sailingDelta,
+            heatProtectionEnabled: heatProtectionEnabled,
+            heatProtectionThresholdCelsius: heatProtectionThreshold,
+            autoDischargeEnabled: autoDischargeEnabled,
+            manualDischargeTarget: manualDischargeTarget)
+    }
+
+    private var effectiveDelta: Int {
+        Self.effectiveDelta(sailingEnabled: sailingEnabled, sailingDelta: sailingDelta)
     }
 
     private func syncMonitorTarget() {
