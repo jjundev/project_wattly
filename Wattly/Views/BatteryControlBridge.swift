@@ -67,10 +67,6 @@ struct BatteryControlBridge: View {
             manualDischargeTarget: manualDischargeTarget)
     }
 
-    private var effectiveDelta: Int {
-        Self.effectiveDelta(sailingEnabled: sailingEnabled, sailingDelta: sailingDelta)
-    }
-
     private func syncMonitorTarget() {
         let isTopUp = client.status.desiredConfiguration?.topUpActive == true || client.status.activity == .topUp
         monitor?.setBatteryChargeTarget(enabled: enabled, limitPercentage: limit, topUpActive: isTopUp)
@@ -95,36 +91,107 @@ struct BatteryControlBridge: View {
             }
             .onChange(of: enabled) { _, val in
                 syncMonitorTarget()
+                let requested = Self.makeConfiguration(
+                    enabled: val,
+                    limitPercentage: limit,
+                    sailingEnabled: sailingEnabled,
+                    sailingDelta: sailingDelta,
+                    heatProtectionEnabled: heatProtectionEnabled,
+                    heatProtectionThresholdCelsius: heatProtectionThreshold,
+                    autoDischargeEnabled: autoDischargeEnabled,
+                    manualDischargeTarget: manualDischargeTarget)
                 Task {
-                    await handleConfigChange(val: val, limit: limit, delta: effectiveDelta, heatEnabled: heatProtectionEnabled, heatThreshold: heatProtectionThreshold)
+                    await handleConfigChange(requested)
                 }
             }
             .onChange(of: limit) { _, val in
                 syncMonitorTarget()
+                let requested = Self.makeConfiguration(
+                    enabled: enabled,
+                    limitPercentage: val,
+                    sailingEnabled: sailingEnabled,
+                    sailingDelta: sailingDelta,
+                    heatProtectionEnabled: heatProtectionEnabled,
+                    heatProtectionThresholdCelsius: heatProtectionThreshold,
+                    autoDischargeEnabled: autoDischargeEnabled,
+                    manualDischargeTarget: manualDischargeTarget)
                 Task {
-                    await handleConfigChange(val: enabled, limit: val, delta: effectiveDelta, heatEnabled: heatProtectionEnabled, heatThreshold: heatProtectionThreshold)
+                    await handleConfigChange(requested)
                 }
             }
             .onChange(of: sailingEnabled) { _, isSailing in
-                let delta = isSailing ? sailingDelta : 2
+                let requested = Self.makeConfiguration(
+                    enabled: enabled,
+                    limitPercentage: limit,
+                    sailingEnabled: isSailing,
+                    sailingDelta: sailingDelta,
+                    heatProtectionEnabled: heatProtectionEnabled,
+                    heatProtectionThresholdCelsius: heatProtectionThreshold,
+                    autoDischargeEnabled: autoDischargeEnabled,
+                    manualDischargeTarget: manualDischargeTarget)
                 Task {
-                    await handleConfigChange(val: enabled, limit: limit, delta: delta, heatEnabled: heatProtectionEnabled, heatThreshold: heatProtectionThreshold)
+                    await handleConfigChange(requested)
                 }
             }
             .onChange(of: sailingDelta) { _, newDelta in
                 guard sailingEnabled else { return }
+                let requested = Self.makeConfiguration(
+                    enabled: enabled,
+                    limitPercentage: limit,
+                    sailingEnabled: true,
+                    sailingDelta: newDelta,
+                    heatProtectionEnabled: heatProtectionEnabled,
+                    heatProtectionThresholdCelsius: heatProtectionThreshold,
+                    autoDischargeEnabled: autoDischargeEnabled,
+                    manualDischargeTarget: manualDischargeTarget)
                 Task {
-                    await handleConfigChange(val: enabled, limit: limit, delta: newDelta, heatEnabled: heatProtectionEnabled, heatThreshold: heatProtectionThreshold)
+                    await handleConfigChange(requested)
                 }
             }
             .onChange(of: heatProtectionEnabled) { _, isHeatEnabled in
+                let requested = Self.makeConfiguration(
+                    enabled: enabled,
+                    limitPercentage: limit,
+                    sailingEnabled: sailingEnabled,
+                    sailingDelta: sailingDelta,
+                    heatProtectionEnabled: isHeatEnabled,
+                    heatProtectionThresholdCelsius: heatProtectionThreshold,
+                    autoDischargeEnabled: autoDischargeEnabled,
+                    manualDischargeTarget: manualDischargeTarget)
                 Task {
-                    await handleConfigChange(val: enabled, limit: limit, delta: effectiveDelta, heatEnabled: isHeatEnabled, heatThreshold: heatProtectionThreshold)
+                    await handleConfigChange(requested)
                 }
             }
             .onChange(of: heatProtectionThreshold) { _, threshold in
+                let requested = Self.makeConfiguration(
+                    enabled: enabled,
+                    limitPercentage: limit,
+                    sailingEnabled: sailingEnabled,
+                    sailingDelta: sailingDelta,
+                    heatProtectionEnabled: heatProtectionEnabled,
+                    heatProtectionThresholdCelsius: threshold,
+                    autoDischargeEnabled: autoDischargeEnabled,
+                    manualDischargeTarget: manualDischargeTarget)
                 Task {
-                    await handleConfigChange(val: enabled, limit: limit, delta: effectiveDelta, heatEnabled: heatProtectionEnabled, heatThreshold: threshold)
+                    await handleConfigChange(requested)
+                }
+            }
+            // Auto-discharge is a user setting, not transient activity, so nothing in
+            // `BatteryControlPolicy` preserves it for us — flipping it has to push. `reconcile`
+            // rather than `apply`: it reads the helper first, so it keeps a running Top Up or
+            // manual discharge intact and writes nothing at all when the settings screen already
+            // pushed the same change a moment ago.
+            .onChange(of: autoDischargeEnabled) { _, isAutoDischarge in
+                Task {
+                    await client.reconcile(
+                        enabled: enabled,
+                        limitPercentage: limit,
+                        lowerHysteresisDelta: Self.effectiveDelta(
+                            sailingEnabled: sailingEnabled, sailingDelta: sailingDelta),
+                        heatProtectionEnabled: heatProtectionEnabled,
+                        heatProtectionThresholdCelsius: heatProtectionThreshold,
+                        autoDischargeEnabled: isAutoDischarge,
+                        manualDischargeTarget: manualDischargeTarget)
                 }
             }
             .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)) { _ in
@@ -153,7 +220,9 @@ struct BatteryControlBridge: View {
                     }
                 }
             }
-            .task(id: "\(enabled)-\(limit)-\(sailingEnabled)-\(sailingDelta)-\(heatProtectionEnabled)-\(heatProtectionThreshold)") {
+            // The loop body reads the `self` captured when the task started, so every preference
+            // it forwards must appear here — otherwise it reconciles stale values forever.
+            .task(id: "\(enabled)-\(limit)-\(sailingEnabled)-\(sailingDelta)-\(heatProtectionEnabled)-\(heatProtectionThreshold)-\(autoDischargeEnabled)-\(manualDischargeTarget)") {
                 await handleReconcileLoop()
             }
             .onChange(of: client.status) { _, newStatus in
@@ -171,50 +240,22 @@ struct BatteryControlBridge: View {
         let requested = configuration
         guard BatteryControlPolicy.shouldReapply(
             configuration: requested, status: client.status) else { return }
-        if requested.isActive {
-            await client.apply(
-                enabled: requested.enabled,
-                limitPercentage: requested.limitPercentage,
-                lowerHysteresisDelta: requested.lowerHysteresisDelta,
-                heatProtectionEnabled: requested.heatProtectionEnabled,
-                heatProtectionThresholdCelsius: requested.heatProtectionThresholdCelsius)
-        } else {
-            _ = await client.disableAndConfirm(
-                limitPercentage: requested.limitPercentage,
-                lowerHysteresisDelta: requested.lowerHysteresisDelta)
-        }
+        await push(requested)
     }
 
-    private func handleConfigChange(val: Bool, limit: Int, delta: Int, heatEnabled: Bool, heatThreshold: Int) async {
-        if val || heatEnabled {
-            await client.apply(
-                enabled: val,
-                limitPercentage: limit,
-                lowerHysteresisDelta: delta,
-                heatProtectionEnabled: heatEnabled,
-                heatProtectionThresholdCelsius: heatThreshold)
-        } else {
-            _ = await client.disableAndConfirm(
-                limitPercentage: limit,
-                lowerHysteresisDelta: delta)
-        }
+    private func handleConfigChange(_ requested: BatteryControlConfiguration) async {
+        await push(requested)
     }
 
     private func handleWake() async {
-        switch Self.wakeAction(configuration: configuration, status: client.status) {
+        let requested = configuration
+        switch Self.wakeAction(configuration: requested, status: client.status) {
         case .refreshStatus:
             await client.refreshStatus()
         case .apply:
-            await client.apply(
-                enabled: enabled, limitPercentage: limit,
-                lowerHysteresisDelta: effectiveDelta,
-                heatProtectionEnabled: heatProtectionEnabled,
-                heatProtectionThresholdCelsius: heatProtectionThreshold)
+            await applyRequested(requested)
         case .disableAndConfirm:
-            let requested = configuration
-            _ = await client.disableAndConfirm(
-                limitPercentage: requested.limitPercentage,
-                lowerHysteresisDelta: requested.lowerHysteresisDelta)
+            await disableRequested(requested)
         }
         if let scheduleCoordinator {
             await scheduleCoordinator.evaluateSchedules(at: Date(), isWake: true)
@@ -229,16 +270,49 @@ struct BatteryControlBridge: View {
                     consecutiveUnsupported: consecutiveUnsupported))
             )
             guard !Task.isCancelled else { return }
+            let requested = configuration
             await client.reconcile(
-                enabled: enabled,
-                limitPercentage: limit,
-                lowerHysteresisDelta: effectiveDelta,
-                heatProtectionEnabled: heatProtectionEnabled,
-                heatProtectionThresholdCelsius: heatProtectionThreshold)
+                enabled: requested.enabled,
+                limitPercentage: requested.limitPercentage,
+                lowerHysteresisDelta: requested.lowerHysteresisDelta,
+                heatProtectionEnabled: requested.heatProtectionEnabled,
+                heatProtectionThresholdCelsius: requested.heatProtectionThresholdCelsius,
+                autoDischargeEnabled: requested.autoDischargeEnabled,
+                manualDischargeTarget: requested.manualDischargeTarget)
             consecutiveUnsupported = client.status.mode == .unsupported
                 ? consecutiveUnsupported + 1
                 : 0
             if client.status.isHardwareSupported == false { return }
         }
+    }
+
+    /// The one place a bridge-built configuration turns into a daemon write. An inactive policy
+    /// still carries the discharge preferences: the helper persists them, so the user's target
+    /// survives the limit being switched off and back on.
+    private func push(_ requested: BatteryControlConfiguration) async {
+        if requested.enabled || requested.heatProtectionEnabled {
+            await applyRequested(requested)
+        } else {
+            await disableRequested(requested)
+        }
+    }
+
+    private func applyRequested(_ requested: BatteryControlConfiguration) async {
+        await client.apply(
+            enabled: requested.enabled,
+            limitPercentage: requested.limitPercentage,
+            lowerHysteresisDelta: requested.lowerHysteresisDelta,
+            heatProtectionEnabled: requested.heatProtectionEnabled,
+            heatProtectionThresholdCelsius: requested.heatProtectionThresholdCelsius,
+            autoDischargeEnabled: requested.autoDischargeEnabled,
+            manualDischargeTarget: requested.manualDischargeTarget)
+    }
+
+    private func disableRequested(_ requested: BatteryControlConfiguration) async {
+        _ = await client.disableAndConfirm(
+            limitPercentage: requested.limitPercentage,
+            lowerHysteresisDelta: requested.lowerHysteresisDelta,
+            autoDischargeEnabled: requested.autoDischargeEnabled,
+            manualDischargeTarget: requested.manualDischargeTarget)
     }
 }

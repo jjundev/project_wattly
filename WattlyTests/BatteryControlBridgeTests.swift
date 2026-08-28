@@ -58,4 +58,90 @@ import Foundation
         #expect(StorageKey.batteryAutoDischargeEnabled == "batteryAutoDischargeEnabled")
         #expect(StorageKey.batteryManualDischargeTarget == "batteryManualDischargeTarget")
     }
+
+    // MARK: - 데몬 왕복 회귀
+
+    /// The mechanism of the reported bug, pinned. A daemon that holds auto-discharge ON and a
+    /// bridge configuration that says OFF is a mismatch `shouldReapply` acts on — it re-pushes,
+    /// and auto-discharge dies. With the preference wired, the two agree and nothing is re-pushed.
+    @Test func autoDischargeMismatchIsWhatTriggeredTheReapply() {
+        let daemonConfig = BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 85,
+            lowerHysteresisDelta: 2,
+            autoDischargeEnabled: true)
+        let status = BatteryControlServiceStatus(
+            mode: .inhibited,
+            currentPercentage: 100,
+            isPowerAdapterConnected: true,
+            detail: "충전 제한 85% 도달",
+            updatedAt: 100.0,
+            desiredConfiguration: daemonConfig,
+            capabilities: [.persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1])
+
+        let unwired = BatteryControlBridge.makeConfiguration(
+            enabled: true, limitPercentage: 85,
+            sailingEnabled: false, sailingDelta: 5,
+            heatProtectionEnabled: false, heatProtectionThresholdCelsius: 35,
+            autoDischargeEnabled: false, manualDischargeTarget: 80)
+        #expect(BatteryControlPolicy.shouldReapply(configuration: unwired, status: status) == true)
+
+        let wired = BatteryControlBridge.makeConfiguration(
+            enabled: true, limitPercentage: 85,
+            sailingEnabled: false, sailingDelta: 5,
+            heatProtectionEnabled: false, heatProtectionThresholdCelsius: 35,
+            autoDischargeEnabled: true, manualDischargeTarget: 80)
+        #expect(BatteryControlPolicy.shouldReapply(configuration: wired, status: status) == false)
+    }
+
+    /// The second half of the same omission: while no discharge is running, `reconcile` keeps the
+    /// caller's target, so the bridge passing the stored 70 is what stops the daemon's setting
+    /// from drifting back to 80.
+    @MainActor @Test func reconcileForwardsBothDischargePreferences() async throws {
+        let receiver = BridgeRequestReceiver()
+        let daemonConfig = BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 85,
+            lowerHysteresisDelta: 2,
+            autoDischargeEnabled: false,
+            manualDischargeActive: false,
+            manualDischargeTarget: 80)
+        let status = BatteryControlServiceStatus(
+            mode: .inhibited,
+            currentPercentage: 100,
+            isPowerAdapterConnected: true,
+            detail: "충전 제한 85% 도달",
+            updatedAt: 100.0,
+            desiredConfiguration: daemonConfig,
+            capabilities: [.persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1])
+        let client = BatteryControlClient(requestHandler: { request in
+            await receiver.set(request)
+            return (try? BatteryControlCodec.encode(status), nil)
+        })
+
+        await client.reconcile(
+            enabled: true,
+            limitPercentage: 85,
+            lowerHysteresisDelta: 2,
+            heatProtectionEnabled: false,
+            heatProtectionThresholdCelsius: 35,
+            autoDischargeEnabled: true,
+            manualDischargeTarget: 70)
+
+        guard case .configure(let data) = await receiver.request else {
+            Issue.record("Expected configure request")
+            return
+        }
+        let sent = try BatteryControlCodec.decode(
+            BatteryControlConfigurationRequest.self, from: data)
+        #expect(sent.configuration.autoDischargeEnabled == true)
+        #expect(sent.configuration.manualDischargeTarget == 70)
+    }
+}
+
+private actor BridgeRequestReceiver {
+    var request: BatteryControlClient.BatteryControlClientRequest?
+    func set(_ request: BatteryControlClient.BatteryControlClientRequest) {
+        self.request = request
+    }
 }
