@@ -776,6 +776,14 @@ struct SettingsBatterySection: View {
                     )
                     .padding(EdgeInsets(top: 0, leading: 14, bottom: 12, trailing: 14))
                 } else {
+                    let disabledReason = BatterySectionPresentation.manualDischargeDisabledReason(
+                        isPluggedIn: isPluggedIn,
+                        currentSoC: currentSoC,
+                        targetSoC: manualDischargeTarget,
+                        isHardwareSupported: !isHardwareUnsupported,
+                        isToggleEnabled: isToggleEnabled,
+                        locale: locale
+                    )
                     HStack {
                         HStack(spacing: 4) {
                             Text("현재 잔량:")
@@ -802,20 +810,24 @@ struct SettingsBatterySection: View {
                                 targetSoC: manualDischargeTarget,
                                 locale: locale))
                                 .font(WattlyFont.at(11.5, weight: .semibold))
-                                .foregroundStyle(t.sub)
+                                .foregroundStyle(canStartDischarge ? Tokens.statusOrange : t.faint)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 5)
                                 .background(
                                     RoundedRectangle(cornerRadius: 6)
-                                        .fill(t.segTrack)
+                                        .fill(canStartDischarge ? Tokens.statusOrange.opacity(0.15) : t.segTrack)
                                 )
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 6)
-                                        .stroke(t.rowBorder, lineWidth: 1)
+                                        .stroke(canStartDischarge ? Tokens.statusOrange.opacity(0.35) : t.rowBorder, lineWidth: 1)
                                 )
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .disabled(!canStartDischarge)
+                        .help(disabledReason ?? "")
+                        .accessibilityLabel(Text(verbatim: BatterySectionPresentation.startDischargeButtonText(targetSoC: manualDischargeTarget, locale: locale)))
+                        .accessibilityHint(Text(disabledReason ?? ""))
                     }
                     .padding(EdgeInsets(top: 0, leading: 14, bottom: 14, trailing: 14))
                 }
