@@ -196,7 +196,7 @@ Wattly는 최신 **App Intents** 프레임워크를 기반으로 Apple Shortcuts
 
 - **출근 준비 자동 완충 루틴**:
   - 조건: 평일 오전 7시 알람 해제 시
-  - 동작: `SetBatteryTopUpIntent(start: true)` 실행 &rarr; 출근 전 배터리를 100%로 완충하고, 어댑터를 분리하여 출근하면 자동으로 기존 80% 제한으로 복귀.
+  - 동작: `SetBatteryTopUpIntent(start: true)` 실행 &rarr; 출근 전 배터리를 100%로 완충하고, 어댑터를 분리하여 출근하거나 완충 후 12시간이 지나면 자동으로 기존 80% 제한으로 복귀.
 - **사무실 거치 워크스페이스 모드**:
   - 조건: 회사 Wi-Fi 네트워크에 연결되거나 '업무' 집중 모드 켜짐
   - 동작: `SetBatteryLimitIntent(limit: 80, enableLimit: true)` 및 `SetBatterySailingIntent(enabled: true, delta: 5)` 실행 &rarr; 장시간 어댑터 연결 시 배터리 수명 보호.
