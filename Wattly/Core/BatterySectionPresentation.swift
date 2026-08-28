@@ -162,6 +162,7 @@ enum BatterySectionPresentation {
         case .clientConfiguration: String(localized: "유지보수: 설정 변경", locale: locale)
         case .adapterTransition: String(localized: "유지보수: 전원 전환", locale: locale)
         case .termination: String(localized: "유지보수: 앱 종료", locale: locale)
+        case .topUpExpired: String(localized: "유지보수: 완충 자동 해제", locale: locale)
         case .unrecognized: String(localized: "유지보수: 알 수 없음", locale: locale)
         }
     }

@@ -172,6 +172,10 @@ public enum BatteryMaintenanceTrigger: String, Codable, Equatable, Sendable {
     case clientConfiguration
     case adapterTransition
     case termination
+    /// Top Up이 100% 도달 후 제한 시간을 넘겨 스스로 해제됐다. 앱은 이 trigger를 보고 사용자
+    /// 취소와 구분해 알림을 띄운다 — 해제 후 상태는 평범한 `inhibitedAtLimit`이라 상태만으로는
+    /// 두 경우를 구분할 수 없다.
+    case topUpExpired
     case unrecognized
 
     public init(from decoder: any Decoder) throws {

@@ -142,7 +142,8 @@ import AppKit
                        "hu", "id", "it", "ja", "ko", "nb", "nl", "pl", "pt-BR", "pt-PT",
                        "ro", "ru", "sv", "th", "tr", "uk", "vi", "zh-Hans", "zh-Hant"]
         let triggers: [BatteryMaintenanceTrigger] = [
-            .startup, .wake, .clientConfiguration, .adapterTransition, .termination, .unrecognized,
+            .startup, .wake, .clientConfiguration, .adapterTransition, .termination,
+            .topUpExpired, .unrecognized,
         ]
         let reasons: [BatteryControlStatusReason.Kind] = [
             .persistenceReadFailed, .persistenceWriteFailed, .policyOwnerMismatch, .hardwareReadbackFailed,
@@ -936,6 +937,27 @@ import AppKit
             willShowTopUp: true,
             willShowDischarge: true
         ))
+    }
+
+    @Test func topUpExpiredTriggerHasItsOwnKoreanSentence() {
+        let ko = Locale(identifier: "ko")
+        let text = BatterySectionPresentation.maintenanceStatus(
+            ownership: .owner(501), currentUID: 501,
+            capabilities: BatteryControlCoordinator.capabilities,
+            record: .init(trigger: .topUpExpired, result: .applied,
+                          occurredAt: 100, reason: nil),
+            locale: ko, timestampText: { _ in "21:04" })!.text
+        #expect(text.contains("완충 자동 해제"))
+    }
+
+    /// 모르는 trigger는 예전처럼 관용 디코딩으로 `.unrecognized`가 되어야 한다 —
+    /// 구버전 앱이 신버전 헬퍼의 상태 전체를 잃지 않게 하는 장치다.
+    @Test func topUpExpiredTriggerRoundTripsAndDegradesGracefully() throws {
+        let data = try JSONEncoder().encode(BatteryMaintenanceTrigger.topUpExpired)
+        #expect(String(data: data, encoding: .utf8) == "\"topUpExpired\"")
+        let unknown = try JSONDecoder().decode(
+            BatteryMaintenanceTrigger.self, from: "\"someFutureTrigger\"".data(using: .utf8)!)
+        #expect(unknown == .unrecognized)
     }
 }
 
