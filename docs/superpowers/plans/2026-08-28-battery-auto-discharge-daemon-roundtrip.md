@@ -176,7 +176,7 @@ APP="$(xcodebuild -project Wattly.xcodeproj -scheme Wattly -configuration Debug 
 Leave it running for at least three minutes with the Settings window **closed**, then read the log:
 
 ```bash
-log show --last 5m --predicate 'subsystem == "dev.jjundev.Wattly"' --info --style compact
+/usr/bin/log show --last 5m --predicate 'subsystem == "dev.jjundev.Wattly"' --info --style compact
 ```
 
 Expected: a `reconcile loop started` line, then a `reconcile tick:` line roughly every 60 s, each followed by a `reconcile verdict:` line.
@@ -583,7 +583,7 @@ Expected: `"autoDischargeEnabled":true`.
 - [ ] **Step 7: Read the log regardless of the outcome**
 
 ```bash
-log show --last 10m --predicate 'subsystem == "dev.jjundev.Wattly"' --info --style compact
+/usr/bin/log show --last 10m --predicate 'subsystem == "dev.jjundev.Wattly"' --info --style compact
 ```
 
 On success this should show `reconcile tick:` lines carrying `autoDischarge=true`, and `reconcile verdict:` lines settling to `willReapply=false` once the daemon agrees — the loop running and finding nothing to repair.
