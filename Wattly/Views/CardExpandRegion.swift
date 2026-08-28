@@ -18,6 +18,7 @@ struct CardExpandRegion: View {
     @AppStorage(StorageKey.batterySailingDelta) private var batterySailingDelta = Defaults.batterySailingDelta
     @AppStorage(StorageKey.batteryHeatProtectionEnabled) private var batteryHeatProtectionEnabled = Defaults.batteryHeatProtectionEnabled
     @AppStorage(StorageKey.batteryHeatProtectionThreshold) private var batteryHeatProtectionThreshold = Defaults.batteryHeatProtectionThreshold
+    @AppStorage(StorageKey.batteryAutoDischargeEnabled) private var batteryAutoDischargeEnabled = Defaults.batteryAutoDischargeEnabled
     @AppStorage(StorageKey.batteryManualDischargeTarget) private var manualDischargeTarget = Defaults.batteryManualDischargeTarget
     let card: CardKind
     let state: MetricState
@@ -394,6 +395,7 @@ struct CardExpandRegion: View {
                 let delta = batterySailingEnabled ? batterySailingDelta : 2
                 let heatEnabled = batteryHeatProtectionEnabled
                 let heatThreshold = batteryHeatProtectionThreshold
+                let autoDischarge = batteryAutoDischargeEnabled
                 let target = manualDischargeTarget
                 Task {
                     if isTopUp {
@@ -402,6 +404,7 @@ struct CardExpandRegion: View {
                             lowerHysteresisDelta: delta,
                             heatProtectionEnabled: heatEnabled,
                             heatProtectionThresholdCelsius: heatThreshold,
+                            autoDischargeEnabled: autoDischarge,
                             manualDischargeTarget: target)
                     } else {
                         await batteryControl.startTopUp(
@@ -409,6 +412,7 @@ struct CardExpandRegion: View {
                             lowerHysteresisDelta: delta,
                             heatProtectionEnabled: heatEnabled,
                             heatProtectionThresholdCelsius: heatThreshold,
+                            autoDischargeEnabled: autoDischarge,
                             manualDischargeTarget: target)
                     }
                 }
@@ -460,6 +464,7 @@ struct CardExpandRegion: View {
                 let delta = batterySailingEnabled ? batterySailingDelta : 2
                 let heatEnabled = batteryHeatProtectionEnabled
                 let heatThreshold = batteryHeatProtectionThreshold
+                let autoDischarge = batteryAutoDischargeEnabled
                 let target = manualDischargeTarget
                 Task {
                     if isDischarging {
@@ -468,6 +473,7 @@ struct CardExpandRegion: View {
                             lowerHysteresisDelta: delta,
                             heatProtectionEnabled: heatEnabled,
                             heatProtectionThresholdCelsius: heatThreshold,
+                            autoDischargeEnabled: autoDischarge,
                             manualDischargeTarget: target
                         )
                     } else {
@@ -476,7 +482,8 @@ struct CardExpandRegion: View {
                             limitPercentage: limit,
                             lowerHysteresisDelta: delta,
                             heatProtectionEnabled: heatEnabled,
-                            heatProtectionThresholdCelsius: heatThreshold
+                            heatProtectionThresholdCelsius: heatThreshold,
+                            autoDischargeEnabled: autoDischarge
                         )
                     }
                 }

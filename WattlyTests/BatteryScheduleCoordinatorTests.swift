@@ -345,6 +345,68 @@ private func makeIsolatedDefaults() -> UserDefaults {
         #expect(coordinator.schedules[0].isEnabled == false)
     }
 
+    /// Regression for the missing-argument bug: `execute(schedule:at:)` must thread the user's
+    /// auto-discharge opt-in and manual-discharge target through to the client on the `.setLimit`
+    /// path, not silently reset them to `apply`'s defaults (`false` / `80`).
+    @Test @MainActor func setLimitCarriesAutoDischargeAndManualDischargeTarget() async {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+
+        let defaults = makeIsolatedDefaults()
+        defaults.set(true, forKey: StorageKey.batteryAutoDischargeEnabled)
+        defaults.set(70, forKey: StorageKey.batteryManualDischargeTarget)
+
+        let state = MockBatteryState()
+        let client = makeMockClient(state: state)
+        _ = await client.refreshStatus()
+        let coordinator = BatteryScheduleCoordinator(batteryControl: client, defaults: defaults)
+
+        let schedule = BatteryChargingSchedule(
+            name: "80% 한도",
+            time: ScheduleTime(hour: 8, minute: 0),
+            repeatRule: .daily,
+            action: .setLimit(percentage: 80)
+        )
+        coordinator.addSchedule(schedule)
+
+        let testDate = calendar.date(from: DateComponents(year: 2026, month: 8, day: 25, hour: 8, minute: 0))!
+        await coordinator.evaluateSchedules(at: testDate, isWake: false, calendar: calendar)
+
+        let applied = await state.lastAppliedConfig
+        #expect(applied?.autoDischargeEnabled == true)
+        #expect(applied?.manualDischargeTarget == 70)
+    }
+
+    /// Same regression, `.startTopUp` path.
+    @Test @MainActor func startTopUpCarriesAutoDischargeAndManualDischargeTarget() async {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+
+        let defaults = makeIsolatedDefaults()
+        defaults.set(true, forKey: StorageKey.batteryAutoDischargeEnabled)
+        defaults.set(70, forKey: StorageKey.batteryManualDischargeTarget)
+
+        let state = MockBatteryState()
+        let client = makeMockClient(state: state)
+        _ = await client.refreshStatus()
+        let coordinator = BatteryScheduleCoordinator(batteryControl: client, defaults: defaults)
+
+        let schedule = BatteryChargingSchedule(
+            name: "완충",
+            time: ScheduleTime(hour: 8, minute: 0),
+            repeatRule: .daily,
+            action: .startTopUp
+        )
+        coordinator.addSchedule(schedule)
+
+        let testDate = calendar.date(from: DateComponents(year: 2026, month: 8, day: 25, hour: 8, minute: 0))!
+        await coordinator.evaluateSchedules(at: testDate, isWake: false, calendar: calendar)
+
+        let applied = await state.lastAppliedConfig
+        #expect(applied?.autoDischargeEnabled == true)
+        #expect(applied?.manualDischargeTarget == 70)
+    }
+
     @Test @MainActor func clearHistoryRemovesAllEntries() {
         let defaults = makeIsolatedDefaults()
         let state = MockBatteryState()

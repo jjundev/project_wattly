@@ -209,6 +209,44 @@ private struct MockBatteryMetricProvider: MetricProvider {
         #expect(requested?.configuration.enabled == true)
     }
 
+    /// Regression for the missing-argument bug: `applyLimit` must thread the user's auto-discharge
+    /// opt-in and manual-discharge target through to the client, not silently reset them to
+    /// `apply`'s defaults (`false` / `80`).
+    @Test func applyLimitCarriesAutoDischargeAndManualDischargeTarget() async throws {
+        let suiteName = "BatteryIntentBridgeTestsAutoDischarge-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.set(false, forKey: StorageKey.batteryLimitEnabled)
+        defaults.set(80, forKey: StorageKey.batteryLimitPercentage)
+        defaults.set(true, forKey: StorageKey.batteryAutoDischargeEnabled)
+        defaults.set(70, forKey: StorageKey.batteryManualDischargeTarget)
+
+        let receiver = ConfigReceiver()
+        let bridge = BatteryIntentBridge(userDefaults: defaults, clientProvider: {
+            BatteryControlClient(requestHandler: { req in
+                if case .configure(let data) = req {
+                    let decoded = try? BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data)
+                    Task { await receiver.set(decoded) }
+                }
+                let status = BatteryControlServiceStatus(
+                    mode: .charging,
+                    currentPercentage: 70,
+                    isPowerAdapterConnected: true,
+                    detail: "정상",
+                    updatedAt: 100,
+                    isHardwareSupported: true
+                )
+                let data = try? BatteryControlCodec.encode(status)
+                return (data, nil)
+            })
+        })
+
+        _ = try await bridge.applyLimit(enabled: true, limitPercentage: 90)
+
+        let requested = await receiver.config
+        #expect(requested?.configuration.autoDischargeEnabled == true)
+        #expect(requested?.configuration.manualDischargeTarget == 70)
+    }
+
     @Test func applyLimitThrowsWhenHardwareUnsupported() async {
         let suiteName = "BatteryIntentBridgeTestsUnsupported-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!

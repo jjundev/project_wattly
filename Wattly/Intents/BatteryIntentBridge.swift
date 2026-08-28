@@ -118,6 +118,12 @@ public final class BatteryIntentBridge: @unchecked Sendable {
         let heatThreshold = userDefaults.object(forKey: StorageKey.batteryHeatProtectionThreshold) != nil
             ? userDefaults.integer(forKey: StorageKey.batteryHeatProtectionThreshold)
             : Defaults.batteryHeatProtectionThreshold
+        let autoDischargeEnabled = userDefaults.object(forKey: StorageKey.batteryAutoDischargeEnabled) != nil
+            ? userDefaults.bool(forKey: StorageKey.batteryAutoDischargeEnabled)
+            : Defaults.batteryAutoDischargeEnabled
+        let manualDischargeTarget = userDefaults.object(forKey: StorageKey.batteryManualDischargeTarget) != nil
+            ? userDefaults.integer(forKey: StorageKey.batteryManualDischargeTarget)
+            : Defaults.batteryManualDischargeTarget
 
         let newEnabled = enabled ?? curEnabled
         let newLimit = limitPercentage ?? curLimit
@@ -129,7 +135,9 @@ public final class BatteryIntentBridge: @unchecked Sendable {
             limitPercentage: newLimit,
             lowerHysteresisDelta: delta,
             heatProtectionEnabled: heatEnabled,
-            heatProtectionThresholdCelsius: heatThreshold
+            heatProtectionThresholdCelsius: heatThreshold,
+            autoDischargeEnabled: autoDischargeEnabled,
+            manualDischargeTarget: manualDischargeTarget
         ) else {
             throw BatteryIntentError.helperNotInstalled
         }
@@ -161,6 +169,12 @@ public final class BatteryIntentBridge: @unchecked Sendable {
         let heatThreshold = userDefaults.object(forKey: StorageKey.batteryHeatProtectionThreshold) != nil
             ? userDefaults.integer(forKey: StorageKey.batteryHeatProtectionThreshold)
             : Defaults.batteryHeatProtectionThreshold
+        let autoDischargeEnabled = userDefaults.object(forKey: StorageKey.batteryAutoDischargeEnabled) != nil
+            ? userDefaults.bool(forKey: StorageKey.batteryAutoDischargeEnabled)
+            : Defaults.batteryAutoDischargeEnabled
+        let manualDischargeTarget = userDefaults.object(forKey: StorageKey.batteryManualDischargeTarget) != nil
+            ? userDefaults.integer(forKey: StorageKey.batteryManualDischargeTarget)
+            : Defaults.batteryManualDischargeTarget
 
         let newDelta = delta ?? curDelta
         let effectiveDelta = enabled ? newDelta : 2
@@ -171,7 +185,9 @@ public final class BatteryIntentBridge: @unchecked Sendable {
             limitPercentage: curLimit,
             lowerHysteresisDelta: effectiveDelta,
             heatProtectionEnabled: heatEnabled,
-            heatProtectionThresholdCelsius: heatThreshold
+            heatProtectionThresholdCelsius: heatThreshold,
+            autoDischargeEnabled: autoDischargeEnabled,
+            manualDischargeTarget: manualDischargeTarget
         ) else {
             throw BatteryIntentError.helperNotInstalled
         }
@@ -203,6 +219,12 @@ public final class BatteryIntentBridge: @unchecked Sendable {
         let heatThreshold = userDefaults.object(forKey: StorageKey.batteryHeatProtectionThreshold) != nil
             ? userDefaults.integer(forKey: StorageKey.batteryHeatProtectionThreshold)
             : Defaults.batteryHeatProtectionThreshold
+        let autoDischargeEnabled = userDefaults.object(forKey: StorageKey.batteryAutoDischargeEnabled) != nil
+            ? userDefaults.bool(forKey: StorageKey.batteryAutoDischargeEnabled)
+            : Defaults.batteryAutoDischargeEnabled
+        let manualDischargeTarget = userDefaults.object(forKey: StorageKey.batteryManualDischargeTarget) != nil
+            ? userDefaults.integer(forKey: StorageKey.batteryManualDischargeTarget)
+            : Defaults.batteryManualDischargeTarget
         let delta = sailingEnabled ? sailingDelta : 2
 
         let client = await clientProvider()
@@ -212,14 +234,18 @@ public final class BatteryIntentBridge: @unchecked Sendable {
                 limitPercentage: curLimit,
                 lowerHysteresisDelta: delta,
                 heatProtectionEnabled: heatEnabled,
-                heatProtectionThresholdCelsius: heatThreshold
+                heatProtectionThresholdCelsius: heatThreshold,
+                autoDischargeEnabled: autoDischargeEnabled,
+                manualDischargeTarget: manualDischargeTarget
             )
         } else {
             status = await client.cancelTopUp(
                 limitPercentage: curLimit,
                 lowerHysteresisDelta: delta,
                 heatProtectionEnabled: heatEnabled,
-                heatProtectionThresholdCelsius: heatThreshold
+                heatProtectionThresholdCelsius: heatThreshold,
+                autoDischargeEnabled: autoDischargeEnabled,
+                manualDischargeTarget: manualDischargeTarget
             )
         }
 
@@ -249,6 +275,12 @@ public final class BatteryIntentBridge: @unchecked Sendable {
         let curThreshold = userDefaults.object(forKey: StorageKey.batteryHeatProtectionThreshold) != nil
             ? userDefaults.integer(forKey: StorageKey.batteryHeatProtectionThreshold)
             : Defaults.batteryHeatProtectionThreshold
+        let autoDischargeEnabled = userDefaults.object(forKey: StorageKey.batteryAutoDischargeEnabled) != nil
+            ? userDefaults.bool(forKey: StorageKey.batteryAutoDischargeEnabled)
+            : Defaults.batteryAutoDischargeEnabled
+        let manualDischargeTarget = userDefaults.object(forKey: StorageKey.batteryManualDischargeTarget) != nil
+            ? userDefaults.integer(forKey: StorageKey.batteryManualDischargeTarget)
+            : Defaults.batteryManualDischargeTarget
 
         let newThreshold = thresholdCelsius ?? curThreshold
         let delta = sailingEnabled ? sailingDelta : 2
@@ -259,7 +291,9 @@ public final class BatteryIntentBridge: @unchecked Sendable {
             limitPercentage: curLimit,
             lowerHysteresisDelta: delta,
             heatProtectionEnabled: enabled,
-            heatProtectionThresholdCelsius: newThreshold
+            heatProtectionThresholdCelsius: newThreshold,
+            autoDischargeEnabled: autoDischargeEnabled,
+            manualDischargeTarget: manualDischargeTarget
         ) else {
             throw BatteryIntentError.helperNotInstalled
         }
