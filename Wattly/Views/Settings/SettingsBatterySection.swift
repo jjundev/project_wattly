@@ -177,19 +177,25 @@ struct SettingsBatterySection: View {
                             let delta = effectiveDelta
                             let heatEnabled = batteryHeatProtectionEnabled
                             let heatThreshold = Defaults.batteryHeatProtectionThreshold
+                            let autoDischarge = autoDischargeEnabled
+                            let manualTarget = manualDischargeTarget
                             Task {
                                 if isTopUp {
                                     await batteryControl.cancelTopUp(
                                         limitPercentage: limit,
                                         lowerHysteresisDelta: delta,
                                         heatProtectionEnabled: heatEnabled,
-                                        heatProtectionThresholdCelsius: heatThreshold)
+                                        heatProtectionThresholdCelsius: heatThreshold,
+                                        autoDischargeEnabled: autoDischarge,
+                                        manualDischargeTarget: manualTarget)
                                 } else {
                                     await batteryControl.startTopUp(
                                         limitPercentage: limit,
                                         lowerHysteresisDelta: delta,
                                         heatProtectionEnabled: heatEnabled,
-                                        heatProtectionThresholdCelsius: heatThreshold)
+                                        heatProtectionThresholdCelsius: heatThreshold,
+                                        autoDischargeEnabled: autoDischarge,
+                                        manualDischargeTarget: manualTarget)
                                 }
                             }
                         } label: {
