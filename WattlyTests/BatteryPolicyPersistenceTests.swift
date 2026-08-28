@@ -385,4 +385,55 @@ import Testing
         #expect(BatteryPolicyFileStore.defaultURL.path
                 == "/Library/Application Support/Wattly/battery-control-v1.json")
     }
+
+    @Test func persistsTheTopUpFullChargeTimestamp() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+            .appendingPathComponent("battery-control-v1.json")
+        let store = BatteryPolicyFileStore(
+            fileURL: url, fileManager: .default, synchronizeDirectory: { _ in })
+        defer { try? store.remove() }
+
+        try store.save(.init(
+            ownerUID: 501,
+            configuration: .init(enabled: true, limitPercentage: 80, topUpActive: true),
+            updatedAt: 1_000,
+            topUpReachedFullAt: 900))
+
+        #expect(try store.load()?.topUpReachedFullAt == 900)
+    }
+
+    /// 도달 전에는 값이 없다. `nil`은 "아직 100%에 닿지 않았다"는 뜻이다.
+    @Test func topUpFullChargeTimestampDefaultsToNil() {
+        let policy = PersistedBatteryPolicy(
+            ownerUID: 501, configuration: .init(enabled: true), updatedAt: 1_000)
+        #expect(policy.topUpReachedFullAt == nil)
+    }
+
+    /// 구버전 헬퍼가 쓴 파일(필드 없음)을 현재 코드가 읽을 수 있어야 한다.
+    /// 스키마 버전은 1로 유지되므로 `unsupportedSchema`가 나서는 안 된다.
+    @Test func decodesAPolicyWrittenBeforeTheTimestampFieldExisted() throws {
+        let legacy = """
+        {"schemaVersion":1,"ownerUID":501,"updatedAt":1000,
+         "configuration":{"enabled":true,"limitPercentage":80,
+                          "lowerHysteresisDelta":2,"topUpActive":true}}
+        """.data(using: .utf8)!
+        let decoded = try JSONDecoder().decode(PersistedBatteryPolicy.self, from: legacy)
+        #expect(decoded.schemaVersion == 1)
+        #expect(decoded.configuration.topUpActive == true)
+        #expect(decoded.topUpReachedFullAt == nil)
+    }
+
+    /// 현재 코드가 쓴 파일을 구버전 헬퍼가 읽어도 스키마 검사를 통과해야 한다.
+    @Test func keepsSchemaVersionOneSoOlderHelpersCanStillRead() throws {
+        let data = try JSONEncoder().encode(PersistedBatteryPolicy(
+            ownerUID: 501,
+            configuration: .init(enabled: true, topUpActive: true),
+            updatedAt: 1_000,
+            topUpReachedFullAt: 900))
+        let json = try #require(
+            try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        #expect(json["schemaVersion"] as? Int == 1)
+        #expect(json["topUpReachedFullAt"] as? Double == 900)
+    }
 }
