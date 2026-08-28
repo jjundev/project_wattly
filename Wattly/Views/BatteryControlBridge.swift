@@ -423,7 +423,7 @@ struct BatteryControlBridge: View {
         let merged = Self.preservingActivity(
             requested, daemon: client.status.desiredConfiguration)
         BatteryControlLog.battery.notice(
-            "applyRequested push: reason=\(reason) autoDischarge=\(merged.autoDischargeEnabled) topUp=\(merged.topUpActive) manualActive=\(merged.manualDischargeActive)")
+            "applyRequested push: reason=\(reason, privacy: .public) autoDischarge=\(merged.autoDischargeEnabled) topUp=\(merged.topUpActive) manualActive=\(merged.manualDischargeActive)")
         let result = await client.apply(
             enabled: merged.enabled,
             limitPercentage: merged.limitPercentage,
@@ -435,7 +435,7 @@ struct BatteryControlBridge: View {
             manualDischargeActive: merged.manualDischargeActive,
             manualDischargeTarget: merged.manualDischargeTarget)
         BatteryControlLog.battery.notice(
-            "applyRequested result: reason=\(reason) accepted=\(result != nil)")
+            "applyRequested result: reason=\(reason, privacy: .public) accepted=\(result != nil)")
     }
 
     /// Same caller-identity treatment as `applyRequested`: this is reached from more than one
@@ -443,13 +443,13 @@ struct BatteryControlBridge: View {
     /// path needs to be just as identifiable in the log trail.
     private func disableRequested(_ requested: BatteryControlConfiguration, reason: StaticString) async {
         BatteryControlLog.battery.notice(
-            "disableRequested push: reason=\(reason) limit=\(requested.limitPercentage) autoDischarge=\(requested.autoDischargeEnabled)")
+            "disableRequested push: reason=\(reason, privacy: .public) limit=\(requested.limitPercentage) autoDischarge=\(requested.autoDischargeEnabled)")
         let result = await client.disableAndConfirm(
             limitPercentage: requested.limitPercentage,
             lowerHysteresisDelta: requested.lowerHysteresisDelta,
             autoDischargeEnabled: requested.autoDischargeEnabled,
             manualDischargeTarget: requested.manualDischargeTarget)
         BatteryControlLog.battery.notice(
-            "disableRequested result: reason=\(reason) accepted=\(result != nil)")
+            "disableRequested result: reason=\(reason, privacy: .public) accepted=\(result != nil)")
     }
 }
