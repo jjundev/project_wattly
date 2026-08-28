@@ -20,6 +20,7 @@ struct BatteryControlBridge: View {
     @AppStorage(StorageKey.batteryHeatProtectionThreshold) private var heatProtectionThreshold = Defaults.batteryHeatProtectionThreshold
 
     @State private var topUpDetector = BatteryTopUpTransitionDetector()
+    @State private var topUpExpiryDetector = BatteryTopUpExpiryDetector()
 
     private var effectiveDelta: Int {
         sailingEnabled ? sailingDelta : 2
@@ -123,6 +124,12 @@ struct BatteryControlBridge: View {
                 syncMonitorTarget()
                 if topUpDetector.update(reasonKind: newStatus.detailReason?.kind) {
                     BatteryNotificationManager.postTopUpCompleteNotification()
+                }
+                // 헬퍼가 스스로 Top Up을 끝낸 경우에만 참이 된다. 사용자가 버튼으로 취소한
+                // 경우와 만료 후 상태가 동일하기 때문에 유지보수 레코드로 구분한다.
+                if topUpExpiryDetector.update(record: newStatus.lastMaintenance,
+                                              now: Date().timeIntervalSince1970) {
+                    BatteryNotificationManager.postTopUpExpiredNotification()
                 }
             }
     }

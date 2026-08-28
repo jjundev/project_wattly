@@ -959,6 +959,20 @@ import AppKit
             BatteryMaintenanceTrigger.self, from: "\"someFutureTrigger\"".data(using: .utf8)!)
         #expect(unknown == .unrecognized)
     }
+
+    @Test func topUpDescriptionNamesBothEndConditions() {
+        let ko = Locale(identifier: "ko")
+        let en = Locale(identifier: "en")
+
+        let korean = BatterySectionPresentation.topUpDescription(hours: 12, locale: ko)
+        #expect(korean.contains("어댑터를 분리하거나"))
+        #expect(korean.contains("12시간"))
+        #expect(korean.contains("100%"))
+
+        let english = BatterySectionPresentation.topUpDescription(hours: 12, locale: en)
+        #expect(english.contains("12 hours"))
+        #expect(english != korean)
+    }
 }
 
 
