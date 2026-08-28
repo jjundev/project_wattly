@@ -146,10 +146,11 @@ import AppKit
     }
 
     /// `defaults.integer(forKey:)` returns `0` for an absent key. `batteryHeatProtectionThreshold`
-    /// is never written by any UI, so the key is always absent here and a bare read would send `0`,
-    /// which the daemon clamps to 30 instead of the intended `Defaults.batteryHeatProtectionThreshold`
-    /// (35) — inhibiting charging 5°C early. Guard on presence instead, the same way
-    /// `effectiveManualDischargeTarget` above does.
+    /// has no control in the battery settings UI — only `SettingsReset` and an App Intent that
+    /// supplies a threshold ever write it — so on most Macs the key is absent and a bare read would
+    /// send `0`, which the daemon clamps to 30 instead of the intended
+    /// `Defaults.batteryHeatProtectionThreshold` (35), inhibiting charging 5°C early. Guard on
+    /// presence instead, the same way `effectiveManualDischargeTarget` above does.
     private var effectiveHeatProtectionThreshold: Int {
         defaults.object(forKey: StorageKey.batteryHeatProtectionThreshold) != nil
             ? defaults.integer(forKey: StorageKey.batteryHeatProtectionThreshold)
