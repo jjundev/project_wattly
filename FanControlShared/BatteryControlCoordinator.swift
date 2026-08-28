@@ -11,6 +11,9 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
     private let store: any BatteryPolicyStoring
     private let engine: BatteryControlEngine
     private let now: @Sendable () -> TimeInterval
+    /// Top Up이 100%에 도달한 벽시계 시각. 저장 파일의 값을 그대로 미러링한다 — 이 값은 앱이
+    /// 되밀어 주는 `BatteryControlConfiguration`이 아니라 코디네이터가 소유한다.
+    private var topUpReachedFullAt: TimeInterval?
 
     public private(set) var latestStatus: BatteryControlServiceStatus
     public private(set) var isSafeToServe = true
@@ -51,9 +54,7 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
             var (desired, ownershipFailure) = try resolvedStoredPolicy()
             if !isPluggedIn && desired.topUpActive {
                 desired.topUpActive = false
-                var persisted = desired
-                persisted.manualDischargeActive = false
-                try? store.save(.init(ownerUID: ownerUID, configuration: persisted, updatedAt: now()))
+                try? persistPolicy(desired)
             }
             engine.configure(desired)
             if !desired.isActive {
@@ -155,13 +156,8 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         } else if normalized.topUpActive {
             normalized.manualDischargeActive = false
         }
-        var persisted = normalized
-        persisted.manualDischargeActive = false
         do {
-            try store.save(.init(
-                ownerUID: ownerUID,
-                configuration: persisted,
-                updatedAt: now()))
+            try persistPolicy(normalized)
         } catch {
             if isRollbackFailure(error) {
                 isSafeToServe = false
@@ -216,13 +212,8 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         } else if normalized.topUpActive {
             normalized.manualDischargeActive = false
         }
-        var persisted = normalized
-        persisted.manualDischargeActive = false
         do {
-            try store.save(.init(
-                ownerUID: ownerUID,
-                configuration: persisted,
-                updatedAt: now()))
+            try persistPolicy(normalized)
         } catch {
             if isRollbackFailure(error) {
                 isSafeToServe = false
@@ -271,6 +262,13 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
             currentSoC: currentSoC,
             isPluggedIn: isPluggedIn,
             temperatureCelsius: temperatureCelsius)
+        if let expired = evaluateTopUpExpiry(
+            status: status,
+            currentSoC: currentSoC,
+            isPluggedIn: isPluggedIn,
+            temperatureCelsius: temperatureCelsius) {
+            return expired
+        }
         status.desiredConfiguration = engine.configuration
         status.lastMaintenance = latestStatus.lastMaintenance
         status.capabilities = Self.capabilities
@@ -293,13 +291,8 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
             var updatedConfig = engine.configuration
             updatedConfig.topUpActive = false
             updatedConfig.manualDischargeActive = false
-            var persisted = updatedConfig
-            persisted.manualDischargeActive = false
             do {
-                try store.save(.init(
-                    ownerUID: ownerUID,
-                    configuration: persisted,
-                    updatedAt: now()))
+                try persistPolicy(updatedConfig)
             } catch {
                 // If persistence write fails, proceed with in-memory policy reset
             }
@@ -310,6 +303,14 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
             currentSoC: currentSoC,
             isPluggedIn: isPluggedIn,
             temperatureCelsius: temperatureCelsius)
+        // 잠자기 동안에는 5초 타이머가 돌지 않는다. 12시간을 자고 깨어난 Mac은 여기서 만료된다.
+        if let expired = evaluateTopUpExpiry(
+            status: status,
+            currentSoC: currentSoC,
+            isPluggedIn: isPluggedIn,
+            temperatureCelsius: temperatureCelsius) {
+            return expired
+        }
         let failure = hardwareFailureReason(in: status)
         return publish(
             status,
@@ -346,6 +347,67 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         return verification.isSafeToRemove
     }
 
+    /// 정책 저장의 유일한 경로. Top Up이 꺼져 있으면 도달 시각도 함께 지운다 — 남겨 두면 다음
+    /// Top Up이 켜지자마자 즉시 만료된다.
+    private func persistPolicy(_ configuration: BatteryControlConfiguration) throws {
+        var persisted = configuration
+        persisted.manualDischargeActive = false
+        if !persisted.topUpActive {
+            topUpReachedFullAt = nil
+        }
+        try store.save(.init(
+            ownerUID: ownerUID,
+            configuration: persisted,
+            updatedAt: now(),
+            topUpReachedFullAt: persisted.topUpActive ? topUpReachedFullAt : nil))
+    }
+
+    /// Top Up 자동 만료의 **유일한** 판정 지점.
+    ///
+    /// 캘리브레이션 모드가 최종 100% 홀드 단계에서 같은 `topUpActive` 원시 명령을 빌려 쓰게 되면,
+    /// 예외는 아래 `calibrationActive:` 인자 하나로 들어간다. 그 플래그는 아직 존재하지 않으므로
+    /// 지금은 기본값(false)에 맡긴다.
+    ///
+    /// 만료를 실제로 수행한 경우에만 상태를 반환한다(이미 `publish`까지 마친 상태다). `nil`이면
+    /// 호출자는 평소 경로를 그대로 진행하면 된다.
+    private func evaluateTopUpExpiry(
+        status: BatteryControlServiceStatus,
+        currentSoC: Int,
+        isPluggedIn: Bool,
+        temperatureCelsius: Double?
+    ) -> BatteryControlServiceStatus? {
+        switch BatteryTopUpExpiry.decide(
+            topUpActive: engine.configuration.topUpActive,
+            isHoldingAtFull: status.detailReason?.kind == .topUpComplete,
+            reachedFullAt: topUpReachedFullAt,
+            now: now()
+        ) {
+        case .none:
+            return nil
+        case .stamp(let moment):
+            topUpReachedFullAt = moment
+            // 저장 실패는 치명적이지 않다 — 다음 샘플이 다시 찍는다. 만료가 그만큼 늦어질 뿐이다.
+            try? persistPolicy(engine.configuration)
+            return nil
+        case .expire:
+            var updated = engine.configuration
+            updated.topUpActive = false
+            topUpReachedFullAt = nil
+            try? persistPolicy(updated)
+            engine.configure(updated)
+            let settled = engine.verifyAndUpdate(
+                currentSoC: currentSoC,
+                isPluggedIn: isPluggedIn,
+                temperatureCelsius: temperatureCelsius)
+            let failure = hardwareFailureReason(in: settled)
+            return publish(
+                settled,
+                trigger: .topUpExpired,
+                result: failure == nil ? .applied : .failed,
+                reason: failure)
+        }
+    }
+
     private func publish(
         _ engineStatus: BatteryControlServiceStatus,
         trigger: BatteryMaintenanceTrigger,
@@ -369,15 +431,19 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         ownershipFailure: BatteryControlStatusReason?
     ) {
         guard let stored = try store.load() else {
+            topUpReachedFullAt = nil
             return (.init(enabled: false), nil)
         }
         guard stored.ownerUID == ownerUID else {
+            topUpReachedFullAt = nil
             return (
                 .init(enabled: false),
                 .init(kind: .policyOwnerMismatch))
         }
         var config = stored.configuration
         config.manualDischargeActive = false
+        // 데몬 재시작 뒤에도 12시간 시계가 이어지도록 파일의 값을 미러링한다.
+        topUpReachedFullAt = config.topUpActive ? stored.topUpReachedFullAt : nil
         return (config, nil)
     }
 

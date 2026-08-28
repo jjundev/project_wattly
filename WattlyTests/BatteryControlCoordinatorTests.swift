@@ -3,6 +3,30 @@ import Foundation
 import Testing
 @testable import Wattly
 
+/// 시간을 앞뒤로 움직일 수 있는 테스트 시계. 기존 테스트들이 쓰는 `now: { 100 }` 상수로는
+/// 만료처럼 시간이 얽힌 전이를 실제 대기 없이 검증할 수 없다.
+final class MutableClock: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value: TimeInterval
+
+    init(_ value: TimeInterval) { self.value = value }
+
+    var now: TimeInterval {
+        lock.lock(); defer { lock.unlock() }
+        return value
+    }
+
+    func advance(by seconds: TimeInterval) {
+        lock.lock(); defer { lock.unlock() }
+        value += seconds
+    }
+
+    func set(_ newValue: TimeInterval) {
+        lock.lock(); defer { lock.unlock() }
+        value = newValue
+    }
+}
+
 final class PolicyStoreSpy: BatteryPolicyStoring, @unchecked Sendable {
     var stored: PersistedBatteryPolicy?
     var events: [String] = []
@@ -1057,6 +1081,185 @@ struct BatteryControlCoordinatorTests {
         #expect(mockHardware.isDischargeActive == false)
         #expect(coordinator.latestStatus.lastMaintenance?.trigger == .termination)
         #expect(coordinator.latestStatus.lastMaintenance?.result == .released)
+    }
+
+    // MARK: - Top Up 자동 만료
+
+    /// 100% 홀드를 처음 관측한 순간 도달 시각이 파일에 남아야 한다. 데몬은 재시작 후
+    /// `restore()`로 `topUpActive`를 되살리므로, 시각이 메모리에만 있으면 매 재시작마다
+    /// 12시간이 처음부터 다시 시작된다.
+    @Test func stampsTheFullChargeMomentIntoThePolicyFile() {
+        let clock = MutableClock(1_000)
+        let hardware = MockBatteryHardware()
+        let store = PolicyStoreSpy()
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501, store: store,
+            engine: BatteryControlEngine(hardware: hardware),
+            now: { clock.now })
+
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, topUpActive: true),
+            trigger: .clientConfiguration, currentSoC: 98, isPluggedIn: true)
+        #expect(store.stored?.topUpReachedFullAt == nil)
+
+        clock.advance(by: 600)
+        _ = coordinator.sample(currentSoC: 100, isPluggedIn: true)
+
+        #expect(store.stored?.topUpReachedFullAt == 1_600)
+    }
+
+    /// 스탬프는 한 번만. 매 샘플마다 다시 찍히면 만료가 영원히 오지 않는다.
+    @Test func doesNotRestampOnEverySample() {
+        let clock = MutableClock(1_000)
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501, store: PolicyStoreSpy(),
+            engine: BatteryControlEngine(hardware: MockBatteryHardware()),
+            now: { clock.now })
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, topUpActive: true),
+            trigger: .clientConfiguration, currentSoC: 100, isPluggedIn: true)
+        _ = coordinator.sample(currentSoC: 100, isPluggedIn: true)
+
+        clock.advance(by: 3_600)
+        _ = coordinator.sample(currentSoC: 100, isPluggedIn: true)
+
+        clock.advance(by: 11 * 3_600)   // 스탬프 기준 12시간 경과
+        let status = coordinator.sample(currentSoC: 100, isPluggedIn: true)
+        #expect(status.desiredConfiguration?.topUpActive == false)
+    }
+
+    @Test func expiresTopUpTwelveHoursAfterReachingFull() {
+        let clock = MutableClock(1_000)
+        let store = PolicyStoreSpy()
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501, store: store,
+            engine: BatteryControlEngine(hardware: MockBatteryHardware()),
+            now: { clock.now })
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, topUpActive: true),
+            trigger: .clientConfiguration, currentSoC: 100, isPluggedIn: true)
+        _ = coordinator.sample(currentSoC: 100, isPluggedIn: true)
+
+        clock.advance(by: 12 * 3_600 - 1)
+        #expect(coordinator.sample(currentSoC: 100, isPluggedIn: true)
+                    .desiredConfiguration?.topUpActive == true)
+
+        clock.advance(by: 1)
+        let status = coordinator.sample(currentSoC: 100, isPluggedIn: true)
+
+        #expect(status.desiredConfiguration?.topUpActive == false)
+        #expect(status.lastMaintenance?.trigger == .topUpExpired)
+        #expect(status.lastMaintenance?.result == .applied)
+        #expect(store.stored?.configuration.topUpActive == false)
+        #expect(store.stored?.topUpReachedFullAt == nil)
+        // 사용자의 원래 한도는 그대로 남는다.
+        #expect(store.stored?.configuration.limitPercentage == 80)
+    }
+
+    /// 12시간짜리 잠자기 뒤 깨어난 경우. 타이머는 잠자기 중 돌지 않으므로 wake reconcile이
+    /// 같은 판정에 도달해야 한다.
+    @Test func expiresOnWakeAfterASleepThatOutlastedTheWindow() {
+        let clock = MutableClock(1_000)
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501, store: PolicyStoreSpy(),
+            engine: BatteryControlEngine(hardware: MockBatteryHardware()),
+            now: { clock.now })
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, topUpActive: true),
+            trigger: .clientConfiguration, currentSoC: 100, isPluggedIn: true)
+        _ = coordinator.sample(currentSoC: 100, isPluggedIn: true)
+
+        clock.advance(by: 13 * 3_600)
+        let status = coordinator.reconcile(
+            trigger: .wake, currentSoC: 100, isPluggedIn: true)
+
+        #expect(status.desiredConfiguration?.topUpActive == false)
+        #expect(status.lastMaintenance?.trigger == .topUpExpired)
+    }
+
+    /// 어댑터를 뽑아 Top Up이 끝나면 스탬프도 함께 사라져야 한다. 남아 있으면 다음 Top Up이
+    /// 켜지자마자 즉시 만료된다.
+    @Test func clearsTheStampWhenTopUpEndsByUnplugging() {
+        let clock = MutableClock(1_000)
+        let store = PolicyStoreSpy()
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501, store: store,
+            engine: BatteryControlEngine(hardware: MockBatteryHardware()),
+            now: { clock.now })
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, topUpActive: true),
+            trigger: .clientConfiguration, currentSoC: 100, isPluggedIn: true)
+        _ = coordinator.sample(currentSoC: 100, isPluggedIn: true)
+        #expect(store.stored?.topUpReachedFullAt == 1_000)
+
+        _ = coordinator.reconcile(
+            trigger: .adapterTransition, currentSoC: 100, isPluggedIn: false)
+
+        #expect(store.stored?.configuration.topUpActive == false)
+        #expect(store.stored?.topUpReachedFullAt == nil)
+    }
+
+    /// 사용자가 Top Up을 직접 끄면 스탬프도 사라진다.
+    @Test func clearsTheStampWhenTheUserCancelsTopUp() {
+        let clock = MutableClock(1_000)
+        let store = PolicyStoreSpy()
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501, store: store,
+            engine: BatteryControlEngine(hardware: MockBatteryHardware()),
+            now: { clock.now })
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, topUpActive: true),
+            trigger: .clientConfiguration, currentSoC: 100, isPluggedIn: true)
+        _ = coordinator.sample(currentSoC: 100, isPluggedIn: true)
+
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, topUpActive: false),
+            trigger: .clientConfiguration, currentSoC: 100, isPluggedIn: true)
+
+        #expect(store.stored?.topUpReachedFullAt == nil)
+    }
+
+    /// Top Up 유지 중 다른 설정(예: 한도)만 바뀐 재푸시는 시계를 되감지 않는다.
+    @Test func keepsTheStampAcrossAConfigurePushThatLeavesTopUpOn() {
+        let clock = MutableClock(1_000)
+        let store = PolicyStoreSpy()
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501, store: store,
+            engine: BatteryControlEngine(hardware: MockBatteryHardware()),
+            now: { clock.now })
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, topUpActive: true),
+            trigger: .clientConfiguration, currentSoC: 100, isPluggedIn: true)
+        _ = coordinator.sample(currentSoC: 100, isPluggedIn: true)
+
+        clock.advance(by: 3_600)
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 75, topUpActive: true),
+            trigger: .clientConfiguration, currentSoC: 100, isPluggedIn: true)
+
+        #expect(store.stored?.topUpReachedFullAt == 1_000)
+    }
+
+    /// 데몬이 재시작해도 시계는 이어져야 한다.
+    @Test func restoresTheStampFromDiskOnDaemonRestart() {
+        let clock = MutableClock(50_000)
+        let store = PolicyStoreSpy()
+        store.stored = .init(
+            ownerUID: 501,
+            configuration: .init(enabled: true, limitPercentage: 80, topUpActive: true),
+            updatedAt: 1_000,
+            topUpReachedFullAt: 1_000)
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501, store: store,
+            engine: BatteryControlEngine(hardware: MockBatteryHardware()),
+            now: { clock.now })
+
+        // 1_000 + 12h = 44_200 < 50_000 → 복원 직후 첫 샘플에서 만료된다.
+        _ = coordinator.restore(currentSoC: 100, isPluggedIn: true)
+        let status = coordinator.sample(currentSoC: 100, isPluggedIn: true)
+
+        #expect(status.desiredConfiguration?.topUpActive == false)
+        #expect(status.lastMaintenance?.trigger == .topUpExpired)
     }
 }
 
