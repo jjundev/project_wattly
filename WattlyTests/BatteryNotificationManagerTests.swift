@@ -10,8 +10,10 @@ import Testing
         #expect(BatteryNotificationManager.topUpCompleteTitle(locale: ko) == "한 번만 완충 완료")
         #expect(BatteryNotificationManager.topUpCompleteTitle(locale: en) == "Top Up Complete")
 
-        #expect(BatteryNotificationManager.topUpCompleteBody(locale: ko) == "배터리가 100%까지 충전되었습니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.")
-        #expect(BatteryNotificationManager.topUpCompleteBody(locale: en) == "Battery is charged to 100%. Normal limit will restore automatically when unplugged.")
+        #expect(BatteryNotificationManager.topUpCompleteBody(hours: 12, locale: ko)
+                == "배터리가 100%까지 충전되었습니다. 어댑터를 분리하거나 12시간이 지나면 기존 충전 제한으로 자동 복귀합니다.")
+        #expect(BatteryNotificationManager.topUpCompleteBody(hours: 12, locale: en)
+                == "Battery is charged to 100%. It returns to your usual charge limit when you unplug, or after 12 hours.")
     }
 
     @Test func transitionDetectionFiresOnlyOnTransitionToComplete() {
@@ -142,6 +144,60 @@ import Testing
         #expect(statusDetector.update(status: dischargingStatus) == false)
         #expect(statusDetector.update(status: completeStatus) == true)
         #expect(statusDetector.update(status: completeStatus) == false)
+    }
+
+    @Test func expiryNotificationTitleAndBodyAreLocalized() {
+        let ko = Locale(identifier: "ko")
+        let en = Locale(identifier: "en")
+
+        #expect(BatteryNotificationManager.topUpExpiredTitle(locale: ko) == "한 번만 완충 자동 해제")
+        #expect(BatteryNotificationManager.topUpExpiredTitle(locale: en) == "Top Up Ended Automatically")
+
+        #expect(BatteryNotificationManager.topUpExpiredBody(hours: 12, locale: ko)
+                == "완충 후 12시간이 지나 기존 충전 제한으로 복귀했습니다.")
+        #expect(BatteryNotificationManager.topUpExpiredBody(hours: 12, locale: en)
+                == "12 hours after reaching full charge, your usual charge limit has been restored.")
+    }
+
+    @Test func expiryDetectorFiresOnceForOneExpiryRecord() {
+        var detector = BatteryTopUpExpiryDetector()
+        let record = BatteryMaintenanceRecord(
+            trigger: .topUpExpired, result: .applied, occurredAt: 1_000, reason: nil)
+
+        #expect(detector.update(record: record, now: 1_000) == true)
+        #expect(detector.update(record: record, now: 1_005) == false)
+    }
+
+    /// 다른 유지보수 이벤트는 알림을 만들지 않는다 — 특히 사용자가 직접 취소한 경우
+    /// (`.clientConfiguration`)에 "자동 해제됐다"고 말하면 거짓말이 된다.
+    @Test func expiryDetectorIgnoresOtherTriggers() {
+        var detector = BatteryTopUpExpiryDetector()
+        #expect(detector.update(record: nil, now: 1_000) == false)
+        #expect(detector.update(record: .init(trigger: .clientConfiguration, result: .applied,
+                                              occurredAt: 1_000, reason: nil),
+                                now: 1_000) == false)
+        #expect(detector.update(record: .init(trigger: .wake, result: .verified,
+                                              occurredAt: 1_000, reason: nil),
+                                now: 1_000) == false)
+    }
+
+    /// 두 번째 만료는 다시 알린다.
+    @Test func expiryDetectorFiresAgainForALaterExpiry() {
+        var detector = BatteryTopUpExpiryDetector()
+        #expect(detector.update(record: .init(trigger: .topUpExpired, result: .applied,
+                                              occurredAt: 1_000, reason: nil),
+                                now: 1_000) == true)
+        #expect(detector.update(record: .init(trigger: .topUpExpired, result: .applied,
+                                              occurredAt: 90_000, reason: nil),
+                                now: 90_010) == true)
+    }
+
+    /// 앱을 나중에 켰을 때 헬퍼가 들고 있던 오래된 만료 레코드로 뒤늦은 알림이 뜨면 안 된다.
+    @Test func expiryDetectorIgnoresAStaleRecordSeenAfterRelaunch() {
+        var detector = BatteryTopUpExpiryDetector()
+        #expect(detector.update(record: .init(trigger: .topUpExpired, result: .applied,
+                                              occurredAt: 1_000, reason: nil),
+                                now: 1_000 + 3_600) == false)
     }
 }
 

@@ -16,6 +16,28 @@ public struct BatteryTopUpTransitionDetector: Sendable {
     }
 }
 
+/// Top Up이 **스스로** 끝났을 때만 참을 반환한다.
+///
+/// 만료 후의 상태는 평범한 `inhibitedAtLimit`이라, 사용자가 버튼으로 취소한 경우와 상태만으로는
+/// 구분할 수 없다. 그래서 헬퍼가 남긴 유지보수 레코드의 trigger를 본다. 신선도 창을 두는 이유는
+/// 앱을 몇 시간 뒤에 켰을 때 헬퍼가 아직 들고 있는 오래된 레코드로 뒤늦은 알림이 뜨는 것을
+/// 막기 위해서다.
+public struct BatteryTopUpExpiryDetector: Sendable {
+    /// 이보다 오래된 만료 레코드는 알리지 않는다.
+    public static let freshnessWindow: TimeInterval = 300
+
+    private var lastSeenOccurredAt: TimeInterval?
+
+    public init() {}
+
+    public mutating func update(record: BatteryMaintenanceRecord?, now: TimeInterval) -> Bool {
+        guard let record, record.trigger == .topUpExpired else { return false }
+        let isNew = lastSeenOccurredAt != record.occurredAt
+        lastSeenOccurredAt = record.occurredAt
+        return isNew && (now - record.occurredAt) <= Self.freshnessWindow
+    }
+}
+
 public struct BatteryDischargeTransitionDetector: Sendable {
     private var lastReasonKind: BatteryControlStatusReason.Kind?
     private var lastActivity: BatteryControlActivity?
@@ -60,8 +82,9 @@ public enum BatteryNotificationManager {
         String(localized: "한 번만 완충 완료", locale: locale)
     }
 
-    public static func topUpCompleteBody(locale: Locale) -> String {
-        String(localized: "배터리가 100%까지 충전되었습니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.", locale: locale)
+    public static func topUpCompleteBody(hours: Int, locale: Locale) -> String {
+        String(format: String(localized: "배터리가 100%%까지 충전되었습니다. 어댑터를 분리하거나 %lld시간이 지나면 기존 충전 제한으로 자동 복귀합니다.", locale: locale),
+               locale: locale, Int64(hours))
     }
 
     public static func requestAuthorization() {
@@ -77,11 +100,40 @@ public enum BatteryNotificationManager {
             let locale = AppLanguage.locale(for: appLang)
             let content = UNMutableNotificationContent()
             content.title = topUpCompleteTitle(locale: locale)
-            content.body = topUpCompleteBody(locale: locale)
+            content.body = topUpCompleteBody(hours: BatteryTopUpExpiry.durationHours, locale: locale)
             content.sound = .default
 
             let request = UNNotificationRequest(
                 identifier: "dev.jjundev.Wattly.topUpComplete",
+                content: content,
+                trigger: nil
+            )
+            center.add(request)
+        }
+    }
+
+    public static func topUpExpiredTitle(locale: Locale) -> String {
+        String(localized: "한 번만 완충 자동 해제", locale: locale)
+    }
+
+    public static func topUpExpiredBody(hours: Int, locale: Locale) -> String {
+        String(format: String(localized: "완충 후 %lld시간이 지나 기존 충전 제한으로 복귀했습니다.", locale: locale),
+               locale: locale, Int64(hours))
+    }
+
+    public static func postTopUpExpiredNotification() {
+        let center = UNUserNotificationCenter.current()
+        center.getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
+            let appLang = UserDefaults.standard.string(forKey: StorageKey.appLanguage) ?? Defaults.appLanguage
+            let locale = AppLanguage.locale(for: appLang)
+            let content = UNMutableNotificationContent()
+            content.title = topUpExpiredTitle(locale: locale)
+            content.body = topUpExpiredBody(hours: BatteryTopUpExpiry.durationHours, locale: locale)
+            content.sound = .default
+
+            let request = UNNotificationRequest(
+                identifier: "dev.jjundev.Wattly.topUpExpired",
                 content: content,
                 trigger: nil
             )
