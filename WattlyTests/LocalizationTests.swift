@@ -310,8 +310,14 @@ struct LocalizationTests {
         #expect(String(localized: "한 번만 완충 완료", locale: en) == "Top Up Complete")
         #expect(String(localized: "활성화됨", locale: en) == "Enabled")
         #expect(String(localized: "비활성화됨", locale: en) == "Disabled")
-        #expect(String(localized: "다음 외출이나 출장을 위해 배터리를 일회성으로 100%까지 완전 충전합니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.", locale: en) == "Charges to 100% once before heading out, then automatically restores your charge limit when unplugged.")
-        #expect(String(localized: "배터리가 100%까지 충전되었습니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.", locale: en) == "Battery is charged to 100%. Normal limit will restore automatically when unplugged.")
+        #expect(String(format: String(localized: "다음 외출이나 출장을 위해 배터리를 일회성으로 100%%까지 완전 충전합니다. 어댑터를 분리하거나 완충 후 %lld시간이 지나면 기존 충전 제한으로 자동 복귀합니다.", locale: en), locale: en, Int64(12))
+                == "Charges the battery to 100% just once for your next trip. It returns to your usual charge limit when you unplug the adapter, or 12 hours after reaching full.")
+        #expect(String(format: String(localized: "배터리가 100%%까지 충전되었습니다. 어댑터를 분리하거나 %lld시간이 지나면 기존 충전 제한으로 자동 복귀합니다.", locale: en), locale: en, Int64(12))
+                == "Battery is charged to 100%. It returns to your usual charge limit when you unplug, or after 12 hours.")
+        #expect(String(localized: "한 번만 완충 자동 해제", locale: en) == "Top Up Ended Automatically")
+        #expect(String(format: String(localized: "완충 후 %lld시간이 지나 기존 충전 제한으로 복귀했습니다.", locale: en), locale: en, Int64(12))
+                == "12 hours after reaching full charge, your usual charge limit has been restored.")
+        #expect(String(localized: "유지보수: 완충 자동 해제", locale: en) == "Maintenance: Top Up auto-ended")
 
         #expect(String(localized: "한 번만 완충", locale: ko) == "한 번만 완충")
         #expect(String(localized: "한 번만 완충 중 (100%까지 충전)", locale: ko) == "한 번만 완충 중 (100%까지 충전)")
@@ -319,8 +325,14 @@ struct LocalizationTests {
         #expect(String(localized: "한 번만 완충 완료", locale: ko) == "한 번만 완충 완료")
         #expect(String(localized: "활성화됨", locale: ko) == "활성화됨")
         #expect(String(localized: "비활성화됨", locale: ko) == "비활성화됨")
-        #expect(String(localized: "다음 외출이나 출장을 위해 배터리를 일회성으로 100%까지 완전 충전합니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.", locale: ko) == "다음 외출이나 출장을 위해 배터리를 일회성으로 100%까지 완전 충전합니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.")
-        #expect(String(localized: "배터리가 100%까지 충전되었습니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.", locale: ko) == "배터리가 100%까지 충전되었습니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.")
+        #expect(String(format: String(localized: "다음 외출이나 출장을 위해 배터리를 일회성으로 100%%까지 완전 충전합니다. 어댑터를 분리하거나 완충 후 %lld시간이 지나면 기존 충전 제한으로 자동 복귀합니다.", locale: ko), locale: ko, Int64(12))
+                == "다음 외출이나 출장을 위해 배터리를 일회성으로 100%까지 완전 충전합니다. 어댑터를 분리하거나 완충 후 12시간이 지나면 기존 충전 제한으로 자동 복귀합니다.")
+        #expect(String(format: String(localized: "배터리가 100%%까지 충전되었습니다. 어댑터를 분리하거나 %lld시간이 지나면 기존 충전 제한으로 자동 복귀합니다.", locale: ko), locale: ko, Int64(12))
+                == "배터리가 100%까지 충전되었습니다. 어댑터를 분리하거나 12시간이 지나면 기존 충전 제한으로 자동 복귀합니다.")
+        #expect(String(localized: "한 번만 완충 자동 해제", locale: ko) == "한 번만 완충 자동 해제")
+        #expect(String(format: String(localized: "완충 후 %lld시간이 지나 기존 충전 제한으로 복귀했습니다.", locale: ko), locale: ko, Int64(12))
+                == "완충 후 12시간이 지나 기존 충전 제한으로 복귀했습니다.")
+        #expect(String(localized: "유지보수: 완충 자동 해제", locale: ko) == "유지보수: 완충 자동 해제")
     }
 
     @Test func dynamicChargeTimeTranslations() {

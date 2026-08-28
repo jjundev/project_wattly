@@ -8,16 +8,29 @@ public struct PersistedBatteryPolicy: Codable, Equatable, Sendable {
     public var ownerUID: UInt32
     public var configuration: BatteryControlConfiguration
     public var updatedAt: TimeInterval
+    /// Top Up이 100%에 도달한 벽시계 시각. 도달 전에는 `nil`.
+    ///
+    /// **`configuration` 안이 아니라 여기 있는 이유가 핵심이다.** 설정 구조체는 앱이 60초마다
+    /// 되밀어 주는 값이고, `BatteryControlPolicy.shouldReapply`는 `topUpActive`와 수동 방전
+    /// 필드만 헬퍼 쪽 값으로 보존한다. 앱이 모르는 필드를 설정에 넣으면 다음 reconcile이 앱의
+    /// 사본(=nil)으로 덮어써서 만료 시계가 조용히 사라진다.
+    ///
+    /// Optional이라 합성 Codable이 `decodeIfPresent`를 쓰고, 따라서 이 필드를 모르는 구버전
+    /// 헬퍼가 쓴 파일도 그대로 읽힌다. `schemaVersion`을 올려서는 안 되는 이유는
+    /// `BatteryPolicyFileStore.load()`가 정확한 일치를 요구하기 때문이다.
+    public var topUpReachedFullAt: TimeInterval?
 
     public init(
         ownerUID: UInt32,
         configuration: BatteryControlConfiguration,
-        updatedAt: TimeInterval
+        updatedAt: TimeInterval,
+        topUpReachedFullAt: TimeInterval? = nil
     ) {
         schemaVersion = Self.currentSchemaVersion
         self.ownerUID = ownerUID
         self.configuration = configuration.normalized
         self.updatedAt = updatedAt
+        self.topUpReachedFullAt = topUpReachedFullAt
     }
 }
 
@@ -95,7 +108,8 @@ public final class BatteryPolicyFileStore: BatteryPolicyStoring, @unchecked Send
         let normalized = PersistedBatteryPolicy(
             ownerUID: policy.ownerUID,
             configuration: policy.configuration,
-            updatedAt: policy.updatedAt
+            updatedAt: policy.updatedAt,
+            topUpReachedFullAt: policy.topUpReachedFullAt
         )
         let directory = fileURL.deletingLastPathComponent()
         try fileManager.createDirectory(

@@ -140,7 +140,7 @@ Wattly provides a complete Battery Management Suite to prevent high-voltage chem
 
 ### 4. One-Time Top-Up
 - **One-Click 100% Charge for Travel**: Temporarily charges the battery to 100% before travel or meetings without modifying your established charge limit preferences.
-- **Automatic Restoration**: Automatically reverts back to your configured charge limit (e.g., 80%) as soon as the power adapter is unplugged.
+- **Dual Automatic Restoration**: Reverts to your configured charge limit (e.g., 80%) as soon as the power adapter is unplugged. Even if you stay plugged in, the helper ends Top Up on its own 12 hours after reaching 100% and notifies you — so leaving it on by accident never parks the battery at 100% indefinitely.
 
 ### 5. Auto & Manual Forced Discharge (Discharge Control)
 - **Forced Discharge on AC Power**: Employs SMC `CHIE` register control to draw power from the battery even while plugged in, safely draining the battery to your target level.
@@ -196,7 +196,7 @@ Wattly integrates natively with Apple Shortcuts and Siri using the modern **App 
 
 - **Morning Commute Top-Up Routine**:
   - *Trigger*: Alarm dismissed at 7:00 AM on weekdays
-  - *Action*: Run `SetBatteryTopUpIntent(start: true)` &rarr; Tops up battery to 100% before commuting, then automatically restores the standard 80% limit when unplugged.
+  - *Action*: Run `SetBatteryTopUpIntent(start: true)` &rarr; Tops up battery to 100% before commuting, then automatically restores the standard 80% limit when unplugged — or 12 hours after reaching full, whichever comes first.
 - **Docked Office Workspace Mode**:
   - *Trigger*: Connected to office Wi-Fi network or "Work" Focus Mode enabled
   - *Action*: Run `SetBatteryLimitIntent(limit: 80, enableLimit: true)` and `SetBatterySailingIntent(enabled: true, delta: 5)` &rarr; Protects battery longevity during extended AC adapter usage.

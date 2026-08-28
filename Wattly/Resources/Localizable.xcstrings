@@ -52172,191 +52172,6 @@
         }
       }
     },
-    "다음 외출이나 출장을 위해 배터리를 일회성으로 100%까지 완전 충전합니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Charges to 100% once before heading out, then automatically restores your charge limit when unplugged."
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "다음 외출이나 출장을 위해 배터리를 일회성으로 100%까지 완전 충전합니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다."
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "شحن البطارية بالكامل لمرة واحدة حتى 100% للرحلات أو الخروج. تتم استعادة حد الشحن السابق تلقائيًا عند فصل المحول."
-          }
-        },
-        "cs": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Jednorázově plně nabije baterii na 100 % pro nadcházející cesty. Po odpojení adaptéru se automaticky obnoví předchozí limit nabíjení."
-          }
-        },
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Oplader batteriet helt til 100 % én gang til kommende ture. Vender automatisk tilbage til den tidligere grænse, når strømmen afbrydes."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lädt den Akku für anstehende Ausflüge einmalig vollständig auf 100% auf. Nach dem Trennen des Netzteils wird automatisch das vorherige Ladelimit wiederhergestellt."
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Φορτίζει πλήρως την μπαταρία στο 100% για επερχόμενες εξόδους ή ταξίδια. Επαναφέρει αυτόματα το προηγούμενο όριο φόρτισης μόλις αποσυνδεθεί το τροφοδοτικό."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Carga la batería al 100% una sola vez para salidas o viajes. Restaura automáticamente el límite de carga anterior al desconectar el adaptador."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lataa akun kerran täyteen 100 %:iin tulevia matkoja varten. Palauttaa aiemman latausrajan automaattisesti, kun virtalähde irrotetaan."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recharge complètement la batterie à 100 % une seule fois pour une sortie ou un déplacement. Rétablit automatiquement la limite précédente au débranchement de l'adaptateur."
-          }
-        },
-        "he": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "טוען את הסוללה באופן חד-פעמי ל-100% לקראת יציאה או נסיעה. משחזר אוטומטית את מגבלת הטעינה הקודמת בעת ניתוק המתאם."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "बाहर जाने या यात्रा से पहले बैटरी को एक बार 100% तक पूरी तरह से चार्ज करता है। एडाप्टर हटाने पर पिछली चार्ज सीमा स्वचालित रूप से बहाल हो जाती है।"
-          }
-        },
-        "hu": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Egyszeri alkalommal 100%-ra tölti az akkumulátort utazáshoz vagy kimozduláshoz. Az adapter kihúzásakor automatikusan visszaáll az előző töltési korlát."
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mengisi penuh baterai ke 100% satu kali untuk persiapan bepergian. Secara otomatis kembali ke batas pengisian sebelumnya saat adaptor dicabut."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Carica completamente la batteria al 100% per un'uscita o un viaggio. Ripristina automaticamente il limite di carica precedente quando si scollega l'alimentatore."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "外出や出張のためにバッテリーを一時的に100%までフル充電します。アダプタを抜くと元の充電制限に自動復帰します。"
-          }
-        },
-        "nb": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lader batteriet helt opp til 100 % én gang for turer. Går automatisk tilbake til forrige ladebegrensning når adapteren kobles fra."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Laadt de batterij eenmalig volledig op tot 100% voor een reis of uitstapje. Keert na het loskoppelen automatisch terug naar de vorige oplaadlimiet."
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Jednorazowo ładuje baterię do 100% przed wyjściem lub podróżą. Po odłączeniu zasilacza automatycznie przywraca poprzedni limit ładowania."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Carrega a bateria totalmente a 100% uma única vez para saídas ou viagens. Restaura automaticamente o limite anterior ao desconectar o adaptador."
-          }
-        },
-        "pt-PT": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Carrega a bateria totalmente a 100% uma única vez para saídas ou viagens. Restaura automaticamente o limite anterior ao desligar o adaptador."
-          }
-        },
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Încarcă complet bateria la 100% o singură dată pentru deplasări. Revine automat la limita anterioară de încărcare la deconectarea adaptorului."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Однократно заряжает аккумулятор до 100% перед поездкой. При отключении адаптера автоматически возвращается к прежнему лимиту зарядки."
-          }
-        },
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Laddar batteriet helt till 100 % en gång inför resor. Återgår automatiskt till tidigare laddningsgräns när adaptern kopplas ur."
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ชาร์จแบตเตอรี่เต็ม 100% เพียงครั้งเดียวสำหรับการเดินทาง จะกลับสู่ขีดจำกัดเดิมโดยอัตโนมัติเมื่อถอดสายชาร์จ"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Seyahat veya dışarı çıkma öncesinde pili bir kereliğine %100'e kadar tam doldurur. Adaptör çıkarıldığında önceki şarj sınırına otomatik döner."
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Одноразово заряджає акумулятор до 100% перед поїздкою. При від'єднанні адаптера автоматично відновлюється попередній ліміт заряджання."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sạc đầy pin đến 100% một lần cho chuyến đi sắp tới. Tự động khôi phục giới hạn sạc trước đó khi rút bộ sạc."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在出门或出差前一次性将电池充满至 100%。拔掉电源适配器后自动恢复原充电限制。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在出門或出差前一次性將電池充滿至 100%。拔掉電源轉接器後自動恢復原充電限制。"
-          }
-        }
-      }
-    },
     "한 번만 100% 충전 (Top Up)": {
       "extractionState": "manual",
       "localizations": {
@@ -53278,191 +53093,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Top Up 完成"
-          }
-        }
-      }
-    },
-    "배터리가 100%까지 충전되었습니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Battery is charged to 100%. Normal limit will restore automatically when unplugged."
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "배터리가 100%까지 충전되었습니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다."
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "تم شحن البطارية حتى 100%. ستتم استعادة الحد الطبيعي تلقائيًا عند فصل المحول."
-          }
-        },
-        "cs": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Baterie je nabita na 100 %. Po odpojení adaptéru se automaticky obnoví standardní limit."
-          }
-        },
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Batteriet er opladet til 100 %. Den normale grænse genoprettes automatisk, når strømmen afbrydes."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Akku ist auf 100% geladen. Das normale Limit wird beim Trennen des Netzteils automatisch wiederhergestellt."
-          }
-        },
-        "el": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Η μπαταρία φορτίστηκε στο 100%. Το κανονικό όριο θα επανέλθει αυτόματα κατά την αποσύνδεση."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La batería está cargada al 100%. El límite normal se restablecerá automáticamente al desconectar."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Akku on ladattu 100 %:iin. Normaali raja palautuu automaattisesti, kun virtalähde irrotetaan."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La batterie est chargée à 100 %. La limite normale sera rétablie automatiquement au débranchement."
-          }
-        },
-        "he": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "הסוללה טעונה ב-100%. המגבלה הרגילה תשוחזר אוטומטית בעת ניתוק מהחשמל."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "बैटरी 100% तक चार्ज हो गई है। अनप्लग करने पर सामान्य सीमा अपने आप बहाल हो जाएगी।"
-          }
-        },
-        "hu": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Az akkumulátor 100%-ra feltöltve. A normál korlát automatikusan visszaáll a leválasztáskor."
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Baterai telah terisi hingga 100%. Batas normal akan otomatis dipulihkan saat adaptor dicabut."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La batteria è carica al 100%. Il limite normale verrà ripristinato automaticamente allo scollegamento."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "バッテリーが100%まで充電されました。アダプタを抜くと元の充電制限に自動復帰します。"
-          }
-        },
-        "nb": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Batteriet er ladet til 100 %. Den normale grensen gjenopprettes automatisk når kabelen kobles fra."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Batterij is opgeladen tot 100%. Normale limiet wordt automatisch hersteld na loskoppelen."
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bateria została naładowana do 100%. Normalny limit zostanie przywrócony automatycznie po odłączeniu zasilacza."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A bateria está carregada em 100%. O limite normal será restaurado automaticamente ao desconectar."
-          }
-        },
-        "pt-PT": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A bateria está carregada a 100%. O limite normal será restaurado automaticamente ao desligar."
-          }
-        },
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bateria este încărcată la 100%. Limita normală va reveni automat la deconectare."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Аккумулятор заряжен до 100%. Исходный лимит восстановится автоматически при отключении адаптера."
-          }
-        },
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Batteriet är laddat till 100 %. Den normala gränsen återställs automatiskt vid urkoppling."
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "แบตเตอรี่ชาร์จถึง 100% แล้ว จะกลับสู่ขีดจำกัดเดิมโดยอัตโนมัติเมื่อถอดสายชาร์จ"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pil %100'e kadar şarj edildi. Adaptör çıkarıldığında normal sınır otomatik olarak geri yüklenecektir."
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Акумулятор заряджено до 100%. Звичайний ліміт відновиться автоматично після від'єднання."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pin đã được sạc đến 100%. Giới hạn thông thường sẽ tự động khôi phục khi rút sạc."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "电池已充电至 100%。断开电源适配器后将自动恢复原有充电限制。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "電池已充電至 100%。拔掉電源轉接器後將自動恢復原有充電限制。"
           }
         }
       }
@@ -97308,6 +96938,931 @@
           "stringUnit": {
             "state": "translated",
             "value": "GPU使用率狀態警告"
+          }
+        }
+      }
+    },
+    "유지보수: 완충 자동 해제": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "유지보수: 완충 자동 해제"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maintenance: Top Up auto-ended"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メンテナンス: 完全充電の自動解除"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "维护：自动结束一次性充满"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "維護：自動結束一次性充滿"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wartung: Vollladen automatisch beendet"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maintenance : charge complète arrêtée automatiquement"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantenimiento: carga completa finalizada automáticamente"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manutenzione: ricarica completa terminata automaticamente"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manutenção: carga total encerrada automaticamente"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manutenção: carga total terminada automaticamente"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обслуживание: полная зарядка отключена автоматически"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Onderhoud: volladen automatisch beëindigd"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Underhåll: fulladdning avslutades automatiskt"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vedligeholdelse: fuld opladning afsluttet automatisk"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vedlikehold: full lading avsluttet automatisk"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ylläpito: täyteen lataus päättyi automaattisesti"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konserwacja: pełne ładowanie zakończone automatycznie"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Údržba: plné nabití automaticky ukončeno"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Karbantartás: a teljes töltés automatikusan befejeződött"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Întreținere: încărcarea completă s-a încheiat automat"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Συντήρηση: η πλήρης φόρτιση τερματίστηκε αυτόματα"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bakım: tam şarj otomatik olarak sonlandırıldı"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обслуговування: повну зарядку вимкнено автоматично"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "תחזוקה: טעינה מלאה הופסקה אוטומטית"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الصيانة: تم إنهاء الشحن الكامل تلقائيًا"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रखरखाव: फुल चार्जिंग अपने आप समाप्त"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "การบำรุงรักษา: สิ้นสุดการชาร์จเต็มโดยอัตโนมัติ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bảo trì: đã tự động kết thúc sạc đầy"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pemeliharaan: pengisian penuh berakhir otomatis"
+          }
+        }
+      }
+    },
+    "한 번만 완충 자동 해제": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "한 번만 완충 자동 해제"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Top Up Ended Automatically"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一度だけ完全充電を自動解除"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一次性充满已自动结束"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一次性充滿已自動結束"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einmaliges Vollladen automatisch beendet"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Charge complète unique arrêtée automatiquement"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carga completa única finalizada automáticamente"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ricarica completa una tantum terminata automaticamente"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carga total única encerrada automaticamente"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carga total única terminada automaticamente"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Разовая полная зарядка отключена автоматически"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eenmalig volladen automatisch beëindigd"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Engångsfulladdning avslutades automatiskt"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Engangs fuld opladning afsluttet automatisk"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Engangs full lading avsluttet automatisk"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kertaluonteinen täyteen lataus päättyi automaattisesti"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jednorazowe pełne ładowanie zakończone automatycznie"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jednorázové plné nabití automaticky ukončeno"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Az egyszeri teljes töltés automatikusan befejeződött"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Încărcarea completă unică s-a încheiat automat"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Η εφάπαξ πλήρης φόρτιση τερματίστηκε αυτόματα"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tek seferlik tam şarj otomatik olarak sonlandırıldı"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Одноразову повну зарядку вимкнено автоматично"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "טעינה מלאה חד-פעמית הופסקה אוטומטית"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم إنهاء الشحن الكامل لمرة واحدة تلقائيًا"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "एक बार की फुल चार्जिंग अपने आप समाप्त"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "สิ้นสุดการชาร์จเต็มครั้งเดียวโดยอัตโนมัติ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã tự động kết thúc sạc đầy một lần"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pengisian penuh sekali pakai berakhir otomatis"
+          }
+        }
+      }
+    },
+    "완충 후 %lld시간이 지나 기존 충전 제한으로 복귀했습니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "완충 후 %lld시간이 지나 기존 충전 제한으로 복귀했습니다."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld hours after reaching full charge, your usual charge limit has been restored."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "満充電から%lld時間が経過したため、元の充電上限に戻しました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "充满后已过 %lld 小时，已恢复原有充电上限。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "充滿後已過 %lld 小時，已恢復原有充電上限。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld Stunden nach dem Vollladen wurde die übliche Ladegrenze wiederhergestellt."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld heures après la charge complète, la limite de charge habituelle a été rétablie."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld horas después de la carga completa, se ha restaurado el límite de carga habitual."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ore dopo la carica completa, il limite di carica abituale è stato ripristinato."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld horas após a carga completa, o limite de carga habitual foi restaurado."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld horas após a carga completa, o limite de carga habitual foi reposto."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Через %lld ч после полной зарядки восстановлен обычный предел заряда."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld uur na het volladen is de gebruikelijke laadlimiet hersteld."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld timmar efter fulladdning har den vanliga laddgränsen återställts."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld timer efter fuld opladning er den normale opladningsgrænse gendannet."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld timer etter full lading er den vanlige ladegrensen gjenopprettet."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld tuntia täyteen lataamisen jälkeen tavallinen latausraja palautettiin."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld godz. po pełnym naładowaniu przywrócono zwykły limit ładowania."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld hodin po plném nabití byl obnoven obvyklý limit nabíjení."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A teljes töltés után %lld órával visszaállt a megszokott töltési korlát."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La %lld ore după încărcarea completă, limita obișnuită de încărcare a fost restabilită."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ώρες μετά την πλήρη φόρτιση, το συνηθισμένο όριο φόρτισης αποκαταστάθηκε."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tam doluluktan %lld saat sonra normal şarj sınırına dönüldü."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Через %lld год після повного заряду відновлено звичайний ліміт заряду."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld שעות לאחר טעינה מלאה, מגבלת הטעינה הרגילה שוחזרה."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "بعد %lld ساعة من اكتمال الشحن، تمت استعادة حد الشحن المعتاد."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पूरा चार्ज होने के %lld घंटे बाद सामान्य चार्ज सीमा बहाल कर दी गई।"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "หลังจากชาร์จเต็มแล้ว %lld ชั่วโมง ระบบได้กลับไปใช้ขีดจำกัดการชาร์จเดิม"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sau %lld giờ kể từ khi sạc đầy, giới hạn sạc thường ngày đã được khôi phục."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld jam setelah terisi penuh, batas pengisian biasa telah dipulihkan."
+          }
+        }
+      }
+    },
+    "배터리가 100%%까지 충전되었습니다. 어댑터를 분리하거나 %lld시간이 지나면 기존 충전 제한으로 자동 복귀합니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "배터리가 100%%까지 충전되었습니다. 어댑터를 분리하거나 %lld시간이 지나면 기존 충전 제한으로 자동 복귀합니다."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Battery is charged to 100%%. It returns to your usual charge limit when you unplug, or after %lld hours."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バッテリーが100%%まで充電されました。アダプタを取り外すか、%lld時間が経過すると、元の充電上限に自動で戻ります。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "电池已充至 100%%。拔下电源适配器后，或 %lld 小时后，将自动恢复原有充电上限。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "電池已充至 100%%。拔除電源轉接器後，或 %lld 小時後，將自動恢復原有充電上限。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Akku ist auf 100%% geladen. Nach dem Trennen des Netzteils oder nach %lld Stunden wird die übliche Ladegrenze automatisch wiederhergestellt."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La batterie est chargée à 100%%. La limite de charge habituelle est rétablie lorsque vous débranchez l'adaptateur ou après %lld heures."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La batería está cargada al 100%%. El límite de carga habitual se restaura al desconectar el adaptador o después de %lld horas."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La batteria è carica al 100%%. Il limite di carica abituale viene ripristinato scollegando l'alimentatore o dopo %lld ore."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A bateria está carregada a 100%%. O limite de carga habitual é restaurado ao desconectar o adaptador ou após %lld horas."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A bateria está carregada a 100%%. O limite de carga habitual é reposto ao desligar o adaptador ou após %lld horas."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Аккумулятор заряжен до 100%%. Обычный предел заряда восстановится после отключения адаптера или через %lld ч."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De batterij is opgeladen tot 100%%. De gebruikelijke laadlimiet wordt hersteld zodra je de adapter loskoppelt of na %lld uur."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Batteriet är laddat till 100%%. Den vanliga laddgränsen återställs när du kopplar ur adaptern eller efter %lld timmar."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Batteriet er opladet til 100%%. Den normale opladningsgrænse gendannes, når du frakobler adapteren, eller efter %lld timer."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Batteriet er ladet til 100%%. Den vanlige ladegrensen gjenopprettes når du kobler fra adapteren, eller etter %lld timer."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Akku on ladattu 100%%:iin. Tavallinen latausraja palautuu, kun irrotat verkkolaitteen tai %lld tunnin kuluttua."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bateria została naładowana do 100%%. Zwykły limit ładowania wróci po odłączeniu zasilacza lub po %lld godz."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Baterie je nabitá na 100%%. Obvyklý limit nabíjení se obnoví po odpojení adaptéru nebo po %lld hodinách."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Az akkumulátor 100%%-ra töltődött. A megszokott töltési korlát a hálózati adapter leválasztásakor vagy %lld óra múlva áll vissza."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bateria este încărcată la 100%%. Limita obișnuită de încărcare revine la deconectarea adaptorului sau după %lld ore."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Η μπαταρία φορτίστηκε στο 100%%. Το συνηθισμένο όριο φόρτισης επανέρχεται όταν αποσυνδέσετε τον προσαρμογέα ή μετά από %lld ώρες."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pil %%100 doldu. Adaptörü çıkardığınızda ya da %lld saat sonra normal şarj sınırına otomatik olarak dönülür."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Акумулятор заряджено до 100%%. Звичайний ліміт заряду відновиться після від'єднання адаптера або через %lld год."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "הסוללה נטענה ל-100%%. מגבלת הטעינה הרגילה תחזור עם ניתוק המתאם או לאחר %lld שעות."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم شحن البطارية إلى 100%%. سيعود حد الشحن المعتاد عند فصل المحوّل أو بعد %lld ساعة."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बैटरी 100%% तक चार्ज हो गई है। अडैप्टर हटाने पर, या %lld घंटे बाद, सामान्य चार्ज सीमा अपने आप लौट आएगी।"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "แบตเตอรี่ชาร์จเต็ม 100%% แล้ว ระบบจะกลับไปใช้ขีดจำกัดการชาร์จเดิมเมื่อถอดอะแดปเตอร์ หรือหลังจากผ่านไป %lld ชั่วโมง"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pin đã sạc đến 100%%. Giới hạn sạc thường ngày sẽ tự khôi phục khi bạn rút bộ chuyển đổi nguồn hoặc sau %lld giờ."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Baterai terisi 100%%. Batas pengisian biasa kembali saat adaptor dilepas atau setelah %lld jam."
+          }
+        }
+      }
+    },
+    "다음 외출이나 출장을 위해 배터리를 일회성으로 100%%까지 완전 충전합니다. 어댑터를 분리하거나 완충 후 %lld시간이 지나면 기존 충전 제한으로 자동 복귀합니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다음 외출이나 출장을 위해 배터리를 일회성으로 100%%까지 완전 충전합니다. 어댑터를 분리하거나 완충 후 %lld시간이 지나면 기존 충전 제한으로 자동 복귀합니다."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Charges the battery to 100%% just once for your next trip. It returns to your usual charge limit when you unplug the adapter, or %lld hours after reaching full."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次のお出かけや出張のために、一度だけバッテリーを100%%まで充電します。アダプタを取り外すか、満充電から%lld時間が経過すると、元の充電上限に自動で戻ります。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "为下次外出或出差，一次性将电池充至 100%%。拔下电源适配器后，或充满 %lld 小时后，将自动恢复原有充电上限。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "為下次外出或出差，一次性將電池充至 100%%。拔除電源轉接器後，或充滿 %lld 小時後，將自動恢復原有充電上限。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lädt den Akku einmalig auf 100%% für die nächste Reise. Nach dem Trennen des Netzteils oder %lld Stunden nach dem Vollladen wird die übliche Ladegrenze automatisch wiederhergestellt."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Charge la batterie à 100%% une seule fois pour votre prochain déplacement. La limite de charge habituelle est rétablie lorsque vous débranchez l'adaptateur ou %lld heures après la charge complète."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carga la batería al 100%% una sola vez para tu próximo viaje. El límite de carga habitual se restaura al desconectar el adaptador o %lld horas después de la carga completa."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carica la batteria al 100%% una sola volta per il prossimo viaggio. Il limite di carica abituale viene ripristinato scollegando l'alimentatore o %lld ore dopo la carica completa."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carrega a bateria até 100%% uma única vez para a próxima viagem. O limite de carga habitual é restaurado ao desconectar o adaptador ou %lld horas após a carga completa."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carrega a bateria até 100%% uma única vez para a próxima viagem. O limite de carga habitual é reposto ao desligar o adaptador ou %lld horas após a carga completa."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Однократно заряжает аккумулятор до 100%% перед поездкой. Обычный предел заряда восстанавливается после отключения адаптера или через %lld ч после полной зарядки."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laadt de batterij eenmalig tot 100%% op voor je volgende reis. De gebruikelijke laadlimiet wordt hersteld zodra je de adapter loskoppelt of %lld uur na het volladen."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laddar batteriet till 100%% en enda gång inför nästa resa. Den vanliga laddgränsen återställs när du kopplar ur adaptern eller %lld timmar efter fulladdning."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oplader batteriet til 100%% én enkelt gang før næste rejse. Den normale opladningsgrænse gendannes, når du frakobler adapteren, eller %lld timer efter fuld opladning."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lader batteriet til 100%% én gang før neste tur. Den vanlige ladegrensen gjenopprettes når du kobler fra adapteren, eller %lld timer etter full lading."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lataa akun kerran 100%%:iin seuraavaa matkaa varten. Tavallinen latausraja palautuu, kun irrotat verkkolaitteen tai %lld tunnin kuluttua täyteen lataamisesta."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jednorazowo ładuje baterię do 100%% przed kolejną podróżą. Zwykły limit ładowania wraca po odłączeniu zasilacza lub %lld godz. po pełnym naładowaniu."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jednorázově nabije baterii na 100%% před další cestou. Obvyklý limit nabíjení se obnoví po odpojení adaptéru nebo %lld hodin po plném nabití."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Egyszeri alkalommal 100%%-ra tölti az akkumulátort a következő útra. A megszokott töltési korlát a hálózati adapter leválasztásakor, vagy a teljes töltés után %lld órával áll vissza."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Încarcă bateria la 100%% o singură dată, înainte de următoarea călătorie. Limita obișnuită de încărcare revine la deconectarea adaptorului sau după %lld ore de la încărcarea completă."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Φορτίζει την μπαταρία στο 100%% μία μόνο φορά για το επόμενο ταξίδι. Το συνηθισμένο όριο φόρτισης επανέρχεται όταν αποσυνδέσετε τον προσαρμογέα ή %lld ώρες μετά την πλήρη φόρτιση."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bir sonraki yolculuğunuz için pili yalnızca bir kez %%100 doldurur. Adaptörü çıkardığınızda ya da tam doluluktan %lld saat sonra normal şarj sınırına otomatik olarak döner."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Одноразово заряджає акумулятор до 100%% перед поїздкою. Звичайний ліміт заряду відновлюється після від'єднання адаптера або через %lld год після повного заряду."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "טוען את הסוללה ל-100%% פעם אחת בלבד לקראת הנסיעה הבאה. מגבלת הטעינה הרגילה חוזרת עם ניתוק המתאם או %lld שעות לאחר טעינה מלאה."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يشحن البطارية إلى 100%% لمرة واحدة استعدادًا لرحلتك القادمة. ويعود حد الشحن المعتاد عند فصل المحوّل أو بعد %lld ساعة من اكتمال الشحن."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अगली यात्रा के लिए बैटरी को एक बार 100%% तक चार्ज करता है। अडैप्टर हटाने पर, या पूरा चार्ज होने के %lld घंटे बाद, सामान्य चार्ज सीमा अपने आप लौट आती है।"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ชาร์จแบตเตอรี่จนเต็ม 100%% เพียงครั้งเดียวสำหรับการเดินทางครั้งถัดไป ระบบจะกลับไปใช้ขีดจำกัดการชาร์จเดิมเมื่อถอดอะแดปเตอร์ หรือหลังจากชาร์จเต็ม %lld ชั่วโมง"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sạc pin lên 100%% một lần duy nhất cho chuyến đi sắp tới. Giới hạn sạc thường ngày sẽ tự khôi phục khi bạn rút bộ chuyển đổi nguồn hoặc sau %lld giờ kể từ khi sạc đầy."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mengisi daya baterai hingga 100%% sekali saja untuk perjalanan berikutnya. Batas pengisian biasa kembali saat adaptor dilepas atau %lld jam setelah terisi penuh."
           }
         }
       }

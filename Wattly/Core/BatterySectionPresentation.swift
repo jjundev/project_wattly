@@ -162,8 +162,17 @@ enum BatterySectionPresentation {
         case .clientConfiguration: String(localized: "유지보수: 설정 변경", locale: locale)
         case .adapterTransition: String(localized: "유지보수: 전원 전환", locale: locale)
         case .termination: String(localized: "유지보수: 앱 종료", locale: locale)
+        case .topUpExpired: String(localized: "유지보수: 완충 자동 해제", locale: locale)
         case .unrecognized: String(localized: "유지보수: 알 수 없음", locale: locale)
         }
+    }
+
+    /// 설정 화면의 "한 번만 완충" 설명. 종료 조건이 두 개(어댑터 분리 / 시간 만료)가 되었으므로
+    /// 둘 다 문장에 나온다. 시간 수를 인자로 받는 이유는 `BatteryTopUpExpiry.duration`이 바뀌어도
+    /// 문구가 따로 놀지 않게 하기 위해서다.
+    static func topUpDescription(hours: Int, locale: Locale) -> String {
+        String(format: String(localized: "다음 외출이나 출장을 위해 배터리를 일회성으로 100%%까지 완전 충전합니다. 어댑터를 분리하거나 완충 후 %lld시간이 지나면 기존 충전 제한으로 자동 복귀합니다.", locale: locale),
+               locale: locale, Int64(hours))
     }
 
     static func maintenanceActionLabel(_ action: MaintenanceAction, locale: Locale) -> String {

@@ -163,7 +163,8 @@ struct SettingsBatterySection: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             SettingsRowTitle("한 번만 완충")
-                            Text(LocalizedStringKey("다음 외출이나 출장을 위해 배터리를 일회성으로 100%까지 완전 충전합니다. 어댑터를 분리하면 기존 충전 제한으로 자동 복귀합니다."))
+                            Text(BatterySectionPresentation.topUpDescription(
+                                hours: BatteryTopUpExpiry.durationHours, locale: locale))
                                 .font(WattlyFont.at(10.5, weight: .regular))
                                 .foregroundStyle(t.faint)
                                 .fixedSize(horizontal: false, vertical: true)
