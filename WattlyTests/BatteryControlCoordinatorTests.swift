@@ -1103,6 +1103,31 @@ struct BatteryControlCoordinatorTests {
         #expect(store.stored?.topUpReachedFullAt == 1_600)
     }
 
+    /// 완충 도달 시각의 저장이 실패하면 다음 샘플이 다시 찍어야 한다. 미러에 남겨 두면
+    /// `decide`가 두 번 다시 `.stamp`를 내지 않아 파일에는 영영 시각이 없고, 재시작 후
+    /// 12시간 시계가 그 시점부터 새로 시작된다.
+    @Test func retriesTheFullChargeStampWhenThePolicyWriteFails() {
+        let clock = MutableClock(1_000)
+        let store = PolicyStoreSpy()
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501, store: store,
+            engine: BatteryControlEngine(hardware: MockBatteryHardware()),
+            now: { clock.now })
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, topUpActive: true),
+            trigger: .clientConfiguration, currentSoC: 100, isPluggedIn: true)
+
+        store.saveError = BatteryPolicyStoreError.fileOperation(errno: 1)
+        _ = coordinator.sample(currentSoC: 100, isPluggedIn: true)
+        #expect(store.stored?.topUpReachedFullAt == nil)
+
+        store.saveError = nil
+        clock.advance(by: 5)
+        _ = coordinator.sample(currentSoC: 100, isPluggedIn: true)
+
+        #expect(store.stored?.topUpReachedFullAt == 1_005)
+    }
+
     /// 스탬프는 한 번만. 매 샘플마다 다시 찍히면 만료가 영원히 오지 않는다.
     @Test func doesNotRestampOnEverySample() {
         let clock = MutableClock(1_000)

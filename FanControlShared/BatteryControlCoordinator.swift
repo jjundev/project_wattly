@@ -387,9 +387,16 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         case .none:
             return nil
         case .stamp(let moment):
+            // `persistPolicy`는 미러에서 기록할 시각을 읽으므로 쓰기 전에 세워야 한다. 쓰기가
+            // 실패하면 세운 값을 도로 물려, 다음 샘플이 `.stamp`를 다시 내고 재시도하게 한다 —
+            // 미러를 그대로 두면 `decide`가 두 번 다시 `.stamp`를 내지 않아 영영 저장되지 않는다.
+            let previous = topUpReachedFullAt
             topUpReachedFullAt = moment
-            // 저장 실패는 치명적이지 않다 — 다음 샘플이 다시 찍는다. 만료가 그만큼 늦어질 뿐이다.
-            try? persistPolicy(engine.configuration)
+            do {
+                try persistPolicy(engine.configuration)
+            } catch {
+                topUpReachedFullAt = previous
+            }
             return nil
         case .expire:
             var updated = engine.configuration
