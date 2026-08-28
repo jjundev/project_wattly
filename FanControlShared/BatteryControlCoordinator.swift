@@ -55,6 +55,9 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
             if !isPluggedIn && desired.topUpActive {
                 desired.topUpActive = false
                 try? persistPolicy(desired)
+                // 쓰기가 실패해도 Top Up은 끝났다. 미러를 남겨 두면 다음 Top Up의 `configure`가
+                // 낡은 시각을 그대로 저장해, 켜자마자 만료되는 상태로 시작한다.
+                topUpReachedFullAt = nil
             }
             engine.configure(desired)
             if !desired.isActive {
@@ -296,6 +299,9 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
             } catch {
                 // If persistence write fails, proceed with in-memory policy reset
             }
+            // 쓰기가 실패해도 Top Up은 끝났다. 미러를 남겨 두면 다음 Top Up의 `configure`가
+            // 낡은 시각을 그대로 저장해, 켜자마자 만료되는 상태로 시작한다.
+            topUpReachedFullAt = nil
             engine.configure(updatedConfig)
         }
 

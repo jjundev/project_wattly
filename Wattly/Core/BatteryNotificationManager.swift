@@ -26,6 +26,8 @@ public struct BatteryTopUpExpiryDetector: Sendable {
     /// 이보다 오래된 만료 레코드는 알리지 않는다.
     public static let freshnessWindow: TimeInterval = 300
 
+    /// 신선도 창을 벗어난 레코드도 여기에 기록한다. 같은 레코드를 나중에 다시 보더라도 "새 것"으로
+    /// 되살아나지 않게 하려는 것이다.
     private var lastSeenOccurredAt: TimeInterval?
 
     public init() {}

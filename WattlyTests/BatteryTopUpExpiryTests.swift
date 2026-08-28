@@ -3,8 +3,6 @@ import Testing
 @testable import Wattly
 
 @Suite struct BatteryTopUpExpiryTests {
-    private let hour: TimeInterval = 3600
-
     @Test func defaultDurationIsTwelveHours() {
         #expect(BatteryTopUpExpiry.duration == 12 * 3600)
         #expect(BatteryTopUpExpiry.durationHours == 12)

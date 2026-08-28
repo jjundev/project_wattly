@@ -1312,5 +1312,35 @@ struct BatteryControlCoordinatorTests {
         #expect(store.stored?.configuration.topUpActive == false)
         #expect(store.stored?.topUpReachedFullAt == nil)
     }
+
+    /// 어댑터를 뽑을 때 정책 저장이 실패해도 도달 시각은 메모리에서 지워져야 한다. 남겨 두면
+    /// 다음 Top Up을 켜는 `configure`가 낡은 시각을 디스크에 다시 써서, 새 Top Up이 켜지자마자
+    /// 만료된다.
+    @Test func clearsTheStampEvenWhenTheUnplugWriteFails() {
+        let clock = MutableClock(1_000)
+        let store = PolicyStoreSpy()
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501, store: store,
+            engine: BatteryControlEngine(hardware: MockBatteryHardware()),
+            now: { clock.now })
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, topUpActive: true),
+            trigger: .clientConfiguration, currentSoC: 100, isPluggedIn: true)
+        _ = coordinator.sample(currentSoC: 100, isPluggedIn: true)
+        #expect(store.stored?.topUpReachedFullAt == 1_000)
+
+        store.saveError = BatteryPolicyStoreError.fileOperation(errno: 1)
+        _ = coordinator.reconcile(
+            trigger: .adapterTransition, currentSoC: 100, isPluggedIn: false)
+        store.saveError = nil
+
+        // 사용자가 다시 꽂고 Top Up을 새로 켠다. 낡은 시각이 딸려 나오면 안 된다.
+        clock.advance(by: 60)
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, topUpActive: true),
+            trigger: .clientConfiguration, currentSoC: 90, isPluggedIn: true)
+
+        #expect(store.stored?.topUpReachedFullAt == nil)
+    }
 }
 
