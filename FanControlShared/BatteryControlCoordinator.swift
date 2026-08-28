@@ -349,17 +349,19 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
 
     /// 정책 저장의 유일한 경로. Top Up이 꺼져 있으면 도달 시각도 함께 지운다 — 남겨 두면 다음
     /// Top Up이 켜지자마자 즉시 만료된다.
+    ///
+    /// 미러(`topUpReachedFullAt`)는 **쓰기가 성공한 뒤에만** 갱신한다. 실패한 쓰기가 메모리 상태를
+    /// 먼저 바꿔 버리면, 재시도해야 할 만료가 스스로 재시도 조건을 지워 버린다.
     private func persistPolicy(_ configuration: BatteryControlConfiguration) throws {
         var persisted = configuration
         persisted.manualDischargeActive = false
-        if !persisted.topUpActive {
-            topUpReachedFullAt = nil
-        }
+        let stamp = persisted.topUpActive ? topUpReachedFullAt : nil
         try store.save(.init(
             ownerUID: ownerUID,
             configuration: persisted,
             updatedAt: now(),
-            topUpReachedFullAt: persisted.topUpActive ? topUpReachedFullAt : nil))
+            topUpReachedFullAt: stamp))
+        topUpReachedFullAt = stamp
     }
 
     /// Top Up 자동 만료의 **유일한** 판정 지점.
@@ -392,8 +394,13 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         case .expire:
             var updated = engine.configuration
             updated.topUpActive = false
-            topUpReachedFullAt = nil
-            try? persistPolicy(updated)
+            do {
+                try persistPolicy(updated)
+            } catch {
+                // 저장이 실패하면 파일과 하드웨어가 갈라진다. 엔진도 스탬프도 그대로 두고 물러나면,
+                // 5초 뒤 다음 샘플이 같은 `.expire` 판정에 다시 도달해 쓰기를 재시도한다.
+                return nil
+            }
             engine.configure(updated)
             let settled = engine.verifyAndUpdate(
                 currentSoC: currentSoC,

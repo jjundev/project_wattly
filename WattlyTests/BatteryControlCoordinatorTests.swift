@@ -20,11 +20,6 @@ final class MutableClock: @unchecked Sendable {
         lock.lock(); defer { lock.unlock() }
         value += seconds
     }
-
-    func set(_ newValue: TimeInterval) {
-        lock.lock(); defer { lock.unlock() }
-        value = newValue
-    }
 }
 
 final class PolicyStoreSpy: BatteryPolicyStoring, @unchecked Sendable {
@@ -1260,6 +1255,37 @@ struct BatteryControlCoordinatorTests {
 
         #expect(status.desiredConfiguration?.topUpActive == false)
         #expect(status.lastMaintenance?.trigger == .topUpExpired)
+    }
+
+    /// 만료 시점에 정책 저장이 실패하면 아무것도 바꾸지 않고 물러나야 한다. 엔진만 꺼 두고
+    /// 물러나면 다음 판정이 `.none`이 되어 영원히 재시도되지 않고, 파일과 하드웨어가 갈라진 채
+    /// 남는다.
+    @Test func retriesTheExpiryWhenThePolicyWriteFails() {
+        let clock = MutableClock(1_000)
+        let store = PolicyStoreSpy()
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501, store: store,
+            engine: BatteryControlEngine(hardware: MockBatteryHardware()),
+            now: { clock.now })
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, topUpActive: true),
+            trigger: .clientConfiguration, currentSoC: 100, isPluggedIn: true)
+        _ = coordinator.sample(currentSoC: 100, isPluggedIn: true)
+
+        clock.advance(by: 12 * 3_600)
+        store.saveError = BatteryPolicyStoreError.fileOperation(errno: 1)
+        let blocked = coordinator.sample(currentSoC: 100, isPluggedIn: true)
+
+        #expect(blocked.desiredConfiguration?.topUpActive == true)
+        #expect(blocked.lastMaintenance?.trigger != .topUpExpired)
+
+        store.saveError = nil
+        let retried = coordinator.sample(currentSoC: 100, isPluggedIn: true)
+
+        #expect(retried.desiredConfiguration?.topUpActive == false)
+        #expect(retried.lastMaintenance?.trigger == .topUpExpired)
+        #expect(store.stored?.configuration.topUpActive == false)
+        #expect(store.stored?.topUpReachedFullAt == nil)
     }
 }
 
