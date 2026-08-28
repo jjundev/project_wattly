@@ -137,6 +137,66 @@ import Foundation
         #expect(sent.configuration.autoDischargeEnabled == true)
         #expect(sent.configuration.manualDischargeTarget == 70)
     }
+
+    // MARK: - 재조정 루프 task id
+
+    /// Guards a second copy of the same regression: `makeConfiguration` can carry every stored
+    /// preference and still leave the bug in place if `.task(id:)` doesn't restart on all of them,
+    /// since the loop body reads `self` at task-start and otherwise reconciles a stale value
+    /// forever. Each of the eight inputs is varied one at a time from a fixed baseline; a
+    /// preference dropped from `reconcileTaskID` would leave that one variant equal to the
+    /// baseline and fail here the moment it's added below.
+    @Test func reconcileTaskIDChangesWithEveryStoredPreference() {
+        let baseline = BatteryControlBridge.reconcileTaskID(
+            enabled: true,
+            limitPercentage: 85,
+            sailingEnabled: true,
+            sailingDelta: 5,
+            heatProtectionEnabled: true,
+            heatProtectionThresholdCelsius: 38,
+            autoDischargeEnabled: true,
+            manualDischargeTarget: 70)
+
+        #expect(BatteryControlBridge.reconcileTaskID(
+            enabled: false, limitPercentage: 85, sailingEnabled: true, sailingDelta: 5,
+            heatProtectionEnabled: true, heatProtectionThresholdCelsius: 38,
+            autoDischargeEnabled: true, manualDischargeTarget: 70) != baseline)
+
+        #expect(BatteryControlBridge.reconcileTaskID(
+            enabled: true, limitPercentage: 86, sailingEnabled: true, sailingDelta: 5,
+            heatProtectionEnabled: true, heatProtectionThresholdCelsius: 38,
+            autoDischargeEnabled: true, manualDischargeTarget: 70) != baseline)
+
+        #expect(BatteryControlBridge.reconcileTaskID(
+            enabled: true, limitPercentage: 85, sailingEnabled: false, sailingDelta: 5,
+            heatProtectionEnabled: true, heatProtectionThresholdCelsius: 38,
+            autoDischargeEnabled: true, manualDischargeTarget: 70) != baseline)
+
+        #expect(BatteryControlBridge.reconcileTaskID(
+            enabled: true, limitPercentage: 85, sailingEnabled: true, sailingDelta: 6,
+            heatProtectionEnabled: true, heatProtectionThresholdCelsius: 38,
+            autoDischargeEnabled: true, manualDischargeTarget: 70) != baseline)
+
+        #expect(BatteryControlBridge.reconcileTaskID(
+            enabled: true, limitPercentage: 85, sailingEnabled: true, sailingDelta: 5,
+            heatProtectionEnabled: false, heatProtectionThresholdCelsius: 38,
+            autoDischargeEnabled: true, manualDischargeTarget: 70) != baseline)
+
+        #expect(BatteryControlBridge.reconcileTaskID(
+            enabled: true, limitPercentage: 85, sailingEnabled: true, sailingDelta: 5,
+            heatProtectionEnabled: true, heatProtectionThresholdCelsius: 39,
+            autoDischargeEnabled: true, manualDischargeTarget: 70) != baseline)
+
+        #expect(BatteryControlBridge.reconcileTaskID(
+            enabled: true, limitPercentage: 85, sailingEnabled: true, sailingDelta: 5,
+            heatProtectionEnabled: true, heatProtectionThresholdCelsius: 38,
+            autoDischargeEnabled: false, manualDischargeTarget: 70) != baseline)
+
+        #expect(BatteryControlBridge.reconcileTaskID(
+            enabled: true, limitPercentage: 85, sailingEnabled: true, sailingDelta: 5,
+            heatProtectionEnabled: true, heatProtectionThresholdCelsius: 38,
+            autoDischargeEnabled: true, manualDischargeTarget: 71) != baseline)
+    }
 }
 
 private actor BridgeRequestReceiver {

@@ -55,6 +55,23 @@ struct BatteryControlBridge: View {
             manualDischargeTarget: manualDischargeTarget)
     }
 
+    /// The `.task(id:)` identity for the reconcile loop below. Every preference `makeConfiguration`
+    /// takes must appear here too — otherwise a change to that preference never restarts the loop,
+    /// and it keeps reconciling the stale value it captured at launch. Pure so a test can catch a
+    /// future preference silently missing from this list.
+    static func reconcileTaskID(
+        enabled: Bool,
+        limitPercentage: Int,
+        sailingEnabled: Bool,
+        sailingDelta: Int,
+        heatProtectionEnabled: Bool,
+        heatProtectionThresholdCelsius: Int,
+        autoDischargeEnabled: Bool,
+        manualDischargeTarget: Int
+    ) -> String {
+        "\(enabled)-\(limitPercentage)-\(sailingEnabled)-\(sailingDelta)-\(heatProtectionEnabled)-\(heatProtectionThresholdCelsius)-\(autoDischargeEnabled)-\(manualDischargeTarget)"
+    }
+
     private var configuration: BatteryControlConfiguration {
         Self.makeConfiguration(
             enabled: enabled,
@@ -182,16 +199,24 @@ struct BatteryControlBridge: View {
             // manual discharge intact and writes nothing at all when the settings screen already
             // pushed the same change a moment ago.
             .onChange(of: autoDischargeEnabled) { _, isAutoDischarge in
+                let requested = Self.makeConfiguration(
+                    enabled: enabled,
+                    limitPercentage: limit,
+                    sailingEnabled: sailingEnabled,
+                    sailingDelta: sailingDelta,
+                    heatProtectionEnabled: heatProtectionEnabled,
+                    heatProtectionThresholdCelsius: heatProtectionThreshold,
+                    autoDischargeEnabled: isAutoDischarge,
+                    manualDischargeTarget: manualDischargeTarget)
                 Task {
                     await client.reconcile(
-                        enabled: enabled,
-                        limitPercentage: limit,
-                        lowerHysteresisDelta: Self.effectiveDelta(
-                            sailingEnabled: sailingEnabled, sailingDelta: sailingDelta),
-                        heatProtectionEnabled: heatProtectionEnabled,
-                        heatProtectionThresholdCelsius: heatProtectionThreshold,
-                        autoDischargeEnabled: isAutoDischarge,
-                        manualDischargeTarget: manualDischargeTarget)
+                        enabled: requested.enabled,
+                        limitPercentage: requested.limitPercentage,
+                        lowerHysteresisDelta: requested.lowerHysteresisDelta,
+                        heatProtectionEnabled: requested.heatProtectionEnabled,
+                        heatProtectionThresholdCelsius: requested.heatProtectionThresholdCelsius,
+                        autoDischargeEnabled: requested.autoDischargeEnabled,
+                        manualDischargeTarget: requested.manualDischargeTarget)
                 }
             }
             .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)) { _ in
@@ -222,7 +247,15 @@ struct BatteryControlBridge: View {
             }
             // The loop body reads the `self` captured when the task started, so every preference
             // it forwards must appear here — otherwise it reconciles stale values forever.
-            .task(id: "\(enabled)-\(limit)-\(sailingEnabled)-\(sailingDelta)-\(heatProtectionEnabled)-\(heatProtectionThreshold)-\(autoDischargeEnabled)-\(manualDischargeTarget)") {
+            .task(id: Self.reconcileTaskID(
+                enabled: enabled,
+                limitPercentage: limit,
+                sailingEnabled: sailingEnabled,
+                sailingDelta: sailingDelta,
+                heatProtectionEnabled: heatProtectionEnabled,
+                heatProtectionThresholdCelsius: heatProtectionThreshold,
+                autoDischargeEnabled: autoDischargeEnabled,
+                manualDischargeTarget: manualDischargeTarget)) {
                 await handleReconcileLoop()
             }
             .onChange(of: client.status) { _, newStatus in
