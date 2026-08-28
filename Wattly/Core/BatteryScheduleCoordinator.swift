@@ -136,6 +136,15 @@ import AppKit
         await execute(schedule: winning, at: date)
     }
 
+    /// `defaults.integer(forKey:)` returns `0` for an absent key, but `Defaults.batteryManualDischargeTarget`
+    /// is `80` — a bare read would send `0`, which the daemon clamps to 50 and silently overwrites a
+    /// user-configured target. Guard on presence instead, the same way `BatteryIntentBridge` does.
+    private var effectiveManualDischargeTarget: Int {
+        defaults.object(forKey: StorageKey.batteryManualDischargeTarget) != nil
+            ? defaults.integer(forKey: StorageKey.batteryManualDischargeTarget)
+            : Defaults.batteryManualDischargeTarget
+    }
+
     private func execute(schedule: BatteryChargingSchedule, at date: Date) async {
         let isPluggedIn = batteryControl.status.isPowerAdapterConnected
 
@@ -149,7 +158,9 @@ import AppKit
                 lowerHysteresisDelta: defaults.bool(forKey: StorageKey.batterySailingEnabled)
                     ? defaults.integer(forKey: StorageKey.batterySailingDelta) : 2,
                 heatProtectionEnabled: defaults.bool(forKey: StorageKey.batteryHeatProtectionEnabled),
-                heatProtectionThresholdCelsius: defaults.integer(forKey: StorageKey.batteryHeatProtectionThreshold)
+                heatProtectionThresholdCelsius: defaults.integer(forKey: StorageKey.batteryHeatProtectionThreshold),
+                autoDischargeEnabled: defaults.bool(forKey: StorageKey.batteryAutoDischargeEnabled),
+                manualDischargeTarget: effectiveManualDischargeTarget
             )
             if status != nil && status?.mode != .unavailable {
                 recordLog(schedule: schedule, status: .success, timestamp: date)
@@ -166,7 +177,9 @@ import AppKit
                     lowerHysteresisDelta: defaults.bool(forKey: StorageKey.batterySailingEnabled)
                         ? defaults.integer(forKey: StorageKey.batterySailingDelta) : 2,
                     heatProtectionEnabled: defaults.bool(forKey: StorageKey.batteryHeatProtectionEnabled),
-                    heatProtectionThresholdCelsius: defaults.integer(forKey: StorageKey.batteryHeatProtectionThreshold)
+                    heatProtectionThresholdCelsius: defaults.integer(forKey: StorageKey.batteryHeatProtectionThreshold),
+                    autoDischargeEnabled: defaults.bool(forKey: StorageKey.batteryAutoDischargeEnabled),
+                    manualDischargeTarget: effectiveManualDischargeTarget
                 )
                 if status != nil && status?.mode != .unavailable {
                     recordLog(schedule: schedule, status: .success, timestamp: date)
@@ -183,7 +196,9 @@ import AppKit
                 limitPercentage: 50,
                 lowerHysteresisDelta: 2,
                 heatProtectionEnabled: defaults.bool(forKey: StorageKey.batteryHeatProtectionEnabled),
-                heatProtectionThresholdCelsius: defaults.integer(forKey: StorageKey.batteryHeatProtectionThreshold)
+                heatProtectionThresholdCelsius: defaults.integer(forKey: StorageKey.batteryHeatProtectionThreshold),
+                autoDischargeEnabled: defaults.bool(forKey: StorageKey.batteryAutoDischargeEnabled),
+                manualDischargeTarget: effectiveManualDischargeTarget
             )
             if status != nil && status?.mode != .unavailable {
                 recordLog(schedule: schedule, status: .success, timestamp: date)
