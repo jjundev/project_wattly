@@ -145,6 +145,27 @@ import AppKit
             : Defaults.batteryManualDischargeTarget
     }
 
+    /// `defaults.integer(forKey:)` returns `0` for an absent key. `batteryHeatProtectionThreshold`
+    /// is never written by any UI, so the key is always absent here and a bare read would send `0`,
+    /// which the daemon clamps to 30 instead of the intended `Defaults.batteryHeatProtectionThreshold`
+    /// (35) — inhibiting charging 5°C early. Guard on presence instead, the same way
+    /// `effectiveManualDischargeTarget` above does.
+    private var effectiveHeatProtectionThreshold: Int {
+        defaults.object(forKey: StorageKey.batteryHeatProtectionThreshold) != nil
+            ? defaults.integer(forKey: StorageKey.batteryHeatProtectionThreshold)
+            : Defaults.batteryHeatProtectionThreshold
+    }
+
+    /// `defaults.integer(forKey:)` returns `0` for an absent key, but `Defaults.batteryLimitPercentage`
+    /// is not `0` — if this coordinator ever runs before the user has touched the limit slider (the
+    /// key absent), a bare read would send `0` to the daemon instead of the intended default. Guard
+    /// on presence instead, the same way `effectiveManualDischargeTarget` above does.
+    private var effectiveLimitPercentage: Int {
+        defaults.object(forKey: StorageKey.batteryLimitPercentage) != nil
+            ? defaults.integer(forKey: StorageKey.batteryLimitPercentage)
+            : Defaults.batteryLimitPercentage
+    }
+
     private func execute(schedule: BatteryChargingSchedule, at date: Date) async {
         let isPluggedIn = batteryControl.status.isPowerAdapterConnected
 
@@ -158,7 +179,7 @@ import AppKit
                 lowerHysteresisDelta: defaults.bool(forKey: StorageKey.batterySailingEnabled)
                     ? defaults.integer(forKey: StorageKey.batterySailingDelta) : 2,
                 heatProtectionEnabled: defaults.bool(forKey: StorageKey.batteryHeatProtectionEnabled),
-                heatProtectionThresholdCelsius: defaults.integer(forKey: StorageKey.batteryHeatProtectionThreshold),
+                heatProtectionThresholdCelsius: effectiveHeatProtectionThreshold,
                 autoDischargeEnabled: defaults.bool(forKey: StorageKey.batteryAutoDischargeEnabled),
                 manualDischargeTarget: effectiveManualDischargeTarget
             )
@@ -173,11 +194,11 @@ import AppKit
                 recordLog(schedule: schedule, status: .skipped(reason: .adapterDisconnected), timestamp: date)
             } else {
                 let status = await batteryControl.startTopUp(
-                    limitPercentage: defaults.integer(forKey: StorageKey.batteryLimitPercentage),
+                    limitPercentage: effectiveLimitPercentage,
                     lowerHysteresisDelta: defaults.bool(forKey: StorageKey.batterySailingEnabled)
                         ? defaults.integer(forKey: StorageKey.batterySailingDelta) : 2,
                     heatProtectionEnabled: defaults.bool(forKey: StorageKey.batteryHeatProtectionEnabled),
-                    heatProtectionThresholdCelsius: defaults.integer(forKey: StorageKey.batteryHeatProtectionThreshold),
+                    heatProtectionThresholdCelsius: effectiveHeatProtectionThreshold,
                     autoDischargeEnabled: defaults.bool(forKey: StorageKey.batteryAutoDischargeEnabled),
                     manualDischargeTarget: effectiveManualDischargeTarget
                 )
@@ -196,7 +217,7 @@ import AppKit
                 limitPercentage: 50,
                 lowerHysteresisDelta: 2,
                 heatProtectionEnabled: defaults.bool(forKey: StorageKey.batteryHeatProtectionEnabled),
-                heatProtectionThresholdCelsius: defaults.integer(forKey: StorageKey.batteryHeatProtectionThreshold),
+                heatProtectionThresholdCelsius: effectiveHeatProtectionThreshold,
                 autoDischargeEnabled: defaults.bool(forKey: StorageKey.batteryAutoDischargeEnabled),
                 manualDischargeTarget: effectiveManualDischargeTarget
             )

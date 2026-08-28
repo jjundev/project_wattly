@@ -61,6 +61,13 @@ struct BatteryControlBridge: View {
     /// them as a side effect. A running manual discharge also owns its target — the stored
     /// preference must not yank a discharge in progress to a different number. `nil` means the
     /// helper has not answered, and then the request stands exactly as built.
+    ///
+    /// Unlike `BatteryControlClient.reconcile`, this does NOT compute
+    /// `effectiveEnabled = enabled || isTopUp || isManualDischarge` — a caller here forwards
+    /// `requested.enabled` as-is. If a Top Up or manual discharge is running while the user's
+    /// stored `enabled` preference is off, the two diverge for at most one `reconcileInterval`
+    /// tick, which self-corrects through `reconcile`'s own `effectiveEnabled` the next time the
+    /// loop runs. Don't re-import that coupling here without re-checking why it was left out.
     static func preservingActivity(
         _ requested: BatteryControlConfiguration,
         daemon desired: BatteryControlConfiguration?
@@ -219,7 +226,19 @@ struct BatteryControlBridge: View {
             // "the daemon already matches" is right for a background pass and wrong for a button —
             // the press would vanish with nothing shown to the user. Preservation of a running Top
             // Up or manual discharge, which is why this once used `reconcile`, is now explicit via
-            // `preservingActivity` over a freshly read status.
+            // `preservingActivity` over a freshly read status, inside `applyRequested`.
+            //
+            // KNOWN RACE (not fixed here — needs a design decision): with the Settings window
+            // open, this handler and `SettingsBatterySection`'s own `.onChange(of:
+            // autoDischargeEnabled)` both fire off unstructured `Task {}` writes for the same
+            // toggle flip. `SettingsBatterySection` calls `batteryControl.setAutoDischarge(...)`,
+            // which hardcodes `topUpActive: false, manualDischargeActive: false` — it does not
+            // preserve daemon activity the way `applyRequested` does here. Neither write is
+            // ordered against the other, and this handler's `await client.refreshStatus()` yields,
+            // so a bad interleaving can have the Settings write cancel a running Top Up and then
+            // have this handler's stale-read merge resurrect it (or vice versa). Making the bridge
+            // the single writer would close this, but that is a design choice the user has not
+            // made yet — see the plan-13-settings findings memory note.
             .onChange(of: autoDischargeEnabled) { _, isAutoDischarge in
                 let requested = Self.makeConfiguration(
                     enabled: enabled,
@@ -231,21 +250,7 @@ struct BatteryControlBridge: View {
                     autoDischargeEnabled: isAutoDischarge,
                     manualDischargeTarget: manualDischargeTarget)
                 Task {
-                    await client.refreshStatus()
-                    let merged = Self.preservingActivity(
-                        requested, daemon: client.status.desiredConfiguration)
-                    BatteryControlLog.battery.notice(
-                        "auto-discharge toggle push: autoDischarge=\(merged.autoDischargeEnabled) topUp=\(merged.topUpActive) manualActive=\(merged.manualDischargeActive)")
-                    await client.apply(
-                        enabled: merged.enabled,
-                        limitPercentage: merged.limitPercentage,
-                        lowerHysteresisDelta: merged.lowerHysteresisDelta,
-                        heatProtectionEnabled: merged.heatProtectionEnabled,
-                        heatProtectionThresholdCelsius: merged.heatProtectionThresholdCelsius,
-                        topUpActive: merged.topUpActive,
-                        autoDischargeEnabled: merged.autoDischargeEnabled,
-                        manualDischargeActive: merged.manualDischargeActive,
-                        manualDischargeTarget: merged.manualDischargeTarget)
+                    await applyRequested(requested)
                 }
             }
             .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)) { _ in
@@ -300,8 +305,11 @@ struct BatteryControlBridge: View {
         await client.refreshStatus()
         syncMonitorTarget()
         let requested = configuration
-        guard BatteryControlPolicy.shouldReapply(
-            configuration: requested, status: client.status) else { return }
+        let shouldReapply = BatteryControlPolicy.shouldReapply(
+            configuration: requested, status: client.status)
+        BatteryControlLog.battery.notice(
+            "initial task verdict: shouldReapply=\(shouldReapply) requestedAutoDischarge=\(requested.autoDischargeEnabled)")
+        guard shouldReapply else { return }
         await push(requested)
     }
 
@@ -353,12 +361,17 @@ struct BatteryControlBridge: View {
                 heatProtectionThresholdCelsius: requested.heatProtectionThresholdCelsius,
                 autoDischargeEnabled: requested.autoDischargeEnabled,
                 manualDischargeTarget: requested.manualDischargeTarget)
-            consecutiveUnsupported = client.status.mode == .unsupported
-                ? consecutiveUnsupported + 1
-                : 0
+            // `isHardwareSupported == false` also feeds the backoff counter below: a daemon that
+            // relaunches with a transiently failing SMC probe must not kill this loop for the
+            // process lifetime — that leaves a divergence (e.g. the user's auto-discharge opt-in)
+            // unrepaired forever, even after the daemon comes back healthy. Back off instead of
+            // exiting, same as the `.unsupported` mode case.
+            let isUnsupported = client.status.mode == .unsupported
+                || client.status.isHardwareSupported == false
+            consecutiveUnsupported = isUnsupported ? consecutiveUnsupported + 1 : 0
             if client.status.isHardwareSupported == false {
-                BatteryControlLog.battery.notice("reconcile loop exiting: hardware unsupported")
-                return
+                BatteryControlLog.battery.notice(
+                    "reconcile loop backing off: hardware unsupported, streak=\(consecutiveUnsupported)")
             }
         }
         BatteryControlLog.battery.notice("reconcile loop ended: task cancelled")
@@ -375,15 +388,30 @@ struct BatteryControlBridge: View {
         }
     }
 
+    /// Reads the daemon's current status and folds its transient activity into `requested` before
+    /// writing, via `preservingActivity` — without this, any push through here (a limit edit, a
+    /// wake-triggered apply, the auto-discharge toggle) would default `topUpActive` and
+    /// `manualDischargeActive` to `false` and silently cancel a Top Up or manual discharge in
+    /// progress. Forwards all nine `BatteryControlConfiguration` fields so nothing the merge
+    /// produced is dropped on the way to `client.apply`.
     private func applyRequested(_ requested: BatteryControlConfiguration) async {
-        await client.apply(
-            enabled: requested.enabled,
-            limitPercentage: requested.limitPercentage,
-            lowerHysteresisDelta: requested.lowerHysteresisDelta,
-            heatProtectionEnabled: requested.heatProtectionEnabled,
-            heatProtectionThresholdCelsius: requested.heatProtectionThresholdCelsius,
-            autoDischargeEnabled: requested.autoDischargeEnabled,
-            manualDischargeTarget: requested.manualDischargeTarget)
+        await client.refreshStatus()
+        let merged = Self.preservingActivity(
+            requested, daemon: client.status.desiredConfiguration)
+        BatteryControlLog.battery.notice(
+            "applyRequested push: autoDischarge=\(merged.autoDischargeEnabled) topUp=\(merged.topUpActive) manualActive=\(merged.manualDischargeActive)")
+        let result = await client.apply(
+            enabled: merged.enabled,
+            limitPercentage: merged.limitPercentage,
+            lowerHysteresisDelta: merged.lowerHysteresisDelta,
+            heatProtectionEnabled: merged.heatProtectionEnabled,
+            heatProtectionThresholdCelsius: merged.heatProtectionThresholdCelsius,
+            topUpActive: merged.topUpActive,
+            autoDischargeEnabled: merged.autoDischargeEnabled,
+            manualDischargeActive: merged.manualDischargeActive,
+            manualDischargeTarget: merged.manualDischargeTarget)
+        BatteryControlLog.battery.notice(
+            "applyRequested result: accepted=\(result != nil)")
     }
 
     private func disableRequested(_ requested: BatteryControlConfiguration) async {
