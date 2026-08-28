@@ -197,6 +197,64 @@ import Foundation
             heatProtectionEnabled: true, heatProtectionThresholdCelsius: 38,
             autoDischargeEnabled: true, manualDischargeTarget: 71) != baseline)
     }
+
+    // MARK: - 토글 푸시가 보존하는 것
+
+    /// A toggle press must not cancel a Top Up or a manual discharge that the daemon is running —
+    /// that was the whole reason the handler used to go through `reconcile`. The preservation is
+    /// now explicit and pure, so it survives without the `shouldReapply` gate that was swallowing
+    /// the user's press.
+    @Test func preservingActivityCarriesDaemonTransientStateForward() {
+        let requested = BatteryControlBridge.makeConfiguration(
+            enabled: true, limitPercentage: 80,
+            sailingEnabled: true, sailingDelta: 5,
+            heatProtectionEnabled: true, heatProtectionThresholdCelsius: 35,
+            autoDischargeEnabled: true, manualDischargeTarget: 80)
+        let daemon = BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            lowerHysteresisDelta: 5,
+            topUpActive: true,
+            autoDischargeEnabled: false,
+            manualDischargeActive: true,
+            manualDischargeTarget: 70)
+
+        let merged = BatteryControlBridge.preservingActivity(requested, daemon: daemon)
+
+        // Transient activity comes from the daemon.
+        #expect(merged.topUpActive == true)
+        #expect(merged.manualDischargeActive == true)
+        // A running manual discharge owns its target; the stored preference must not yank it.
+        #expect(merged.manualDischargeTarget == 70)
+        // The user's own settings still win.
+        #expect(merged.autoDischargeEnabled == true)
+        #expect(merged.enabled == true)
+        #expect(merged.limitPercentage == 80)
+        #expect(merged.lowerHysteresisDelta == 5)
+    }
+
+    /// With nothing running on the daemon — and with no daemon answer at all — the request stands
+    /// as written, including the stored manual-discharge target.
+    @Test func preservingActivityLeavesAnIdleDaemonRequestAlone() {
+        let requested = BatteryControlBridge.makeConfiguration(
+            enabled: true, limitPercentage: 85,
+            sailingEnabled: false, sailingDelta: 5,
+            heatProtectionEnabled: false, heatProtectionThresholdCelsius: 35,
+            autoDischargeEnabled: true, manualDischargeTarget: 70)
+        let idle = BatteryControlConfiguration(
+            enabled: true, limitPercentage: 85, lowerHysteresisDelta: 2,
+            topUpActive: false, autoDischargeEnabled: false,
+            manualDischargeActive: false, manualDischargeTarget: 80)
+
+        let merged = BatteryControlBridge.preservingActivity(requested, daemon: idle)
+        #expect(merged.topUpActive == false)
+        #expect(merged.manualDischargeActive == false)
+        #expect(merged.manualDischargeTarget == 70)
+        #expect(merged.autoDischargeEnabled == true)
+
+        let unknown = BatteryControlBridge.preservingActivity(requested, daemon: nil)
+        #expect(unknown == requested)
+    }
 }
 
 private actor BridgeRequestReceiver {

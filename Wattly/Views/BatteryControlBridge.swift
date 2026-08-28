@@ -55,6 +55,26 @@ struct BatteryControlBridge: View {
             manualDischargeTarget: manualDischargeTarget)
     }
 
+    /// Folds the daemon's transient activity into a configuration built from stored preferences.
+    /// `topUpActive` and `manualDischargeActive` describe what the helper is *doing*, not what the
+    /// user chose, so a push driven by a preference change must carry them forward or it cancels
+    /// them as a side effect. A running manual discharge also owns its target — the stored
+    /// preference must not yank a discharge in progress to a different number. `nil` means the
+    /// helper has not answered, and then the request stands exactly as built.
+    static func preservingActivity(
+        _ requested: BatteryControlConfiguration,
+        daemon desired: BatteryControlConfiguration?
+    ) -> BatteryControlConfiguration {
+        guard let desired else { return requested }
+        var merged = requested
+        merged.topUpActive = desired.topUpActive
+        merged.manualDischargeActive = desired.manualDischargeActive
+        if desired.manualDischargeActive {
+            merged.manualDischargeTarget = desired.manualDischargeTarget
+        }
+        return merged
+    }
+
     /// The `.task(id:)` identity for the reconcile loop below. Every preference `makeConfiguration`
     /// takes must appear here too — otherwise a change to that preference never restarts the loop,
     /// and it keeps reconciling the stale value it captured at launch. Pure so a test can catch a
@@ -193,11 +213,13 @@ struct BatteryControlBridge: View {
                     await handleConfigChange(requested)
                 }
             }
-            // Auto-discharge is a user setting, not transient activity, so nothing in
-            // `BatteryControlPolicy` preserves it for us — flipping it has to push. `reconcile`
-            // rather than `apply`: it reads the helper first, so it keeps a running Top Up or
-            // manual discharge intact and writes nothing at all when the settings screen already
-            // pushed the same change a moment ago.
+            // A toggle the user just pressed is an explicit instruction, so it pushes
+            // unconditionally. It deliberately does NOT go through `reconcile`: that path writes
+            // only if `BatteryControlPolicy.shouldReapply` agrees, and a repair predicate deciding
+            // "the daemon already matches" is right for a background pass and wrong for a button —
+            // the press would vanish with nothing shown to the user. Preservation of a running Top
+            // Up or manual discharge, which is why this once used `reconcile`, is now explicit via
+            // `preservingActivity` over a freshly read status.
             .onChange(of: autoDischargeEnabled) { _, isAutoDischarge in
                 let requested = Self.makeConfiguration(
                     enabled: enabled,
@@ -209,14 +231,21 @@ struct BatteryControlBridge: View {
                     autoDischargeEnabled: isAutoDischarge,
                     manualDischargeTarget: manualDischargeTarget)
                 Task {
-                    await client.reconcile(
-                        enabled: requested.enabled,
-                        limitPercentage: requested.limitPercentage,
-                        lowerHysteresisDelta: requested.lowerHysteresisDelta,
-                        heatProtectionEnabled: requested.heatProtectionEnabled,
-                        heatProtectionThresholdCelsius: requested.heatProtectionThresholdCelsius,
-                        autoDischargeEnabled: requested.autoDischargeEnabled,
-                        manualDischargeTarget: requested.manualDischargeTarget)
+                    await client.refreshStatus()
+                    let merged = Self.preservingActivity(
+                        requested, daemon: client.status.desiredConfiguration)
+                    BatteryControlLog.battery.notice(
+                        "auto-discharge toggle push: autoDischarge=\(merged.autoDischargeEnabled) topUp=\(merged.topUpActive) manualActive=\(merged.manualDischargeActive)")
+                    await client.apply(
+                        enabled: merged.enabled,
+                        limitPercentage: merged.limitPercentage,
+                        lowerHysteresisDelta: merged.lowerHysteresisDelta,
+                        heatProtectionEnabled: merged.heatProtectionEnabled,
+                        heatProtectionThresholdCelsius: merged.heatProtectionThresholdCelsius,
+                        topUpActive: merged.topUpActive,
+                        autoDischargeEnabled: merged.autoDischargeEnabled,
+                        manualDischargeActive: merged.manualDischargeActive,
+                        manualDischargeTarget: merged.manualDischargeTarget)
                 }
             }
             .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)) { _ in
