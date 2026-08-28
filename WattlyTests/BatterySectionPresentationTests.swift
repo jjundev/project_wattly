@@ -937,6 +937,112 @@ import AppKit
             willShowDischarge: true
         ))
     }
+
+    @Test func manualDischargeDisabledReasonTests() {
+        // 1. Can start discharge -> nil
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true,
+            currentSoC: 80,
+            targetSoC: 70,
+            isHardwareSupported: true,
+            isToggleEnabled: true,
+            locale: ko
+        ) == nil)
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true,
+            currentSoC: 80,
+            targetSoC: 70,
+            isHardwareSupported: true,
+            isToggleEnabled: true,
+            locale: en
+        ) == nil)
+
+        // 2. Hardware unsupported or toggle disabled -> "배터리 충전 제어가 꺼져 있습니다." / "Battery charge control is disabled."
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true,
+            currentSoC: 80,
+            targetSoC: 70,
+            isHardwareSupported: false,
+            isToggleEnabled: true,
+            locale: ko
+        ) == "배터리 충전 제어가 꺼져 있습니다.")
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true,
+            currentSoC: 80,
+            targetSoC: 70,
+            isHardwareSupported: false,
+            isToggleEnabled: true,
+            locale: en
+        ) == "Battery charge control is disabled.")
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true,
+            currentSoC: 80,
+            targetSoC: 70,
+            isHardwareSupported: true,
+            isToggleEnabled: false,
+            locale: ko
+        ) == "배터리 충전 제어가 꺼져 있습니다.")
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true,
+            currentSoC: 80,
+            targetSoC: 70,
+            isHardwareSupported: true,
+            isToggleEnabled: false,
+            locale: en
+        ) == "Battery charge control is disabled.")
+
+        // 3. Not plugged in -> "전원 어댑터가 연결되어 있어야 방전할 수 있습니다." / "Connect power adapter to start discharge."
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: false,
+            currentSoC: 80,
+            targetSoC: 70,
+            isHardwareSupported: true,
+            isToggleEnabled: true,
+            locale: ko
+        ) == "전원 어댑터가 연결되어 있어야 방전할 수 있습니다.")
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: false,
+            currentSoC: 80,
+            targetSoC: 70,
+            isHardwareSupported: true,
+            isToggleEnabled: true,
+            locale: en
+        ) == "Connect power adapter to start discharge.")
+
+        // 4. currentSoC <= targetSoC -> "현재 배터리 잔량이 목표 잔량 이하입니다." / "Battery level is already at or below target."
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true,
+            currentSoC: 70,
+            targetSoC: 70,
+            isHardwareSupported: true,
+            isToggleEnabled: true,
+            locale: ko
+        ) == "현재 배터리 잔량이 목표 잔량 이하입니다.")
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true,
+            currentSoC: 60,
+            targetSoC: 70,
+            isHardwareSupported: true,
+            isToggleEnabled: true,
+            locale: ko
+        ) == "현재 배터리 잔량이 목표 잔량 이하입니다.")
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true,
+            currentSoC: 70,
+            targetSoC: 70,
+            isHardwareSupported: true,
+            isToggleEnabled: true,
+            locale: en
+        ) == "Battery level is already at or below target.")
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true,
+            currentSoC: 60,
+            targetSoC: 70,
+            isHardwareSupported: true,
+            isToggleEnabled: true,
+            locale: en
+        ) == "Battery level is already at or below target.")
+    }
 }
 
 

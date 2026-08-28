@@ -461,6 +461,30 @@ enum BatterySectionPresentation {
         String(localized: "방전 시작", locale: locale)
     }
 
+    /// Reason why manual discharge cannot be started, or nil if discharge is available.
+    static func manualDischargeDisabledReason(
+        isPluggedIn: Bool,
+        currentSoC: Int,
+        targetSoC: Int,
+        isHardwareSupported: Bool = true,
+        isToggleEnabled: Bool = true,
+        locale: Locale = Locale(identifier: "ko")
+    ) -> String? {
+        guard isHardwareSupported && isToggleEnabled else {
+            let isKo = locale.language.languageCode?.identifier == "ko"
+            return isKo ? "배터리 충전 제어가 꺼져 있습니다." : "Battery charge control is disabled."
+        }
+        guard isPluggedIn else {
+            let isKo = locale.language.languageCode?.identifier == "ko"
+            return isKo ? "전원 어댑터가 연결되어 있어야 방전할 수 있습니다." : "Connect power adapter to start discharge."
+        }
+        guard currentSoC > targetSoC else {
+            let isKo = locale.language.languageCode?.identifier == "ko"
+            return isKo ? "현재 배터리 잔량이 목표 잔량 이하입니다." : "Battery level is already at or below target."
+        }
+        return nil
+    }
+
     /// Gate for showing the Power Supply section in the expanded battery card.
     /// Returns true if power flow exists and either external power is connected or active discharge is underway.
     static func shouldShowPowerSupplySection(

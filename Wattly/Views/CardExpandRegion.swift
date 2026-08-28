@@ -434,6 +434,14 @@ struct CardExpandRegion: View {
             || batteryControl.status.desiredConfiguration?.manualDischargeActive == true
         let currentSoC = s.percentage ?? batteryControl.status.currentPercentage
         let canStartDischarge = s.externalConnected && currentSoC > manualDischargeTarget
+        let disabledReason = BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: s.externalConnected,
+            currentSoC: currentSoC,
+            targetSoC: manualDischargeTarget,
+            isHardwareSupported: true,
+            isToggleEnabled: true,
+            locale: locale
+        )
 
         HStack(alignment: .center) {
             HStack(spacing: 4) {
@@ -487,22 +495,30 @@ struct CardExpandRegion: View {
                         targetSoC: manualDischargeTarget,
                         locale: locale))
                         .font(WattlyFont.at(10.5, weight: .medium))
-                        .foregroundStyle(t.sub)
+                        .foregroundStyle(canStartDischarge ? Tokens.statusOrange : t.faint)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(RoundedRectangle(cornerRadius: 4).fill(t.segTrack))
-                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(t.rowBorder, lineWidth: 1))
+                        .background(
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(canStartDischarge ? Tokens.statusOrange.opacity(0.15) : t.segTrack)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(canStartDischarge ? Tokens.statusOrange.opacity(0.35) : t.rowBorder, lineWidth: 1)
+                        )
                         .contentShape(Rectangle())
                 }
             }
             .buttonStyle(.plain)
             .disabled(!isDischarging && !canStartDischarge)
+            .help(isDischarging ? "" : (disabledReason ?? ""))
             .accessibilityLabel(Text(LocalizedStringKey("수동 방전 (\(manualDischargeTarget)%)")))
             .accessibilityValue(Text(verbatim: isDischarging
                 ? String(localized: "방전 중지", locale: locale)
                 : BatterySectionPresentation.startDischargeButtonText(
                     targetSoC: manualDischargeTarget,
                     locale: locale)))
+            .accessibilityHint(Text(isDischarging ? "" : (disabledReason ?? "")))
         }
     }
 
