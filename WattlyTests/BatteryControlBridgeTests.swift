@@ -255,6 +255,44 @@ import Foundation
         let unknown = BatteryControlBridge.preservingActivity(requested, daemon: nil)
         #expect(unknown == requested)
     }
+
+    // MARK: - 미지원 스트릭
+
+    /// An explicit `false` readback is the one signal that means "this Mac cannot do this" —
+    /// distinct from a daemon that simply hasn't answered yet. It must increment the streak.
+    @Test func explicitHardwareUnsupportedIncrementsStreak() {
+        #expect(BatteryControlBridge.unsupportedStreak(
+            0, mode: .charging, isHardwareSupported: false) == 1)
+        #expect(BatteryControlBridge.unsupportedStreak(
+            3, mode: .charging, isHardwareSupported: false) == 4)
+    }
+
+    /// `.unsupported` mode is the other unsupported signal and must also increment, independent of
+    /// `isHardwareSupported`.
+    @Test func unsupportedModeIncrementsStreak() {
+        #expect(BatteryControlBridge.unsupportedStreak(
+            0, mode: .unsupported, isHardwareSupported: nil) == 1)
+        #expect(BatteryControlBridge.unsupportedStreak(
+            2, mode: .unsupported, isHardwareSupported: true) == 3)
+    }
+
+    /// `nil` means the helper hasn't answered — "unknown", not "unsupported" — so it must NOT
+    /// count toward the streak. This is the exact distinction the loop-must-not-exit fix depends
+    /// on: treating `nil` as unsupported would back the loop off (or worse, could regress into the
+    /// removed `return`) on ordinary startup silence, not just a confirmed-incapable Mac.
+    @Test func nilHardwareSupportDoesNotIncrementStreak() {
+        #expect(BatteryControlBridge.unsupportedStreak(
+            2, mode: .charging, isHardwareSupported: nil) == 0)
+    }
+
+    /// A daemon that comes back healthy resets a non-zero streak to zero, so backoff relaxes once
+    /// the hardware is confirmed working again.
+    @Test func healthyStatusResetsStreakToZero() {
+        #expect(BatteryControlBridge.unsupportedStreak(
+            5, mode: .inhibited, isHardwareSupported: true) == 0)
+        #expect(BatteryControlBridge.unsupportedStreak(
+            5, mode: .unavailable, isHardwareSupported: nil) == 0)
+    }
 }
 
 private actor BridgeRequestReceiver {

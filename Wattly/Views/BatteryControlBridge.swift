@@ -116,6 +116,22 @@ struct BatteryControlBridge: View {
         monitor?.setBatteryChargeTarget(enabled: enabled, limitPercentage: limit, topUpActive: isTopUp)
     }
 
+    /// Pure so it can be tested outside the loop, and separate from the loop so it stays that way:
+    /// the reconcile loop is the only thing that repairs divergence between stored preferences and
+    /// the daemon's policy, nothing restarts it, and it must never `return` on unsupported
+    /// hardware — only back off. An earlier version of this loop did exit on `.unsupported`, which
+    /// killed all repair for the process lifetime; keeping the streak decision here, isolated and
+    /// tested, is what stops that regression from silently coming back inline. `nil` hardware
+    /// support means "the helper hasn't answered", not "unsupported", so it must not count.
+    static func unsupportedStreak(
+        _ current: Int,
+        mode: BatteryControlServiceMode,
+        isHardwareSupported: Bool?
+    ) -> Int {
+        let isUnsupported = mode == .unsupported || isHardwareSupported == false
+        return isUnsupported ? current + 1 : 0
+    }
+
     static func wakeAction(
         configuration: BatteryControlConfiguration,
         status: BatteryControlServiceStatus
@@ -145,7 +161,7 @@ struct BatteryControlBridge: View {
                     autoDischargeEnabled: autoDischargeEnabled,
                     manualDischargeTarget: manualDischargeTarget)
                 Task {
-                    await handleConfigChange(requested)
+                    await handleConfigChange(requested, reason: "enabled-change")
                 }
             }
             .onChange(of: limit) { _, val in
@@ -160,7 +176,7 @@ struct BatteryControlBridge: View {
                     autoDischargeEnabled: autoDischargeEnabled,
                     manualDischargeTarget: manualDischargeTarget)
                 Task {
-                    await handleConfigChange(requested)
+                    await handleConfigChange(requested, reason: "limit-change")
                 }
             }
             .onChange(of: sailingEnabled) { _, isSailing in
@@ -174,7 +190,7 @@ struct BatteryControlBridge: View {
                     autoDischargeEnabled: autoDischargeEnabled,
                     manualDischargeTarget: manualDischargeTarget)
                 Task {
-                    await handleConfigChange(requested)
+                    await handleConfigChange(requested, reason: "sailing-enabled-change")
                 }
             }
             .onChange(of: sailingDelta) { _, newDelta in
@@ -189,7 +205,7 @@ struct BatteryControlBridge: View {
                     autoDischargeEnabled: autoDischargeEnabled,
                     manualDischargeTarget: manualDischargeTarget)
                 Task {
-                    await handleConfigChange(requested)
+                    await handleConfigChange(requested, reason: "sailing-delta-change")
                 }
             }
             .onChange(of: heatProtectionEnabled) { _, isHeatEnabled in
@@ -203,7 +219,7 @@ struct BatteryControlBridge: View {
                     autoDischargeEnabled: autoDischargeEnabled,
                     manualDischargeTarget: manualDischargeTarget)
                 Task {
-                    await handleConfigChange(requested)
+                    await handleConfigChange(requested, reason: "heat-protection-enabled-change")
                 }
             }
             .onChange(of: heatProtectionThreshold) { _, threshold in
@@ -217,7 +233,7 @@ struct BatteryControlBridge: View {
                     autoDischargeEnabled: autoDischargeEnabled,
                     manualDischargeTarget: manualDischargeTarget)
                 Task {
-                    await handleConfigChange(requested)
+                    await handleConfigChange(requested, reason: "heat-protection-threshold-change")
                 }
             }
             // A toggle the user just pressed is an explicit instruction, so it pushes
@@ -250,7 +266,7 @@ struct BatteryControlBridge: View {
                     autoDischargeEnabled: isAutoDischarge,
                     manualDischargeTarget: manualDischargeTarget)
                 Task {
-                    await applyRequested(requested)
+                    await applyRequested(requested, reason: "auto-discharge-toggle")
                 }
             }
             .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)) { _ in
@@ -310,11 +326,11 @@ struct BatteryControlBridge: View {
         BatteryControlLog.battery.notice(
             "initial task verdict: shouldReapply=\(shouldReapply) requestedAutoDischarge=\(requested.autoDischargeEnabled)")
         guard shouldReapply else { return }
-        await push(requested)
+        await push(requested, reason: "initial")
     }
 
-    private func handleConfigChange(_ requested: BatteryControlConfiguration) async {
-        await push(requested)
+    private func handleConfigChange(_ requested: BatteryControlConfiguration, reason: StaticString) async {
+        await push(requested, reason: reason)
     }
 
     private func handleWake() async {
@@ -323,9 +339,9 @@ struct BatteryControlBridge: View {
         case .refreshStatus:
             await client.refreshStatus()
         case .apply:
-            await applyRequested(requested)
+            await applyRequested(requested, reason: "wake")
         case .disableAndConfirm:
-            await disableRequested(requested)
+            await disableRequested(requested, reason: "wake")
         }
         if let scheduleCoordinator {
             await scheduleCoordinator.evaluateSchedules(at: Date(), isWake: true)
@@ -365,10 +381,12 @@ struct BatteryControlBridge: View {
             // relaunches with a transiently failing SMC probe must not kill this loop for the
             // process lifetime — that leaves a divergence (e.g. the user's auto-discharge opt-in)
             // unrepaired forever, even after the daemon comes back healthy. Back off instead of
-            // exiting, same as the `.unsupported` mode case.
-            let isUnsupported = client.status.mode == .unsupported
-                || client.status.isHardwareSupported == false
-            consecutiveUnsupported = isUnsupported ? consecutiveUnsupported + 1 : 0
+            // exiting, same as the `.unsupported` mode case. See `unsupportedStreak` for why this
+            // decision lives in a pure, tested function rather than inline here.
+            consecutiveUnsupported = Self.unsupportedStreak(
+                consecutiveUnsupported,
+                mode: client.status.mode,
+                isHardwareSupported: client.status.isHardwareSupported)
             if client.status.isHardwareSupported == false {
                 BatteryControlLog.battery.notice(
                     "reconcile loop backing off: hardware unsupported, streak=\(consecutiveUnsupported)")
@@ -379,12 +397,13 @@ struct BatteryControlBridge: View {
 
     /// The one place a bridge-built configuration turns into a daemon write. An inactive policy
     /// still carries the discharge preferences: the helper persists them, so the user's target
-    /// survives the limit being switched off and back on.
-    private func push(_ requested: BatteryControlConfiguration) async {
+    /// survives the limit being switched off and back on. `reason` identifies the caller in the
+    /// OSLog trail and is simply forwarded — see `applyRequested`.
+    private func push(_ requested: BatteryControlConfiguration, reason: StaticString) async {
         if requested.enabled || requested.heatProtectionEnabled {
-            await applyRequested(requested)
+            await applyRequested(requested, reason: reason)
         } else {
-            await disableRequested(requested)
+            await disableRequested(requested, reason: reason)
         }
     }
 
@@ -394,12 +413,17 @@ struct BatteryControlBridge: View {
     /// `manualDischargeActive` to `false` and silently cancel a Top Up or manual discharge in
     /// progress. Forwards all nine `BatteryControlConfiguration` fields so nothing the merge
     /// produced is dropped on the way to `client.apply`.
-    private func applyRequested(_ requested: BatteryControlConfiguration) async {
+    ///
+    /// `reason` names the call site in the log line so a field log can identify which of the
+    /// several paths that share this function — a toggle, a limit edit, a wake — actually wrote to
+    /// the daemon. `StaticString` because it is always a source-literal label, never user data, so
+    /// it needs no `privacy:` annotation and cannot leak anything even if one is omitted.
+    private func applyRequested(_ requested: BatteryControlConfiguration, reason: StaticString) async {
         await client.refreshStatus()
         let merged = Self.preservingActivity(
             requested, daemon: client.status.desiredConfiguration)
         BatteryControlLog.battery.notice(
-            "applyRequested push: autoDischarge=\(merged.autoDischargeEnabled) topUp=\(merged.topUpActive) manualActive=\(merged.manualDischargeActive)")
+            "applyRequested push: reason=\(reason) autoDischarge=\(merged.autoDischargeEnabled) topUp=\(merged.topUpActive) manualActive=\(merged.manualDischargeActive)")
         let result = await client.apply(
             enabled: merged.enabled,
             limitPercentage: merged.limitPercentage,
@@ -411,14 +435,21 @@ struct BatteryControlBridge: View {
             manualDischargeActive: merged.manualDischargeActive,
             manualDischargeTarget: merged.manualDischargeTarget)
         BatteryControlLog.battery.notice(
-            "applyRequested result: accepted=\(result != nil)")
+            "applyRequested result: reason=\(reason) accepted=\(result != nil)")
     }
 
-    private func disableRequested(_ requested: BatteryControlConfiguration) async {
-        _ = await client.disableAndConfirm(
+    /// Same caller-identity treatment as `applyRequested`: this is reached from more than one
+    /// place (`push`, and directly from `handleWake`'s `.disableAndConfirm` case), so the disable
+    /// path needs to be just as identifiable in the log trail.
+    private func disableRequested(_ requested: BatteryControlConfiguration, reason: StaticString) async {
+        BatteryControlLog.battery.notice(
+            "disableRequested push: reason=\(reason) limit=\(requested.limitPercentage) autoDischarge=\(requested.autoDischargeEnabled)")
+        let result = await client.disableAndConfirm(
             limitPercentage: requested.limitPercentage,
             lowerHysteresisDelta: requested.lowerHysteresisDelta,
             autoDischargeEnabled: requested.autoDischargeEnabled,
             manualDischargeTarget: requested.manualDischargeTarget)
+        BatteryControlLog.battery.notice(
+            "disableRequested result: reason=\(reason) accepted=\(result != nil)")
     }
 }
