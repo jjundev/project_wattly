@@ -297,13 +297,25 @@ struct BatteryControlBridge: View {
 
     private func handleReconcileLoop() async {
         var consecutiveUnsupported = 0
+        BatteryControlLog.battery.notice("reconcile loop started")
         while !Task.isCancelled {
             try? await Task.sleep(
                 for: .seconds(BatteryControlPolicy.reconcileInterval(
                     consecutiveUnsupported: consecutiveUnsupported))
             )
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled else {
+                BatteryControlLog.battery.notice("reconcile loop cancelled")
+                return
+            }
             let requested = configuration
+            BatteryControlLog.battery.notice(
+                """
+                reconcile tick: enabled=\(requested.enabled) limit=\(requested.limitPercentage) \
+                autoDischarge=\(requested.autoDischargeEnabled) \
+                manualTarget=\(requested.manualDischargeTarget) \
+                mode=\(String(describing: client.status.mode), privacy: .public) \
+                unsupportedStreak=\(consecutiveUnsupported)
+                """)
             await client.reconcile(
                 enabled: requested.enabled,
                 limitPercentage: requested.limitPercentage,
@@ -315,8 +327,12 @@ struct BatteryControlBridge: View {
             consecutiveUnsupported = client.status.mode == .unsupported
                 ? consecutiveUnsupported + 1
                 : 0
-            if client.status.isHardwareSupported == false { return }
+            if client.status.isHardwareSupported == false {
+                BatteryControlLog.battery.notice("reconcile loop exiting: hardware unsupported")
+                return
+            }
         }
+        BatteryControlLog.battery.notice("reconcile loop ended: task cancelled")
     }
 
     /// The one place a bridge-built configuration turns into a daemon write. An inactive policy

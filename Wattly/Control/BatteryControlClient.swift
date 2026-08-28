@@ -294,10 +294,18 @@ import AppKit
             manualDischargeActive: isManualDischarge,
             manualDischargeTarget: dischargeTarget
         )
-        guard !Task.isCancelled,
-              BatteryControlPolicy.shouldReapply(
-                configuration: targetConfig,
-                status: status) else { return }
+        let willReapply = BatteryControlPolicy.shouldReapply(
+            configuration: targetConfig, status: status)
+        BatteryControlLog.battery.notice(
+            """
+            reconcile verdict: willReapply=\(willReapply) cancelled=\(Task.isCancelled) \
+            mode=\(String(describing: self.status.mode), privacy: .public) \
+            hardwareSupported=\(String(describing: self.status.isHardwareSupported), privacy: .public) \
+            capabilities=\(self.status.capabilities?.map(\.rawValue).joined(separator: ",") ?? "nil", privacy: .public) \
+            requestedAutoDischarge=\(targetConfig.autoDischargeEnabled) \
+            desiredAutoDischarge=\(String(describing: self.status.desiredConfiguration?.autoDischargeEnabled), privacy: .public)
+            """)
+        guard !Task.isCancelled, willReapply else { return }
         if enabled || heatProtectionEnabled || isTopUp || isManualDischarge {
             await apply(
                 enabled: effectiveEnabled,
