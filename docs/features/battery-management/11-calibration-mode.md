@@ -28,7 +28,7 @@ Calibration Mode는 다음 기능이 먼저 안정화된 뒤 그 위에 얹혔�
 |---|------|-----------|---------------|
 | 1 | `preflight` | 사전 확인 통과 즉시 다음 단계로 | — |
 | 2 | `chargeToFull` | `soc >= 100 && !isCharging`이 60초(`fullSettleSeconds`) 유지 | 6시간 (`chargePhaseTimeout`) |
-| 3 | `dischargeToFloor` | `soc <= 20`(`floorPercentage`) 도달, 또는 SoC 정체 15분(`dischargeStallSeconds`) — 정체도 성공으로 처리한다(펌웨어 하한 근처에서 CHIE가 더 이상 듣지 않는 케이스의 안전장치) | 12시간 (`dischargePhaseTimeout`) |
+| 3 | `dischargeToFloor` | `soc <= 20`(`floorPercentage`) 도달, 또는 SoC 정체 15분(`dischargeStallSeconds`) — 정체도 성공으로 처리한다(펌웨어 하한 근처에서 CHIE가 더 이상 듣지 않는 케이스의 안전장치) | 14시간 (`dischargePhaseTimeout`) |
 | 4 | `soakLow` | 저잔량 안정화 10분(`soakLowSeconds` = 600초) 경과 | — |
 | 5 | `rechargeToFull` | `chargeToFull`과 동일 조건(60초 완충 유지) | 6시간 |
 | 6 | `soakFinal` | 최종 안정화 60분(`soakFinalSeconds` = 3600초) 경과 | — |
@@ -69,7 +69,7 @@ macOS는 충전 한도를 쓰는 중에도 자체 추정치를 정확하게 유�
 - **강제 방전 중 어댑터는 "분리된 것처럼" 보인다.** CHIE로 강제 방전 중에는 `ExternalConnected`/`AppleRawExternalConnected`가 모두 `No`를 보고하는데도 `AdapterDetails.Watts`는 실제 값(예: 68)을 유지한다. 어댑터 연결 판정에 `AdapterDetails.Watts > 0`을 반드시 포함해야 하며, 이 조합은 3회 재현으로 확정됐다.
 - **방전 중 clamshell sleep은 방전을 완전히 정지시킨다.** 602초 동안 raw 88.49% → 88.48%(−0.01%p) — 깨어 있었으면 −2.37%p였어야 한다. sleep 소비전력(~0.05W)이 방전할 게 없을 만큼 작기 때문이다. 이 때문에 방전 단계에서는 `SleepAssertion`으로 뚜껑을 열어 두게 만들어야 하며, 충전·안정화 단계는 재워도 무방하다(sleep 중에도 정상 진행 확인).
 - **정체 타이머는 깨어 있던 시간만 누적해야 한다.** clamshell sleep이 "SoC 무변화"와 정확히 같은 신호를 만들기 때문에, 순진하게 15분 무변화 → 하한 도달로 처리하면 60%에서 뚜껑을 20분 덮었을 때 20% 대신 60%에서 방전이 끝나 버린다. 코디네이터는 `now - lastTick`이 임계를 넘으면 sleep으로 판단해 타이머를 리셋하고 `paused(systemSleep)`으로 표시한다.
-- **방전 속도는 부하 의존성이 크다.** 실측 범위 0.113~0.331 %p/분(약 3배 차이). 68.9Wh 배터리 기준 100%→20%가 약 4~7시간 사이를 오가며, 절차 총계는 약 10.5시간이다. 고정 추정치 대신 실시간 ETA와 12시간 방전 타임아웃이 필요한 근거다.
+- **방전 속도는 부하 의존성이 크다.** 실측 범위 0.113~0.331 %p/분(약 3배 차이). 68.9Wh 배터리 기준 100%→20%가 약 4~7시간 사이를 오가며, 절차 총계는 약 10.5시간이다. 고정 추정치 대신 실시간 ETA가 필요한 근거이며, 방전 타임아웃을 14시간으로 둔 이유이기도 하다 — 가장 느린 관측 속도에서 100→20%가 약 11.8시간이라 12시간으로는 여유가 1.7%뿐이었다.
 - **완충 판정 최적화 배터리 충전 차단 — 실기 재현.** Top Up으로 게이트를 열었는데도(`CHTE=[00]`) `NotChargingReason=0`, `ChargerInhibitReason=0`(막는 이유 없음)인 채로 충전이 시작되지 않았다. 원인은 macOS "최적화된 배터리 충전"이었고, 끄자마자 즉시 충전이 개시됐다(+46.9W). 이 조건을 preflight 차단 + 런타임 정체 감지로 반영했다.
 - **최대 용량 재추정은 1회 사이클로는 검출되지 않는다.** 완충→완충 비교로 `AppleRawMaxCapacity`가 6208 → 6243(+35 mAh, +0.56%) 변화했지만, 같은 관측 기간 동안의 **자연 변동폭은 6166~6252(86 mAh, 1.38%)**로 더 컸다 — 사전 등록한 판정 기준("자연 변동폭을 넘는 변화가 있는가")에 미달해 검출되지 않았다. 게다가 최종 관측값이 한때 `DesignCapacity`와 정확히 일치했다 — BMS가 추정치 상단을 설계 용량에서 클램프하는 것으로 보이며, 건강한 배터리에서는 "개선"이 구조적으로 표시될 수 없다. 이 때문에 완료 리포트는 헤드라인을 "잔량 표시 보정 완료"로 하고, 용량 mAh는 참고값으로만 병기하며 자연 변동폭을 항상 함께 표시한다(`BatteryCalibration.capacityNote`, `naturalCapacityDriftMilliampHours = 86`). 1회 실행으로 용량 개선을 약속하지 않는다.
 - **캘리브레이션 1회는 배터리 사이클 1회를 소모한다.** 실측 확인(cycle count 112 → 113). 90일 또는 40 사이클 쿨다운 경고의 실측 근거다.

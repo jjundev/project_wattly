@@ -111,9 +111,15 @@ public enum BatteryCalibration {
     public static let sleepGapSeconds: TimeInterval = 90
 
     public static let chargePhaseTimeout: TimeInterval = 6 * 3600
-    /// 방전은 실측 0.113~0.331 %p/분으로 부하에 따라 3배 흔들린다. 100→20%가 4~7시간이라
-    /// 원안의 10시간으로는 여유가 부족했다.
-    public static let dischargePhaseTimeout: TimeInterval = 12 * 3600
+    /// 방전은 실측 0.113~0.331 %p/분으로 부하에 따라 3배 흔들린다. 흔한 조건(0.19~0.33)에서는
+    /// 100→20%가 4~7시간이지만, 관측된 **가장 느린** 속도(0.113 %p/분)에서는 약 11.8시간이다.
+    /// 원안의 12시간은 그 최악값과 여유가 1.7%뿐이라, 저부하 방전이 하한 몇 %p 앞에서
+    /// `.stepTimeout`으로 끝날 수 있었다. 14시간이면 18% 여유가 생긴다.
+    ///
+    /// 이 값을 늘려도 진짜로 멈춘 절차가 방치되지는 않는다 — 그쪽은 `staleAbandonSeconds`
+    /// (12시간 무진행)가 잡는다. 두 상한은 재는 대상이 다르다: 이쪽은 단계에서 실제로 흐른
+    /// 활동 시간, 저쪽은 SoC가 마지막으로 움직인 뒤의 벽시계 시간.
+    public static let dischargePhaseTimeout: TimeInterval = 14 * 3600
 
     /// 일시정지 누적 상한. 열보호를 끄지 않는 대가로 정지가 길어질 수 있어 상한이 필요하다.
     /// 잠자기는 여기에 들어가지 않는다 (`CalibrationPause.consumesBudget`).

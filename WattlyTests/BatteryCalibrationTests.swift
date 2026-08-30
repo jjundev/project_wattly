@@ -108,7 +108,7 @@ struct BatteryCalibrationTickTests {
         #expect(BatteryCalibration.dischargeStallWindowPercent == 10)
         #expect(BatteryCalibration.sleepGapSeconds == 90)
         #expect(BatteryCalibration.chargePhaseTimeout == 6 * 3600)
-        #expect(BatteryCalibration.dischargePhaseTimeout == 12 * 3600)
+        #expect(BatteryCalibration.dischargePhaseTimeout == 14 * 3600)
         #expect(BatteryCalibration.pauseBudgetSeconds == 2 * 3600)
         #expect(BatteryCalibration.staleAbandonSeconds == 12 * 3600)
         #expect(BatteryCalibration.cooldownDays == 90)
