@@ -85,19 +85,39 @@ import AppKit
         isCalibrationWrite: Bool = false
     ) async -> BatteryControlServiceStatus? {
         commandGeneration &+= 1
-        var config = BatteryControlConfiguration(
-            enabled: enabled,
-            limitPercentage: limitPercentage,
-            lowerHysteresisDelta: lowerHysteresisDelta,
-            heatProtectionEnabled: heatProtectionEnabled,
-            heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
-            topUpActive: topUpActive,
-            autoDischargeEnabled: autoDischargeEnabled,
-            manualDischargeActive: manualDischargeActive,
-            manualDischargeTarget: manualDischargeTarget,
-            calibrationActive: calibrationActive,
-            calibrationTargetPercentage: calibrationTargetPercentage
-        )
+        let config = await revivedConfiguration(
+            BatteryControlConfiguration(
+                enabled: enabled,
+                limitPercentage: limitPercentage,
+                lowerHysteresisDelta: lowerHysteresisDelta,
+                heatProtectionEnabled: heatProtectionEnabled,
+                heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
+                topUpActive: topUpActive,
+                autoDischargeEnabled: autoDischargeEnabled,
+                manualDischargeActive: manualDischargeActive,
+                manualDischargeTarget: manualDischargeTarget,
+                calibrationActive: calibrationActive,
+                calibrationTargetPercentage: calibrationTargetPercentage
+            ),
+            isCalibrationWrite: isCalibrationWrite)
+        let request = BatteryControlConfigurationRequest(configuration: config, generation: commandGeneration)
+        guard let data = try? BatteryControlCodec.encode(request) else {
+            updateUnavailable("충전 제한 설정을 인코딩할 수 없음")
+            return nil
+        }
+        return await send(.configure(data))
+    }
+
+    /// `apply`의 캘리브레이션 되살리기 규칙. 데몬이 캘리브레이션 중이면 호출부가 무엇을
+    /// 넣었든 그 활동을 보존한다 — 이 규칙 자체가 `apply`가 실제로 내보내는 설정이므로,
+    /// "무엇이 실제로 전송됐는가"를 판정하려는 다른 자리(예: `installAndApply`의 수락 확인)는
+    /// 조건을 따로 베끼지 말고 이 함수를 다시 불러야 한다 — 둘이 갈라지면 실제로는 성공한
+    /// write가 "거부"로 보인다.
+    private func revivedConfiguration(
+        _ config: BatteryControlConfiguration,
+        isCalibrationWrite: Bool
+    ) async -> BatteryControlConfiguration {
+        var config = config
         // 캐시가 비어 있는 건 "확인 안 됨"이지 "캘리브레이션 없음"이 아니다. Shortcuts/App
         // Intents(BatteryIntentBridge)는 호출마다 새 BatteryControlClient를 만들어 쓰기 전에
         // status를 읽지 않으므로 desiredConfiguration이 항상 nil이다 — 여기서 한 번 읽지
@@ -116,12 +136,7 @@ import AppKit
             config.enabled = true
             config.manualDischargeActive = false
         }
-        let request = BatteryControlConfigurationRequest(configuration: config, generation: commandGeneration)
-        guard let data = try? BatteryControlCodec.encode(request) else {
-            updateUnavailable("충전 제한 설정을 인코딩할 수 없음")
-            return nil
-        }
-        return await send(.configure(data))
+        return config
     }
 
     /// 캘리브레이션 코디네이터 전용 쓰기. 절차 중 자동 방전을 강제로 끄는 것이 여기다 —
@@ -426,16 +441,26 @@ import AppKit
         }
         // Installing is only half of it — the configure push is what actually engages the limit.
         // Reporting success here would leave the toggle ON over a helper that is doing nothing.
-        let configuration = BatteryControlConfiguration(
-            enabled: enabled,
-            limitPercentage: limitPercentage,
-            lowerHysteresisDelta: lowerHysteresisDelta,
-            heatProtectionEnabled: heatProtectionEnabled,
-            heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
-            topUpActive: false,
-            autoDischargeEnabled: autoDischargeEnabled,
-            manualDischargeActive: manualDischargeActive,
-            manualDischargeTarget: manualDischargeTarget)
+        //
+        // The `apply(...)` call above ran through the calibration chokepoint (`isCalibrationWrite:
+        // false`), so if the daemon was mid-calibration, what actually went out had
+        // `calibrationActive`/`enabled`/`topUpActive` revived from the daemon rather than the raw
+        // arguments this function received. The acceptance check has to compare against that same
+        // revived shape — reusing `revivedConfiguration` rather than rebuilding the raw one — or a
+        // calibration in progress makes every reinstall look rejected even though both halves
+        // actually succeeded.
+        let configuration = await revivedConfiguration(
+            BatteryControlConfiguration(
+                enabled: enabled,
+                limitPercentage: limitPercentage,
+                lowerHysteresisDelta: lowerHysteresisDelta,
+                heatProtectionEnabled: heatProtectionEnabled,
+                heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
+                topUpActive: false,
+                autoDischargeEnabled: autoDischargeEnabled,
+                manualDischargeActive: manualDischargeActive,
+                manualDischargeTarget: manualDischargeTarget),
+            isCalibrationWrite: false)
         guard BatteryControlPolicy.accepted(configuration: configuration, by: status) else {
             return .configureRejected(reason: status.detailReason, detail: status.detail)
         }

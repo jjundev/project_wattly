@@ -334,6 +334,32 @@ struct BatteryCalibrationCoordinatorTests {
 
     // MARK: - Fix 2: `evaluate`는 재진입하지 않고, 도중 취소는 되살아나지 않는다
 
+    @Test func evaluateReArmsWhenTheDaemonForgetsCalibrationMidRun() async {
+        let fake = Fake()
+        let defaults = freshDefaults("calibration.forgot-midrun")
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
+        let subject = makeSubject(fake, defaults: defaults, clock: { now })
+        await subject.start()
+        #expect(subject.run?.appliedPrimitive == .chargeToFull)
+
+        // 데몬이 재시작해 캘리브레이션을 잊었다 — 이번엔 앱 재시작이 아니라 같은 실행이
+        // 도는 중 다음 tick에서다. `handleAppLaunch`만 이 대조를 하면, 열 시간짜리 절차
+        // 안에서는 이런 순간이 재무장 없이 그대로 흘러가 Fix 1의 실패 모드를 증폭시킨다.
+        fake.status.desiredConfiguration = BatteryControlConfiguration(
+            enabled: false, calibrationActive: false)
+        let writesBefore = fake.writes.count
+
+        now = now.addingTimeInterval(10)
+        await subject.evaluate(at: now)
+
+        // 아직 전이 문턱 아래라 단계는 그대로지만, 현재 primitive가 "이미 적용됨"으로
+        // 건너뛰어지지 않고 다시 나가야 한다.
+        #expect(subject.run?.step == .chargeToFull)
+        #expect(fake.writes.count > writesBefore)
+        #expect(fake.writes.last?.calibrationActive == true)
+        #expect(subject.run?.appliedPrimitive == .chargeToFull)
+    }
+
     @Test func cancellingASuspendedTickLeavesExactlyOneHistoryEntry() async {
         let fake = Fake()
         let defaults = freshDefaults("calibration.cancel-race")

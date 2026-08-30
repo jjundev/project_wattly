@@ -171,6 +171,17 @@ import Observation
         guard run?.id == state.id else { return }
         lastReading = reading
 
+        // `handleAppLaunch`의 고아 처리를 매 tick으로 반복한다. 데몬이 재시작하거나 정책을
+        // 잃으면 `desiredConfiguration?.calibrationActive`가 `true`가 아니게 되는데,
+        // `appliedPrimitive`를 그대로 두면 `applyIfChanged`가 "이미 적용됨"으로 오판해 재전송을
+        // 건너뛴다 — 그러면 데몬이 캘리브레이션을 믿지 않게 된 순간부터 남은 절차 내내 다시
+        // 무장되지 않는다. 앱 시작 시 한 번뿐이던 이 대조를 여기서도 하지 않으면 Fix 1의
+        // 실패 모드(방전이 조용히 멈춘 채 진행)를 증폭시킨다. `run = state`가 각 분기에서
+        // 이 mutation을 이어받으므로 `run?.id == state.id` 가드와 다투지 않는다.
+        if status.desiredConfiguration?.calibrationActive != true {
+            state.appliedPrimitive = nil
+        }
+
         let elapsed = now.timeIntervalSince(state.lastTickAt)
         let isSleepGap = elapsed > BatteryCalibration.sleepGapSeconds
         let soc = status.currentPercentage

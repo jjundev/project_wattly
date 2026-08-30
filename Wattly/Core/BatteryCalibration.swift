@@ -99,6 +99,13 @@ public enum BatteryCalibration {
     /// 영원히 끝나지 않는다 — 참조 구현의 대표적 행 사유가 이것이다.
     public static let dischargeStallSeconds: TimeInterval = 900
 
+    /// 정체를 "펌웨어 벽"으로 인정하는 SoC 폭. 하한(`floorPercentage`) 위 이만큼까지만
+    /// 인정한다 — 100%에서, 혹은 60%에서 15분 안 움직이는 것은 펌웨어가 더 내려주지 않는
+    /// 것이 아니라 방전 요청 자체가 먹지 않은 것이다(헬퍼가 `calibration-v1`을 모르거나,
+    /// 데몬이 정책을 잃었거나, 단순히 그 방전 속도가 유난히 느린 경우). 그런 정체를 성공으로
+    /// 부르면 아무것도 방전되지 않은 절차가 완료로 보고된다.
+    public static let dischargeStallWindowPercent = 10
+
     /// tick 간격이 이보다 벌어지면 그 사이 Mac이 잤다고 본다. 코디네이터 tick은 10초라
     /// 90초는 넉넉한 여유이면서 clamshell sleep(최소 수십 초)을 놓치지 않는다.
     public static let sleepGapSeconds: TimeInterval = 90
@@ -264,10 +271,14 @@ public enum BatteryCalibration {
         case .chargeToFull, .rechargeToFull:
             return input.timers.fullHoldSeconds >= fullSettleSeconds
         case .dischargeToFloor:
-            // 목표 도달, 또는 정체. 정체를 성공으로 처리하지 않으면 펌웨어 벽에서 절차가
-            // 영원히 끝나지 않는다.
+            // 목표 도달, 또는 하한 근처에서의 정체. 정체를 성공으로 처리하지 않으면 펌웨어
+            // 벽에서 절차가 영원히 끝나지 않는다 — 하지만 그 벽은 하한 근처에서만 있는
+            // 현상이므로, `dischargeStallWindowPercent` 밖의 정체(예: 100%에서 안 움직임)는
+            // 방전이 아예 먹히지 않았다는 신호다. 그런 정체는 여기서 통과시키지 않고, 12시간
+            // 단계 타임아웃이 정직하게 실패로 끝내도록 둔다.
             return input.soc <= floorPercentage
-                || input.timers.socUnchangedSeconds >= dischargeStallSeconds
+                || (input.soc <= floorPercentage + dischargeStallWindowPercent
+                    && input.timers.socUnchangedSeconds >= dischargeStallSeconds)
         case .soakLow:
             return input.timers.stepActiveSeconds >= soakLowSeconds
         case .soakFinal:

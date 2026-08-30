@@ -533,6 +533,47 @@ struct BatteryControlClientTests {
         }
     }
 
+    // MARK: - Fix 3: 재설치가 진행 중인 캘리브레이션을 거짓 실패로 보고하지 않는다
+
+    @MainActor @Test func installAndApplySucceedsWhenTheDaemonIsCalibrating() async {
+        // 재설치 도중에도 데몬은 이미 캘리브레이션을 들고 있다. `apply(...)`의 되살리기
+        // 규칙(캘리브레이션 chokepoint)이 topUpActive/calibrationActive/enabled를 데몬 값으로
+        // 되살려서 내보내는데, 수락 확인이 그 되살린 모양이 아니라 raw 인자로 지은 설정과
+        // 비교하면 실제로는 두 절반(설치·설정 push) 모두 성공했는데도 `.configureRejected`로
+        // 보고된다.
+        let calibrating = BatteryControlServiceStatus(
+            mode: .charging, currentPercentage: 65, isPowerAdapterConnected: true,
+            detail: "calibration active", updatedAt: 1,
+            desiredConfiguration: .init(
+                enabled: true,
+                limitPercentage: 85,
+                topUpActive: true,
+                calibrationActive: true,
+                calibrationTargetPercentage: 20),
+            actualGate: .allowed,
+            lastMaintenance: .init(
+                trigger: .clientConfiguration, result: .applied, occurredAt: 1, reason: nil))
+        let client = BatteryControlClient(requestHandler: { _ in
+            (try? BatteryControlCodec.encode(calibrating), nil)
+        }, installHandler: { _, _, postInstall in
+            await postInstall()
+            return nil
+        })
+
+        let failure = await client.installAndApply(
+            enabled: true,
+            limitPercentage: 85,
+            lowerHysteresisDelta: 2,
+            heatProtectionEnabled: false,
+            heatProtectionThresholdCelsius: 35,
+            autoDischargeEnabled: false,
+            manualDischargeActive: false,
+            manualDischargeTarget: 80,
+            window: nil)
+
+        #expect(failure == nil)
+    }
+
     @MainActor @Test func clientSendsHeatProtectionParametersToDaemon() async throws {
         let receiver = RequestReceiver()
         let client = BatteryControlClient(requestHandler: { request in

@@ -105,6 +105,7 @@ struct BatteryCalibrationTickTests {
         #expect(BatteryCalibration.soakLowSeconds == 600)
         #expect(BatteryCalibration.soakFinalSeconds == 3600)
         #expect(BatteryCalibration.dischargeStallSeconds == 900)
+        #expect(BatteryCalibration.dischargeStallWindowPercent == 10)
         #expect(BatteryCalibration.sleepGapSeconds == 90)
         #expect(BatteryCalibration.chargePhaseTimeout == 6 * 3600)
         #expect(BatteryCalibration.dischargePhaseTimeout == 12 * 3600)
@@ -168,6 +169,34 @@ struct BatteryCalibrationDecideTests {
         timers.socUnchangedSeconds = BatteryCalibration.dischargeStallSeconds
         // 펌웨어가 더 내려주지 않는 지점. 실패로 부르면 절차가 영원히 안 끝난다.
         #expect(BatteryCalibration.decide(input(step: .dischargeToFloor, timers: timers, soc: 24))
+            == .advance(to: .soakLow, primitive: .holdAtFloor))
+    }
+
+    @Test func dischargeStallFarAboveTheFloorDoesNotAdvance() {
+        var timers = CalibrationTimers()
+        timers.socUnchangedSeconds = BatteryCalibration.dischargeStallSeconds
+        // 100%에서 15분 안 움직이는 것은 펌웨어 벽이 아니라 방전이 아예 먹지 않은 것이다 —
+        // CHIE는 있는데 헬퍼가 무시하거나, 정책을 잃었거나. 계속 기다려야 한다.
+        #expect(BatteryCalibration.decide(input(step: .dischargeToFloor, timers: timers, soc: 100))
+            == .hold(.dischargeToFloor))
+        // 60%도 마찬가지 — 창 밖이다.
+        #expect(BatteryCalibration.decide(input(step: .dischargeToFloor, timers: timers, soc: 60))
+            == .hold(.dischargeToFloor))
+    }
+
+    @Test func dischargeStallJustInsideTheWindowStillAdvances() {
+        var timers = CalibrationTimers()
+        timers.socUnchangedSeconds = BatteryCalibration.dischargeStallSeconds
+        let edge = BatteryCalibration.floorPercentage + BatteryCalibration.dischargeStallWindowPercent
+        #expect(BatteryCalibration.decide(input(step: .dischargeToFloor, timers: timers, soc: edge))
+            == .advance(to: .soakLow, primitive: .holdAtFloor))
+    }
+
+    @Test func dischargeReachingTheFloorAdvancesRegardlessOfTheStallTimer() {
+        // 정체 타이머가 전혀 안 쌓여 있어도 SoC가 하한에 닿으면 그 자체로 완료다.
+        let timers = CalibrationTimers()
+        #expect(BatteryCalibration.decide(
+            input(step: .dischargeToFloor, timers: timers, soc: BatteryCalibration.floorPercentage))
             == .advance(to: .soakLow, primitive: .holdAtFloor))
     }
 
