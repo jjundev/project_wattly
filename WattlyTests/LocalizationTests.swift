@@ -545,6 +545,55 @@ struct LocalizationTests {
         #expect(String(localized: "20%까지 방전", locale: Locale(identifier: "de"))
                 != "20%까지 방전")
     }
+
+    @Test func stringCatalogAllKeysHaveAllSupportedLocales() throws {
+        let supportedLocales = [
+            "ar", "cs", "da", "de", "el", "en", "es", "fi", "fr", "he", "hi", "hu", "id", "it", "ja", "ko", "nb", "nl", "pl", "pt-BR", "pt-PT", "ro", "ru", "sv", "th", "tr", "uk", "vi", "zh-Hans", "zh-Hant"
+        ]
+
+        // Try to load from #filePath first (relative to this test file)
+        let fileURL: URL?
+        if let currentFile = URL(string: "file://\(#filePath)") {
+            let testDir = currentFile.deletingLastPathComponent()
+            let catalogPath = testDir.deletingLastPathComponent()
+                .appendingPathComponent("Wattly")
+                .appendingPathComponent("Resources")
+                .appendingPathComponent("Localizable.xcstrings")
+            if FileManager.default.fileExists(atPath: catalogPath.path) {
+                fileURL = catalogPath
+            } else {
+                fileURL = nil
+            }
+        } else {
+            fileURL = nil
+        }
+
+        guard let catalogURL = fileURL else {
+            // Fallback: use Bundle.module if available, or skip this test gracefully
+            Issue.record("Could not locate Localizable.xcstrings file from test bundle")
+            return
+        }
+
+        let data = try Data(contentsOf: catalogURL)
+        guard let catalog = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let strings = catalog["strings"] as? [String: [String: Any]] else {
+            Issue.record("Could not parse Localizable.xcstrings")
+            return
+        }
+
+        for (key, value) in strings {
+            guard let localizations = value["localizations"] as? [String: Any] else {
+                continue
+            }
+
+            for locale in supportedLocales {
+                #expect(
+                    localizations[locale] != nil,
+                    "Key '\(key)' missing locale '\(locale)'"
+                )
+            }
+        }
+    }
 }
 
 

@@ -104169,7 +104169,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pausiert: Der Ladevorgang startet nicht. Deaktiviere „Optimiertes Laden“"
+            "value": "Pausiert: Der Ladevorgang startet nicht. Deaktiviere „Optimiertes Laden der Batterie\""
           }
         },
         "ja": {
@@ -105464,7 +105464,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ich habe „Optimiertes Laden“ in Systemeinstellungen › Batterie deaktiviert."
+            "value": "Ich habe „Optimiertes Laden der Batterie\" in Systemeinstellungen › Batterie deaktiviert."
           }
         },
         "ja": {
@@ -107314,7 +107314,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Der Ladevorgang startet nicht. Deaktiviere „Optimiertes Laden“ in Systemeinstellungen › Batterie."
+            "value": "Der Ladevorgang startet nicht. Deaktiviere „Optimiertes Laden der Batterie\" in Systemeinstellungen › Batterie."
           }
         },
         "ja": {
