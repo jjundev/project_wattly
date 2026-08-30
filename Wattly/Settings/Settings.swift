@@ -441,6 +441,8 @@ enum Defaults {
     static let batteryChargingSchedules = ""
     static let batteryScheduleHistory = ""
     static let batteryScheduleNotificationsEnabled = true
+    static let batteryCalibrationState = ""
+    static let batteryCalibrationHistory = ""
     static let showBatteryTopUp = true
     static let showBatteryManualDischarge = true
 }
@@ -485,6 +487,8 @@ enum StorageKey {
     static let batteryChargingSchedules = "batteryChargingSchedules"
     static let batteryScheduleHistory = "batteryScheduleHistory"
     static let batteryScheduleNotificationsEnabled = "batteryScheduleNotificationsEnabled"
+    static let batteryCalibrationState = "batteryCalibrationState"
+    static let batteryCalibrationHistory = "batteryCalibrationHistory"
     static let menuBatteryTemp = "menu.batteryTemp"
     static let menuMemPressure = "menu.memPressure"
     static let expandedCards = "expandedCards"   // CSV of expanded card raw values (issue 04)

@@ -15,16 +15,16 @@ import IOKit.pwr_mgt
 ///
 /// 생성·해제를 주입받는 이유는 테스트 때문이다. `IOPMAssertionCreateWithName`은 단위
 /// 테스트에서 실제 전원 관리 상태를 건드리므로 더블로 대체할 수 있어야 한다.
-final class SleepAssertion: @unchecked Sendable {
-    typealias Creator = @Sendable (String) -> UInt32?
-    typealias Releaser = @Sendable (UInt32) -> Void
+public final class SleepAssertion: @unchecked Sendable {
+    public typealias Creator = @Sendable (String) -> UInt32?
+    public typealias Releaser = @Sendable (UInt32) -> Void
 
     private let create: Creator
     private let releaseAssertion: Releaser
     private let lock = NSLock()
     private var identifier: UInt32?
 
-    init(
+    public init(
         create: @escaping Creator = SleepAssertion.systemCreate,
         release: @escaping Releaser = SleepAssertion.systemRelease
     ) {
@@ -55,7 +55,7 @@ final class SleepAssertion: @unchecked Sendable {
         if let identifier { releaseAssertion(identifier) }
     }
 
-    static let systemCreate: Creator = { reason in
+    public static let systemCreate: Creator = { reason in
         var id = IOPMAssertionID(0)
         let result = IOPMAssertionCreateWithName(
             kIOPMAssertPreventUserIdleSystemSleep as CFString,
@@ -66,7 +66,7 @@ final class SleepAssertion: @unchecked Sendable {
         return UInt32(id)
     }
 
-    static let systemRelease: Releaser = { id in
+    public static let systemRelease: Releaser = { id in
         IOPMAssertionRelease(IOPMAssertionID(id))
     }
 }

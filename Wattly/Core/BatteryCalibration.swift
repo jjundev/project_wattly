@@ -360,6 +360,13 @@ public enum BatteryCalibration {
         return Int(minutes.rounded())
     }
 
+    /// 관측된 속도를 이전 추정치에 섞는다. 실측 방전 속도가 0.113~0.331 %p/분으로 흔들려
+    /// 한 샘플을 그대로 쓰면 ETA가 튀고, 고정값을 쓰면 3배까지 틀린다.
+    public static func blendedRate(previous: Double?, sample: Double) -> Double {
+        guard let previous else { return sample }
+        return previous * 0.7 + sample * 0.3
+    }
+
     // MARK: - 완료 리포트
 
     /// 이 절차가 실제로 한 일. 셀 회복도 수명 연장도 아니다.

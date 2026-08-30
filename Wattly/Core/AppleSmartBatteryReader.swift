@@ -2,7 +2,7 @@ import Foundation
 import IOKit
 
 /// 캘리브레이션 코디네이터가 한 tick에 필요한 배터리 사실들.
-struct CalibrationBatteryReading: Equatable, Sendable {
+public struct CalibrationBatteryReading: Equatable, Sendable {
     /// SMC `B0AP` 기준 순전력(W). 양수 = 방전, 음수 = 충전. ETA 추정에만 쓴다 —
     /// 단계 전이 판정에는 쓰지 않는다(테이퍼가 절벽이라 임계값이 무의미하다).
     var netWatts: Double?

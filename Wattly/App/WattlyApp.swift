@@ -8,6 +8,7 @@ struct WattlyApp: App {
     @State private var fanControl = FanControlClient()
     @State private var batteryControl: BatteryControlClient
     @State private var scheduleCoordinator: BatteryScheduleCoordinator
+    @State private var calibrationCoordinator: BatteryCalibrationCoordinator
 
     init() {
         FontRegistration.register()   // bundle Pretendard before any view renders (A17)
@@ -24,6 +25,8 @@ struct WattlyApp: App {
         let bc = BatteryControlClient()
         _batteryControl = State(initialValue: bc)
         _scheduleCoordinator = State(initialValue: BatteryScheduleCoordinator(batteryControl: bc))
+        _calibrationCoordinator = State(
+            initialValue: BatteryCalibrationCoordinator(batteryControl: bc))
     }
 
     var body: some Scene {
@@ -49,6 +52,9 @@ struct WattlyApp: App {
                     monitor: monitor,
                     scheduleCoordinator: scheduleCoordinator
                 ))
+                // 코디네이터는 자기 타이머로 돌지만, 앱 시작 시 저장 상태와 데몬 상태를
+                // 대조하는 일은 뷰 수명주기에 걸어 둔다 — 라벨은 언마운트되지 않는다.
+                .task { await calibrationCoordinator.handleAppLaunch() }
         }
         .menuBarExtraStyle(.window)
 

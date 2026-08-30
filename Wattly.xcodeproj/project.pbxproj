@@ -43,6 +43,7 @@
 		1E0778BF5B4D3664E6C18C9B /* SmoothingOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = A61C78982D0A278875AC6792 /* SmoothingOverlay.swift */; };
 		1ED56DE226F4EF0924F9A181 /* SetBatteryTopUpIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE75CA2DE8868EF3E590D31B /* SetBatteryTopUpIntent.swift */; };
 		1FDD68750E4E3D448DD8D3A1 /* BatteryControlEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C0B7BD28770CA1D2F0C6E1D /* BatteryControlEngineTests.swift */; };
+		1FFBA65EB34BED092F4429C8 /* BatteryCalibrationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BEA20ED3A36F74401AD7274 /* BatteryCalibrationCoordinator.swift */; };
 		20A0667F0A419191E40E5519 /* BatteryTopUpExpiry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D61BEE2A6C9C1A65D95754C /* BatteryTopUpExpiry.swift */; };
 		2139581318B3DA81262E21EE /* BatteryControlClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC8C18034B5461609C27D17F /* BatteryControlClientTests.swift */; };
 		222AEAEE28AEA0F1432E10D0 /* SparklineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00082133CD88B0F35342BB85 /* SparklineView.swift */; };
@@ -213,6 +214,7 @@
 		D97CEF0FEFA4CF334E3DB6F1 /* SmoothingOverlayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADCD49E78A7446DE396FBE48 /* SmoothingOverlayTests.swift */; };
 		DB1D95D3E3404E6A9FE7C004 /* FanControlClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BF38B0353D3ED11BCAD6D5 /* FanControlClient.swift */; };
 		DB5376908CFC7D56976E43DE /* MemoryUsageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F4F7AF2CAC7816F6FA756B2 /* MemoryUsageTests.swift */; };
+		DCDFD4CEC4ADE8C6A5F4AB6A /* BatteryCalibrationCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A2477E9AA6A5A4DB7D3374 /* BatteryCalibrationCoordinatorTests.swift */; };
 		DD797447DC0387B4C33B8A20 /* FanCurve.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E19061EEFC33CF7AA70F56 /* FanCurve.swift */; };
 		DDF88EC3E7D5CF9FE7AE3AE0 /* GPUClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6051380AC611753A6A76C553 /* GPUClock.swift */; };
 		DE5816959201B541AE343B13 /* BatteryTopUpExpiry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D61BEE2A6C9C1A65D95754C /* BatteryTopUpExpiry.swift */; };
@@ -367,6 +369,7 @@
 		679485EF3E931D456DF31A16 /* SettingsScheduleCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScheduleCard.swift; sourceTree = "<group>"; };
 		67FE518CDA8ED1E9E6BAB874 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6A8F3737B4F160FB33E672F4 /* BatteryChargingSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryChargingSchedule.swift; sourceTree = "<group>"; };
+		6BEA20ED3A36F74401AD7274 /* BatteryCalibrationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryCalibrationCoordinator.swift; sourceTree = "<group>"; };
 		6C21284028BECED9EE15C7F1 /* BatteryControlCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryControlCoordinatorTests.swift; sourceTree = "<group>"; };
 		6C28B12BD323D1E5FE11B646 /* CardKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardKind.swift; sourceTree = "<group>"; };
 		6C9EC23D454E4B738EF329E8 /* BatteryTelemetryPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryTelemetryPipelineTests.swift; sourceTree = "<group>"; };
@@ -485,6 +488,7 @@
 		F1A07555B3221FE4D57FED44 /* TemperatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemperatureTests.swift; sourceTree = "<group>"; };
 		F29DD358CE8F3D499D04E593 /* HardwareModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareModel.swift; sourceTree = "<group>"; };
 		F47F59935E82A4ADE8A739EE /* GPUUsageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUUsageTests.swift; sourceTree = "<group>"; };
+		F5A2477E9AA6A5A4DB7D3374 /* BatteryCalibrationCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryCalibrationCoordinatorTests.swift; sourceTree = "<group>"; };
 		F61FA5F6DFF92047EE2B7B8E /* SystemMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMonitor.swift; sourceTree = "<group>"; };
 		F83934D3000879D7EC333BBA /* AppIdentityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIdentityTests.swift; sourceTree = "<group>"; };
 		F92629386B95781B674D6393 /* SleepAssertion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepAssertion.swift; sourceTree = "<group>"; };
@@ -535,6 +539,7 @@
 				26D090D32552BB2923E4E526 /* AppUninstaller.swift */,
 				7FF3A85EC269993CF6023AEB /* AutoUpdater.swift */,
 				ED30DA02B6FB8098DC57562A /* BatteryCalibration.swift */,
+				6BEA20ED3A36F74401AD7274 /* BatteryCalibrationCoordinator.swift */,
 				A09DAD505442E3329F5E6AA4 /* BatteryCalibrationState.swift */,
 				6A8F3737B4F160FB33E672F4 /* BatteryChargingSchedule.swift */,
 				CD43B74A1B6E908CD2F326C1 /* BatteryControlLog.swift */,
@@ -683,6 +688,7 @@
 				8A8FA4EAC6A5C3AD4F52DAFD /* AppleSmartBatteryReaderTests.swift */,
 				0087639C19083396DB06A189 /* AppReplacerTests.swift */,
 				D987ECF9FA534486FD44FE62 /* AppUninstallerTests.swift */,
+				F5A2477E9AA6A5A4DB7D3374 /* BatteryCalibrationCoordinatorTests.swift */,
 				DF1EBF296BE952176C65626F /* BatteryCalibrationStateTests.swift */,
 				40B355C1938170CBFCE8A49E /* BatteryCalibrationTests.swift */,
 				278F79832BC9B1FE22502E03 /* BatteryChargingScheduleTests.swift */,
@@ -1041,6 +1047,7 @@
 				D7BADF2FB54956C1BB865849 /* AppReplacerTests.swift in Sources */,
 				98FFEDBA03EB593EF689E781 /* AppUninstallerTests.swift in Sources */,
 				C13C8F7F201C37985BDDD7BD /* AppleSmartBatteryReaderTests.swift in Sources */,
+				DCDFD4CEC4ADE8C6A5F4AB6A /* BatteryCalibrationCoordinatorTests.swift in Sources */,
 				49AA601B5366311728109CD7 /* BatteryCalibrationStateTests.swift in Sources */,
 				825B96563DABEE15D8C5E6DE /* BatteryCalibrationTests.swift in Sources */,
 				B37CD5254AC035619257393F /* BatteryChargingScheduleTests.swift in Sources */,
@@ -1163,6 +1170,7 @@
 				29CF63C8A5421285E940C99E /* AppleSmartBatteryReader.swift in Sources */,
 				55D146D89F01CBC8A4224B66 /* AutoUpdater.swift in Sources */,
 				85941768C47A87F16E4C8021 /* BatteryCalibration.swift in Sources */,
+				1FFBA65EB34BED092F4429C8 /* BatteryCalibrationCoordinator.swift in Sources */,
 				0D02E4A9957F931BA6F284BE /* BatteryCalibrationState.swift in Sources */,
 				1BDA88F4FC4858A8AD46A93B /* BatteryChargingSchedule.swift in Sources */,
 				3BD1982FD6CD538B49E62046 /* BatteryControlActivity.swift in Sources */,
