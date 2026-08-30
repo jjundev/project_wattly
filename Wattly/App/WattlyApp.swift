@@ -24,9 +24,11 @@ struct WattlyApp: App {
         _monitor = State(initialValue: SystemMonitor(providers: FakeProviders.all(scenario: scenario)))
         let bc = BatteryControlClient()
         _batteryControl = State(initialValue: bc)
-        _scheduleCoordinator = State(initialValue: BatteryScheduleCoordinator(batteryControl: bc))
-        _calibrationCoordinator = State(
-            initialValue: BatteryCalibrationCoordinator(batteryControl: bc))
+        let calibration = BatteryCalibrationCoordinator(batteryControl: bc)
+        _calibrationCoordinator = State(initialValue: calibration)
+        _scheduleCoordinator = State(initialValue: BatteryScheduleCoordinator(
+            batteryControl: bc,
+            isCalibrationRunning: { calibration.isRunning }))
     }
 
     var body: some Scene {
