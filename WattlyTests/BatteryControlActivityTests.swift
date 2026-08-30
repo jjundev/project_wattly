@@ -68,4 +68,11 @@ import Testing
         #expect(BatteryControlActivity.inferred(from: chargingReason) == .topUp)
         #expect(BatteryControlActivity.inferred(from: completeReason) == .topUp)
     }
+
+    @Test func calibrationReasonsInferCalibrationActivity() {
+        for kind in [BatteryControlStatusReason.Kind.calibrationCharging,
+                     .calibrationHolding, .calibrationDischarging] {
+            #expect(BatteryControlActivity.inferred(from: .init(kind: kind)) == .calibration)
+        }
+    }
 }

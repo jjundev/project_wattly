@@ -93,6 +93,15 @@ enum BatteryStatusText {
         case .dischargingManual:
             return String(format: String(localized: "수동 방전 중 (%lld%%까지 방전)", locale: locale),
                           locale: locale, target)
+        case .calibrationCharging:
+            return String(format: String(localized: "캘리브레이션: %lld%%까지 충전 중", locale: locale),
+                          locale: locale, target)
+        case .calibrationDischarging:
+            return String(format: String(localized: "캘리브레이션: %lld%%까지 방전 중", locale: locale),
+                          locale: locale, target)
+        case .calibrationHolding:
+            return String(format: String(localized: "캘리브레이션: %lld%% 유지 중", locale: locale),
+                          locale: locale, target)
         case .batterySensorUnreadable:
             return String(localized: "배터리 온도 센서를 읽을 수 없습니다", locale: locale)
         case .persistenceReadFailed:

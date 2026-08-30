@@ -97866,6 +97866,57 @@
           }
         }
       }
+    },
+    "캘리브레이션: %lld%%까지 충전 중": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calibration: Charging to %lld%%"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "캘리브레이션: %lld%%까지 충전 중"
+          }
+        }
+      }
+    },
+    "캘리브레이션: %lld%%까지 방전 중": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calibration: Discharging to %lld%%"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "캘리브레이션: %lld%%까지 방전 중"
+          }
+        }
+      }
+    },
+    "캘리브레이션: %lld%% 유지 중": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calibration: Holding at %lld%%"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "캘리브레이션: %lld%% 유지 중"
+          }
+        }
+      }
     }
   }
 }

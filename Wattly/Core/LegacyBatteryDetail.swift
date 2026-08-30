@@ -83,6 +83,15 @@ enum LegacyBatteryDetail {
         if let remaining = number(in: detail, between: "발열 보호 쿨다운 중 (", and: "초 후 충전 재개)") {
             return .init(kind: .heatProtectionCooldown, cooldownRemainingSeconds: remaining)
         }
+        if let limit = number(in: detail, between: "캘리브레이션: ", and: "%까지 충전 중") {
+            return .init(kind: .calibrationCharging, limitPercentage: limit)
+        }
+        if let limit = number(in: detail, between: "캘리브레이션: ", and: "%까지 방전 중") {
+            return .init(kind: .calibrationDischarging, limitPercentage: limit)
+        }
+        if let limit = number(in: detail, between: "캘리브레이션: ", and: "% 유지 중") {
+            return .init(kind: .calibrationHolding, limitPercentage: limit)
+        }
         return nil
     }
 
