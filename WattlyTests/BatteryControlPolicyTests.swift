@@ -369,4 +369,19 @@ import Testing
         #expect(configOver.clampedManualDischargeTarget == 100)
         #expect(configOver.normalized.manualDischargeTarget == 100)
     }
+
+    @Test func reconcilePreservesDaemonCalibration() {
+        let daemon = BatteryControlConfiguration(
+            enabled: true, limitPercentage: 80,
+            calibrationActive: true, calibrationTargetPercentage: 20)
+        let status = BatteryControlServiceStatus(
+            mode: .inhibited, currentPercentage: 60, isPowerAdapterConnected: true,
+            detail: "", updatedAt: 0,
+            desiredConfiguration: daemon,
+            capabilities: [.persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1])
+        // 저장된 선호값만으로 만든 요청에는 캘리브레이션이 없다. 그래도 재적용이
+        // 필요하다고 판정하면 안 된다 — 60초마다 절차를 취소하는 write가 나간다.
+        let requested = BatteryControlConfiguration(enabled: true, limitPercentage: 80)
+        #expect(BatteryControlPolicy.shouldReapply(configuration: requested, status: status) == false)
+    }
 }

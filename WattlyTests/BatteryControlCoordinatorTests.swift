@@ -1342,5 +1342,75 @@ struct BatteryControlCoordinatorTests {
 
         #expect(store.stored?.topUpReachedFullAt == nil)
     }
+
+    @Test func calibrationSurvivesAdapterDisconnect() {
+        let store = PolicyStoreSpy()
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501,
+            store: store,
+            engine: BatteryControlEngine(hardware: MockBatteryHardware()),
+            now: { 1000 })
+        _ = coordinator.configure(
+            .init(enabled: true, calibrationActive: true, calibrationTargetPercentage: 20),
+            trigger: .clientConfiguration, currentSoC: 60, isPluggedIn: true)
+
+        // Top Up·수동 방전은 어댑터가 빠지면 끝나지만 캘리브레이션은 살아남는다 —
+        // 방전 단계는 자연 방전으로 이어지고, 재연결 후 절차가 그대로 이어져야 한다.
+        _ = coordinator.sample(currentSoC: 59, isPluggedIn: false)
+        #expect(coordinator.latestStatus.desiredConfiguration?.calibrationActive == true)
+        _ = coordinator.reconcile(trigger: .adapterTransition, currentSoC: 58, isPluggedIn: false)
+        #expect(coordinator.latestStatus.desiredConfiguration?.calibrationActive == true)
+    }
+
+    @Test func calibrationIsPersistedAndRestored() {
+        let store = PolicyStoreSpy()
+        let first = BatteryControlCoordinator(
+            ownerUID: 501, store: store,
+            engine: BatteryControlEngine(hardware: MockBatteryHardware()), now: { 1000 })
+        _ = first.configure(
+            .init(enabled: true, calibrationActive: true, calibrationTargetPercentage: 20),
+            trigger: .clientConfiguration, currentSoC: 60, isPluggedIn: true)
+        #expect(store.stored?.configuration.calibrationActive == true)
+
+        let restarted = BatteryControlCoordinator(
+            ownerUID: 501, store: store,
+            engine: BatteryControlEngine(hardware: MockBatteryHardware()), now: { 2000 })
+        let status = restarted.restore(currentSoC: 55, isPluggedIn: true)
+        #expect(status.desiredConfiguration?.calibrationActive == true)
+        #expect(status.desiredConfiguration?.calibrationTargetPercentage == 20)
+    }
+
+    @Test func calibrationExcludesManualDischarge() {
+        let store = PolicyStoreSpy()
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501, store: store,
+            engine: BatteryControlEngine(hardware: MockBatteryHardware()), now: { 1000 })
+        let status = coordinator.configure(
+            .init(enabled: true, manualDischargeActive: true, manualDischargeTarget: 60,
+                  calibrationActive: true, calibrationTargetPercentage: 20),
+            trigger: .clientConfiguration, currentSoC: 80, isPluggedIn: true)
+        #expect(status.desiredConfiguration?.calibrationActive == true)
+        #expect(status.desiredConfiguration?.manualDischargeActive == false)
+    }
+
+    @Test func coordinatorAdvertisesCalibrationCapability() {
+        #expect(BatteryControlCoordinator.capabilities.contains(.calibrationV1))
+    }
+
+    @Test func topUpNeverExpiresDuringCalibration() {
+        let store = PolicyStoreSpy()
+        let clock = MutableClock(1000)
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501, store: store,
+            engine: BatteryControlEngine(hardware: MockBatteryHardware()),
+            now: { clock.now })
+        _ = coordinator.configure(
+            .init(enabled: true, topUpActive: true, calibrationActive: true),
+            trigger: .clientConfiguration, currentSoC: 100, isPluggedIn: true)
+        clock.advance(by: BatteryTopUpExpiry.duration + 3600)
+        _ = coordinator.sample(currentSoC: 100, isPluggedIn: true)
+        #expect(coordinator.latestStatus.desiredConfiguration?.topUpActive == true)
+        #expect(coordinator.latestStatus.lastMaintenance?.trigger != .topUpExpired)
+    }
 }
 

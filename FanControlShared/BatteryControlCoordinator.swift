@@ -5,6 +5,7 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         .persistedPolicyV1,
         .hardwareGateReadbackV1,
         .systemPowerEventsV1,
+        .calibrationV1,
     ]
 
     private let ownerUID: UInt32
@@ -52,7 +53,7 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
     ) -> BatteryControlServiceStatus {
         do {
             var (desired, ownershipFailure) = try resolvedStoredPolicy()
-            if !isPluggedIn && desired.topUpActive {
+            if !isPluggedIn && desired.topUpActive && !desired.calibrationActive {
                 desired.topUpActive = false
                 try? persistPolicy(desired)
                 // 쓰기가 실패해도 Top Up은 끝났다. 미러를 남겨 두면 다음 Top Up의 `configure`가
@@ -159,6 +160,11 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         } else if normalized.topUpActive {
             normalized.manualDischargeActive = false
         }
+        // 캘리브레이션은 충전 단계에서 `topUpActive`를 빌려 쓰므로 그것과는 공존하지만,
+        // 수동 방전과는 같은 CHIE를 다투므로 공존할 수 없다 (결정 #24).
+        if normalized.calibrationActive {
+            normalized.manualDischargeActive = false
+        }
         do {
             try persistPolicy(normalized)
         } catch {
@@ -215,6 +221,11 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         } else if normalized.topUpActive {
             normalized.manualDischargeActive = false
         }
+        // 캘리브레이션은 충전 단계에서 `topUpActive`를 빌려 쓰므로 그것과는 공존하지만,
+        // 수동 방전과는 같은 CHIE를 다투므로 공존할 수 없다 (결정 #24).
+        if normalized.calibrationActive {
+            normalized.manualDischargeActive = false
+        }
         do {
             try persistPolicy(normalized)
         } catch {
@@ -256,7 +267,8 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         isPluggedIn: Bool,
         temperatureCelsius: Double? = nil
     ) -> BatteryControlServiceStatus {
-        if !isPluggedIn && engine.configuration.manualDischargeActive {
+        if !isPluggedIn && engine.configuration.manualDischargeActive
+            && !engine.configuration.calibrationActive {
             var updatedConfig = engine.configuration
             updatedConfig.manualDischargeActive = false
             engine.configure(updatedConfig)
@@ -289,8 +301,10 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
             engine.beginRecoveryWindow()
         }
 
-        // Auto-terminate Top Up & Manual Discharge whenever on battery power
-        if !isPluggedIn && (engine.configuration.topUpActive || engine.configuration.manualDischargeActive) {
+        // 캘리브레이션 중에는 어댑터 분리가 종료 사유가 아니다. 방전 단계는 자연 방전으로
+        // 이어지고, 충전 단계는 앱 FSM이 `paused(needsAdapter)`로 잡아 재연결을 기다린다.
+        if !isPluggedIn && !engine.configuration.calibrationActive
+            && (engine.configuration.topUpActive || engine.configuration.manualDischargeActive) {
             var updatedConfig = engine.configuration
             updatedConfig.topUpActive = false
             updatedConfig.manualDischargeActive = false
@@ -361,6 +375,8 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
     private func persistPolicy(_ configuration: BatteryControlConfiguration) throws {
         var persisted = configuration
         persisted.manualDischargeActive = false
+        // `calibrationActive`는 의도적으로 남긴다. 앱이 죽어도 엔진의 하한 가드가 살아 있어야
+        // 최악이 "하한 도달 후 홀드"라는 설계된 안전 상태로 끝난다 (결정 #35).
         let stamp = persisted.topUpActive ? topUpReachedFullAt : nil
         try store.save(.init(
             ownerUID: ownerUID,
@@ -373,8 +389,7 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
     /// Top Up 자동 만료의 **유일한** 판정 지점.
     ///
     /// 캘리브레이션 모드가 최종 100% 홀드 단계에서 같은 `topUpActive` 원시 명령을 빌려 쓰게 되면,
-    /// 예외는 아래 `calibrationActive:` 인자 하나로 들어간다. 그 플래그는 아직 존재하지 않으므로
-    /// 지금은 기본값(false)에 맡긴다.
+    /// 그 예외가 아래 `calibrationActive:` 인자다.
     ///
     /// 만료를 실제로 수행한 경우에만 상태를 반환한다(이미 `publish`까지 마친 상태다). `nil`이면
     /// 호출자는 평소 경로를 그대로 진행하면 된다.
@@ -388,7 +403,8 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
             topUpActive: engine.configuration.topUpActive,
             isHoldingAtFull: status.detailReason?.kind == .topUpComplete,
             reachedFullAt: topUpReachedFullAt,
-            now: now()
+            now: now(),
+            calibrationActive: engine.configuration.calibrationActive
         ) {
         case .none:
             return nil

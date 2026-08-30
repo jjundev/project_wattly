@@ -211,7 +211,11 @@ public final class BatteryControlEngine: @unchecked Sendable {
             _ = attemptDischargeWrite(active: true)
         }
         if isCurrentlyInhibited {
-            let target = config.topUpActive ? 100 : (config.manualDischargeActive ? config.clampedManualDischargeTarget : config.clampedLimitPercentage)
+            // `statusForCurrentBelief`와 같은 우선순위 체계를 쓴다 (캘리브레이션 우선) — 그래야
+            // 두 곳이 서로 갈라지지 않는다. 이 함수는 프로덕션 호출자가 없다(테스트 전용).
+            let target = config.calibrationActive
+                ? (config.topUpActive ? 100 : config.clampedCalibrationTarget)
+                : (config.topUpActive ? 100 : (config.manualDischargeActive ? config.clampedManualDischargeTarget : config.clampedLimitPercentage))
             if !attemptWrite(inhibited: true, targetLimit: target) {
                 // The reassertion did not verify, so the next update must rebuild a known baseline.
                 hasInitializedState = false
@@ -307,6 +311,11 @@ public final class BatteryControlEngine: @unchecked Sendable {
                 // 하트비트 데드맨이 없다.
                 let floor = config.clampedCalibrationTarget
                 target = floor
+                // `currentSoC >= 15`는 의도적인 두 번째 방어선이다: `clampCalibrationTarget`가
+                // `floor`를 이미 15 이상으로 고정하므로 `currentSoC > floor`만으로도 이 조건은
+                // 항상 참이 되어, 공개 API로는 이 가드를 단독으로 뚫을 수 없다 — 그래도 지우면
+                // 안 된다. 배터리 경로에는 하트비트 데드맨이 없으므로, 앱이 죽었을 때 방전을
+                // 멈추는 마지막 방어선이 이 줄이다.
                 if currentSoC >= 15 && isDischargeHardwareSupported && currentSoC > floor {
                     shouldDischarge = true
                     // 강제 방전은 두 게이트가 함께 필요하다: CHIE가 어댑터를 격리하는 동안 일반
