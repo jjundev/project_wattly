@@ -1519,8 +1519,10 @@ public enum BatteryCalibration {
     public static let sleepGapSeconds: TimeInterval = 90
 
     public static let chargePhaseTimeout: TimeInterval = 6 * 3600
-    /// 방전은 실측 0.113~0.331 %p/분으로 부하에 따라 3배 흔들린다. 100→20%가 4~7시간이라
-    /// 원안의 10시간으로는 여유가 부족했다.
+    /// 방전은 실측 0.113~0.331 %p/분으로 부하에 따라 3배 흔들린다. 관측된 **가장 느린** 속도
+    /// (0.113 %p/분)에서는 100→20%가 약 11.8시간이라 이 상한과의 여유가 얇다 — 그 부하 조건이
+    /// 12시간 내내 유지되면 하한 몇 %p 앞에서 `.stepTimeout`으로 끝난다. 흔한 조건(0.19~0.33
+    /// %p/분)에서는 4~7시간이라 넉넉하다. 값을 올리려면 `#23`을 다시 여는 제품 결정이 필요하다.
     public static let dischargePhaseTimeout: TimeInterval = 12 * 3600
 
     /// 일시정지 누적 상한. 열보호를 끄지 않는 대가로 정지가 길어질 수 있어 상한이 필요하다.
@@ -1895,26 +1897,28 @@ public enum CalibrationDecision: Equatable, Sendable {
         // 2. 잠자기. 예산을 쓰지 않고, 정체 관측은 `tick`이 이미 버렸다.
         if input.isSleepGap { return .pause(.systemSleep) }
 
-        // 3. 헬퍼 부재. 하드웨어는 마지막 원시 상태를 그대로 들고 있다.
+        // 3. 일시정지 예산 소진. **아래의 일시정지 반환들보다 먼저** 판정해야 한다 —
+        //    뒤에 두면 예산이 막으려던 바로 그 상황(열보호가 계속 걸려 있는 경우)에서
+        //    영원히 도달하지 못하고, 차단이 풀리는 순간 실패로 끝난다.
+        if input.timers.pausedTotalSeconds >= pauseBudgetSeconds {
+            return .finish(.failed, failure: .pauseBudgetExhausted)
+        }
+
+        // 4. 헬퍼 부재. 하드웨어는 마지막 원시 상태를 그대로 들고 있다.
         if !input.helperReady { return .pause(.helperUnavailable) }
 
-        // 4. CHIE가 없으면 절차 자체가 성립하지 않는다. preflight가 이미 막지만,
+        // 5. CHIE가 없으면 절차 자체가 성립하지 않는다. preflight가 이미 막지만,
         //    실행 중 하드웨어 판정이 뒤집히는 경우까지 여기서 닫는다.
         if !input.dischargeSupported {
             return .finish(.failed, failure: .dischargeUnsupported)
         }
 
-        // 5. 열보호는 절대 자동 비활성화하지 않는다. 발동하면 기다린다.
+        // 6. 열보호는 절대 자동 비활성화하지 않는다. 발동하면 기다린다.
         if input.isHeatProtected { return .pause(.heatProtection) }
 
-        // 6. 어댑터. 방전 단계만 어댑터 없이도 진행된다.
+        // 7. 어댑터. 방전 단계만 어댑터 없이도 진행된다.
         if input.step != .dischargeToFloor && !input.isAdapterPresent {
             return .pause(.needsAdapter)
-        }
-
-        // 7. 일시정지 예산 소진.
-        if input.timers.pausedTotalSeconds >= pauseBudgetSeconds {
-            return .finish(.failed, failure: .pauseBudgetExhausted)
         }
 
         // 8. 단계 타임아웃.
@@ -3321,9 +3325,16 @@ import Observation
         // `isPowerAdapterConnected`가 거짓말한다.
         let adapterPresent = reading.isAdapterPresent || status.isPowerAdapterConnected
 
-        if let previousSoC, previousSoC != soc {
-            if state.step == .dischargeToFloor, previousSoC > soc,
-               state.timers.socUnchangedSeconds + elapsed > 0, !isSleepGap {
+        // 진행 판정은 **깨어 있고 일시정지도 아닌** tick에서만 한다.
+        //
+        // `tick`의 일시정지 분기는 `lastSoC`를 갱신하지 않은 채 조기 반환한다. 그래서 일시정지
+        // 중에 SoC가 1%라도 흘러가면 `lastSoC != soc`가 그 뒤 **매 tick** 참이 되고,
+        // `lastProgressAt`이 계속 갱신돼 12시간 무진행 취소가 영영 발동하지 않는다. 방전 단계에서
+        // 그 조합은 최악이다 — 코디네이터는 `.pause`에서 아무것도 쓰지 않으므로 CHIE 방전 명령이
+        // 그대로 걸린 채 하한 아래로 계속 내려간다.
+        let isActiveTick = !isSleepGap && state.pause?.consumesBudget != true
+        if isActiveTick, let previousSoC, previousSoC != soc {
+            if state.step == .dischargeToFloor, previousSoC > soc {
                 let minutes = (state.timers.socUnchangedSeconds + elapsed) / 60
                 if minutes > 0 {
                     observedDischargeRate = BatteryCalibration.blendedRate(
