@@ -534,6 +534,17 @@ struct LocalizationTests {
         #expect(String(localized: "배터리 카드에서 목표 잔량까지 수동 방전 버튼을 표시합니다. 배터리 잔량이 목표치보다 높을 때만 표시됩니다.", locale: ko)
                 == "배터리 카드에서 목표 잔량까지 수동 방전 버튼을 표시합니다. 배터리 잔량이 목표치보다 높을 때만 표시됩니다.")
     }
+
+    @Test func calibrationStringsAreTranslated() {
+        #expect(String(localized: "배터리 캘리브레이션", locale: Locale(identifier: "en"))
+                == "Battery Calibration")
+        #expect(String(localized: "잔량 표시 보정 완료", locale: Locale(identifier: "en"))
+                != "잔량 표시 보정 완료")
+        #expect(String(localized: "캘리브레이션 시작", locale: Locale(identifier: "ja"))
+                != "캘리브레이션 시작")
+        #expect(String(localized: "20%까지 방전", locale: Locale(identifier: "de"))
+                != "20%까지 방전")
+    }
 }
 
 
