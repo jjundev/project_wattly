@@ -1484,4 +1484,98 @@ struct BatteryControlEngineTests {
         #expect(status.activity != .discharging)
         #expect(mockHardware.isDischargeActive == false)
     }
+
+    @Test func calibrationDischargesUntilItsOwnFloor() {
+        let hw = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: hw)
+        engine.configure(BatteryControlConfiguration(
+            enabled: true, limitPercentage: 80,
+            calibrationActive: true, calibrationTargetPercentage: 20))
+
+        // 하한 위: CHIE 방전 + 게이트 억제를 동시에 건다.
+        _ = engine.update(currentSoC: 60, isPluggedIn: true)
+        #expect(hw.isDischargeActive)
+        #expect(hw.isInhibited)
+
+        // 하한 도달: 방전만 끊고 억제는 유지해 되오르지 않게 한다.
+        _ = engine.update(currentSoC: 20, isPluggedIn: true)
+        #expect(hw.isDischargeActive == false)
+        #expect(hw.isInhibited)
+    }
+
+    @Test func calibrationNeverDischargesBelowFifteenPercent() {
+        let hw = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: hw)
+        // 클램프가 15로 끌어올려도, 엔진의 하드 가드가 한 겹 더 막는다.
+        engine.configure(BatteryControlConfiguration(
+            enabled: true, calibrationActive: true, calibrationTargetPercentage: 5))
+        _ = engine.update(currentSoC: 14, isPluggedIn: true)
+        #expect(hw.isDischargeActive == false)
+    }
+
+    @Test func heatProtectionPreemptsCalibration() {
+        let hw = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: hw)
+        engine.configure(BatteryControlConfiguration(
+            enabled: true, heatProtectionEnabled: true, heatProtectionThresholdCelsius: 35,
+            calibrationActive: true, calibrationTargetPercentage: 20))
+        let status = engine.update(currentSoC: 60, isPluggedIn: true, temperatureCelsius: 40)
+        #expect(hw.isDischargeActive == false)
+        #expect(hw.isInhibited)
+        #expect(status.detailReason?.kind == .heatProtectionActive)
+    }
+
+    @Test func calibrationPreemptsManualDischarge() {
+        let hw = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: hw)
+        engine.configure(BatteryControlConfiguration(
+            enabled: true,
+            manualDischargeActive: true, manualDischargeTarget: 80,
+            calibrationActive: true, calibrationTargetPercentage: 20))
+        let status = engine.update(currentSoC: 60, isPluggedIn: true)
+        #expect(status.detailReason?.kind == .calibrationDischarging)
+        #expect(status.detailReason?.limitPercentage == 20)
+    }
+
+    @Test func calibrationChargeStepBorrowsTopUpBehaviour() {
+        let hw = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: hw)
+        // 절차 전체에서 `calibrationActive`는 켜져 있고, `topUpActive`가 "지금이 충전 단계"를
+        // 말한다. 그래야 어댑터 분리·헬퍼 재시작에서 데몬이 절차를 하나의 활동으로 본다.
+        engine.configure(BatteryControlConfiguration(
+            enabled: true, topUpActive: true,
+            calibrationActive: true, calibrationTargetPercentage: 20))
+
+        let charging = engine.update(currentSoC: 60, isPluggedIn: true)
+        #expect(hw.isDischargeActive == false)
+        #expect(hw.isInhibited == false)          // 100%까지 실제로 충전되어야 한다
+        #expect(charging.detailReason?.kind == .calibrationCharging)
+        #expect(charging.detailReason?.limitPercentage == 100)
+
+        let full = engine.update(currentSoC: 100, isPluggedIn: true)
+        #expect(hw.isInhibited)                   // 100% 도달 후 홀드
+        #expect(full.detailReason?.kind == .calibrationHolding)
+    }
+
+    @Test func calibrationReportsHoldingAtFloor() {
+        let hw = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: hw)
+        engine.configure(BatteryControlConfiguration(
+            enabled: true, calibrationActive: true, calibrationTargetPercentage: 20))
+        let holding = engine.update(currentSoC: 20, isPluggedIn: true)
+        #expect(holding.detailReason?.kind == .calibrationHolding)
+        #expect(holding.detailReason?.limitPercentage == 20)
+    }
+
+    @Test func calibrationStandsDownOnBatteryPower() {
+        let hw = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: hw)
+        engine.configure(BatteryControlConfiguration(
+            enabled: true, calibrationActive: true, calibrationTargetPercentage: 20))
+        _ = engine.update(currentSoC: 60, isPluggedIn: true)
+        #expect(hw.isDischargeActive)
+        // 어댑터가 빠지면 CHIE로 뺄 전원이 없다. 자연 방전이 이어받는다.
+        _ = engine.update(currentSoC: 59, isPluggedIn: false)
+        #expect(hw.isDischargeActive == false)
+    }
 }

@@ -77,7 +77,16 @@ public final class BatteryControlEngine: @unchecked Sendable {
         temperatureCelsius: Double? = nil,
         now: TimeInterval = Date().timeIntervalSince1970
     ) -> BatteryControlServiceStatus {
-        let target = config.topUpActive ? 100 : (config.manualDischargeActive ? config.clampedManualDischargeTarget : config.clampedLimitPercentage)
+        let target: Int
+        if config.calibrationActive {
+            target = config.topUpActive ? 100 : config.clampedCalibrationTarget
+        } else if config.topUpActive {
+            target = 100
+        } else if config.manualDischargeActive {
+            target = config.clampedManualDischargeTarget
+        } else {
+            target = config.clampedLimitPercentage
+        }
         return status(
             currentSoC: currentSoC,
             isPluggedIn: isPluggedIn,
@@ -269,6 +278,39 @@ public final class BatteryControlEngine: @unchecked Sendable {
             target = config.clampedLimitPercentage
             shouldDischarge = false
             shouldInhibit = true
+        } else if config.calibrationActive {
+            // `calibrationActive`는 절차 **전체**에서 켜져 있고, `topUpActive`가 "지금이 충전
+            // 단계인지"를 말한다. 이렇게 나누면 데몬이 절차를 하나의 활동으로 볼 수 있어
+            // 어댑터 분리·헬퍼 재시작 예외를 한 곳에서 처리할 수 있고, 앱이 죽어도 아래 하한
+            // 가드가 계속 살아 있다.
+            if config.topUpActive {
+                // 충전 단계 — Top Up과 동작이 같다.
+                target = 100
+                shouldDischarge = false
+                if currentSoC >= 100 {
+                    topUpCompletedHold = true
+                    shouldInhibit = true
+                } else {
+                    shouldInhibit = false
+                }
+            } else {
+                // 방전·홀드 단계. 하한과 15% 하드 가드를 여기에 두는 이유는, 앱이 크래시해도
+                // 방전을 멈출 주체가 남아 있어야 하기 때문이다 — 배터리 경로에는 팬과 달리
+                // 하트비트 데드맨이 없다.
+                let floor = config.clampedCalibrationTarget
+                target = floor
+                if currentSoC >= 15 && isDischargeHardwareSupported && currentSoC > floor {
+                    shouldDischarge = true
+                    // 강제 방전은 두 게이트가 함께 필요하다: CHIE가 어댑터를 격리하는 동안 일반
+                    // 충전 게이트는 억제된 채로 있어야 한다.
+                    shouldInhibit = true
+                } else {
+                    // 하한 도달 후에도 억제는 유지한다. 풀면 다음 단계를 기다리는 사이에 다시
+                    // 충전이 시작돼 안정화 구간이 무의미해진다.
+                    shouldDischarge = false
+                    shouldInhibit = true
+                }
+            }
         } else if config.manualDischargeActive {
             // Manual Discharge Mode
             let manualTarget = config.clampedManualDischargeTarget
@@ -506,6 +548,15 @@ public final class BatteryControlEngine: @unchecked Sendable {
         if !isPluggedIn {
             return .init(kind: .onBatteryPower)
         }
+        if config.calibrationActive {
+            if config.topUpActive {
+                return .init(kind: (currentSoC >= 100 || topUpCompletedHold)
+                                ? .calibrationHolding : .calibrationCharging,
+                             limitPercentage: 100)
+            }
+            return .init(kind: isCurrentlyDischarging ? .calibrationDischarging : .calibrationHolding,
+                         limitPercentage: target)
+        }
         if config.manualDischargeActive {
             if isCurrentlyDischarging {
                 return .init(kind: .dischargingManual, limitPercentage: target)
@@ -548,7 +599,9 @@ public final class BatteryControlEngine: @unchecked Sendable {
             mode = .charging
         }
         let appliedLimit: Int?
-        if isHardwareSupported && !hasActionableFailure && (config.enabled || config.manualDischargeActive || config.topUpActive) {
+        if isHardwareSupported && !hasActionableFailure
+            && (config.enabled || config.manualDischargeActive || config.topUpActive
+                || config.calibrationActive) {
             appliedLimit = target
         } else {
             appliedLimit = nil
