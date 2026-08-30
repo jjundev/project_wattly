@@ -1,5 +1,57 @@
 import Foundation
 
+/// `decide`의 전 입력. 시스템 접근이 전혀 없는 값 묶음이라 어떤 조합이든 테스트로 만들 수 있다.
+public struct CalibrationInput: Equatable, Sendable {
+    public var step: CalibrationStep
+    public var timers: CalibrationTimers
+    /// **데몬 `status.currentPercentage`(IOPS) 전용.** `BatterySample.percentage`를 넣으면
+    /// 안 된다 — raw 비율은 98.99%가 천장이라 완충 단계가 영원히 끝나지 않는다.
+    public var soc: Int
+    /// **`AdapterDetails.Watts > 0`을 포함해 판정한 값.** CHIE 강제 방전 중에는
+    /// `ExternalConnected`도 IOPS도 "배터리 전원"이라고 거짓말한다.
+    public var isAdapterPresent: Bool
+    public var isHeatProtected: Bool
+    public var helperReady: Bool
+    public var dischargeSupported: Bool
+    public var isSleepGap: Bool
+    public var isChargeStalled: Bool
+    /// SoC나 단계가 마지막으로 움직인 뒤 흐른 벽시계 시간. 잠자기 동안에도 흐른다.
+    public var secondsSinceProgress: TimeInterval
+
+    public init(
+        step: CalibrationStep,
+        timers: CalibrationTimers,
+        soc: Int,
+        isAdapterPresent: Bool,
+        isHeatProtected: Bool,
+        helperReady: Bool,
+        dischargeSupported: Bool,
+        isSleepGap: Bool,
+        isChargeStalled: Bool,
+        secondsSinceProgress: TimeInterval
+    ) {
+        self.step = step
+        self.timers = timers
+        self.soc = soc
+        self.isAdapterPresent = isAdapterPresent
+        self.isHeatProtected = isHeatProtected
+        self.helperReady = helperReady
+        self.dischargeSupported = dischargeSupported
+        self.isSleepGap = isSleepGap
+        self.isChargeStalled = isChargeStalled
+        self.secondsSinceProgress = secondsSinceProgress
+    }
+}
+
+public enum CalibrationDecision: Equatable, Sendable {
+    case hold(CalibrationPrimitive)
+    case advance(to: CalibrationStep, primitive: CalibrationPrimitive)
+    case pause(CalibrationPause)
+    /// 실패에는 반드시 사유가 붙는다. 참조 구현들이 못 한 것이 정확히 이것이다 —
+    /// 사용자가 "무엇 때문에 멈췄는지" 알 수 없으면 복구할 방법도 없다.
+    case finish(CalibrationOutcome, failure: CalibrationFailure?)
+}
+
 /// 캘리브레이션 절차의 모든 판단. SwiftUI도 I/O도 `Date()`도 없다 —
 /// `BatteryControlPolicy` / `PollPolicy` / `BatterySectionPresentation`과 같은 방식으로,
 /// 코디네이터가 내리던 결정을 테이블 테스트가 가능한 함수로 모아 둔 것이다.
@@ -109,5 +161,95 @@ public enum BatteryCalibration {
         next.chargeStalledSeconds = isChargeStalled ? next.chargeStalledSeconds + elapsed : 0
         next.lastSoC = soc
         return next
+    }
+
+    // MARK: - 상태 전이
+
+    public static func stepTimeout(for step: CalibrationStep) -> TimeInterval? {
+        switch step {
+        case .chargeToFull, .rechargeToFull: return chargePhaseTimeout
+        case .dischargeToFloor: return dischargePhaseTimeout
+        case .preflight, .soakLow, .soakFinal, .restoring: return nil
+        }
+    }
+
+    /// 이번 tick에 무엇을 할지. 판정 순서 자체가 설계이므로 함부로 재배열하지 말 것 —
+    /// 특히 잠자기가 예산 소모 일시정지들보다 **먼저** 와야 예산이 보호된다.
+    public static func decide(_ input: CalibrationInput) -> CalibrationDecision {
+        // 0. 원복 단계는 조건 없이 끝난다. 실제 원복은 코디네이터가 이미 수행한 뒤다.
+        if input.step == .restoring { return .finish(.completed, failure: nil) }
+
+        // 1. 12시간 무진행. 뚜껑을 밤새 닫아둔 경우가 여기로 들어온다. 실패가 아니라
+        //    조용한 취소로 끝내고 원설정을 되돌린다.
+        if input.secondsSinceProgress >= staleAbandonSeconds {
+            return .finish(.expired, failure: nil)
+        }
+
+        // 2. 잠자기. 예산을 쓰지 않고, 정체 관측은 `tick`이 이미 버렸다.
+        if input.isSleepGap { return .pause(.systemSleep) }
+
+        // 3. 헬퍼 부재. 하드웨어는 마지막 원시 상태를 그대로 들고 있다.
+        if !input.helperReady { return .pause(.helperUnavailable) }
+
+        // 4. CHIE가 없으면 절차 자체가 성립하지 않는다. preflight가 이미 막지만,
+        //    실행 중 하드웨어 판정이 뒤집히는 경우까지 여기서 닫는다.
+        if !input.dischargeSupported {
+            return .finish(.failed, failure: .dischargeUnsupported)
+        }
+
+        // 5. 열보호는 절대 자동 비활성화하지 않는다. 발동하면 기다린다.
+        if input.isHeatProtected { return .pause(.heatProtection) }
+
+        // 6. 어댑터. 방전 단계만 어댑터 없이도 진행된다.
+        if input.step != .dischargeToFloor && !input.isAdapterPresent {
+            return .pause(.needsAdapter)
+        }
+
+        // 7. 일시정지 예산 소진.
+        if input.timers.pausedTotalSeconds >= pauseBudgetSeconds {
+            return .finish(.failed, failure: .pauseBudgetExhausted)
+        }
+
+        // 8. 단계 타임아웃.
+        if let timeout = stepTimeout(for: input.step),
+           input.timers.stepActiveSeconds >= timeout {
+            return .finish(.failed, failure: .stepTimeout)
+        }
+
+        // 9. 외부 요인이 충전을 막고 있다. 실기에서 macOS "최적화된 배터리 충전"이 켜져
+        //    있으면 우리가 게이트를 열어도 충전이 시작되지 않았다 — 막는 이유를 아무 레지스터도
+        //    보고하지 않은 채로.
+        if input.step.primitive == .chargeToFull,
+           input.soc < 100,
+           input.isChargeStalled,
+           input.timers.chargeStalledSeconds >= chargeStallSeconds {
+            return .pause(.externalChargeBlock)
+        }
+
+        // 10. 단계 완료 판정.
+        if isStepComplete(input), let next = input.step.next {
+            return .advance(to: next, primitive: next.primitive)
+        }
+        return .hold(input.step.primitive)
+    }
+
+    private static func isStepComplete(_ input: CalibrationInput) -> Bool {
+        switch input.step {
+        case .preflight:
+            return true
+        case .chargeToFull, .rechargeToFull:
+            return input.timers.fullHoldSeconds >= fullSettleSeconds
+        case .dischargeToFloor:
+            // 목표 도달, 또는 정체. 정체를 성공으로 처리하지 않으면 펌웨어 벽에서 절차가
+            // 영원히 끝나지 않는다.
+            return input.soc <= floorPercentage
+                || input.timers.socUnchangedSeconds >= dischargeStallSeconds
+        case .soakLow:
+            return input.timers.stepActiveSeconds >= soakLowSeconds
+        case .soakFinal:
+            return input.timers.stepActiveSeconds >= soakFinalSeconds
+        case .restoring:
+            return true
+        }
     }
 }
