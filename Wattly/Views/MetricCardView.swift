@@ -16,6 +16,7 @@ struct MetricCardView: View {
     var thresholds: Thresholds = Defaults.thresholds
     var batteryControl: BatteryControlClient? = nil
     var scheduleCoordinator: BatteryScheduleCoordinator? = nil
+    var calibration: BatteryCalibrationCoordinator? = nil
 
     var body: some View {
         switch state {
@@ -136,7 +137,8 @@ struct MetricCardView: View {
             state: state,
             thresholds: thresholds,
             batteryControl: batteryControl,
-            scheduleCoordinator: scheduleCoordinator
+            scheduleCoordinator: scheduleCoordinator,
+            calibration: calibration
         )
     }
 

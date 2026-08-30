@@ -38,7 +38,8 @@ struct WattlyApp: App {
                     monitor: monitor,
                     fanControl: fanControl,
                     batteryControl: batteryControl,
-                    scheduleCoordinator: scheduleCoordinator
+                    scheduleCoordinator: scheduleCoordinator,
+                    calibration: calibrationCoordinator
                 )
             }
         } label: {

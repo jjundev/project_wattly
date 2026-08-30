@@ -442,4 +442,20 @@ public enum BatteryCalibration {
             return String(localized: "약 10시간이 걸리며, 방전 구간 약 7시간 동안은 뚜껑을 열어 두어야 합니다. 화면은 꺼져도 됩니다.", locale: locale)
         }
     }
+
+    /// 팝오버 배터리 카드에 붙는 한 줄. 일시정지 중이면 단계 대신 사유를 말한다 —
+    /// 멈춘 이유가 남은 시간보다 먼저 알아야 할 정보다.
+    public static func summaryLine(
+        step: CalibrationStep,
+        pause: CalibrationPause?,
+        remainingMinutes: Int,
+        locale: Locale
+    ) -> String {
+        if let pause { return pauseText(pause, locale: locale) }
+        return String(
+            format: String(localized: "캘리브레이션: %@ · 남은 시간 약 %@", locale: locale),
+            locale: locale,
+            stepLabel(step, locale: locale),
+            BatterySectionPresentation.formatDuration(minutes: remainingMinutes, locale: locale))
+    }
 }

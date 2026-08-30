@@ -475,4 +475,17 @@ struct BatteryCalibrationCopyTests {
         let text = BatteryCalibration.blockerText(.optimizedChargingUnconfirmed, locale: ko)
         #expect(text.contains("최적화된 배터리 충전"))
     }
+
+    @Test func summaryLineNamesTheStepAndTheRemainingTime() {
+        let line = BatteryCalibration.summaryLine(
+            step: .dischargeToFloor, pause: nil, remainingMinutes: 420, locale: ko)
+        #expect(line.contains("20%까지 방전"))
+        #expect(line.contains("7"))     // 7시간
+    }
+
+    @Test func summaryLinePrefersThePauseReason() {
+        let line = BatteryCalibration.summaryLine(
+            step: .chargeToFull, pause: .needsAdapter, remainingMinutes: 100, locale: ko)
+        #expect(line.contains("어댑터"))
+    }
 }
