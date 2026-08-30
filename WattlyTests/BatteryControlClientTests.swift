@@ -818,5 +818,91 @@ struct BatteryControlClientTests {
         // Since status already has same desiredConfiguration, shouldReapply is false, no redundant write
         #expect(client.status.desiredConfiguration?.manualDischargeActive == true)
     }
+
+    @MainActor @Test func anOrdinaryApplyCannotCancelARunningCalibration() async throws {
+        let daemon = BatteryControlConfiguration(
+            enabled: true, limitPercentage: 80, topUpActive: true,
+            calibrationActive: true, calibrationTargetPercentage: 20)
+        let running = BatteryControlServiceStatus(
+            mode: .inhibited, currentPercentage: 100, isPowerAdapterConnected: true,
+            detail: "", updatedAt: 1, desiredConfiguration: daemon)
+        let recorder = ScriptRecorder()
+        let client = BatteryControlClient { request in
+            if case .configure(let data) = request,
+               let decoded = try? BatteryControlCodec.decode(
+                   BatteryControlConfigurationRequest.self, from: data) {
+                await recorder.record(
+                    "\(decoded.configuration.calibrationActive)-\(decoded.configuration.topUpActive)")
+            }
+            return (try? BatteryControlCodec.encode(running), nil)
+        }
+        await client.refreshStatus()
+
+        // 설정창이 한도만 바꾸려고 부른 평범한 write.
+        _ = await client.apply(enabled: true, limitPercentage: 85)
+        #expect(await recorder.value == "true-true")
+    }
+
+    @MainActor @Test func theCoordinatorsOwnWriteCanTurnCalibrationOff() async throws {
+        let daemon = BatteryControlConfiguration(
+            enabled: true, limitPercentage: 80, calibrationActive: true)
+        let running = BatteryControlServiceStatus(
+            mode: .inhibited, currentPercentage: 20, isPowerAdapterConnected: true,
+            detail: "", updatedAt: 1, desiredConfiguration: daemon)
+        let recorder = ScriptRecorder()
+        let client = BatteryControlClient { request in
+            if case .configure(let data) = request,
+               let decoded = try? BatteryControlCodec.decode(
+                   BatteryControlConfigurationRequest.self, from: data) {
+                await recorder.record("\(decoded.configuration.calibrationActive)")
+            }
+            return (try? BatteryControlCodec.encode(running), nil)
+        }
+        await client.refreshStatus()
+
+        _ = await client.applyCalibration(
+            primitive: .restore,
+            snapshot: CalibrationSnapshot(
+                limitEnabled: true, limitPercentage: 80,
+                sailingEnabled: false, sailingDelta: 5,
+                heatProtectionEnabled: true, heatProtectionThresholdCelsius: 35,
+                autoDischargeEnabled: true, manualDischargeTarget: 80))
+        #expect(await recorder.value == "false")
+    }
+
+    @MainActor @Test func calibrationPrimitivesMapToDaemonCommands() async throws {
+        let recorder = ScriptRecorder()
+        let idle = BatteryControlServiceStatus(
+            mode: .charging, currentPercentage: 50, isPowerAdapterConnected: true,
+            detail: "", updatedAt: 1)
+        let client = BatteryControlClient { request in
+            if case .configure(let data) = request,
+               let decoded = try? BatteryControlCodec.decode(
+                   BatteryControlConfigurationRequest.self, from: data) {
+                let c = decoded.configuration
+                await recorder.record(
+                    "cal=\(c.calibrationActive) top=\(c.topUpActive) auto=\(c.autoDischargeEnabled) target=\(c.calibrationTargetPercentage)")
+            }
+            return (try? BatteryControlCodec.encode(idle), nil)
+        }
+        let snapshot = CalibrationSnapshot(
+            limitEnabled: true, limitPercentage: 80,
+            sailingEnabled: false, sailingDelta: 5,
+            heatProtectionEnabled: true, heatProtectionThresholdCelsius: 35,
+            autoDischargeEnabled: true, manualDischargeTarget: 80)
+
+        _ = await client.applyCalibration(primitive: .chargeToFull, snapshot: snapshot)
+        #expect(await recorder.value == "cal=true top=true auto=false target=20")
+
+        _ = await client.applyCalibration(primitive: .dischargeToFloor, snapshot: snapshot)
+        #expect(await recorder.value == "cal=true top=false auto=false target=20")
+
+        _ = await client.applyCalibration(primitive: .holdAtFull, snapshot: snapshot)
+        #expect(await recorder.value == "cal=true top=true auto=false target=20")
+
+        // 원복은 스냅샷의 자동 방전 원값을 되살린다.
+        _ = await client.applyCalibration(primitive: .restore, snapshot: snapshot)
+        #expect(await recorder.value == "cal=false top=false auto=true target=20")
+    }
 }
 

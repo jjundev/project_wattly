@@ -63,6 +63,12 @@ import AppKit
         }
     }
 
+    /// 데몬에 설정을 내려보내는 유일한 길목.
+    ///
+    /// `isCalibrationWrite`가 아닌 모든 호출은 데몬이 들고 있는 캘리브레이션을 **되살려서**
+    /// 나간다. 활동을 보존하지 않는 호출부가 12곳(스케줄 2·Shortcuts 3·설정 8)이고, 그중
+    /// 하나라도 절차 중에 발화하면 기본값 `false`가 실려 나가 10시간짜리 절차를 조용히
+    /// 취소하기 때문이다. 12곳을 각각 고치는 대신 여기 한 곳에서 닫는다.
     @discardableResult
     public func apply(
         enabled: Bool,
@@ -73,10 +79,13 @@ import AppKit
         topUpActive: Bool = false,
         autoDischargeEnabled: Bool = false,
         manualDischargeActive: Bool = false,
-        manualDischargeTarget: Int = 80
+        manualDischargeTarget: Int = 80,
+        calibrationActive: Bool = false,
+        calibrationTargetPercentage: Int = BatteryCalibration.floorPercentage,
+        isCalibrationWrite: Bool = false
     ) async -> BatteryControlServiceStatus? {
         commandGeneration &+= 1
-        let config = BatteryControlConfiguration(
+        var config = BatteryControlConfiguration(
             enabled: enabled,
             limitPercentage: limitPercentage,
             lowerHysteresisDelta: lowerHysteresisDelta,
@@ -85,14 +94,50 @@ import AppKit
             topUpActive: topUpActive,
             autoDischargeEnabled: autoDischargeEnabled,
             manualDischargeActive: manualDischargeActive,
-            manualDischargeTarget: manualDischargeTarget
+            manualDischargeTarget: manualDischargeTarget,
+            calibrationActive: calibrationActive,
+            calibrationTargetPercentage: calibrationTargetPercentage
         )
+        if !isCalibrationWrite,
+           let daemon = status.desiredConfiguration, daemon.calibrationActive {
+            config.calibrationActive = true
+            config.calibrationTargetPercentage = daemon.calibrationTargetPercentage
+            // 어느 단계인지도 데몬이 안다. 충전 단계를 방전 단계로 바꿔 버리면 안 된다.
+            config.topUpActive = daemon.topUpActive
+            config.enabled = true
+            config.manualDischargeActive = false
+        }
         let request = BatteryControlConfigurationRequest(configuration: config, generation: commandGeneration)
         guard let data = try? BatteryControlCodec.encode(request) else {
             updateUnavailable("충전 제한 설정을 인코딩할 수 없음")
             return nil
         }
         return await send(.configure(data))
+    }
+
+    /// 캘리브레이션 코디네이터 전용 쓰기. 절차 중 자동 방전을 강제로 끄는 것이 여기다 —
+    /// 두 정책이 같은 CHIE를 다투면 방전이 즉시 되돌려진다. 원값은 스냅샷이 들고 있다가
+    /// 원복 때 되살린다.
+    @discardableResult
+    public func applyCalibration(
+        primitive: CalibrationPrimitive,
+        snapshot: CalibrationSnapshot
+    ) async -> BatteryControlServiceStatus? {
+        let isRunning = primitive != .restore && primitive != .idle
+        let isChargingStep = primitive == .chargeToFull || primitive == .holdAtFull
+        return await apply(
+            enabled: isRunning ? true : snapshot.limitEnabled,
+            limitPercentage: snapshot.limitPercentage,
+            lowerHysteresisDelta: snapshot.sailingEnabled ? snapshot.sailingDelta : 2,
+            heatProtectionEnabled: snapshot.heatProtectionEnabled,
+            heatProtectionThresholdCelsius: snapshot.heatProtectionThresholdCelsius,
+            topUpActive: isRunning && isChargingStep,
+            autoDischargeEnabled: isRunning ? false : snapshot.autoDischargeEnabled,
+            manualDischargeActive: false,
+            manualDischargeTarget: snapshot.manualDischargeTarget,
+            calibrationActive: isRunning,
+            calibrationTargetPercentage: BatteryCalibration.floorPercentage,
+            isCalibrationWrite: true)
     }
 
     @discardableResult
@@ -278,11 +323,17 @@ import AppKit
         let isTopUp = status.desiredConfiguration?.topUpActive == true
         let isManualDischarge = manualDischargeActive || (status.desiredConfiguration?.manualDischargeActive == true)
         let dischargeTarget = isManualDischarge ? (status.desiredConfiguration?.manualDischargeTarget ?? manualDischargeTarget) : manualDischargeTarget
+        let isCalibrating = status.desiredConfiguration?.calibrationActive == true
+        let calibrationTarget = status.desiredConfiguration?.calibrationTargetPercentage
+            ?? BatteryCalibration.floorPercentage
+        // 절차 중에는 자동 방전을 세워 둔다. 엔진 우선순위상 이미 무력하지만, 저장된 선호값이
+        // 매 분 되살아나면 로그와 status가 "자동 방전 켜짐"으로 보여 진단을 흐린다.
+        let effectiveAutoDischarge = isCalibrating ? false : autoDischargeEnabled
         // The caller's task may have been cancelled while that read was in flight, and a reconcile
         // is a WRITE — unlike the fan heartbeat this loop is modelled on. Without this check a
         // straggler iteration would re-enable a limit the user just switched off, carrying a higher
         // generation than the disable that raced it, and nothing would ever repair it.
-        let effectiveEnabled = enabled || isTopUp || isManualDischarge
+        let effectiveEnabled = enabled || isTopUp || isManualDischarge || isCalibrating
         let targetConfig = BatteryControlConfiguration(
             enabled: effectiveEnabled,
             limitPercentage: limitPercentage,
@@ -290,9 +341,11 @@ import AppKit
             heatProtectionEnabled: heatProtectionEnabled,
             heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
             topUpActive: isTopUp,
-            autoDischargeEnabled: autoDischargeEnabled,
+            autoDischargeEnabled: effectiveAutoDischarge,
             manualDischargeActive: isManualDischarge,
-            manualDischargeTarget: dischargeTarget
+            manualDischargeTarget: dischargeTarget,
+            calibrationActive: isCalibrating,
+            calibrationTargetPercentage: calibrationTarget
         )
         let willReapply = BatteryControlPolicy.shouldReapply(
             configuration: targetConfig, status: status)
@@ -306,7 +359,7 @@ import AppKit
             desiredAutoDischarge=\(String(describing: self.status.desiredConfiguration?.autoDischargeEnabled), privacy: .public)
             """)
         guard !Task.isCancelled, willReapply else { return }
-        if enabled || heatProtectionEnabled || isTopUp || isManualDischarge {
+        if enabled || heatProtectionEnabled || isTopUp || isManualDischarge || isCalibrating {
             await apply(
                 enabled: effectiveEnabled,
                 limitPercentage: limitPercentage,
@@ -314,9 +367,12 @@ import AppKit
                 heatProtectionEnabled: heatProtectionEnabled,
                 heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
                 topUpActive: isTopUp,
-                autoDischargeEnabled: autoDischargeEnabled,
+                autoDischargeEnabled: effectiveAutoDischarge,
                 manualDischargeActive: isManualDischarge,
-                manualDischargeTarget: dischargeTarget)
+                manualDischargeTarget: dischargeTarget,
+                calibrationActive: isCalibrating,
+                calibrationTargetPercentage: calibrationTarget,
+                isCalibrationWrite: true)
         } else {
             _ = await disableAndConfirm(
                 limitPercentage: limitPercentage,
