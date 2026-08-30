@@ -1343,6 +1343,10 @@ struct BatteryControlCoordinatorTests {
         #expect(store.stored?.topUpReachedFullAt == nil)
     }
 
+    /// 캘리브레이션의 충전 단계(`topUpActive == true`)에서 어댑터가 빠져도 두 플래그가 함께
+    /// 살아남아야 한다. `topUpActive`가 빠졌던 이전 버전의 테스트는 두 방어 분기(수동 방전·Top
+    /// Up 자동 해제)를 아예 타지 않아, 예외 세 곳을 모두 되돌려도 통과하는 무의미한 테스트였다 —
+    /// `reconcile`의 예외가 실제로 지키는 것은 바로 이 조합이다.
     @Test func calibrationSurvivesAdapterDisconnect() {
         let store = PolicyStoreSpy()
         let coordinator = BatteryControlCoordinator(
@@ -1351,15 +1355,43 @@ struct BatteryControlCoordinatorTests {
             engine: BatteryControlEngine(hardware: MockBatteryHardware()),
             now: { 1000 })
         _ = coordinator.configure(
-            .init(enabled: true, calibrationActive: true, calibrationTargetPercentage: 20),
-            trigger: .clientConfiguration, currentSoC: 60, isPluggedIn: true)
+            .init(enabled: true, topUpActive: true, calibrationActive: true,
+                  calibrationTargetPercentage: 20),
+            trigger: .clientConfiguration, currentSoC: 90, isPluggedIn: true)
+        #expect(coordinator.latestStatus.desiredConfiguration?.topUpActive == true)
+        #expect(coordinator.latestStatus.desiredConfiguration?.calibrationActive == true)
 
-        // Top Up·수동 방전은 어댑터가 빠지면 끝나지만 캘리브레이션은 살아남는다 —
-        // 방전 단계는 자연 방전으로 이어지고, 재연결 후 절차가 그대로 이어져야 한다.
-        _ = coordinator.sample(currentSoC: 59, isPluggedIn: false)
+        // Top Up·수동 방전은 어댑터가 빠지면 끝나지만 캘리브레이션의 충전 단계는 살아남아야
+        // 한다 — 그렇지 않으면 앱 FSM은 여전히 충전 중이라 믿는데 엔진은 방전 분기로 빠진다.
+        _ = coordinator.sample(currentSoC: 91, isPluggedIn: false)
         #expect(coordinator.latestStatus.desiredConfiguration?.calibrationActive == true)
-        _ = coordinator.reconcile(trigger: .adapterTransition, currentSoC: 58, isPluggedIn: false)
+        #expect(coordinator.latestStatus.desiredConfiguration?.topUpActive == true)
+        _ = coordinator.reconcile(trigger: .adapterTransition, currentSoC: 91, isPluggedIn: false)
         #expect(coordinator.latestStatus.desiredConfiguration?.calibrationActive == true)
+        #expect(coordinator.latestStatus.desiredConfiguration?.topUpActive == true)
+    }
+
+    /// `restore`도 같은 예외를 갖는다. 기존 `calibrationIsPersistedAndRestored`는
+    /// `isPluggedIn: true`로만 재시작해 `restore` 맨 위의 예외 분기를 증명하지 못했다 — 배터리로
+    /// 재시작하는 경우를 별도로 검증한다.
+    @Test func calibrationSurvivesAdapterDisconnectOnRestore() {
+        let store = PolicyStoreSpy()
+        let first = BatteryControlCoordinator(
+            ownerUID: 501, store: store,
+            engine: BatteryControlEngine(hardware: MockBatteryHardware()), now: { 1000 })
+        _ = first.configure(
+            .init(enabled: true, topUpActive: true, calibrationActive: true,
+                  calibrationTargetPercentage: 20),
+            trigger: .clientConfiguration, currentSoC: 90, isPluggedIn: true)
+        #expect(store.stored?.configuration.topUpActive == true)
+        #expect(store.stored?.configuration.calibrationActive == true)
+
+        let restarted = BatteryControlCoordinator(
+            ownerUID: 501, store: store,
+            engine: BatteryControlEngine(hardware: MockBatteryHardware()), now: { 2000 })
+        let status = restarted.restore(currentSoC: 91, isPluggedIn: false)
+        #expect(status.desiredConfiguration?.topUpActive == true)
+        #expect(status.desiredConfiguration?.calibrationActive == true)
     }
 
     @Test func calibrationIsPersistedAndRestored() {
@@ -1393,10 +1425,51 @@ struct BatteryControlCoordinatorTests {
         #expect(status.desiredConfiguration?.manualDischargeActive == false)
     }
 
+    /// 모순된 입력 — 수동 방전·Top Up·캘리브레이션이 동시에 켜진 요청 — 에서 캘리브레이션이
+    /// 먼저 판정돼야 한다. 순서가 뒤집히면(수동 방전⟷Top Up 상호배제를 먼저 적용) 수동 방전
+    /// 분기가 `topUpActive`를 지워 버려 캘리브레이션의 충전 단계 의도가 조용히 사라진다.
+    @Test func calibrationResolvesBeforeManualDischargeTopUpExclusion() {
+        let store = PolicyStoreSpy()
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501, store: store,
+            engine: BatteryControlEngine(hardware: MockBatteryHardware()), now: { 1000 })
+        let status = coordinator.configure(
+            .init(enabled: true, topUpActive: true, manualDischargeActive: true,
+                  manualDischargeTarget: 60, calibrationActive: true,
+                  calibrationTargetPercentage: 20),
+            trigger: .clientConfiguration, currentSoC: 80, isPluggedIn: true)
+        #expect(status.desiredConfiguration?.manualDischargeActive == false)
+        #expect(status.desiredConfiguration?.topUpActive == true)
+        #expect(status.desiredConfiguration?.calibrationActive == true)
+    }
+
+    /// 같은 모순 입력을 `configureWithoutPowerReading` 경로로도 확인한다 — 두 진입점이 정규화
+    /// 로직을 각자 복제하고 있어 하나만 고치면 갈라진다.
+    @Test func calibrationResolvesBeforeManualDischargeTopUpExclusionWithoutPowerReading() {
+        let store = PolicyStoreSpy()
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501, store: store,
+            engine: BatteryControlEngine(hardware: MockBatteryHardware()), now: { 1000 })
+        let status = coordinator.configureWithoutPowerReading(
+            .init(enabled: true, topUpActive: true, manualDischargeActive: true,
+                  manualDischargeTarget: 60, calibrationActive: true,
+                  calibrationTargetPercentage: 20),
+            trigger: .clientConfiguration)
+        #expect(status.desiredConfiguration?.manualDischargeActive == false)
+        #expect(status.desiredConfiguration?.topUpActive == true)
+        #expect(status.desiredConfiguration?.calibrationActive == true)
+    }
+
     @Test func coordinatorAdvertisesCalibrationCapability() {
         #expect(BatteryControlCoordinator.capabilities.contains(.calibrationV1))
     }
 
+    /// 캘리브레이션이 시작되기 *전에* 평범한 Top Up이 이미 100%에 도달해 도달 시각을 파일에
+    /// 찍어 둔 상태를 재현한다. 그 스탬프가 디스크에 남아 있는 채로 캘리브레이션이 시작되면,
+    /// 12시간 뒤에도 그 스탬프가 만료를 쏘면 안 된다. `evaluateTopUpExpiry`가 100% 홀드 판정
+    /// 자체를 `.calibrationHolding`으로 바꿔 버리는 이전 버전의 테스트는 `decide` 호출에서
+    /// `calibrationActive:` 인자를 지워도 통과했다 — `isHoldingAtFull`이 이미 false라 `.none`이
+    /// 나오는 별개의 이유로 우연히 맞았을 뿐, 인자가 실제로 하는 일은 검증하지 못했다.
     @Test func topUpNeverExpiresDuringCalibration() {
         let store = PolicyStoreSpy()
         let clock = MutableClock(1000)
@@ -1404,13 +1477,24 @@ struct BatteryControlCoordinatorTests {
             ownerUID: 501, store: store,
             engine: BatteryControlEngine(hardware: MockBatteryHardware()),
             now: { clock.now })
+
+        // 평범한 Top Up이 먼저 100%에 도달해 도달 시각을 찍는다.
         _ = coordinator.configure(
-            .init(enabled: true, topUpActive: true, calibrationActive: true),
+            .init(enabled: true, limitPercentage: 80, topUpActive: true),
             trigger: .clientConfiguration, currentSoC: 100, isPluggedIn: true)
-        clock.advance(by: BatteryTopUpExpiry.duration + 3600)
         _ = coordinator.sample(currentSoC: 100, isPluggedIn: true)
-        #expect(coordinator.latestStatus.desiredConfiguration?.topUpActive == true)
-        #expect(coordinator.latestStatus.lastMaintenance?.trigger != .topUpExpired)
+        #expect(store.stored?.topUpReachedFullAt == 1000)
+
+        // 그 스탬프가 디스크에 남은 채로 캘리브레이션이 시작된다(충전 단계 = topUpActive 유지).
+        _ = coordinator.configure(
+            .init(enabled: true, topUpActive: true, calibrationActive: true,
+                  calibrationTargetPercentage: 20),
+            trigger: .clientConfiguration, currentSoC: 100, isPluggedIn: true)
+
+        clock.advance(by: BatteryTopUpExpiry.duration + 3600)
+        let status = coordinator.sample(currentSoC: 100, isPluggedIn: true)
+        #expect(status.desiredConfiguration?.topUpActive == true)
+        #expect(status.lastMaintenance?.trigger != .topUpExpired)
     }
 }
 

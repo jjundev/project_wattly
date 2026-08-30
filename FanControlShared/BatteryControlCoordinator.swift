@@ -155,14 +155,16 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         temperatureCelsius: Double? = nil
     ) -> BatteryControlServiceStatus {
         var normalized = requested.normalized
-        if normalized.manualDischargeActive {
+        // 캘리브레이션을 먼저 판정한다: 충전 단계에서 `topUpActive`를 빌려 쓰므로 그것과는
+        // 공존하지만, 수동 방전과는 같은 CHIE를 다투므로 공존할 수 없다 (결정 #24). 모순된 입력
+        // (수동 방전+Top Up+캘리브레이션이 동시에 켜진 상태)에서 수동 방전/Top Up 상호배제를
+        // 먼저 적용하면 캘리브레이션의 충전 단계 의도(`topUpActive`)가 조용히 지워진다 — 그래서
+        // 캘리브레이션이 켜져 있으면 아래 상호배제 분기를 아예 타지 않는다.
+        if normalized.calibrationActive {
+            normalized.manualDischargeActive = false
+        } else if normalized.manualDischargeActive {
             normalized.topUpActive = false
         } else if normalized.topUpActive {
-            normalized.manualDischargeActive = false
-        }
-        // 캘리브레이션은 충전 단계에서 `topUpActive`를 빌려 쓰므로 그것과는 공존하지만,
-        // 수동 방전과는 같은 CHIE를 다투므로 공존할 수 없다 (결정 #24).
-        if normalized.calibrationActive {
             normalized.manualDischargeActive = false
         }
         do {
@@ -216,14 +218,16 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         trigger: BatteryMaintenanceTrigger
     ) -> BatteryControlServiceStatus {
         var normalized = requested.normalized
-        if normalized.manualDischargeActive {
+        // 캘리브레이션을 먼저 판정한다: 충전 단계에서 `topUpActive`를 빌려 쓰므로 그것과는
+        // 공존하지만, 수동 방전과는 같은 CHIE를 다투므로 공존할 수 없다 (결정 #24). 모순된 입력
+        // (수동 방전+Top Up+캘리브레이션이 동시에 켜진 상태)에서 수동 방전/Top Up 상호배제를
+        // 먼저 적용하면 캘리브레이션의 충전 단계 의도(`topUpActive`)가 조용히 지워진다 — 그래서
+        // 캘리브레이션이 켜져 있으면 아래 상호배제 분기를 아예 타지 않는다.
+        if normalized.calibrationActive {
+            normalized.manualDischargeActive = false
+        } else if normalized.manualDischargeActive {
             normalized.topUpActive = false
         } else if normalized.topUpActive {
-            normalized.manualDischargeActive = false
-        }
-        // 캘리브레이션은 충전 단계에서 `topUpActive`를 빌려 쓰므로 그것과는 공존하지만,
-        // 수동 방전과는 같은 CHIE를 다투므로 공존할 수 없다 (결정 #24).
-        if normalized.calibrationActive {
             normalized.manualDischargeActive = false
         }
         do {
