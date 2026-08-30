@@ -80,6 +80,17 @@ import Observation
             dischargeRatePercentPerMinute: observedDischargeRate)
     }
 
+    /// 방전이 너무 느려 제한 시간 안에 끝날 수 없다는 **관측**. 절차를 멈추지 않는다 —
+    /// 사용자가 Mac을 쓰기 시작하면 속도가 회복되어 그대로 완주할 수 있기 때문이다.
+    public var isDischargeTooSlow: Bool {
+        guard let run else { return false }
+        return BatteryCalibration.isDischargeTooSlowToFinish(
+            step: run.step,
+            soc: batteryControl.status.currentPercentage,
+            observedRatePercentPerMinute: observedDischargeRate,
+            stepActiveSeconds: run.timers.stepActiveSeconds)
+    }
+
     public var isWithinCooldown: Bool {
         BatteryCalibration.isWithinCooldown(
             lastCompletedAt: lastCompleted?.finishedAt,

@@ -518,3 +518,78 @@ struct BatteryCalibrationCopyTests {
         #expect(line.contains("어댑터"))
     }
 }
+
+/// 유휴 상태의 Mac은 62 Wh를 빼는 데 31시간이 걸린다(실측 2 W). 14시간 제한을 넘길 것이
+/// 확실한데도 14시간을 태운 뒤에야 실패를 알리는 것이 원래 동작이었다.
+struct BatteryCalibrationSlowDischargeTests {
+    private let ko = Locale(identifier: "ko")
+    private let hour: TimeInterval = 3600
+
+    private func tooSlow(
+        step: CalibrationStep = .dischargeToFloor,
+        soc: Int = 90,
+        rate: Double?,
+        elapsed: TimeInterval
+    ) -> Bool {
+        BatteryCalibration.isDischargeTooSlowToFinish(
+            step: step, soc: soc,
+            observedRatePercentPerMinute: rate, stepActiveSeconds: elapsed)
+    }
+
+    @Test func idleRateCannotReachTheFloorInTimeAndIsReported() {
+        // 실측 유휴 2 W ≈ 0.032 %p/분. 90→20%면 2187분(36시간) 남았다.
+        #expect(tooSlow(rate: 0.032, elapsed: hour))
+    }
+
+    @Test func aWorkingMacIsNotReported() {
+        // 실측 부하 20 W ≈ 0.41 %p/분. 90→20%가 171분이면 넉넉히 들어온다.
+        #expect(!tooSlow(rate: 0.41, elapsed: hour))
+    }
+
+    /// 이 판정의 존재 이유이자 가장 위험한 오진. 실기에서 게이지는 20분 34초 동안 89%에
+    /// 얼어붙어 있었지만 배터리는 305 mAh를 정상적으로 내보내고 있었다. 관측이 없다는 것을
+    /// "느리다"로 읽으면 정상 동작을 경고로 뒤집는다.
+    @Test func aFrozenGaugeIsNeverMistakenForASlowDischarge() {
+        #expect(!tooSlow(rate: nil, elapsed: 4 * hour))
+        #expect(!tooSlow(rate: 0, elapsed: 4 * hour))
+    }
+
+    @Test func nothingIsJudgedBeforeAnHourOfObservation() {
+        // 게이지 정체가 20분 넘게 이어진 실측이 있으므로 관측 창은 그보다 넉넉해야 한다.
+        #expect(!tooSlow(rate: 0.032, elapsed: BatteryCalibration.dischargeRateAssessmentSeconds - 1))
+        #expect(tooSlow(rate: 0.032, elapsed: BatteryCalibration.dischargeRateAssessmentSeconds))
+        #expect(BatteryCalibration.dischargeRateAssessmentSeconds > 20 * 60)
+    }
+
+    @Test func onlyTheDischargeStepIsJudged() {
+        for step in CalibrationStep.allCases where step != .dischargeToFloor {
+            #expect(!tooSlow(step: step, rate: 0.032, elapsed: 4 * hour))
+        }
+    }
+
+    @Test func reachingTheFloorIsNotReportedAsTooSlow() {
+        #expect(!tooSlow(soc: BatteryCalibration.floorPercentage, rate: 0.001, elapsed: 4 * hour))
+    }
+
+    /// 남은 시간뿐 아니라 **이미 쓴 시간**도 예산에 포함해야 한다. 그러지 않으면 13시간을
+    /// 쓴 절차가 "2시간 남았으니 괜찮다"고 보고한다.
+    @Test func timeAlreadySpentCountsAgainstTheBudget() {
+        // 0.2 %p/분이면 70%p가 350분(5.8시간). 그 자체로는 14시간 안에 들어온다.
+        #expect(!tooSlow(rate: 0.2, elapsed: hour))
+        // 그런데 이미 13시간을 썼다면 총합이 제한을 넘는다.
+        #expect(tooSlow(rate: 0.2, elapsed: 13 * hour))
+    }
+
+    @Test func theAdvisoryTellsTheUserWhatToDo() {
+        let text = BatteryCalibration.slowDischargeText(locale: ko)
+        #expect(text.contains("사용 중인 상태"))
+    }
+
+    /// 시작 전 확인 문구는 유휴 방치를 권해서는 안 된다. 그 문장이 사용자를 실패가 확정된
+    /// 유일한 경로로 안내하고 있었다.
+    @Test func theDurationAcknowledgementDoesNotInviteAnIdleMac() {
+        let text = BatteryCalibration.blockerText(.durationUnconfirmed, locale: ko)
+        #expect(text.contains("사용 중인 상태"))
+        #expect(!text.contains("화면은 꺼져도 됩니다"))
+    }
+}

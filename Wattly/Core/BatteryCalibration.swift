@@ -121,6 +121,12 @@ public enum BatteryCalibration {
     /// 활동 시간, 저쪽은 SoC가 마지막으로 움직인 뒤의 벽시계 시간.
     public static let dischargePhaseTimeout: TimeInterval = 14 * 3600
 
+    /// 방전 속도를 판정하기 전에 관측을 쌓는 시간. 실기에서 잔량 게이지가 20분 넘게 얼어붙은
+    /// 채 실제로는 정상 방전한 사례가 있었다(20분 34초 동안 305 mAh가 빠졌는데 표시 변화는 0).
+    /// 30분으로는 얼어붙은 게이지를 느린 방전으로 오진한다. 한 시간이면 관측된 정체 폭의
+    /// 약 3배다.
+    public static let dischargeRateAssessmentSeconds: TimeInterval = 3600
+
     /// 일시정지 누적 상한. 열보호를 끄지 않는 대가로 정지가 길어질 수 있어 상한이 필요하다.
     /// 잠자기는 여기에 들어가지 않는다 (`CalibrationPause.consumesBudget`).
     public static let pauseBudgetSeconds: TimeInterval = 2 * 3600
@@ -384,6 +390,35 @@ public enum BatteryCalibration {
         return previous * 0.7 + sample * 0.3
     }
 
+    /// 관측된 방전 속도로 남은 방전 시간을 투영해, `dischargePhaseTimeout` 안에 끝낼 수
+    /// 없으면 참을 돌려준다.
+    ///
+    /// **이 판정은 절차를 중단시키지 않는다.** 실측 방전 속도는 2~26 mAh/분으로 13배까지
+    /// 흔들리고, 그 차이를 만드는 것은 Mac이 얼마나 바쁜지다. 유휴 2 W에서 62 Wh를 빼려면
+    /// 31시간이 걸리지만 사용자가 쓰기 시작하면 즉시 3시간대로 떨어진다. 그러니 여기서
+    /// 죽이면 사용자가 고칠 수 있는 상황을 대신 포기해 주는 셈이 된다. 알리기만 하고,
+    /// 정말로 끝나지 않는 경우는 기존 `.stepTimeout`이 정직하게 잡는다.
+    public static func isDischargeTooSlowToFinish(
+        step: CalibrationStep,
+        soc: Int,
+        observedRatePercentPerMinute: Double?,
+        stepActiveSeconds: TimeInterval
+    ) -> Bool {
+        guard step == .dischargeToFloor,
+              stepActiveSeconds >= dischargeRateAssessmentSeconds else { return false }
+        // 측정값이 없으면 판정하지 않는다. 관측의 부재는 "느리다"가 아니라 "모른다"이며,
+        // 그 둘을 같게 취급하면 위 상수가 막으려는 얼어붙은 게이지를 그대로 오진한다.
+        guard let rate = observedRatePercentPerMinute, rate > 0 else { return false }
+        let remaining = Double(soc - floorPercentage)
+        guard remaining > 0 else { return false }
+        return stepActiveSeconds + remaining / rate * 60 > dischargePhaseTimeout
+    }
+
+    public static func slowDischargeText(locale: Locale) -> String {
+        String(localized: "이 속도로는 제한 시간 안에 방전을 마칠 수 없습니다. Mac을 사용 중인 상태로 두면 방전이 빨라집니다.",
+               locale: locale)
+    }
+
     // MARK: - 완료 리포트
 
     /// 이 절차가 실제로 한 일. 셀 회복도 수명 연장도 아니다.
@@ -456,7 +491,7 @@ public enum BatteryCalibration {
         case .optimizedChargingUnconfirmed:
             return String(localized: "시스템 설정 › 배터리에서 \"최적화된 배터리 충전\"을 껐습니다.", locale: locale)
         case .durationUnconfirmed:
-            return String(localized: "약 10시간이 걸리며, 방전 구간 약 7시간 동안은 뚜껑을 열어 두어야 합니다. 화면은 꺼져도 됩니다.", locale: locale)
+            return String(localized: "약 10시간이 걸립니다. 방전 구간에는 뚜껑을 열고 Mac을 사용 중인 상태로 두세요 — 유휴 상태로 두면 방전이 너무 느려 끝나지 않습니다.", locale: locale)
         }
     }
 

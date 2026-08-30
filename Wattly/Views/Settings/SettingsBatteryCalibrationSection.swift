@@ -183,6 +183,12 @@ struct SettingsBatteryCalibrationSection: View {
                     .foregroundStyle(Tokens.statusOrange)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            if calibration.isDischargeTooSlow {
+                Text(verbatim: BatteryCalibration.slowDischargeText(locale: locale))
+                    .font(WattlyFont.at(10.5, weight: .medium))
+                    .foregroundStyle(Tokens.statusOrange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             Text(verbatim: estimateText)
                 .font(WattlyFont.at(10.5, weight: .regular))
                 .foregroundStyle(t.sub)
