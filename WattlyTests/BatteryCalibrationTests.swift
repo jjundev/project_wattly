@@ -180,6 +180,12 @@ struct BatteryCalibrationDecideTests {
         #expect(BatteryCalibration.decide(input(step: .soakLow, timers: timers, soc: 20))
             == .advance(to: .rechargeToFull, primitive: .chargeToFull))
 
+        // soakFinalSeconds(3600)는 soakLowSeconds(600)도 만족한다 — soakFinal이 실수로
+        // soakLowSeconds를 참조해도 이 지점만 확인하면 통과해 버린다. 문턱 바로 아래에서
+        // hold를 고정해야 그 구현이 걸린다.
+        timers.stepActiveSeconds = BatteryCalibration.soakFinalSeconds - 1
+        #expect(BatteryCalibration.decide(input(step: .soakFinal, timers: timers, soc: 100))
+            == .hold(.holdAtFull))
         timers.stepActiveSeconds = BatteryCalibration.soakFinalSeconds
         #expect(BatteryCalibration.decide(input(step: .soakFinal, timers: timers, soc: 100))
             == .advance(to: .restoring, primitive: .restore))
@@ -219,6 +225,15 @@ struct BatteryCalibrationDecideTests {
             == .pause(.helperUnavailable))
     }
 
+    @Test func missingHelperOutranksUnsupportedDischarge() {
+        // 헬퍼가 죽으면서 하필 방전 지원 여부까지 false를 보고하는 경우, 복구 가능한
+        // 일시정지(헬퍼 부재)가 회복 불가능한 실패(방전 미지원)보다 먼저 판정돼야 한다 —
+        // 그래야 헬퍼가 돌아왔을 때 절차를 이어갈 수 있다.
+        #expect(BatteryCalibration.decide(
+            input(step: .dischargeToFloor, helperReady: false, dischargeSupported: false))
+            == .pause(.helperUnavailable))
+    }
+
     @Test func sustainedChargeStallPausesWithAnActionableReason() {
         var timers = CalibrationTimers()
         timers.chargeStalledSeconds = BatteryCalibration.chargeStallSeconds
@@ -245,6 +260,27 @@ struct BatteryCalibrationDecideTests {
         var timers = CalibrationTimers()
         timers.pausedTotalSeconds = BatteryCalibration.pauseBudgetSeconds
         #expect(BatteryCalibration.decide(input(step: .chargeToFull, timers: timers))
+            == .finish(.failed, failure: .pauseBudgetExhausted))
+    }
+
+    @Test func exhaustedPauseBudgetFailsEvenWhileAPauseReasonIsStillActive() {
+        // 실제 운용 형태: 열보호가 계속 걸려 있는 채로 예산이 다 찼다. 예산 검사가 세 개의
+        // `.pause` 판정보다 아래에 있으면 `decide`는 열보호가 풀릴 때까지 절대 이 지점에
+        // 도달하지 못한다 — 즉 열보호가 진행 중인 두 시간 내내 `.pause(.heatProtection)`만
+        // 돌려주는 회귀가 생긴다. 이 assert가 그 회귀를 잡는다.
+        var timers = CalibrationTimers()
+        timers.pausedTotalSeconds = BatteryCalibration.pauseBudgetSeconds
+
+        #expect(BatteryCalibration.decide(
+            input(step: .dischargeToFloor, timers: timers, isHeatProtected: true))
+            == .finish(.failed, failure: .pauseBudgetExhausted))
+
+        #expect(BatteryCalibration.decide(
+            input(step: .chargeToFull, timers: timers, isAdapterPresent: false))
+            == .finish(.failed, failure: .pauseBudgetExhausted))
+
+        #expect(BatteryCalibration.decide(
+            input(step: .chargeToFull, timers: timers, helperReady: false))
             == .finish(.failed, failure: .pauseBudgetExhausted))
     }
 

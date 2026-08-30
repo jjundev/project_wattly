@@ -188,26 +188,32 @@ public enum BatteryCalibration {
         // 2. 잠자기. 예산을 쓰지 않고, 정체 관측은 `tick`이 이미 버렸다.
         if input.isSleepGap { return .pause(.systemSleep) }
 
-        // 3. 헬퍼 부재. 하드웨어는 마지막 원시 상태를 그대로 들고 있다.
+        // 3. 일시정지 예산 소진. 아래 세 개의 `.pause` 판정(헬퍼 부재/열보호/어댑터)보다
+        //    반드시 먼저 와야 한다 — 그 셋 중 하나가 계속 발동 중이면 `decide`는 매 tick
+        //    거기서 멈춰 서고 이 판정까지 내려오지 못한다. 그러면 사용자가 손댈 수 없는
+        //    일시정지(예: 열보호)가 두 시간을 넘겨도 아무도 알아채지 못하다가, 정지 사유가
+        //    풀리는 바로 그 tick에야 예산 소진으로 실패해 버려 절차가 문제 해결 직후에
+        //    죽는다. 예산이 실제로 막아야 하는 것이 정확히 그 경우이므로 이 검사가 위에 있어야
+        //    한다.
+        if input.timers.pausedTotalSeconds >= pauseBudgetSeconds {
+            return .finish(.failed, failure: .pauseBudgetExhausted)
+        }
+
+        // 4. 헬퍼 부재. 하드웨어는 마지막 원시 상태를 그대로 들고 있다.
         if !input.helperReady { return .pause(.helperUnavailable) }
 
-        // 4. CHIE가 없으면 절차 자체가 성립하지 않는다. preflight가 이미 막지만,
+        // 5. CHIE가 없으면 절차 자체가 성립하지 않는다. preflight가 이미 막지만,
         //    실행 중 하드웨어 판정이 뒤집히는 경우까지 여기서 닫는다.
         if !input.dischargeSupported {
             return .finish(.failed, failure: .dischargeUnsupported)
         }
 
-        // 5. 열보호는 절대 자동 비활성화하지 않는다. 발동하면 기다린다.
+        // 6. 열보호는 절대 자동 비활성화하지 않는다. 발동하면 기다린다.
         if input.isHeatProtected { return .pause(.heatProtection) }
 
-        // 6. 어댑터. 방전 단계만 어댑터 없이도 진행된다.
+        // 7. 어댑터. 방전 단계만 어댑터 없이도 진행된다.
         if input.step != .dischargeToFloor && !input.isAdapterPresent {
             return .pause(.needsAdapter)
-        }
-
-        // 7. 일시정지 예산 소진.
-        if input.timers.pausedTotalSeconds >= pauseBudgetSeconds {
-            return .finish(.failed, failure: .pauseBudgetExhausted)
         }
 
         // 8. 단계 타임아웃.
