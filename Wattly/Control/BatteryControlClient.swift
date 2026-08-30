@@ -401,9 +401,10 @@ import AppKit
             detail: detail,
             updatedAt: Date().timeIntervalSince1970,
             appliedLimitPercentage: nil,
-            // Capability is a fact about this Mac, not about the connection — dropping it would
-            // flicker the settings toggle back to enabled on every transient failure.
+            // Hardware capability is a fact about this Mac, not about the connection — dropping
+            // these fields would flicker the settings toggles back to enabled on every transient failure.
             isHardwareSupported: status.isHardwareSupported,
+            isDischargeHardwareSupported: status.isDischargeHardwareSupported,
             capabilities: status.capabilities
         )
     }

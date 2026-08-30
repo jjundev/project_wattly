@@ -530,6 +530,7 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
                 && actualGate.state == .inhibited
                 ? engine.configuration.clampedLimitPercentage : nil,
             isHardwareSupported: engine.isHardwareSupported,
+            isDischargeHardwareSupported: engine.isDischargeHardwareSupported,
             detailReason: reason,
             actualGate: actualGate,
             releaseVerdict: releaseVerdict,

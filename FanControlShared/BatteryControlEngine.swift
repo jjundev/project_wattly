@@ -652,6 +652,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
             updatedAt: Date().timeIntervalSince1970,
             appliedLimitPercentage: nil,
             isHardwareSupported: isHardwareSupported,
+            isDischargeHardwareSupported: isDischargeHardwareSupported,
             detailReason: reason,
             activity: nil,
             actualGate: lastVerifiedGate ?? .unreadable,
