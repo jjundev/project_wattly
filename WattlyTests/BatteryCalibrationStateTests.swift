@@ -67,7 +67,9 @@ struct BatteryCalibrationStateTests {
             beginCycleCount: 112,
             lastProgressAt: Date(timeIntervalSince1970: 2000),
             lastTickAt: Date(timeIntervalSince1970: 2010),
-            appliedPrimitive: .dischargeToFloor)
+            appliedPrimitive: .dischargeToFloor,
+            finishing: .failed,
+            finishingFailure: .helperLost)
         let data = try JSONEncoder().encode(state)
         #expect(try JSONDecoder().decode(CalibrationRunState.self, from: data) == state)
     }

@@ -8,6 +8,9 @@ struct BatteryCalibrationCoordinatorTests {
         var status: BatteryControlServiceStatus
         var reading: CalibrationBatteryReading
         var writes: [BatteryControlConfiguration] = []
+        /// 켜면 이후 `.configure` 요청이 XPC 오류로 실패한다 — 원복/전이 write가 거부되는
+        /// 상황(Fix 1/4)을 흉내내는 용도다.
+        var rejectWrites = false
 
         init() {
             status = BatteryControlServiceStatus(
@@ -22,24 +25,61 @@ struct BatteryCalibrationCoordinatorTests {
         }
     }
 
+    /// 재진입/취소 경쟁 테스트가 `readBattery`의 정지 지점을 직접 통제할 수 있게 해 준다.
+    /// `armed`일 때만 실제로 suspend하므로, 통제되지 않은 tick(예: `start()`)은 그대로
+    /// 지나간다.
+    private actor Gate {
+        private var armed = false
+        private var isWaiting = false
+        private var continuation: CheckedContinuation<Void, Never>?
+
+        func arm() { armed = true }
+
+        func waitIfArmed() async {
+            guard armed else { return }
+            armed = false
+            isWaiting = true
+            await withCheckedContinuation { continuation = $0 }
+            isWaiting = false
+        }
+
+        /// suspend된 tick이 실제로 continuation에서 멈출 때까지 폴링한다 — 단일
+        /// `Task.yield()`에 기대는 것보다 신뢰할 수 있다.
+        func waitUntilBlocked() async {
+            while !isWaiting {
+                await Task.yield()
+            }
+        }
+
+        func release() {
+            continuation?.resume()
+            continuation = nil
+        }
+    }
+
     private func makeSubject(
         _ fake: Fake,
         defaults: UserDefaults,
-        clock: @escaping @Sendable () -> Date
+        clock: @escaping @Sendable () -> Date,
+        readBattery: (@Sendable () async -> CalibrationBatteryReading)? = nil
     ) -> BatteryCalibrationCoordinator {
         let client = BatteryControlClient { request in
-            if case .configure(let data) = request,
-               let decoded = try? BatteryControlCodec.decode(
-                   BatteryControlConfigurationRequest.self, from: data) {
-                fake.writes.append(decoded.configuration)
-                fake.status.desiredConfiguration = decoded.configuration
+            if case .configure(let data) = request {
+                if fake.rejectWrites {
+                    return (nil, NSError(domain: "test", code: 1))
+                }
+                if let decoded = try? BatteryControlCodec.decode(
+                    BatteryControlConfigurationRequest.self, from: data) {
+                    fake.writes.append(decoded.configuration)
+                    fake.status.desiredConfiguration = decoded.configuration
+                }
             }
             return (try? BatteryControlCodec.encode(fake.status), nil)
         }
         return BatteryCalibrationCoordinator(
             batteryControl: client,
             defaults: defaults,
-            readBattery: { fake.reading },
+            readBattery: readBattery ?? { fake.reading },
             sleepAssertion: SleepAssertion(create: { _ in 1 }, release: { _ in }),
             notifyPause: { _ in },
             notifyFinished: { _ in },
@@ -124,6 +164,26 @@ struct BatteryCalibrationCoordinatorTests {
         #expect(subject.isRunning)
     }
 
+    /// CHIE 강제 방전 중에는 `isPowerAdapterConnected`가 거짓말을 하지만 `AdapterDetails.Watts`는
+    /// 여전히 참을 보고한다(개발기에서 3회 재현). `adapterLossDuringChargePausesWithoutWriting`은
+    /// 둘 다 꺼서 `reading.isAdapterPresent` 항을 빼먹은 구현도 통과시키므로, 이 항이 실제로
+    /// 지키는 조합을 별도로 고정한다.
+    @Test func adapterWattsAloneKeepsTheProcedureRunningDuringForcedDischarge() async {
+        let fake = Fake()
+        let defaults = freshDefaults("calibration.adapter-watts-only")
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
+        let subject = makeSubject(fake, defaults: defaults, clock: { now })
+        await subject.start()
+
+        fake.reading.adapterWatts = 68
+        fake.status.isPowerAdapterConnected = false
+        now = now.addingTimeInterval(10)
+        await subject.evaluate(at: now)
+
+        #expect(subject.run?.pause == nil)
+        #expect(subject.isRunning)
+    }
+
     @Test func aLongGapBetweenTicksIsTreatedAsSleepNotAsAStall() async {
         let fake = Fake()
         let defaults = freshDefaults("calibration.sleep")
@@ -170,11 +230,51 @@ struct BatteryCalibrationCoordinatorTests {
         let first = makeSubject(fake, defaults: defaults, clock: { Date(timeIntervalSince1970: 0) })
         await first.start()
         let runID = first.run?.id
+        #expect(first.run?.appliedPrimitive == .chargeToFull)
 
         let second = makeSubject(fake, defaults: defaults, clock: { Date(timeIntervalSince1970: 30) })
         await second.handleAppLaunch()
         #expect(second.run?.id == runID)
         #expect(second.isRunning)
+        // 데몬이 여전히 캘리브레이션을 들고 있으므로(같은 fake를 공유) 재무장 분기(Fix 3)를
+        // 타지 않아야 하고, 저장된 appliedPrimitive가 그대로 살아남아야 한다.
+        #expect(second.run?.appliedPrimitive == .chargeToFull)
+    }
+
+    @Test func aDaemonThatForgotCalibrationIsReArmedOnLaunch() async {
+        let fake = Fake()
+        let defaults = freshDefaults("calibration.forgot")
+        let first = makeSubject(fake, defaults: defaults, clock: { Date(timeIntervalSince1970: 0) })
+        await first.start()
+        #expect(first.run?.appliedPrimitive == .chargeToFull)
+
+        // 데몬이 재시작해 캘리브레이션을 잊었다: desiredConfiguration이 더는 그것을 들고
+        // 있지 않다. appliedPrimitive만 믿으면 다음 tick이 write를 건너뛰어 절차가 idle
+        // 데몬을 향해 맹목적으로 흘러간다.
+        fake.status.desiredConfiguration = BatteryControlConfiguration(
+            enabled: false, calibrationActive: false)
+        let writesBeforeRelaunch = fake.writes.count
+
+        let second = makeSubject(fake, defaults: defaults, clock: { Date(timeIntervalSince1970: 30) })
+        await second.handleAppLaunch()
+
+        #expect(second.isRunning)
+        #expect(fake.writes.count > writesBeforeRelaunch)
+        #expect(fake.writes.last?.calibrationActive == true)
+        #expect(second.run?.appliedPrimitive == .chargeToFull)
+    }
+
+    @Test func launchWithNoRunStillPopulatesLastReadingForTheCooldownGate() async {
+        let fake = Fake()
+        fake.reading.cycleCount = 200
+        let defaults = freshDefaults("calibration.launch-no-run")
+        let subject = makeSubject(fake, defaults: defaults, clock: { Date(timeIntervalSince1970: 0) })
+
+        await subject.handleAppLaunch()
+
+        // `lastReading`이 채워지지 않았다면 `cycleCount`가 nil로 남아 90일/40사이클의
+        // "또는" 중 사이클 쪽 탈출이 영영 발동하지 못한다.
+        #expect(subject.lastReading.cycleCount == 200)
     }
 
     @Test func anOrphanedDaemonCalibrationIsReleasedOnLaunch() async {
@@ -201,6 +301,134 @@ struct BatteryCalibrationCoordinatorTests {
             await subject.cancel()
         }
         #expect(subject.history.count == BatteryCalibrationCoordinator.maxHistoryCount)
+    }
+
+    // MARK: - Fix 1: 실패한 원복 write는 재시도된다
+
+    @Test func aFailedRestoreWriteIsRetriedInsteadOfStrandingTheDaemon() async {
+        let fake = Fake()
+        let defaults = freshDefaults("calibration.finish-retry")
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
+        let subject = makeSubject(fake, defaults: defaults, clock: { now })
+        await subject.start()
+
+        fake.rejectWrites = true
+        now = now.addingTimeInterval(10)
+        await subject.cancel()
+
+        // 원복 write가 거부됐다 — run을 지우면 데몬은 캘리브레이션을 영원히 들고 있는데
+        // 앱은 그것을 고칠 실행 상태가 없어진다.
+        #expect(subject.isRunning)
+        #expect(subject.run?.finishing == .cancelled)
+        #expect(subject.history.isEmpty)
+
+        fake.rejectWrites = false
+        now = now.addingTimeInterval(10)
+        await subject.evaluate(at: now)
+
+        // 다음 tick(10초 타이머와 같은 간격)이 재시도해 마무리한다.
+        #expect(subject.isRunning == false)
+        #expect(subject.history.count == 1)
+        #expect(subject.history.first?.outcome == .cancelled)
+    }
+
+    // MARK: - Fix 2: `evaluate`는 재진입하지 않고, 도중 취소는 되살아나지 않는다
+
+    @Test func cancellingASuspendedTickLeavesExactlyOneHistoryEntry() async {
+        let fake = Fake()
+        let defaults = freshDefaults("calibration.cancel-race")
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
+        let gate = Gate()
+        let subject = makeSubject(fake, defaults: defaults, clock: { now }, readBattery: {
+            await gate.waitIfArmed()
+            return fake.reading
+        })
+        await subject.start()
+
+        await gate.arm()
+        now = now.addingTimeInterval(10)
+        let task = Task { await subject.evaluate(at: now) }
+        await gate.waitUntilBlocked()
+
+        // tick이 `readBattery()` 안에서 정지된 동안 취소한다.
+        await subject.cancel()
+
+        #expect(subject.isRunning == false)
+        #expect(subject.history.count == 1)
+        #expect(subject.history.first?.outcome == .cancelled)
+
+        // 정지됐던 tick을 재개시킨다 — 취소된 run을 되살리면 안 된다.
+        await gate.release()
+        await task.value
+
+        #expect(subject.isRunning == false)
+        #expect(subject.history.count == 1)
+    }
+
+    @Test func overlappingEvaluateCallsProduceOnlyOneDaemonWrite() async {
+        let fake = Fake()
+        let defaults = freshDefaults("calibration.overlap")
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
+        let gate = Gate()
+        let subject = makeSubject(fake, defaults: defaults, clock: { now }, readBattery: {
+            await gate.waitIfArmed()
+            return fake.reading
+        })
+        await subject.start()
+
+        fake.status.currentPercentage = 100
+        fake.reading.isCharging = false
+        for _ in 0..<5 {
+            now = now.addingTimeInterval(10)
+            await subject.evaluate(at: now)
+        }
+        // 아직 전이 문턱(fullHoldSeconds >= 60) 아래다.
+        #expect(subject.run?.step == .chargeToFull)
+
+        await gate.arm()
+        now = now.addingTimeInterval(10)
+        let writesBefore = fake.writes.count
+        let task = Task { await subject.evaluate(at: now) }
+        await gate.waitUntilBlocked()
+
+        // 겹쳐 부른 두 번째 호출은 아무 일도 하지 않고 즉시 반환해야 한다.
+        await subject.evaluate(at: now)
+        #expect(fake.writes.count == writesBefore)
+
+        await gate.release()
+        await task.value
+
+        #expect(subject.run?.step == .dischargeToFloor)
+        #expect(fake.writes.count == writesBefore + 1)
+    }
+
+    // MARK: - Fix 4: 실패한 write는 적용된 것으로 기록되지 않는다
+
+    @Test func aFailedPrimitiveWriteIsNotRecordedAsApplied() async {
+        let fake = Fake()
+        let defaults = freshDefaults("calibration.write-fail")
+        nonisolated(unsafe) var now = Date(timeIntervalSince1970: 0)
+        let subject = makeSubject(fake, defaults: defaults, clock: { now })
+        await subject.start()
+
+        fake.status.currentPercentage = 100
+        fake.reading.isCharging = false
+        fake.rejectWrites = true
+        for _ in 0..<6 {
+            now = now.addingTimeInterval(10)
+            await subject.evaluate(at: now)
+        }
+
+        // 순수 판정은 write 성패와 무관하게 단계를 전이시킨다 — 문제는 그 write가 적용된
+        // 것으로 잘못 기록되는 것이다.
+        #expect(subject.run?.step == .dischargeToFloor)
+        #expect(subject.run?.appliedPrimitive == .chargeToFull)
+
+        fake.rejectWrites = false
+        now = now.addingTimeInterval(10)
+        await subject.evaluate(at: now)
+
+        #expect(subject.run?.appliedPrimitive == .dischargeToFloor)
     }
 }
 

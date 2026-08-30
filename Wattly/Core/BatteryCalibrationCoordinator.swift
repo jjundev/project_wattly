@@ -33,6 +33,10 @@ import Observation
     private let clock: @Sendable () -> Date
     private var observedDischargeRate: Double?
     nonisolated(unsafe) private var timerTask: Task<Void, Never>?
+    /// `evaluate`가 `await` 사이에서 재진입하지 못하게 막는다. `cancel()`/`start()`는 이
+    /// 가드를 우회할 수 있는 별도 진입점이므로, 이 플래그만으로는 부족해 각 `await` 뒤에
+    /// `run` identity도 다시 확인한다.
+    private var isEvaluating = false
 
     public init(
         batteryControl: BatteryControlClient,
@@ -122,6 +126,10 @@ import Observation
         loadState()
         await batteryControl.refreshStatus()
         if run == nil {
+            // 실행 중인 절차가 없어도 쿨다운의 "40 사이클" 판정이 `lastReading.cycleCount`를
+            // 읽는다. 여기서 한 번 채워 두지 않으면 그 값이 영영 비어 있어 판정이 날짜만으로
+            // 좁아진다.
+            lastReading = await readBattery()
             if batteryControl.status.desiredConfiguration?.calibrationActive == true {
                 // 고아 상태. 저장된 절차 없이 데몬만 캘리브레이션을 들고 있으면 충전 억제가
                 // 무기한 남는다 — 무조건 끊는다.
@@ -130,16 +138,37 @@ import Observation
             }
             return
         }
+        if batteryControl.status.desiredConfiguration?.calibrationActive != true {
+            // 반대 방향의 고아: 저장된 절차는 있는데 데몬이 캘리브레이션을 잊었다(재시작 등).
+            // `appliedPrimitive`가 이미 목표와 같다고 믿으면 `applyIfChanged`가 재전송을
+            // 건너뛰어 절차가 단계 타임아웃까지 idle 데몬을 향해 맹목적으로 흘러간다.
+            run?.appliedPrimitive = nil
+        }
         await evaluate(at: clock())
     }
 
     // MARK: - Tick
 
     public func evaluate(at now: Date) async {
+        guard !isEvaluating else { return }
+        isEvaluating = true
+        defer { isEvaluating = false }
+
+        // 원복 write가 지난 tick에서 실패했다면, 새 판정을 내리기 전에 그것부터 재시도한다.
+        // 10초 타이머가 그대로 재시도 루프가 된다.
+        if let current = run, let outcome = current.finishing {
+            await finish(outcome: outcome, failure: current.finishingFailure, at: now)
+            return
+        }
+
         guard var state = run else { return }
         await batteryControl.refreshStatus()
+        // `cancel()`은 이 `await` 사이에 끼어들 수 있는 별개의 진입점이다 — 재개된 이 tick이
+        // 이미 끝난 run을 되살리지 않도록 identity를 다시 확인한다.
+        guard run?.id == state.id else { return }
         let status = batteryControl.status
         let reading = await readBattery()
+        guard run?.id == state.id else { return }
         lastReading = reading
 
         let elapsed = now.timeIntervalSince(state.lastTickAt)
@@ -233,16 +262,55 @@ import Observation
     private func applyIfChanged(_ primitive: CalibrationPrimitive) async {
         guard var state = run else { return }
         guard state.appliedPrimitive != primitive else { saveState(); return }
-        await batteryControl.applyCalibration(primitive: primitive, snapshot: state.snapshot)
+        let id = state.id
+        let result = await batteryControl.applyCalibration(primitive: primitive, snapshot: state.snapshot)
+        // `cancel()`이 이 write 도중에 끼어들어 다른(또는 없는) run으로 바꿔치기했을 수 있다.
+        guard run?.id == id else { return }
+        // 실패한 write를 적용된 것으로 기록하면 다음 tick이 재시도하지 않는다 — 전이 write가
+        // 조용히 사라지고 절차는 데몬이 아직 이전 단계에 머무는 줄 모른 채 흘러간다.
+        guard result != nil else { return }
         state.appliedPrimitive = primitive
         run = state
         saveState()
     }
 
     private func finish(outcome: CalibrationOutcome, failure: CalibrationFailure?, at now: Date) async {
-        guard let state = run else { return }
+        guard var state = run else { return }
         sleepAssertion.release()
-        await batteryControl.applyCalibration(primitive: .restore, snapshot: state.snapshot)
+
+        // 종료 의도를 먼저 기록한다. 아래 원복 write가 실패해도 이 값은 남아 다음 tick의
+        // `evaluate`가 재시도할 수 있다. 같은 의도로 재시도하는 중이면 다시 쓰지 않는다.
+        if state.finishing != outcome || state.finishingFailure != failure {
+            state.finishing = outcome
+            state.finishingFailure = failure
+            run = state
+            saveState()
+        }
+
+        // `.restore`가 이미 적용·확인돼 있다면(성공적인 완주가 `advance(to: .restoring, ...)`
+        // 에서 이미 써 둔 경우) 다시 쓰지 않는다 — 전이가 아닌 반복 write는 SMC 트래픽 규칙이
+        // 금지하고, 그 write는 이미 검증됐다. 취소·실패 경로에서는 `.restore`가 아직 적용된 적이
+        // 없으므로 이 분기를 타지 않고 아래에서 정상적으로 write한다.
+        var restoreConfirmed = state.appliedPrimitive == .restore
+        if !restoreConfirmed {
+            let status = await batteryControl.applyCalibration(primitive: .restore, snapshot: state.snapshot)
+            guard run?.id == state.id else { return }
+            restoreConfirmed = status != nil
+            if restoreConfirmed {
+                state.appliedPrimitive = .restore
+            }
+        }
+
+        guard restoreConfirmed else {
+            // 원복 write가 실패했다. `run`을 지우지 않고 `finishing`을 세운 채로 남긴다 — 지우면
+            // 데몬은 캘리브레이션을 계속 들고 있는데 앱에는 아무 실행 상태도 없어, reconcile
+            // 루프조차 고치지 못하는(오히려 desiredConfiguration에서 그 상태를 되읽어 매분
+            // 재확인하는) 궁지가 된다. 다음 tick이 이어서 재시도한다.
+            run = state
+            saveState()
+            return
+        }
+
         let reading = await readBattery()
         lastReading = reading
         let entry = CalibrationHistoryEntry(

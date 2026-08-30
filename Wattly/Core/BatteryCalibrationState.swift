@@ -165,6 +165,15 @@ public struct CalibrationRunState: Codable, Equatable, Sendable {
     /// 데몬에 마지막으로 실제로 내려보낸 원시 명령. 같은 명령을 10초마다 다시 쓰지 않기
     /// 위한 것이다 — 전이가 아닌 반복 write는 SMC 트래픽 규칙이 금지한다.
     public var appliedPrimitive: CalibrationPrimitive?
+    /// 종료가 결정됐지만 원복 write가 아직 확인되지 않은 상태. 이 값이 세워진 동안은 `run`을
+    /// 지우지 않는다 — 원복 실패 직후 앱이 죽으면 데몬이 캘리브레이션을 영원히 들고 있게 되고,
+    /// `BatteryControlClient.reconcile`은 데몬 자신의 `desiredConfiguration`에서 그 상태를
+    /// 다시 읽어 매분 되살릴 뿐이라 스스로 못 고친다. `evaluate`가 매 tick 이 값을 보고
+    /// 원복을 재시도한다.
+    public var finishing: CalibrationOutcome?
+    /// `finishing`이 세워졌을 때 함께 기억해야 할 실패 사유. 재시도가 만드는 이력 항목의
+    /// `failure`가 원래 종료 사유와 어긋나지 않아야 한다.
+    public var finishingFailure: CalibrationFailure?
 
     public init(
         id: UUID,
@@ -177,7 +186,9 @@ public struct CalibrationRunState: Codable, Equatable, Sendable {
         beginCycleCount: Int?,
         lastProgressAt: Date,
         lastTickAt: Date,
-        appliedPrimitive: CalibrationPrimitive?
+        appliedPrimitive: CalibrationPrimitive?,
+        finishing: CalibrationOutcome? = nil,
+        finishingFailure: CalibrationFailure? = nil
     ) {
         self.id = id
         self.startedAt = startedAt
@@ -190,6 +201,8 @@ public struct CalibrationRunState: Codable, Equatable, Sendable {
         self.lastProgressAt = lastProgressAt
         self.lastTickAt = lastTickAt
         self.appliedPrimitive = appliedPrimitive
+        self.finishing = finishing
+        self.finishingFailure = finishingFailure
     }
 }
 
