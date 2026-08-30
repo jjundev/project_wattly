@@ -7,6 +7,9 @@ public final class SMCBatteryControlHardware: BatteryControlHardwareProtocol, @u
     /// the sole readback-free release outcome: no known Wattly latch was reachable at probe time.
     private let runtimeDrivableRegisterProbe: BatteryControlRuntimeDrivableRegisterProbe
     public let registerSet: BatteryControlRegisterSet
+    /// `registerSet`과 별개로 CHIE 키 자체를 프로브한 결과. 세대 표가 "지원"이라고 말하는
+    /// 기계에도 이 키가 없을 수 있고, 그때 방전 요청은 조용히 아무 일도 하지 않는다.
+    public let isDischargeSupported: Bool
 
     init(smc: SMCControlConnection) {
         self.smc = smc
@@ -15,6 +18,7 @@ public final class SMCBatteryControlHardware: BatteryControlHardwareProtocol, @u
         // whether every latch key was *explicitly* absent rather than treating unreadable as absent.
         let registerSet = BatteryControlKeys.registerSet { smc.keyInfo($0) }
         self.registerSet = registerSet
+        isDischargeSupported = BatteryControlKeys.isDischargeSupported { smc.keyInfo($0) }
         runtimeDrivableRegisterProbe = BatteryControlKeys.runtimeDrivableRegisterProbe {
             smc.batteryKeyProbe($0)
         }

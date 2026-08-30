@@ -325,6 +325,9 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
     /// is a different thing from a write that failed: the settings screen disables its toggle
     /// instead of showing a state that looks like it is still retrying.
     public var isHardwareSupported: Bool?
+    /// 이 Mac이 CHIE 강제 방전을 지원하는지 — 레지스터 세대 추정이 아니라 실제 프로브 결과.
+    /// `nil`은 이 필드를 모르는 구버전 헬퍼이며 "미지원"이 아니라 "모름"이다.
+    public var isDischargeHardwareSupported: Bool?
     /// The structured form of `detail`. `nil` from a helper too old to send one — which is the
     /// common case right after an app update, since nothing replaces an installed helper that still
     /// answers. The app falls back to parsing `detail` in that case.
@@ -353,6 +356,7 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
         updatedAt: TimeInterval,
         appliedLimitPercentage: Int? = nil,
         isHardwareSupported: Bool? = nil,
+        isDischargeHardwareSupported: Bool? = nil,
         detailReason: BatteryControlStatusReason? = nil,
         activity: BatteryControlActivity? = nil,
         desiredConfiguration: BatteryControlConfiguration? = nil,
@@ -370,6 +374,7 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
         self.updatedAt = updatedAt
         self.appliedLimitPercentage = appliedLimitPercentage
         self.isHardwareSupported = isHardwareSupported
+        self.isDischargeHardwareSupported = isDischargeHardwareSupported
         self.detailReason = detailReason
         self.activity = activity
         self.desiredConfiguration = desiredConfiguration

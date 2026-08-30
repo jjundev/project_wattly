@@ -467,4 +467,11 @@ struct BatteryControlProtocolTests {
         #expect(decoded == [.calibrationV1])
         #expect(BatteryControlCapability.calibrationV1.rawValue == "calibration-v1")
     }
+
+    @Test func dischargeSupportFlagIsOptionalForOlderHelpers() throws {
+        let legacy = #"{"mode":"charging","currentPercentage":80,"isPowerAdapterConnected":true,"detail":"","updatedAt":0}"#
+        let decoded = try BatteryControlCodec.decode(
+            BatteryControlServiceStatus.self, from: Data(legacy.utf8))
+        #expect(decoded.isDischargeHardwareSupported == nil)
+    }
 }

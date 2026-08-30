@@ -4,6 +4,9 @@ import Testing
 
 final class MockBatteryHardware: BatteryControlHardwareProtocol, @unchecked Sendable {
     var registerSet: BatteryControlRegisterSet = .modern
+    /// `nil`이면 기존처럼 `registerSet`에서 파생한다.
+    var probedDischargeSupport: Bool?
+    var isDischargeSupported: Bool { probedDischargeSupport ?? registerSet.isDischargeSupported }
     var reportedGate: BatteryHardwareGate = .allowed
     var chargingInhibited: Bool = false
     var lastInhibited: Bool { chargingInhibited }
@@ -1577,5 +1580,27 @@ struct BatteryControlEngineTests {
         // 어댑터가 빠지면 CHIE로 뺄 전원이 없다. 자연 방전이 이어받는다.
         _ = engine.update(currentSoC: 59, isPluggedIn: false)
         #expect(hw.isDischargeActive == false)
+    }
+
+    @Test func engineHonorsProbedDischargeSupportOverRegisterSet() {
+        let hw = MockBatteryHardware()
+        hw.registerSet = .modern           // 표에 따르면 지원
+        hw.probedDischargeSupport = false  // 실제 프로브는 CHIE 없음
+        let engine = BatteryControlEngine(hardware: hw)
+        #expect(engine.isDischargeHardwareSupported == false)
+
+        engine.configure(BatteryControlConfiguration(
+            enabled: true, calibrationActive: true, calibrationTargetPercentage: 20))
+        _ = engine.update(currentSoC: 60, isPluggedIn: true)
+        #expect(hw.isDischargeActive == false)
+    }
+
+    @Test func statusReportsDischargeHardwareSupport() {
+        let hw = MockBatteryHardware()
+        hw.probedDischargeSupport = true
+        let engine = BatteryControlEngine(hardware: hw)
+        engine.configure(BatteryControlConfiguration(enabled: true))
+        let status = engine.update(currentSoC: 70, isPluggedIn: true)
+        #expect(status.isDischargeHardwareSupported == true)
     }
 }

@@ -5,10 +5,18 @@ public protocol BatteryControlHardwareProtocol: Sendable {
     /// than inferred from the architecture, the model or the macOS version — the generation tracks
     /// the firmware, which moves under a machine that never changed.
     var registerSet: BatteryControlRegisterSet { get }
+    /// CHIE가 실제로 존재하는지 **프로브한** 결과. `registerSet`은 정책 세대를 말할 뿐이라
+    /// `.modern`인데 CHIE가 없는 기계를 걸러내지 못한다.
+    var isDischargeSupported: Bool { get }
     func readChargingGate(targetLimit: Int) -> BatteryHardwareGate
     func setChargingInhibited(_ inhibited: Bool, targetLimit: Int) -> Bool
     func setDischargingActive(_ active: Bool) -> Bool
     func releaseChargingControlAndVerify() -> BatteryReleaseVerification
+}
+
+public extension BatteryControlHardwareProtocol {
+    /// 프로브를 제공하지 않는 구현(테스트 더블 등)은 기존 동작을 유지한다.
+    var isDischargeSupported: Bool { registerSet.isDischargeSupported }
 }
 
 public final class BatteryControlEngine: @unchecked Sendable {
@@ -58,7 +66,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
 
     /// Whether the Mac's hardware supports active discharge control via CHIE.
     public var isDischargeHardwareSupported: Bool {
-        hardware.registerSet.isDischargeSupported
+        hardware.isDischargeSupported
     }
 
     public init(
@@ -619,6 +627,7 @@ public final class BatteryControlEngine: @unchecked Sendable {
             // re-push and clear the latch in the one of those two cases that can recover.
             appliedLimitPercentage: appliedLimit,
             isHardwareSupported: isHardwareSupported,
+            isDischargeHardwareSupported: isDischargeHardwareSupported,
             detailReason: reason,
             // The reason is already the single authoritative decision for this sample. Deriving
             // activity here keeps the new app, the legacy sentence, and the hardware mode aligned.
