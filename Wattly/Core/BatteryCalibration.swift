@@ -52,6 +52,24 @@ public enum CalibrationDecision: Equatable, Sendable {
     case finish(CalibrationOutcome, failure: CalibrationFailure?)
 }
 
+/// 시작 버튼을 막는 조건. 순서가 곧 화면에 뜨는 순서다.
+public enum CalibrationBlocker: String, Equatable, Sendable, CaseIterable {
+    case helperUnavailable
+    /// 응답은 하지만 `calibration-v1`을 모르는 헬퍼. 그대로 두면 20% 방전 요청이 조용히
+    /// 50%에서 멈춰 절차가 영원히 안 끝난다. 카드 안 인라인 업데이트 버튼으로 해소한다.
+    case helperTooOld
+    case hardwareUnsupported
+    case dischargeUnsupported
+    case adapterDisconnected
+    case heatProtectionActive
+    case otherActivityRunning
+    /// macOS "최적화된 배터리 충전"을 껐다는 사용자 확인. 설정 키를 읽을 방법이 없어
+    /// 확인으로 대신하지만, 켜져 있으면 절차가 6시간 타임아웃까지 갔다가 실패한다.
+    case optimizedChargingUnconfirmed
+    /// 약 10시간이 걸리고 방전 7시간 동안 뚜껑을 열어둬야 한다는 확인.
+    case durationUnconfirmed
+}
+
 /// 캘리브레이션 절차의 모든 판단. SwiftUI도 I/O도 `Date()`도 없다 —
 /// `BatteryControlPolicy` / `PollPolicy` / `BatterySectionPresentation`과 같은 방식으로,
 /// 코디네이터가 내리던 결정을 테이블 테스트가 가능한 함수로 모아 둔 것이다.
@@ -257,5 +275,112 @@ public enum BatteryCalibration {
         case .restoring:
             return true
         }
+    }
+
+    // MARK: - Preflight
+
+    public static func preflightBlockers(
+        helperMode: BatteryControlServiceMode,
+        capabilities: [BatteryControlCapability]?,
+        isHardwareSupported: Bool?,
+        isDischargeHardwareSupported: Bool?,
+        isAdapterPresent: Bool,
+        isHeatProtected: Bool,
+        isTopUpActive: Bool,
+        isManualDischargeActive: Bool,
+        hasConfirmedOptimizedChargingOff: Bool,
+        hasConfirmedDuration: Bool
+    ) -> [CalibrationBlocker] {
+        var blockers: [CalibrationBlocker] = []
+        if helperMode == .unavailable {
+            blockers.append(.helperUnavailable)
+        } else if capabilities?.contains(.calibrationV1) != true {
+            blockers.append(.helperTooOld)
+        }
+        // `nil`은 "모름"이지 "미지원"이 아니다. 모름으로 사용자를 막지 않는다.
+        if isHardwareSupported == false { blockers.append(.hardwareUnsupported) }
+        if isDischargeHardwareSupported == false { blockers.append(.dischargeUnsupported) }
+        if !isAdapterPresent { blockers.append(.adapterDisconnected) }
+        if isHeatProtected { blockers.append(.heatProtectionActive) }
+        if isTopUpActive || isManualDischargeActive { blockers.append(.otherActivityRunning) }
+        if !hasConfirmedOptimizedChargingOff { blockers.append(.optimizedChargingUnconfirmed) }
+        if !hasConfirmedDuration { blockers.append(.durationUnconfirmed) }
+        return blockers
+    }
+
+    /// 마지막 완료로부터 90일도, 사이클 40회도 지나지 않았는가. 둘 중 하나만 넘겨도
+    /// 쿨다운은 끝난 것으로 본다 (Battery University의 "3개월 **또는** 40 부분 사이클").
+    public static func isWithinCooldown(
+        lastCompletedAt: Date?,
+        cycleCountAtLastCompletion: Int?,
+        currentCycleCount: Int?,
+        now: Date
+    ) -> Bool {
+        guard let lastCompletedAt else { return false }
+        let elapsedDays = now.timeIntervalSince(lastCompletedAt) / 86_400
+        if elapsedDays >= Double(cooldownDays) { return false }
+        if let before = cycleCountAtLastCompletion, let current = currentCycleCount,
+           current - before >= cooldownCycles { return false }
+        return true
+    }
+
+    // MARK: - 예상 시간
+
+    /// 현재 단계부터 끝까지의 예상 분. 실측 방전 속도가 0.113~0.331 %p/분으로 3배 흔들리므로
+    /// 고정 추정치를 쓰지 않고, 관측 속도가 있으면 그것을 받는다.
+    public static func estimatedRemainingMinutes(
+        step: CalibrationStep,
+        soc: Int,
+        chargeRatePercentPerMinute: Double? = nil,
+        dischargeRatePercentPerMinute: Double? = nil
+    ) -> Int {
+        // 0에 가까운 속도는 무한대를 만든다. 바닥을 깔아 둔다.
+        let chargeRate = max(0.05, chargeRatePercentPerMinute ?? defaultChargeRatePercentPerMinute)
+        let dischargeRate = max(0.05, dischargeRatePercentPerMinute ?? defaultDischargeRatePercentPerMinute)
+        var minutes = 0.0
+        var projectedSoC = Double(soc)
+        var cursor: CalibrationStep? = step
+        while let current = cursor {
+            switch current {
+            case .preflight, .restoring:
+                break
+            case .chargeToFull, .rechargeToFull:
+                minutes += max(0, 100 - projectedSoC) / chargeRate
+                projectedSoC = 100
+            case .dischargeToFloor:
+                minutes += max(0, projectedSoC - Double(floorPercentage)) / dischargeRate
+                projectedSoC = Double(floorPercentage)
+            case .soakLow:
+                minutes += soakLowSeconds / 60
+            case .soakFinal:
+                minutes += soakFinalSeconds / 60
+            }
+            cursor = current.next
+        }
+        return Int(minutes.rounded())
+    }
+
+    // MARK: - 완료 리포트
+
+    /// 이 절차가 실제로 한 일. 셀 회복도 수명 연장도 아니다.
+    public static func completionHeadline(locale: Locale) -> String {
+        String(localized: "잔량 표시 보정 완료", locale: locale)
+    }
+
+    /// 용량 mAh는 참고값이다.
+    ///
+    /// 1회 사이클로 최대 용량 추정치가 움직이는지 실기로 확인했고, 관측된 변화(+35 mAh)는
+    /// 같은 하루 안의 자연 변동폭(86 mAh)에 묻혔다. 게다가 최종값이 `DesignCapacity`와 정확히
+    /// 일치한 순간이 있었던 것으로 보아 BMS가 상단을 클램프하는 듯하며, 건강한 배터리에서는
+    /// "개선"이 구조적으로 표시될 수 없다. 그래서 숫자만 보여주면 사용자가 노이즈를 성과로
+    /// 읽는다 — 변동폭을 반드시 함께 적는다.
+    public static func capacityNote(
+        beginMilliampHours: Int?,
+        endMilliampHours: Int?,
+        locale: Locale
+    ) -> String? {
+        guard let beginMilliampHours, let endMilliampHours else { return nil }
+        let formatString = String(localized: "최대 용량 추정치 %lld → %lld mAh (참고값 · 자연 변동폭 %lld mAh)", locale: locale)
+        return String(format: formatString, Int64(beginMilliampHours), Int64(endMilliampHours), Int64(naturalCapacityDriftMilliampHours))
     }
 }

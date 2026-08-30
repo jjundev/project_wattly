@@ -320,3 +320,125 @@ struct BatteryCalibrationDecideTests {
             == .pause(.systemSleep))
     }
 }
+
+struct BatteryCalibrationPreflightTests {
+    private func blockers(
+        helperMode: BatteryControlServiceMode = .charging,
+        capabilities: [BatteryControlCapability]? = [.calibrationV1],
+        isHardwareSupported: Bool? = true,
+        isDischargeHardwareSupported: Bool? = true,
+        isAdapterPresent: Bool = true,
+        isHeatProtected: Bool = false,
+        isTopUpActive: Bool = false,
+        isManualDischargeActive: Bool = false,
+        hasConfirmedOptimizedChargingOff: Bool = true,
+        hasConfirmedDuration: Bool = true
+    ) -> [CalibrationBlocker] {
+        BatteryCalibration.preflightBlockers(
+            helperMode: helperMode, capabilities: capabilities,
+            isHardwareSupported: isHardwareSupported,
+            isDischargeHardwareSupported: isDischargeHardwareSupported,
+            isAdapterPresent: isAdapterPresent, isHeatProtected: isHeatProtected,
+            isTopUpActive: isTopUpActive, isManualDischargeActive: isManualDischargeActive,
+            hasConfirmedOptimizedChargingOff: hasConfirmedOptimizedChargingOff,
+            hasConfirmedDuration: hasConfirmedDuration)
+    }
+
+    @Test func aReadyMachineHasNoBlockers() {
+        #expect(blockers().isEmpty)
+    }
+
+    @Test func anOldHelperBlocksWithItsOwnReason() {
+        // 응답은 잘 하지만 캘리브레이션을 모르는 헬퍼. 전역 `requiredCapabilities`를 건드리지
+        // 않고 이 카드 안에서만 막는다.
+        #expect(blockers(capabilities: [.persistedPolicyV1]) == [.helperTooOld])
+        #expect(blockers(capabilities: nil) == [.helperTooOld])
+        #expect(blockers(helperMode: .unavailable, capabilities: nil) == [.helperUnavailable])
+    }
+
+    @Test func hardwareAndDischargeSupportBlockSeparately() {
+        #expect(blockers(isHardwareSupported: false).contains(.hardwareUnsupported))
+        #expect(blockers(isDischargeHardwareSupported: false).contains(.dischargeUnsupported))
+        // `nil`은 "모름"이라 막지 않는다.
+        #expect(blockers(isHardwareSupported: nil, isDischargeHardwareSupported: nil).isEmpty)
+    }
+
+    @Test func runtimeConditionsBlock() {
+        #expect(blockers(isAdapterPresent: false).contains(.adapterDisconnected))
+        #expect(blockers(isHeatProtected: true).contains(.heatProtectionActive))
+        #expect(blockers(isTopUpActive: true).contains(.otherActivityRunning))
+        #expect(blockers(isManualDischargeActive: true).contains(.otherActivityRunning))
+    }
+
+    @Test func acknowledgementsAreBlockersUntilConfirmed() {
+        // #25는 안내가 아니라 차단 조건이다 — 실기에서 "최적화된 배터리 충전"이 켜진 채로는
+        // 우리가 게이트를 열어도 충전이 아예 시작되지 않았다.
+        #expect(blockers(hasConfirmedOptimizedChargingOff: false)
+            .contains(.optimizedChargingUnconfirmed))
+        #expect(blockers(hasConfirmedDuration: false).contains(.durationUnconfirmed))
+    }
+
+    @Test func cooldownIsNinetyDaysOrFortyCycles() {
+        let now = Date(timeIntervalSince1970: 100 * 86_400)
+        // 90일 이내 + 사이클 40회 미만 → 쿨다운 안
+        #expect(BatteryCalibration.isWithinCooldown(
+            lastCompletedAt: now.addingTimeInterval(-30 * 86_400),
+            cycleCountAtLastCompletion: 100, currentCycleCount: 110, now: now))
+        // 90일 경과 → 쿨다운 밖
+        #expect(BatteryCalibration.isWithinCooldown(
+            lastCompletedAt: now.addingTimeInterval(-91 * 86_400),
+            cycleCountAtLastCompletion: 100, currentCycleCount: 101, now: now) == false)
+        // 사이클 40회 → 쿨다운 밖
+        #expect(BatteryCalibration.isWithinCooldown(
+            lastCompletedAt: now.addingTimeInterval(-30 * 86_400),
+            cycleCountAtLastCompletion: 100, currentCycleCount: 140, now: now) == false)
+        // 한 번도 안 돌렸으면 쿨다운이 없다
+        #expect(BatteryCalibration.isWithinCooldown(
+            lastCompletedAt: nil, cycleCountAtLastCompletion: nil,
+            currentCycleCount: 110, now: now) == false)
+    }
+}
+
+struct BatteryCalibrationReportTests {
+    @Test func estimateCoversEveryRemainingStep() {
+        // 100%에서 시작: 방전 80%p + soakLow 10분 + 재충전 80%p + soakFinal 60분
+        let fromDischarge = BatteryCalibration.estimatedRemainingMinutes(
+            step: .dischargeToFloor, soc: 100,
+            chargeRatePercentPerMinute: 0.73, dischargeRatePercentPerMinute: 0.22)
+        let dischargeTime = 80.0 / 0.22
+        let rechargeTime = 80.0 / 0.73
+        let expected = Int((dischargeTime + 10 + rechargeTime + 60).rounded())
+        #expect(fromDischarge == expected)
+
+        // 뒤로 갈수록 남은 시간이 줄어든다.
+        #expect(BatteryCalibration.estimatedRemainingMinutes(step: .soakFinal, soc: 100) == 60)
+        #expect(BatteryCalibration.estimatedRemainingMinutes(step: .restoring, soc: 100) == 0)
+    }
+
+    @Test func estimateGuardsAgainstAbsurdRates() {
+        // 0으로 나누지 않는다.
+        #expect(BatteryCalibration.estimatedRemainingMinutes(
+            step: .chargeToFull, soc: 50,
+            chargeRatePercentPerMinute: 0, dischargeRatePercentPerMinute: 0) > 0)
+    }
+
+    @Test func headlineNeverPromisesCapacityRecovery() {
+        let ko = BatteryCalibration.completionHeadline(locale: Locale(identifier: "ko"))
+        #expect(ko == "잔량 표시 보정 완료")
+        #expect(ko.contains("회복") == false)
+        #expect(ko.contains("수명") == false)
+    }
+
+    @Test func capacityNoteAlwaysCarriesTheNaturalDriftBand() {
+        let note = BatteryCalibration.capacityNote(
+            beginMilliampHours: 6208, endMilliampHours: 6243,
+            locale: Locale(identifier: "ko"))
+        #expect(note?.contains("6208") == true)
+        #expect(note?.contains("6243") == true)
+        // 변동폭을 감춘 채 숫자만 보여주면 사용자가 노이즈를 성과로 읽는다.
+        #expect(note?.contains("86") == true)
+        #expect(BatteryCalibration.capacityNote(
+            beginMilliampHours: nil, endMilliampHours: 6243,
+            locale: Locale(identifier: "ko")) == nil)
+    }
+}
