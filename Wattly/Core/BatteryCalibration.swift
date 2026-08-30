@@ -390,4 +390,56 @@ public enum BatteryCalibration {
         let formatString = String(localized: "최대 용량 추정치 %lld → %lld mAh (참고값 · 자연 변동폭 %lld mAh)", locale: locale)
         return String(format: formatString, Int64(beginMilliampHours), Int64(endMilliampHours), Int64(naturalCapacityDriftMilliampHours))
     }
+
+    // MARK: - 표시 문구
+
+    public static func stepLabel(_ step: CalibrationStep, locale: Locale) -> String {
+        switch step {
+        case .preflight: return String(localized: "시작 준비", locale: locale)
+        case .chargeToFull: return String(localized: "100%까지 충전", locale: locale)
+        case .dischargeToFloor: return String(localized: "20%까지 방전", locale: locale)
+        case .soakLow: return String(localized: "저잔량 안정화 (10분)", locale: locale)
+        case .rechargeToFull: return String(localized: "다시 100%까지 충전", locale: locale)
+        case .soakFinal: return String(localized: "최종 안정화 (60분)", locale: locale)
+        case .restoring: return String(localized: "원래 설정으로 복원", locale: locale)
+        }
+    }
+
+    public static func pauseText(_ pause: CalibrationPause, locale: Locale) -> String {
+        switch pause {
+        case .needsAdapter:
+            return String(localized: "일시정지: 전원 어댑터를 다시 연결해 주세요", locale: locale)
+        case .heatProtection:
+            return String(localized: "일시정지: 발열 보호 작동 중 (식으면 자동으로 이어집니다)", locale: locale)
+        case .helperUnavailable:
+            return String(localized: "일시정지: 도우미에 연결되지 않았습니다", locale: locale)
+        case .systemSleep:
+            return String(localized: "일시정지: 잠자기 상태입니다 (뚜껑을 열면 이어집니다)", locale: locale)
+        case .externalChargeBlock:
+            return String(localized: "일시정지: 충전이 시작되지 않습니다. \"최적화된 배터리 충전\"을 꺼 주세요", locale: locale)
+        }
+    }
+
+    public static func blockerText(_ blocker: CalibrationBlocker, locale: Locale) -> String {
+        switch blocker {
+        case .helperUnavailable:
+            return String(localized: "도우미가 설치되어 있지 않습니다.", locale: locale)
+        case .helperTooOld:
+            return String(localized: "설치된 도우미가 캘리브레이션을 지원하지 않습니다. 업데이트가 필요합니다.", locale: locale)
+        case .hardwareUnsupported:
+            return String(localized: "이 Mac은 충전 제어를 지원하지 않습니다.", locale: locale)
+        case .dischargeUnsupported:
+            return String(localized: "이 Mac은 강제 방전을 지원하지 않아 캘리브레이션을 할 수 없습니다.", locale: locale)
+        case .adapterDisconnected:
+            return String(localized: "전원 어댑터를 연결해 주세요.", locale: locale)
+        case .heatProtectionActive:
+            return String(localized: "발열 보호가 작동 중입니다. 배터리가 식은 뒤에 시작해 주세요.", locale: locale)
+        case .otherActivityRunning:
+            return String(localized: "한 번만 완충 또는 수동 방전이 진행 중입니다. 먼저 끝내 주세요.", locale: locale)
+        case .optimizedChargingUnconfirmed:
+            return String(localized: "시스템 설정 › 배터리에서 \"최적화된 배터리 충전\"을 껐습니다.", locale: locale)
+        case .durationUnconfirmed:
+            return String(localized: "약 10시간이 걸리며, 방전 구간 약 7시간 동안은 뚜껑을 열어 두어야 합니다. 화면은 꺼져도 됩니다.", locale: locale)
+        }
+    }
 }

@@ -139,6 +139,7 @@
 		81892FF122AA60B6C563F115 /* BatteryStatusText.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABB8CAFE2C2774B233386F90 /* BatteryStatusText.swift */; };
 		825B96563DABEE15D8C5E6DE /* BatteryCalibrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40B355C1938170CBFCE8A49E /* BatteryCalibrationTests.swift */; };
 		846A6D3B5E4BFC14AB5A6F0D /* BatteryScheduleCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8E10685EA79A5A24CF69BD5 /* BatteryScheduleCoordinatorTests.swift */; };
+		84C25ABC3C62345C9AB0E4F7 /* SettingsBatteryCalibrationSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA818BA2654693249DE3E90 /* SettingsBatteryCalibrationSection.swift */; };
 		84EE9F36E603FEF906FED9CE /* WattlyShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BAE2B03304F1AE1D1749CD9 /* WattlyShortcuts.swift */; };
 		85941768C47A87F16E4C8021 /* BatteryCalibration.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED30DA02B6FB8098DC57562A /* BatteryCalibration.swift */; };
 		85DEA3CD13BEF82F6D68687F /* KineticNotchMotionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB98C62D1605495571FB1DDC /* KineticNotchMotionTests.swift */; };
@@ -463,6 +464,7 @@
 		D85F4FD3A4E6BB168DABACA7 /* PollPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollPolicy.swift; sourceTree = "<group>"; };
 		D8851659C2CDAC260D4C7134 /* CPUClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUClock.swift; sourceTree = "<group>"; };
 		D987ECF9FA534486FD44FE62 /* AppUninstallerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUninstallerTests.swift; sourceTree = "<group>"; };
+		DAA818BA2654693249DE3E90 /* SettingsBatteryCalibrationSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsBatteryCalibrationSection.swift; sourceTree = "<group>"; };
 		DABD59B5D69709138741DA7F /* SettingsMenuBarIconSectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsMenuBarIconSectionTests.swift; sourceTree = "<group>"; };
 		DD98A9BCB03687E506F17880 /* GlyphsRenderingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlyphsRenderingTests.swift; sourceTree = "<group>"; };
 		DECFD3734A1569FA8CFE4AF5 /* OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = OFL.txt; sourceTree = "<group>"; };
@@ -856,6 +858,7 @@
 			isa = PBXGroup;
 			children = (
 				70D945C3A3542F7B047050C1 /* ScheduleEditorSheet.swift */,
+				DAA818BA2654693249DE3E90 /* SettingsBatteryCalibrationSection.swift */,
 				FE1A8B204198577EEDF66B03 /* SettingsBatterySection.swift */,
 				4FE120FEF8869E1F4BDD7EF9 /* SettingsBehaviorSection.swift */,
 				7554F42F83C83A8A93CFA4A9 /* SettingsDisplaySection.swift */,
@@ -1265,6 +1268,7 @@
 				299C745CE8201FE44D8C72E7 /* SetBatterySailingIntent.swift in Sources */,
 				1ED56DE226F4EF0924F9A181 /* SetBatteryTopUpIntent.swift in Sources */,
 				7A394705C6834B5A9358DA10 /* Settings.swift in Sources */,
+				84C25ABC3C62345C9AB0E4F7 /* SettingsBatteryCalibrationSection.swift in Sources */,
 				180D4DD0B0DE664B3AB8A4E9 /* SettingsBatterySection.swift in Sources */,
 				EE923953EF8412A0896CD8DC /* SettingsBehaviorSection.swift in Sources */,
 				A292F6D7B2D0DAAC999ECBB7 /* SettingsComponents.swift in Sources */,

@@ -442,3 +442,37 @@ struct BatteryCalibrationReportTests {
             locale: Locale(identifier: "ko")) == nil)
     }
 }
+
+struct BatteryCalibrationCopyTests {
+    private let ko = Locale(identifier: "ko")
+
+    @Test func everyStepHasALabel() {
+        for step in CalibrationStep.allCases {
+            #expect(BatteryCalibration.stepLabel(step, locale: ko).isEmpty == false)
+        }
+    }
+
+    @Test func everyPauseHasAnExplanation() {
+        for pause in CalibrationPause.allCases {
+            #expect(BatteryCalibration.pauseText(pause, locale: ko).isEmpty == false)
+        }
+    }
+
+    @Test func everyBlockerHasAnActionableSentence() {
+        for blocker in CalibrationBlocker.allCases {
+            #expect(BatteryCalibration.blockerText(blocker, locale: ko).isEmpty == false)
+        }
+    }
+
+    @Test func theDurationConfirmationSpellsOutTheLidRequirement() {
+        // #17의 조건이었다: 10.5시간을 감수하는 대신 안내가 솔직해야 한다.
+        let text = BatteryCalibration.blockerText(.durationUnconfirmed, locale: ko)
+        #expect(text.contains("뚜껑"))
+        #expect(text.contains("10"))
+    }
+
+    @Test func theOptimizedChargingBlockerNamesTheSettingToTurnOff() {
+        let text = BatteryCalibration.blockerText(.optimizedChargingUnconfirmed, locale: ko)
+        #expect(text.contains("최적화된 배터리 충전"))
+    }
+}

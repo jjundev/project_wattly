@@ -946,7 +946,7 @@ struct SettingsBatterySection: View {
 
     /// 설치 실패 문구. `.install`은 설치기 자신의 오류(카탈로그 키이거나 macOS가 이미 현지화한
     /// 문장)이고, `.configureRejected`는 도우미 상태를 문장 안에 끼워 넣어야 한다.
-    private static func message(for failure: BatteryControlClient.InstallFailure,
+    static func message(for failure: BatteryControlClient.InstallFailure,
                                 locale: Locale) -> String {
         switch failure {
         case .install(let error):

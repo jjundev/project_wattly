@@ -383,6 +383,8 @@ struct SettingsView: View {
             }
             if monitor.isPresent(.battery) {
                 SettingsBatterySection(batteryControl: batteryControl, scheduleCoordinator: scheduleCoordinator)
+                SettingsBatteryCalibrationSection(
+                    batteryControl: batteryControl, calibration: calibrationCoordinator)
             }
         }
     }
