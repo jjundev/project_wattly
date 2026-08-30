@@ -70,6 +70,7 @@ enum AppUninstaller: Sendable {
         fileManager: FileManager = .default,
         homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser,
         bundleID: String = Bundle.main.bundleIdentifier ?? "dev.jjundev.Wattly",
+        stopCalibration: @MainActor () async -> Void = {},
         releaseBatteryLimit: @MainActor () async throws -> Void = {
             let client = BatteryControlClient()
             switch await client.prepareForRemoval(window: NSApp.keyWindow) {
@@ -106,6 +107,10 @@ enum AppUninstaller: Sendable {
             throw UninstallError.loginItemRemovalFailed(error.localizedDescription)
         }
 
+        // 1.5. 캘리브레이션을 먼저 멈춘다. 아래 릴리스는 충전 게이트만 되돌리므로, 절차가
+        // 살아 있으면 다음 tick이 다시 CHIE를 세운다.
+        await stopCalibration()
+
         // 2. Hand the battery back before the helper goes away. `bootout` below SIGTERMs the
         // daemon, which releases on its own — but a helper that was SIGKILLed earlier would leave
         // the SMC charge-inhibit latched with nothing left on disk to ever clear it.
@@ -131,7 +136,8 @@ enum AppUninstaller: Sendable {
         currentAppURL: URL = Bundle.main.bundleURL,
         userDefaults: UserDefaults = .standard,
         loginItem: LoginItemControlling = LoginItem(),
-        fileManager: FileManager = .default
+        fileManager: FileManager = .default,
+        stopCalibration: @MainActor () async -> Void = {}
     ) async throws {
         let currentPID = ProcessInfo.processInfo.processIdentifier
         let cleanupPaths = targetCleanupPaths()
@@ -139,7 +145,8 @@ enum AppUninstaller: Sendable {
         try await cleanUserData(
             userDefaults: userDefaults,
             loginItem: loginItem,
-            fileManager: fileManager
+            fileManager: fileManager,
+            stopCalibration: stopCalibration
         )
 
         let script = generateUninstallScript(

@@ -329,4 +329,39 @@ struct SettingsResetTests {
     @Test func systemOptionCopyConsistency() {
         #expect(ThemeMode.allCases.map(\.label) == ["라이트", "다크", "시스템"])
     }
+
+    @Test func resetClearsCalibrationKeys() {
+        let defaults = UserDefaults(suiteName: "reset.calibration")!
+        defaults.removePersistentDomain(forName: "reset.calibration")
+        defaults.set("{\"step\":\"soakLow\"}", forKey: StorageKey.batteryCalibrationState)
+        defaults.set("[{}]", forKey: StorageKey.batteryCalibrationHistory)
+
+        SettingsReset.applyDefaults(into: defaults)
+
+        #expect(defaults.string(forKey: StorageKey.batteryCalibrationState) == "")
+        #expect(defaults.string(forKey: StorageKey.batteryCalibrationHistory) == "")
+    }
+
+    @MainActor @Test func resetStopsTheCalibrationBeforeErasingItsState() async {
+        final class Order: @unchecked Sendable { var values: [String] = [] }
+        let order = Order()
+        let name = "reset.calibration.order"
+        let defaults = UserDefaults(suiteName: name)!
+        defaults.removePersistentDomain(forName: name)
+        defaults.set("{}", forKey: StorageKey.batteryCalibrationState)
+
+        await SettingsReset.resetEverything(
+            into: defaults,
+            stoppingCalibration: {
+                // 이 시점에는 저장된 실행 상태가 아직 살아 있어야 한다 — 없으면 절차를
+                // 되돌릴 근거가 사라진다.
+                order.values.append(
+                    defaults.string(forKey: StorageKey.batteryCalibrationState) == "{}"
+                        ? "stop-with-state" : "stop-without-state")
+            })
+
+        order.values.append("erased")
+        #expect(order.values == ["stop-with-state", "erased"])
+        #expect(defaults.string(forKey: StorageKey.batteryCalibrationState) == "")
+    }
 }
