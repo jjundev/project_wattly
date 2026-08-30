@@ -280,9 +280,11 @@ git add FanControlShared/BatteryControlProtocol.swift WattlyTests/BatteryControl
 - Modify: `FanControlShared/BatteryControlStatusReason.swift`
 - Modify: `FanControlShared/BatteryControlActivity.swift`
 - Modify: `Wattly/Core/BatteryStatusText.swift`
-- Test: `WattlyTests/BatteryControlStatusReasonTests.swift`, `WattlyTests/BatteryControlActivityTests.swift`, `WattlyTests/BatteryStatusTextTests.swift`
+- Modify: `Wattly/Core/LegacyBatteryDetail.swift` (항목 추가만 — 기존 항목 문구는 불변)
+- Modify: `Wattly/Resources/Localizable.xcstrings` (신규 3키의 en/ko만; 나머지 28개 로케일은 Task 20)
+- Test: `WattlyTests/BatteryControlStatusReasonTests.swift`, `WattlyTests/BatteryControlActivityTests.swift`, `WattlyTests/BatteryStatusTextTests.swift`, `WattlyTests/LegacyBatteryDetailTests.swift`(기존 테스트가 자동으로 커버)
 
-> ⚠️ `BatteryStatusText.text(reason:detail:locale:)`의 `switch resolved.kind`는 **총망라 switch**다([BatteryStatusText.swift:48](Wattly/Core/BatteryStatusText.swift:48)). `Kind`에 케이스를 추가하는 순간 앱 타깃이 컴파일되지 않으므로, 이 태스크 안에서 함께 채운다. `LegacyBatteryDetail`은 `String`을 switch하므로 영향이 없고, **절대 수정하지 않는다** — 그 표는 이미 디스크에 설치된 구버전 헬퍼의 문장을 알아보기 위한 것이다.
+> ⚠️ `BatteryStatusText.text(reason:detail:locale:)`의 `switch resolved.kind`는 **총망라 switch**다([BatteryStatusText.swift:48](Wattly/Core/BatteryStatusText.swift:48)). `Kind`에 케이스를 추가하는 순간 앱 타깃이 컴파일되지 않으므로, 이 태스크 안에서 함께 채운다. `LegacyBatteryDetail`은 `String`을 switch하므로 컴파일은 깨지지 않지만, **항목 3개를 추가해야 한다** — 기존 테스트 `LegacyBatteryDetailTests.coversEveryReasonTheCurrentDaemonEmits()`가 "현재 데몬이 내보내는 모든 문장을 이 파서가 알아본다"를 강제하기 때문이다. 그 파일이 "frozen"인 것은 **기존 항목의 문구를 바꾸지 말라**는 뜻이지 새 항목을 넣지 말라는 뜻이 아니다(문구를 바꾸면 이미 설치된 헬퍼를 못 알아보게 된다).
 
 **Interfaces:**
 - Consumes: Task 1의 설정 필드
@@ -372,6 +374,20 @@ Expected: 컴파일 실패 — `type 'BatteryControlStatusReason.Kind' has no me
         case .some(.calibrationCharging), .some(.calibrationHolding),
              .some(.calibrationDischarging):
             return .calibration
+```
+
+`Wattly/Core/LegacyBatteryDetail.swift`의 `reason(from:)`에서 `heatProtectionCooldown` 파싱 다음, `return nil` 앞에 추가:
+
+```swift
+        if let limit = number(in: detail, between: "캘리브레이션: ", and: "%까지 충전 중") {
+            return .init(kind: .calibrationCharging, limitPercentage: limit)
+        }
+        if let limit = number(in: detail, between: "캘리브레이션: ", and: "%까지 방전 중") {
+            return .init(kind: .calibrationDischarging, limitPercentage: limit)
+        }
+        if let limit = number(in: detail, between: "캘리브레이션: ", and: "% 유지 중") {
+            return .init(kind: .calibrationHolding, limitPercentage: limit)
+        }
 ```
 
 `Wattly/Core/BatteryStatusText.swift`의 `case .dischargingManual:` 다음에 추가 (이 switch는 총망라라 빠뜨리면 컴파일되지 않는다):
@@ -4797,9 +4813,9 @@ git diff main --unified=0 -- Wattly/Views/Settings/SettingsBatteryCalibrationSec
 | 충전이 시작되지 않습니다. 시스템 설정 › 배터리에서 "최적화된 배터리 충전"을 꺼 주세요. | Charging will not start. Turn off Optimized Battery Charging in System Settings › Battery. |
 | 도우미 연결이 끊겼습니다. Wattly 설정에서 다시 연결해 주세요. | The helper connection was lost. Reconnect it in Wattly settings. |
 | 배터리 캘리브레이션 진행 중 | Battery calibration in progress |
-| 캘리브레이션: %lld%%까지 충전 중 | Calibration: charging to %lld%% |
-| 캘리브레이션: %lld%%까지 방전 중 | Calibration: discharging to %lld%% |
-| 캘리브레이션: %lld%% 유지 중 | Calibration: holding at %lld%% |
+| 캘리브레이션: %lld%%까지 충전 중 | *(Task 2에서 en/ko 등록 완료 — 나머지 28개 로케일만 채운다)* |
+| 캘리브레이션: %lld%%까지 방전 중 | *(Task 2에서 en/ko 등록 완료)* |
+| 캘리브레이션: %lld%% 유지 중 | *(Task 2에서 en/ko 등록 완료)* |
 
 `"이 Mac은 충전 제어를 지원하지 않습니다."`와 `"확인"` / `"취소"` / `"도우미 업데이트"`는 카탈로그에 이미 있다 — 새로 추가하지 말고 그대로 재사용한다.
 
