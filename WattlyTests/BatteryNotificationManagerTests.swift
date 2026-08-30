@@ -199,5 +199,54 @@ import Testing
                                               occurredAt: 1_000, reason: nil),
                                 now: 1_000 + 3_600) == false)
     }
+
+    @Test func onlyUserActionablePausesNotify() {
+        // 열보호는 스스로 풀리고, 잠자기는 사용자가 이미 알고 한 일이다.
+        #expect(BatteryNotificationManager.isActionableForNotification(.needsAdapter))
+        #expect(BatteryNotificationManager.isActionableForNotification(.externalChargeBlock))
+        #expect(BatteryNotificationManager.isActionableForNotification(.helperUnavailable))
+        #expect(BatteryNotificationManager.isActionableForNotification(.heatProtection) == false)
+        #expect(BatteryNotificationManager.isActionableForNotification(.systemSleep) == false)
+    }
+
+    @Test func finishedNotificationNeverPromisesCapacityRecovery() {
+        let ko = Locale(identifier: "ko")
+        let completed = CalibrationHistoryEntry(
+            id: UUID(), startedAt: Date(timeIntervalSince1970: 0),
+            finishedAt: Date(timeIntervalSince1970: 37_800),
+            outcome: .completed, failure: nil,
+            beginMaxCapacityMilliampHours: 6208, endMaxCapacityMilliampHours: 6243,
+            beginCycleCount: 112, endCycleCount: 113)
+        let title = BatteryNotificationManager.calibrationFinishedTitle(completed, locale: ko)
+        #expect(title == "잔량 표시 보정 완료")
+        #expect(title.contains("회복") == false)
+    }
+
+    @Test func failureNotificationNamesTheReason() {
+        let ko = Locale(identifier: "ko")
+        let failed = CalibrationHistoryEntry(
+            id: UUID(), startedAt: Date(timeIntervalSince1970: 0),
+            finishedAt: Date(timeIntervalSince1970: 100),
+            outcome: .failed, failure: .stepTimeout,
+            beginMaxCapacityMilliampHours: nil, endMaxCapacityMilliampHours: nil,
+            beginCycleCount: nil, endCycleCount: nil)
+        let body = BatteryNotificationManager.calibrationFinishedBody(failed, locale: ko)
+        #expect(body.isEmpty == false)
+        // 무엇 때문에 멈췄는지 말하지 않으면 사용자가 복구할 방법이 없다.
+        #expect(body != BatteryNotificationManager.calibrationFinishedBody(
+            CalibrationHistoryEntry(
+                id: UUID(), startedAt: Date(timeIntervalSince1970: 0),
+                finishedAt: Date(timeIntervalSince1970: 100),
+                outcome: .failed, failure: .pauseBudgetExhausted,
+                beginMaxCapacityMilliampHours: nil, endMaxCapacityMilliampHours: nil,
+                beginCycleCount: nil, endCycleCount: nil),
+            locale: ko))
+    }
+
+    @Test func actionNeededBodyDiffersPerPause() {
+        let ko = Locale(identifier: "ko")
+        #expect(BatteryNotificationManager.calibrationActionNeededBody(.needsAdapter, locale: ko)
+            != BatteryNotificationManager.calibrationActionNeededBody(.externalChargeBlock, locale: ko))
+    }
 }
 

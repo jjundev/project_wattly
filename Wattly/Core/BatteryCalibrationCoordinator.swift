@@ -43,12 +43,10 @@ import Observation
         defaults: UserDefaults = .standard,
         readBattery: (@Sendable () async -> CalibrationBatteryReading)? = nil,
         sleepAssertion: SleepAssertion = SleepAssertion(),
-        // 실제 알림 기본값(BatteryNotificationManager.postCalibrationActionNeeded /
-        // postCalibrationFinished)은 아직 없다 — 알림 태스크(Task 17)가 추가하며 이 자리를
-        // 되살린다. 그때까지는 no-op.
-        notifyPause: @escaping @MainActor (CalibrationPause) -> Void = { _ in },
-        // 위와 동일한 이유로 no-op. 알림 태스크가 postCalibrationFinished로 되살린다.
-        notifyFinished: @escaping @MainActor (CalibrationHistoryEntry) -> Void = { _ in },
+        notifyPause: @escaping @MainActor (CalibrationPause) -> Void =
+            BatteryNotificationManager.postCalibrationActionNeeded,
+        notifyFinished: @escaping @MainActor (CalibrationHistoryEntry) -> Void =
+            BatteryNotificationManager.postCalibrationFinished,
         clock: @escaping @Sendable () -> Date = { Date() },
         startsTimer: Bool = true
     ) {
@@ -94,6 +92,8 @@ import Observation
 
     public func start() async {
         guard run == nil else { return }
+        // 10시간 뒤에 뜰 완료 알림의 권한을 지금 받아 둔다. 거부되면 카드에 명시적으로 안내한다.
+        BatteryNotificationManager.requestAuthorization()
         await batteryControl.refreshStatus()
         let reading = await readBattery()
         lastReading = reading
