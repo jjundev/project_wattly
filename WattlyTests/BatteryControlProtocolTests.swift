@@ -425,4 +425,46 @@ struct BatteryControlProtocolTests {
         #expect(config.manualDischargeTarget == 80)
         #expect(config.clampedManualDischargeTarget == 80)
     }
+
+    @Test func calibrationFieldsDefaultOffAndDecodeLeniently() throws {
+        // 필드를 모르는 구버전 페이로드
+        let legacy = #"{"enabled":true,"limitPercentage":80,"lowerHysteresisDelta":2}"#
+        let decoded = try BatteryControlCodec.decode(
+            BatteryControlConfiguration.self, from: Data(legacy.utf8))
+        #expect(decoded.calibrationActive == false)
+        #expect(decoded.calibrationTargetPercentage == 20)
+    }
+
+    @Test func calibrationTargetClampsToFifteenThroughFifty() {
+        #expect(BatteryControlConfiguration(calibrationTargetPercentage: 5)
+            .clampedCalibrationTarget == 15)
+        #expect(BatteryControlConfiguration(calibrationTargetPercentage: 20)
+            .clampedCalibrationTarget == 20)
+        #expect(BatteryControlConfiguration(calibrationTargetPercentage: 90)
+            .clampedCalibrationTarget == 50)
+        // 기존 수동 방전 계약(하한 50)은 손대지 않는다.
+        #expect(BatteryControlConfiguration(manualDischargeTarget: 20)
+            .clampedManualDischargeTarget == 50)
+    }
+
+    @Test func calibrationCountsAsActivePolicy() {
+        var config = BatteryControlConfiguration(enabled: false)
+        #expect(config.isActive == false)
+        config.calibrationActive = true
+        #expect(config.isActive)
+    }
+
+    @Test func normalizedClampsCalibrationTarget() {
+        let normalized = BatteryControlConfiguration(
+            calibrationActive: true, calibrationTargetPercentage: 3).normalized
+        #expect(normalized.calibrationActive)
+        #expect(normalized.calibrationTargetPercentage == 15)
+    }
+
+    @Test func calibrationCapabilityRoundTrips() throws {
+        let encoded = try BatteryControlCodec.encode([BatteryControlCapability.calibrationV1])
+        let decoded = try BatteryControlCodec.decode([BatteryControlCapability].self, from: encoded)
+        #expect(decoded == [.calibrationV1])
+        #expect(BatteryControlCapability.calibrationV1.rawValue == "calibration-v1")
+    }
 }

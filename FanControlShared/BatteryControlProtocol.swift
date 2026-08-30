@@ -12,6 +12,13 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
     public var autoDischargeEnabled: Bool
     public var manualDischargeActive: Bool
     public var manualDischargeTarget: Int
+    /// 캘리브레이션 절차가 실행 중인지. 앱이 소유한 FSM이 세우고 내리는 원시 명령이며, 데몬은
+    /// 단계 개념을 모른다. `topUpActive`와 달리 정책 파일에 **저장**된다 — 앱이 죽어도 엔진의
+    /// 하한 가드가 살아 있어야 최악이 "하한 도달 후 홀드"라는 설계된 안전 상태로 끝난다.
+    public var calibrationActive: Bool
+    /// 캘리브레이션이 내려갈 하한. `manualDischargeTarget`(하한 50)과 클램프 범위가 다르므로
+    /// 별도 필드다 — 기존 수동 방전 계약을 바꾸면 Shortcuts·스케줄·UI가 전부 재검증 대상이 된다.
+    public var calibrationTargetPercentage: Int
 
     public init(
         enabled: Bool = false,
@@ -24,7 +31,9 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         topUpActive: Bool = false,
         autoDischargeEnabled: Bool = false,
         manualDischargeActive: Bool = false,
-        manualDischargeTarget: Int = 80
+        manualDischargeTarget: Int = 80,
+        calibrationActive: Bool = false,
+        calibrationTargetPercentage: Int = 20
     ) {
         self.enabled = enabled
         self.limitPercentage = limitPercentage
@@ -37,6 +46,8 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         self.autoDischargeEnabled = autoDischargeEnabled
         self.manualDischargeActive = manualDischargeActive
         self.manualDischargeTarget = manualDischargeTarget
+        self.calibrationActive = calibrationActive
+        self.calibrationTargetPercentage = calibrationTargetPercentage
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -44,6 +55,7 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         case heatProtectionEnabled, heatProtectionThresholdCelsius, heatProtectionResumeDeltaCelsius, heatProtectionMinCooldownSeconds
         case topUpActive
         case autoDischargeEnabled, manualDischargeActive, manualDischargeTarget
+        case calibrationActive, calibrationTargetPercentage
     }
 
     public init(from decoder: any Decoder) throws {
@@ -59,6 +71,8 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         autoDischargeEnabled = (try? container.decodeIfPresent(Bool.self, forKey: .autoDischargeEnabled)) ?? false
         manualDischargeActive = (try? container.decodeIfPresent(Bool.self, forKey: .manualDischargeActive)) ?? false
         manualDischargeTarget = (try? container.decodeIfPresent(Int.self, forKey: .manualDischargeTarget)) ?? 80
+        calibrationActive = (try? container.decodeIfPresent(Bool.self, forKey: .calibrationActive)) ?? false
+        calibrationTargetPercentage = (try? container.decodeIfPresent(Int.self, forKey: .calibrationTargetPercentage)) ?? 20
     }
 
     /// Range-clamped copy. Configurations reach the root daemon through the synthesized
@@ -75,11 +89,13 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         copy.autoDischargeEnabled = autoDischargeEnabled
         copy.manualDischargeActive = manualDischargeActive
         copy.manualDischargeTarget = Self.clampLimit(manualDischargeTarget)
+        copy.calibrationActive = calibrationActive
+        copy.calibrationTargetPercentage = Self.clampCalibrationTarget(calibrationTargetPercentage)
         return copy
     }
 
     public var isActive: Bool {
-        enabled || heatProtectionEnabled || topUpActive || manualDischargeActive
+        enabled || heatProtectionEnabled || topUpActive || manualDischargeActive || calibrationActive
     }
 
     public var clampedLimitPercentage: Int { Self.clampLimit(limitPercentage) }
@@ -87,6 +103,7 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
     public var clampedHeatProtectionResumeDeltaCelsius: Int { Self.clampResumeDelta(heatProtectionResumeDeltaCelsius) }
     public var clampedHeatProtectionMinCooldownSeconds: TimeInterval { Self.clampCooldown(heatProtectionMinCooldownSeconds) }
     public var clampedManualDischargeTarget: Int { Self.clampLimit(manualDischargeTarget) }
+    public var clampedCalibrationTarget: Int { Self.clampCalibrationTarget(calibrationTargetPercentage) }
 
     public var resumePercentage: Int {
         max(45, clampedLimitPercentage - Self.clampDelta(lowerHysteresisDelta))
@@ -97,6 +114,11 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
     }
 
     private static func clampLimit(_ value: Int) -> Int { max(50, min(100, value)) }
+    /// 캘리브레이션 전용 하한. 15는 엔진의 하드 가드와 같은 값이라 그 아래로는 어차피 방전이
+    /// 멈춘다. 50은 "이건 캘리브레이션이 아니다"라고 부를 수 있는 상한이다. v1이 실제로 쓰는
+    /// 값은 `BatteryCalibration.floorPercentage`(20) 하나뿐이며, 이 범위는 코드가 허용하는
+    /// 폭이지 UI가 노출하는 폭이 아니다.
+    private static func clampCalibrationTarget(_ value: Int) -> Int { max(15, min(50, value)) }
     private static func clampDelta(_ value: Int) -> Int { max(1, min(10, value)) }
     private static func clampThreshold(_ value: Int) -> Int { max(30, min(45, value)) }
     private static func clampResumeDelta(_ value: Int) -> Int { max(1, min(5, value)) }
@@ -124,6 +146,7 @@ public enum BatteryControlCapability: String, Codable, Equatable, Sendable {
     case persistedPolicyV1 = "persisted-policy-v1"
     case hardwareGateReadbackV1 = "hardware-gate-readback-v1"
     case systemPowerEventsV1 = "system-power-events-v1"
+    case calibrationV1 = "calibration-v1"
     case unrecognized
 
     public init(from decoder: any Decoder) throws {
