@@ -98,6 +98,15 @@ import AppKit
             calibrationActive: calibrationActive,
             calibrationTargetPercentage: calibrationTargetPercentage
         )
+        // 캐시가 비어 있는 건 "확인 안 됨"이지 "캘리브레이션 없음"이 아니다. Shortcuts/App
+        // Intents(BatteryIntentBridge)는 호출마다 새 BatteryControlClient를 만들어 쓰기 전에
+        // status를 읽지 않으므로 desiredConfiguration이 항상 nil이다 — 여기서 한 번 읽지
+        // 않으면 절차 중 아무 Shortcut 호출에도 되살리기가 조용히 빠진다. 이 읽기 자체가
+        // 실패해도(도우미가 죽어 있음) 아래 쓰기는 그대로 나간다 — 상태를 못 읽는 도우미는
+        // 쓰기도 못 받을 테니 여기서 멈출 이유가 없다.
+        if !isCalibrationWrite, status.desiredConfiguration == nil {
+            await refreshStatus()
+        }
         if !isCalibrationWrite,
            let daemon = status.desiredConfiguration, daemon.calibrationActive {
             config.calibrationActive = true

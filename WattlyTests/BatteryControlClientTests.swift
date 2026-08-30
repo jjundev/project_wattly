@@ -319,7 +319,12 @@ struct BatteryControlClientTests {
         })
 
         #expect(await client.prepareForRemoval(window: nil) == nil)
-        #expect(await recorder.kinds == ["status", "configure", "configure"])
+        // 두 번째 "status"는 installAndApply 내부의 apply(...) 호출이 만든 것이다.
+        // apply의 캘리브레이션 가드는 쓰기 전에 데몬을 한 번 읽는다 — desiredConfiguration이
+        // 비어 있는 건 "확인 안 됨"이지 "캘리브레이션 없음"이 아니기 때문이다. 레거시
+        // 도우미는 애초에 desiredConfiguration을 절대 채우지 않으므로(persisted-policy 이전
+        // 버전) 이 읽기는 여기서 그냥 공짜 왕복 하나일 뿐 — revive 분기는 절대 타지 않는다.
+        #expect(await recorder.kinds == ["status", "status", "configure", "configure"])
     }
 
     @MainActor @Test func clientInitialStateIsUnavailable() {
@@ -843,6 +848,38 @@ struct BatteryControlClientTests {
         #expect(await recorder.value == "true-true")
     }
 
+    /// 위 두 가드 테스트는 모두 `await client.refreshStatus()`를 먼저 호출해 캐시를 채워
+    /// 둔다 — 그게 바로 깨진 경로가 만족시키지 못하는 전제다. Shortcuts/App Intents
+    /// (`BatteryIntentBridge`)는 호출마다 새 `BatteryControlClient`를 만들고, 쓰기 전에
+    /// status를 읽지 않는다. 여기서는 그 모양을 그대로 재현한다: `refreshStatus()`를
+    /// 단 한 번도 부르지 않은 신선한 클라이언트가 평범한 `apply(enabled:limitPercentage:)`를
+    /// 받는다. 데몬이 캘리브레이션 중이라고 답하더라도, 데몬에 실제로 나간 설정에는
+    /// calibrationActive/topUpActive가 살아 있어야 한다.
+    @MainActor @Test func anApplyFromAClientThatHasNeverReadStatusStillPreservesARunningCalibration() async throws {
+        let daemon = BatteryControlConfiguration(
+            enabled: true, limitPercentage: 80, topUpActive: true,
+            calibrationActive: true, calibrationTargetPercentage: 20)
+        let running = BatteryControlServiceStatus(
+            mode: .inhibited, currentPercentage: 100, isPowerAdapterConnected: true,
+            detail: "", updatedAt: 1, desiredConfiguration: daemon)
+        let recorder = ScriptRecorder()
+        let client = BatteryControlClient { request in
+            if case .configure(let data) = request,
+               let decoded = try? BatteryControlCodec.decode(
+                   BatteryControlConfigurationRequest.self, from: data) {
+                await recorder.record(
+                    "\(decoded.configuration.calibrationActive)-\(decoded.configuration.topUpActive)")
+            }
+            return (try? BatteryControlCodec.encode(running), nil)
+        }
+        // 의도적으로 refreshStatus()를 부르지 않는다 — 신선한 client.status는 기본값(nil
+        // desiredConfiguration)이다.
+
+        // Shortcuts가 보낼 법한 평범한 write.
+        _ = await client.apply(enabled: true, limitPercentage: 85)
+        #expect(await recorder.value == "true-true")
+    }
+
     @MainActor @Test func theCoordinatorsOwnWriteCanTurnCalibrationOff() async throws {
         let daemon = BatteryControlConfiguration(
             enabled: true, limitPercentage: 80, calibrationActive: true)
@@ -900,8 +937,17 @@ struct BatteryControlClientTests {
         _ = await client.applyCalibration(primitive: .holdAtFull, snapshot: snapshot)
         #expect(await recorder.value == "cal=true top=true auto=false target=20")
 
+        // holdAtFloor는 방전 쪽 단계다 — isChargingStep이 false라 topUpActive가 켜지면
+        // 바닥에서 정착 중인 절차가 100%까지 충전하는 걸로 뒤집힌다.
+        _ = await client.applyCalibration(primitive: .holdAtFloor, snapshot: snapshot)
+        #expect(await recorder.value == "cal=true top=false auto=false target=20")
+
         // 원복은 스냅샷의 자동 방전 원값을 되살린다.
         _ = await client.applyCalibration(primitive: .restore, snapshot: snapshot)
+        #expect(await recorder.value == "cal=false top=false auto=true target=20")
+
+        // idle은 절차가 아예 꺼진 상태 — restore와 마찬가지로 스냅샷의 실제 선호값을 되살린다.
+        _ = await client.applyCalibration(primitive: .idle, snapshot: snapshot)
         #expect(await recorder.value == "cal=false top=false auto=true target=20")
     }
 }
