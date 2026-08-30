@@ -80,6 +80,17 @@ struct BatteryControlBridge: View {
         if desired.manualDischargeActive {
             merged.manualDischargeTarget = desired.manualDischargeTarget
         }
+        // 캘리브레이션은 세 번째 활동이다. `topUpActive`까지 함께 보존해야 하는 이유는,
+        // 절차에서 그 플래그가 "지금이 충전 단계인지"를 뜻하기 때문이다 — 여기서 떨어뜨리면
+        // 충전 중이던 절차가 방전 단계로 뒤집힌다.
+        merged.calibrationActive = desired.calibrationActive
+        if desired.calibrationActive {
+            merged.calibrationTargetPercentage = desired.calibrationTargetPercentage
+            merged.topUpActive = desired.topUpActive
+            merged.manualDischargeActive = false
+            merged.enabled = true
+            merged.autoDischargeEnabled = false
+        }
         return merged
     }
 
@@ -316,8 +327,14 @@ struct BatteryControlBridge: View {
                 }
                 // 헬퍼가 스스로 Top Up을 끝낸 경우에만 참이 된다. 사용자가 버튼으로 취소한
                 // 경우와 만료 후 상태가 동일하기 때문에 유지보수 레코드로 구분한다.
-                if topUpExpiryDetector.update(record: newStatus.lastMaintenance,
-                                              now: Date().timeIntervalSince1970) {
+                // 캘리브레이션은 100% 홀드 단계에서 같은 `topUpActive`를 빌려 쓴다. 만료
+                // 자체는 데몬이 막지만(`BatteryTopUpExpiry.decide(calibrationActive:)`),
+                // 절차 직전에 남아 있던 레코드가 신선도 창 안에서 뒤늦게 뜨는 경우가 있다.
+                // 감지기는 항상 돌려 레코드를 소비시키고, 알림만 건너뛴다.
+                let didExpire = topUpExpiryDetector.update(
+                    record: newStatus.lastMaintenance,
+                    now: Date().timeIntervalSince1970)
+                if didExpire, newStatus.desiredConfiguration?.calibrationActive != true {
                     BatteryNotificationManager.postTopUpExpiredNotification()
                 }
             }
