@@ -236,7 +236,10 @@ struct SettingsBatteryDischargeSection: View {
                     .tint(Tokens.statusOrange)
                     .disabled(!isManualDischargeActionable)
                     .accessibilityLabel(Text(LocalizedStringKey("목표 방전 잔량")))
-                    .accessibilityValue(Text(verbatim: "\(manualDischargeTarget)%"))
+                    // 화면에 보이는 헤더와 같은 `effectiveManualDischargeTarget`을 읽는다.
+                    // 원시 저장값을 읽으면 상한 이전에 100을 저장한 사용자에게 엄지는 95%,
+                    // 눈에 보이는 숫자는 95%인데 VoiceOver만 "100%"라고 말한다.
+                    .accessibilityValue(Text(verbatim: "\(effectiveManualDischargeTarget)%"))
 
                     HStack {
                         Text("50%")
