@@ -113,8 +113,11 @@ struct PollPolicyTests {
         #expect(open[.battery] == .seconds(1))
 
         // 고정 간격 설정이 2초보다 느리면 끌어올린다.
+        // `active`에 `.battery`를 반드시 넣는다 — 고정 간격 분기는 `active`에 있는 provider만
+        // 결과에 넣으므로, `[.cpu]`만 주면 `.battery` 키가 아예 없어서 위의 "없으면 삽입"
+        // 분기를 한 번 더 타게 되고 `min` 경로는 검증되지 않은 채로 남는다.
         #expect(providerIntervals(mode: .eco, setting: .s5, panelVisible: false,
-                                  menubarLiveContentEnabled: false, active: [.cpu],
+                                  menubarLiveContentEnabled: false, active: [.cpu, .battery],
                                   menubarNeeds: [],
                                   settingsBatteryLive: true)
                 == [.cpu: .seconds(5), .battery: .seconds(2)])
