@@ -610,6 +610,19 @@ struct SystemMonitorTests {
         await monitor.pollScheduled(force: false)
         #expect(await provider.reads == 2)
     }
+
+    @Test func batteryLiveDemandIsIdempotentAndReversible() {
+        let battery = ScriptedProvider(kind: .battery, [.pending])
+        let monitor = SystemMonitor(providers: [battery], clock: ManualClock())
+        #expect(monitor.isBatteryLiveDemanded == false)
+        monitor.setBatteryLiveDemand(true)
+        #expect(monitor.isBatteryLiveDemanded == true)
+        // 같은 값을 다시 넣어도 상태가 흔들리지 않는다.
+        monitor.setBatteryLiveDemand(true)
+        #expect(monitor.isBatteryLiveDemanded == true)
+        monitor.setBatteryLiveDemand(false)
+        #expect(monitor.isBatteryLiveDemanded == false)
+    }
 }
 
 

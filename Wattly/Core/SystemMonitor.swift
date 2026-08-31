@@ -101,6 +101,11 @@ final class SystemMonitor {
     private var tempEnabled = true
     private var isACConnected = false
     private var heroCard: CardKind?
+    /// 설정 › 배터리 방전 섹션이 화면에 있는 동안만 켜지는 수요. 팝오버 가시성과 별개다 —
+    /// 설정 창은 팝오버가 닫힌 채로 열리기 때문이다. 배터리 하나만 끌어올리므로 CPU/GPU/온도를
+    /// 1초로 돌리는 `setPanelVisible(true)`와 달리 자기전력 비용이 거의 없다.
+    private var settingsBatteryLive = false
+    var isBatteryLiveDemanded: Bool { settingsBatteryLive }
 
     init(providers: [any MetricProvider],
          clock: MonotonicClock = LiveClock()) {
@@ -138,7 +143,8 @@ final class SystemMonitor {
         return providerIntervals(mode: powerMode, setting: pollSetting, panelVisible: panelVisible,
                                  menubarLiveContentEnabled: !currentMenubarNeeds.isEmpty,
                                  active: activeProviderKinds, menubarNeeds: currentMenubarNeeds,
-                                 heroCard: heroCard, isACConnected: isACConnected)
+                                 heroCard: heroCard, isACConnected: isACConnected,
+                                 settingsBatteryLive: settingsBatteryLive)
     }
 
     private func nextScheduledDelay(at instant: ContinuousClock.Instant) -> Duration {
@@ -206,6 +212,19 @@ final class SystemMonitor {
                 await self.poll(kinds: [.power], at: self.clock.now())
             }
         }
+    }
+
+    /// 설정 › 배터리 방전 섹션이 나타나고 사라질 때 호출한다. `setPanelVisible`과 같은
+    /// before/after 비교 후 재스케줄 패턴을 따른다 — 새로 합류한 provider만 강제로 즉시 읽어
+    /// 첫 화면이 빈 상태로 뜨지 않게 한다.
+    func setBatteryLiveDemand(_ on: Bool) {
+        guard on != settingsBatteryLive else { return }
+        let before = currentProviderIntervals
+        settingsBatteryLive = on
+        let after = currentProviderIntervals
+        guard after != before else { return }
+        let forced = on ? Set(after.keys).subtracting(before.keys) : []
+        reschedule(forceProviders: forced)
     }
 
     /// The user picked a cadence in settings.
