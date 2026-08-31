@@ -37,7 +37,7 @@ struct SettingsBatterySection: View {
     }
 
     var body: some View {
-        SettingsSection(title: "배터리 충전 제어") {
+        SettingsSection(title: "충전 제한") {
             SettingsCard {
                 // Rendering never writes the stored value: flipping it off here would look like the
                 // app undoing the user's choice, and it would be wrong the moment the same
@@ -380,7 +380,9 @@ struct SettingsBatterySection: View {
             }
 
             if showsConfigurationControls, let scheduleCoordinator {
-                SettingsScheduleCard(coordinator: scheduleCoordinator)
+                SettingsSection("예약 충전") {
+                    SettingsScheduleCard(coordinator: scheduleCoordinator)
+                }
             }
         }
         .alert("도우미 설치 실패", isPresented: $isInstallFailedAlertPresented) {

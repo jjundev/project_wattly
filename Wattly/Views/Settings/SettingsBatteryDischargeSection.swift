@@ -117,7 +117,7 @@ struct SettingsBatteryDischargeSection: View {
         // 설정된 값은 데몬과 계속 맞춰져야 하기 때문이다.
         Group {
             if showsConfigurationControls {
-                VStack(alignment: .leading, spacing: 9) {
+                SettingsSection("방전 제어") {
                     autoDischargeCard
                     manualDischargeCard
                 }

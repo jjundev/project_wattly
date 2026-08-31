@@ -45,6 +45,7 @@ struct SettingsView: View {
                 displayGroup
                 menuBarGroup
                 behaviorGroup
+                batteryGroup
                 advancedGroup
             }
             .padding(18)
@@ -372,6 +373,22 @@ struct SettingsView: View {
         }
     }
 
+    // MARK: - 배터리 그룹
+
+    @ViewBuilder
+    private var batteryGroup: some View {
+        if monitor.isPresent(.battery) {
+            VStack(alignment: .leading, spacing: 18) {
+                SettingsGroupHeader(title: "배터리")
+                SettingsBatterySection(batteryControl: batteryControl,
+                                       scheduleCoordinator: scheduleCoordinator)
+                SettingsBatteryDischargeSection(monitor: monitor, batteryControl: batteryControl)
+                SettingsBatteryCalibrationSection(
+                    batteryControl: batteryControl, calibration: calibrationCoordinator)
+            }
+        }
+    }
+
     // MARK: - 고급 그룹
 
     private var advancedGroup: some View {
@@ -380,12 +397,6 @@ struct SettingsView: View {
             SettingsThresholdSection(showsFan: monitor.isPresent(.fan))
             if monitor.isPresent(.fan) {
                 SettingsFanCurveSection(monitor: monitor, fanControl: fanControl)
-            }
-            if monitor.isPresent(.battery) {
-                SettingsBatterySection(batteryControl: batteryControl, scheduleCoordinator: scheduleCoordinator)
-                SettingsBatteryDischargeSection(monitor: monitor, batteryControl: batteryControl)
-                SettingsBatteryCalibrationSection(
-                    batteryControl: batteryControl, calibration: calibrationCoordinator)
             }
         }
     }

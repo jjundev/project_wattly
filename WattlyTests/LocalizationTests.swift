@@ -242,10 +242,10 @@ struct LocalizationTests {
     }
 
     @Test func batterySettingsSectionTranslations() {
-        #expect(String(localized: "배터리 충전 제어", locale: Locale(identifier: "en")) == "Battery Charge Control")
-        #expect(String(localized: "배터리 충전 제어", locale: Locale(identifier: "ja")) == "バッテリー充電制御")
-        #expect(String(localized: "배터리 충전 제어", locale: Locale(identifier: "de")) == "Batterieladesteuerung")
-        #expect(String(localized: "배터리 충전 제어", locale: Locale(identifier: "zh-Hans")) == "电池充电控制")
+        #expect(String(localized: "충전 제한", locale: Locale(identifier: "en")) == "Charge Limit")
+        #expect(String(localized: "충전 제한", locale: Locale(identifier: "ja")) == "充電上限")
+        #expect(String(localized: "충전 제한", locale: Locale(identifier: "de")) == "Ladelimit")
+        #expect(String(localized: "충전 제한", locale: Locale(identifier: "zh-Hans")) == "充电上限")
 
         #expect(String(localized: "배터리 충전 제한", locale: Locale(identifier: "en")) == "Battery Charge Limit")
         #expect(String(localized: "배터리 충전 제한", locale: Locale(identifier: "fr"))
