@@ -703,7 +703,7 @@ struct SnapshotGeneratorTests {
         let batterySectionView = ThemedRoot {
             VStack(spacing: 9) {
                 SettingsBatterySection(batteryControl: batteryControlClient, scheduleCoordinator: scheduleCoordinator)
-                SettingsBatteryDischargeSection(batteryControl: batteryControlClient)
+                SettingsBatteryDischargeSection(monitor: monitor, batteryControl: batteryControlClient)
             }
             .padding(16)
             .frame(width: 440)

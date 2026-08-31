@@ -8,7 +8,13 @@ import SwiftUI
 struct SettingsBatteryDischargeSection: View {
     @Environment(\.tokens) private var t
     @Environment(\.locale) private var locale
+    let monitor: SystemMonitor
     let batteryControl: BatteryControlClient
+
+    /// 강제 방전이 시작된 벽시계 시각. 4초 EMA가 실제 방전 전력까지 오르는 데 걸리는 구간을
+    /// 재기 위한 표시 전용 시계다 — Top Up의 12시간 만료처럼 데몬이 소유해야 하는 판정이
+    /// 아니므로 뷰가 들고 있어도 진실의 출처가 갈라지지 않는다.
+    @State private var dischargeStartedAt: Date?
 
     // `SettingsBatterySection`과 같은 키를 읽는다. `@AppStorage`는 같은 저장소를 보므로
     // 두 뷰가 같은 값을 들고 있어도 어긋나지 않는다.
@@ -44,6 +50,45 @@ struct SettingsBatteryDischargeSection: View {
         BatterySectionPresentation.isLimitPickerEnabled(isLimitOn: batteryLimitEnabled)
     }
 
+    /// 강제 방전이 진행 중인지 — 데몬이 보고한 활동과 원하는 설정 둘 다 본다.
+    private var isManualDischargeActive: Bool {
+        batteryControl.status.activity == .discharging
+            || batteryControl.status.desiredConfiguration?.manualDischargeActive == true
+    }
+
+    /// 4초 EMA를 거친 배터리 표본. 표본이 30초 넘게 끊겼다가 재개되면 EMA가 원시값으로
+    /// 재시드되므로(`PowerSmoothing.emaStep`의 `maxGap`), 설정 창을 방전 도중에 열었을 때는
+    /// 첫 표본부터 곧바로 정확하다.
+    private var liveBatterySample: BatterySample? {
+        guard case .value(.battery(let s)) = monitor.cardState(.battery, smoothed: true) else {
+            return nil
+        }
+        return s
+    }
+
+    private var dischargeElapsedSeconds: Double {
+        guard let dischargeStartedAt else { return 0 }
+        return Date().timeIntervalSince(dischargeStartedAt)
+    }
+
+    /// "예상 완료: 약 34분 후". 표본·용량·워밍업 중 하나라도 없으면 `nil`을 돌려 줄을 통째로
+    /// 숨긴다 — 자리를 채우려고 근사치를 지어내지 않는다.
+    private func dischargeEstimateText(currentSoC: Int, targetSoC: Int) -> String? {
+        guard BatterySectionPresentation.shouldShowDischargeEstimate(
+                secondsSinceStart: dischargeElapsedSeconds),
+              let sample = liveBatterySample,
+              let capacityWh = sample.maxWh,
+              let minutes = BatterySectionPresentation.estimatedDischargeTimeMinutes(
+                  currentSoC: currentSoC,
+                  targetSoC: targetSoC,
+                  netWatts: sample.netW,
+                  capacityWh: capacityWh)
+        else { return nil }
+        let duration = BatterySectionPresentation.formatDuration(minutes: minutes, locale: locale)
+        return String(format: String(localized: "예상 완료: 약 %@ 후", locale: locale),
+                      locale: locale, duration)
+    }
+
     var body: some View {
         // 두 `.onChange`는 `showsConfigurationControls`와 무관하게 항상 매달려 있어야 한다.
         // 분리 전에는 늘 존재하는 카드에 체인되어 있었고, 한도·세일링·발열 보호의 형제
@@ -54,6 +99,18 @@ struct SettingsBatteryDischargeSection: View {
                 VStack(alignment: .leading, spacing: 9) {
                     autoDischargeCard
                     manualDischargeCard
+                }
+                .task {
+                    // 설정 창이 열려 있는 동안만 배터리를 2초로 깨운다. 팝오버가 닫힌 기본 상태에서
+                    // 배터리 provider는 아예 읽히지 않으므로, 이게 없으면 위 실측값이 묵은 표본이 된다.
+                    monitor.setBatteryLiveDemand(true)
+                    // 창을 여는 순간 이미 방전 중이면 EMA는 방금 원시값으로 재시드된 상태다 —
+                    // 워밍업을 기다릴 이유가 없으므로 게이트를 통과시킨다.
+                    dischargeStartedAt = isManualDischargeActive ? .distantPast : nil
+                }
+                .onDisappear { monitor.setBatteryLiveDemand(false) }
+                .onChange(of: isManualDischargeActive) { _, active in
+                    dischargeStartedAt = active ? Date() : nil
                 }
             }
         }
@@ -209,15 +266,21 @@ struct SettingsBatteryDischargeSection: View {
                         }
 
                         HStack {
-                            let estMin = max(1, (currentSoC - target) * 3)
-                            Text("실시간 소모: -18.4 W")
-                                .font(WattlyFont.at(10.5, weight: .regular))
-                                .foregroundStyle(t.sub)
+                            if let sample = liveBatterySample {
+                                Text(verbatim: String(
+                                    format: String(localized: "실시간 소모: %@", locale: locale),
+                                    locale: locale,
+                                    CardPresentation.batteryNetWattText(sample)))
+                                    .font(WattlyFont.at(10.5, weight: .regular))
+                                    .foregroundStyle(t.sub)
+                            }
                             Spacer()
-                            let durationStr = BatterySectionPresentation.formatDuration(minutes: estMin, locale: locale)
-                            Text(String(format: String(localized: "예상 완료: 약 %@ 후", locale: locale), durationStr))
-                                .font(WattlyFont.at(10.5, weight: .regular))
-                                .foregroundStyle(t.sub)
+                            if let eta = dischargeEstimateText(currentSoC: currentSoC,
+                                                               targetSoC: target) {
+                                Text(verbatim: eta)
+                                    .font(WattlyFont.at(10.5, weight: .regular))
+                                    .foregroundStyle(t.sub)
+                            }
                         }
                     }
                     .padding(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
