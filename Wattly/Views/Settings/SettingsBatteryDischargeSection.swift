@@ -32,6 +32,14 @@ struct SettingsBatteryDischargeSection: View {
         batterySailingEnabled ? batterySailingDelta : 2
     }
 
+    /// 저장된 값이 새 상한(95)을 넘을 수 있다 — 상한을 내리기 전에 100을 저장한 사용자가 있다.
+    /// 화면·판정·전송이 서로 다른 숫자를 보면 "100%인데 시작 버튼이 영원히 꺼져 있다"가 되므로
+    /// 읽는 쪽을 한 곳으로 모은다. 저장값 자체는 건드리지 않는다 — 렌더링이 사용자의 설정을
+    /// 조용히 덮어쓰지 않게 하기 위해서다.
+    private var effectiveManualDischargeTarget: Int {
+        min(max(manualDischargeTarget, 50), 95)
+    }
+
     private var isHardwareUnsupported: Bool {
         batteryControl.status.isHardwareSupported == false
     }
@@ -136,11 +144,13 @@ struct SettingsBatteryDischargeSection: View {
                     heatProtectionEnabled: batteryHeatProtectionEnabled,
                     heatProtectionThresholdCelsius: heatProtectionThreshold,
                     limitEnabled: batteryLimitEnabled,
-                    manualDischargeTarget: manualDischargeTarget
+                    manualDischargeTarget: effectiveManualDischargeTarget
                 )
             }
         }
-        .onChange(of: manualDischargeTarget) { _, newTarget in
+        // 트리거는 저장값 자체를 관찰해야 하므로 원값 그대로 둔다 — `newTarget`은 쓰지 않고
+        // 대신 데몬으로 보내는 값만 한 곳(`effectiveManualDischargeTarget`)에서 다시 읽는다.
+        .onChange(of: manualDischargeTarget) { _, _ in
             guard batteryLimitEnabled || batteryHeatProtectionEnabled
                 || batteryControl.status.desiredConfiguration?.manualDischargeActive == true
             else { return }
@@ -153,7 +163,7 @@ struct SettingsBatteryDischargeSection: View {
                     heatProtectionThresholdCelsius: heatProtectionThreshold,
                     autoDischargeEnabled: autoDischargeEnabled,
                     manualDischargeActive: batteryControl.status.desiredConfiguration?.manualDischargeActive == true,
-                    manualDischargeTarget: newTarget
+                    manualDischargeTarget: effectiveManualDischargeTarget
                 )
             }
         }
@@ -202,7 +212,7 @@ struct SettingsBatteryDischargeSection: View {
                             .font(WattlyFont.at(11.5, weight: .medium))
                             .foregroundStyle(t.sub)
                         Spacer()
-                        Text("\(manualDischargeTarget)%")
+                        Text("\(effectiveManualDischargeTarget)%")
                             .font(WattlyFont.at(13, weight: .bold))
                             .monospacedDigit()
                             .foregroundStyle(Tokens.statusOrange)
@@ -215,7 +225,7 @@ struct SettingsBatteryDischargeSection: View {
                         value: Binding(
                             // 상한을 95로 낮추기 전에 100을 저장한 사용자가 있다. 슬라이더가
                             // 범위 밖 값을 받으면 엄지 위치가 어긋나므로 읽을 때 좁혀 준다.
-                            get: { Double(min(max(manualDischargeTarget, 50), 95)) },
+                            get: { Double(effectiveManualDischargeTarget) },
                             set: { manualDischargeTarget = Int($0.rounded()) }
                         ),
                         // 100%는 `현재 잔량 > 목표`가 성립할 수 없어 영구 비활성이다 —
@@ -250,10 +260,10 @@ struct SettingsBatteryDischargeSection: View {
                 let isPluggedIn = batteryControl.status.isPowerAdapterConnected
                 let currentSoC = batteryControl.status.currentPercentage
                 let canStartDischarge = isManualDischargeActionable && isPluggedIn
-                    && currentSoC > manualDischargeTarget
+                    && currentSoC > effectiveManualDischargeTarget
 
                 if isManualDischargeActive {
-                    let target = batteryControl.status.desiredConfiguration?.manualDischargeTarget ?? manualDischargeTarget
+                    let target = batteryControl.status.desiredConfiguration?.manualDischargeTarget ?? effectiveManualDischargeTarget
                     VStack(spacing: 8) {
                         HStack {
                             HStack(spacing: 6) {
@@ -273,7 +283,7 @@ struct SettingsBatteryDischargeSection: View {
                                         heatProtectionEnabled: batteryHeatProtectionEnabled,
                                         heatProtectionThresholdCelsius: heatProtectionThreshold,
                                         autoDischargeEnabled: autoDischargeEnabled,
-                                        manualDischargeTarget: manualDischargeTarget
+                                        manualDischargeTarget: effectiveManualDischargeTarget
                                     )
                                 }
                             } label: {
@@ -320,7 +330,7 @@ struct SettingsBatteryDischargeSection: View {
                     let disabledReason = BatterySectionPresentation.manualDischargeDisabledReason(
                         isPluggedIn: isPluggedIn,
                         currentSoC: currentSoC,
-                        targetSoC: manualDischargeTarget,
+                        targetSoC: effectiveManualDischargeTarget,
                         isHardwareSupported: !isHardwareUnsupported,
                         isDischargeHardwareSupported: !isDischargeUnsupported,
                         isToggleEnabled: isToggleEnabled,
@@ -340,7 +350,7 @@ struct SettingsBatteryDischargeSection: View {
                             Button {
                                 Task {
                                     await batteryControl.startManualDischarge(
-                                        target: manualDischargeTarget,
+                                        target: effectiveManualDischargeTarget,
                                         limitPercentage: batteryLimitPercentage,
                                         lowerHysteresisDelta: effectiveDelta,
                                         heatProtectionEnabled: batteryHeatProtectionEnabled,
@@ -350,7 +360,7 @@ struct SettingsBatteryDischargeSection: View {
                                 }
                             } label: {
                                 Text(verbatim: BatterySectionPresentation.startDischargeButtonText(
-                                    targetSoC: manualDischargeTarget,
+                                    targetSoC: effectiveManualDischargeTarget,
                                     locale: locale))
                                     .font(WattlyFont.at(11.5, weight: .semibold))
                                     .foregroundStyle(canStartDischarge ? Tokens.statusOrange : t.faint)
@@ -368,7 +378,7 @@ struct SettingsBatteryDischargeSection: View {
                             }
                             .buttonStyle(.plain)
                             .disabled(!canStartDischarge)
-                            .accessibilityLabel(Text(verbatim: BatterySectionPresentation.startDischargeButtonText(targetSoC: manualDischargeTarget, locale: locale)))
+                            .accessibilityLabel(Text(verbatim: BatterySectionPresentation.startDischargeButtonText(targetSoC: effectiveManualDischargeTarget, locale: locale)))
                             .accessibilityHint(Text(verbatim: disabledReason ?? ""))
                         }
                         // macOS는 disabled 컨트롤에 `.help()` 툴팁을 띄우지 않는다. 사유를
