@@ -726,6 +726,77 @@ struct BatteryControlClientTests {
         #expect(recordedRequest?.configuration.enabled == true)
     }
 
+    /// The funnel test: `apply` is the sole builder of the outgoing `.configure` payload, and every
+    /// other public entry point (`applyCalibration`, `startTopUp`, `startManualDischarge`,
+    /// `setAutoDischarge`, `disableAndConfirm`, `reconcile`, `installAndApply`, the four
+    /// `BatteryIntentBridge` paths, `BatteryScheduleCoordinator`) forwards its `manualDischargeTarget`
+    /// through it. A stored 100 can never satisfy `currentSoC > target`, permanently disabling the
+    /// discharge button — the clamp has to land here so no caller can bypass it, not just the four
+    /// view files that already clamp for display.
+    @MainActor @Test func applyClampsOutOfRangeManualDischargeTargetBeforeSend() async {
+        let receiver = RequestReceiver()
+        let client = BatteryControlClient(requestHandler: { req in
+            await receiver.set(req)
+            if case .configure = req {
+                let status = BatteryControlServiceStatus(
+                    mode: .charging,
+                    currentPercentage: 85,
+                    isPowerAdapterConnected: true,
+                    detail: "OK",
+                    updatedAt: 1.0
+                )
+                let replyData = try? BatteryControlCodec.encode(status)
+                return (replyData, nil)
+            }
+            return (nil, nil)
+        })
+
+        await client.apply(enabled: true, limitPercentage: 80, manualDischargeTarget: 100)
+
+        let receivedRequest = await receiver.request
+        var recordedRequest: BatteryControlConfigurationRequest?
+        if case .configure(let data) = receivedRequest {
+            recordedRequest = try? BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data)
+        } else {
+            Issue.record("Expected configure request")
+        }
+        // BatterySectionPresentation.dischargeTargetRange caps at 95, so the out-of-range stored
+        // value of 100 must reach the daemon clamped — never raw.
+        #expect(recordedRequest?.configuration.manualDischargeTarget == 95)
+    }
+
+    /// Counterpart to the clamp test above: an already in-range target must pass through untouched,
+    /// proving this isn't a blanket override that always forces 95.
+    @MainActor @Test func applyLeavesInRangeManualDischargeTargetUntouched() async {
+        let receiver = RequestReceiver()
+        let client = BatteryControlClient(requestHandler: { req in
+            await receiver.set(req)
+            if case .configure = req {
+                let status = BatteryControlServiceStatus(
+                    mode: .charging,
+                    currentPercentage: 85,
+                    isPowerAdapterConnected: true,
+                    detail: "OK",
+                    updatedAt: 1.0
+                )
+                let replyData = try? BatteryControlCodec.encode(status)
+                return (replyData, nil)
+            }
+            return (nil, nil)
+        })
+
+        await client.apply(enabled: true, limitPercentage: 80, manualDischargeTarget: 70)
+
+        let receivedRequest = await receiver.request
+        var recordedRequest: BatteryControlConfigurationRequest?
+        if case .configure(let data) = receivedRequest {
+            recordedRequest = try? BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data)
+        } else {
+            Issue.record("Expected configure request")
+        }
+        #expect(recordedRequest?.configuration.manualDischargeTarget == 70)
+    }
+
     @MainActor @Test func stopManualDischargeAppliesManualDischargeActiveFalse() async {
         let receiver = RequestReceiver()
         let client = BatteryControlClient(requestHandler: { req in
