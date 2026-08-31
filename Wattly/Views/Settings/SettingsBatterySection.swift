@@ -188,10 +188,21 @@ struct SettingsBatterySection: View {
                     SettingsToggleRow(
                         isOn: topUpBinding,
                         divider: false,
+                        // 캘리브레이션 충전 단계는 이 Top Up 플래그를 빌려 쓴다
+                        // (`BatteryControlClient.applyCalibration`) — 그동안 토글을 끄면
+                        // `cancelTopUp`이 저장된 `autoDischargeEnabled`를 그대로 데몬에 보내고,
+                        // 데몬의 `revivedConfiguration`은 그 값을 복원하지 않는다. 캘리브레이션이
+                        // 막 끝낸 충전 단계 위에서 자동 방전이 시작될 수 있다 — CHIE 경합을 막으려고
+                        // `applyCalibration`이 존재하는 바로 그 상황이다. `CardExpandRegion`의
+                        // Top Up 행이 이미 같은 이유로 `.disabled(calibration?.isRunning == true)`를
+                        // 쓴다 — 여기서도 같은 게이트를 건다.
                         isEnabled: isToggleEnabled && !isHardwareUnsupported
-                            && batteryControl.status.isPowerAdapterConnected,
-                        disabledReason: batteryControl.status.isPowerAdapterConnected
-                            ? nil : "전원 어댑터가 연결되어 있어야 합니다"
+                            && batteryControl.status.isPowerAdapterConnected
+                            && !isCalibrationRunning,
+                        disabledReason: isCalibrationRunning
+                            ? "배터리 캘리브레이션 진행 중"
+                            : (batteryControl.status.isPowerAdapterConnected
+                               ? nil : "전원 어댑터가 연결되어 있어야 합니다")
                     ) {
                         VStack(alignment: .leading, spacing: 2) {
                             SettingsRowTitle("한 번만 완충")
@@ -676,6 +687,12 @@ struct SettingsBatterySection: View {
         batteryControl.status.isPowerAdapterConnected
             && (batteryControl.status.desiredConfiguration?.topUpActive == true
                 || batteryControl.status.activity == .topUp)
+    }
+
+    /// 캘리브레이션이 도는 동안 Top Up 토글을 사용자가 손대지 못하게 막는 데 쓴다.
+    /// 새 배관이 필요 없다 — `calibrationActive`는 이미 상태에 실려 온다.
+    private var isCalibrationRunning: Bool {
+        batteryControl.status.desiredConfiguration?.calibrationActive == true
     }
 
     /// 토글 ↔ 데몬 명령. 저장되는 설정이 아니라 데몬이 들고 있는 활동이므로 `@AppStorage`가

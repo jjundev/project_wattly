@@ -1164,6 +1164,15 @@ import AppKit
         // 켜져 있는데 reason이 없는 구버전 헬퍼는 기존 설명문으로 안전하게 떨어진다.
         #expect(BatterySectionPresentation.topUpStatusText(
             kind: nil, isOn: true, hours: 12, locale: ko) == off)
+
+        // 캘리브레이션 충전 단계는 이 Top Up 플래그를 빌려 쓴다
+        // (`BatteryControlClient.applyCalibration`이 `topUpActive: isRunning && isChargingStep`을
+        // 보낸다). 이 함수는 그 사실을 모르고 몰라도 된다 — 새 문구를 지어내는 대신 구버전
+        // 헬퍼와 같은 안전한 기본 설명문으로 떨어진다. 실제 안내(캘리브레이션이 도는 동안이라는
+        // 사실)는 이 텍스트가 아니라 행 자체를 비활성화하는 쪽(`SettingsBatterySection`의
+        // `disabledReason`)이 맡는다.
+        #expect(BatterySectionPresentation.topUpStatusText(
+            kind: .calibrationCharging, isOn: true, hours: 12, locale: ko) == off)
     }
 }
 
