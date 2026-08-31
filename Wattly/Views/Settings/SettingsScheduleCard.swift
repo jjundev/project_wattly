@@ -98,14 +98,14 @@ struct SettingsScheduleCard: View {
 
     private func scheduleRow(_ schedule: BatteryChargingSchedule) -> some View {
         HStack(alignment: .center, spacing: 10) {
-            Toggle("", isOn: Binding(
-                get: { schedule.isEnabled },
-                set: { coordinator.toggleSchedule(id: schedule.id, isEnabled: $0) }
-            ))
-            .toggleStyle(.switch)
-            .labelsHidden()
-            .scaleEffect(0.7)
-            .frame(width: 36)
+            WattlyToggle(
+                isOn: Binding(
+                    get: { schedule.isEnabled },
+                    set: { coordinator.toggleSchedule(id: schedule.id, isEnabled: $0) }
+                ),
+                isEnabled: true
+            )
+            .frame(width: 38)
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {

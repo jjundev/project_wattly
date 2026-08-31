@@ -1,6 +1,6 @@
 import Foundation
 
-/// 설정 › 배터리 충전 제어 섹션의 순수 표시 판단. SwiftUI도 I/O도 없다 —
+/// 설정 › 배터리 섹션들의 순수 표시 판단. SwiftUI도 I/O도 없다 —
 /// `CardPresentation` / `Accessibility` / `BatteryControlPolicy`와 같은 방식으로,
 /// 뷰가 내리던 결정을 테이블 테스트가 가능한 함수로 옮겨둔 것이다.
 ///
@@ -415,11 +415,14 @@ enum BatterySectionPresentation {
 
     public static func upcomingScheduleText(
         schedule: BatteryChargingSchedule?,
-        triggerDate: Date?
+        triggerDate: Date?,
+        locale: Locale = Locale(identifier: "ko")
     ) -> String? {
-        guard let schedule, let triggerDate else { return nil }
-        let timeStr = schedule.time.formattedText
-        return "다음: \(timeStr) \(schedule.action.summary)"
+        guard let schedule, triggerDate != nil else { return nil }
+        return String(format: String(localized: "다음: %@ %@", locale: locale),
+                      locale: locale,
+                      schedule.time.formattedText,
+                      schedule.action.summary(locale: locale))
     }
 
     // MARK: - Discharge & Power Flow Presentation
