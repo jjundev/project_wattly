@@ -45,40 +45,46 @@ struct SettingsBatteryDischargeSection: View {
     }
 
     var body: some View {
-        if showsConfigurationControls {
-            VStack(alignment: .leading, spacing: 9) {
-                autoDischargeCard
-                manualDischargeCard
-            }
-            .onChange(of: autoDischargeEnabled) { _, isAutoDischarge in
-                Task {
-                    await batteryControl.setAutoDischarge(
-                        enabled: isAutoDischarge,
-                        limitPercentage: batteryLimitPercentage,
-                        lowerHysteresisDelta: effectiveDelta,
-                        heatProtectionEnabled: batteryHeatProtectionEnabled,
-                        heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
-                        limitEnabled: batteryLimitEnabled,
-                        manualDischargeTarget: manualDischargeTarget
-                    )
+        // 두 `.onChange`는 `showsConfigurationControls`와 무관하게 항상 매달려 있어야 한다.
+        // 분리 전에는 늘 존재하는 카드에 체인되어 있었고, 한도·세일링·발열 보호의 형제
+        // 핸들러도 같은 이유로 무조건 배선된다 — 하드웨어 미지원으로 확인된 뒤에도 이미
+        // 설정된 값은 데몬과 계속 맞춰져야 하기 때문이다.
+        Group {
+            if showsConfigurationControls {
+                VStack(alignment: .leading, spacing: 9) {
+                    autoDischargeCard
+                    manualDischargeCard
                 }
             }
-            .onChange(of: manualDischargeTarget) { _, newTarget in
-                guard batteryLimitEnabled || batteryHeatProtectionEnabled
-                    || batteryControl.status.desiredConfiguration?.manualDischargeActive == true
-                else { return }
-                Task {
-                    await batteryControl.reconcile(
-                        enabled: batteryLimitEnabled,
-                        limitPercentage: batteryLimitPercentage,
-                        lowerHysteresisDelta: effectiveDelta,
-                        heatProtectionEnabled: batteryHeatProtectionEnabled,
-                        heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
-                        autoDischargeEnabled: autoDischargeEnabled,
-                        manualDischargeActive: batteryControl.status.desiredConfiguration?.manualDischargeActive == true,
-                        manualDischargeTarget: newTarget
-                    )
-                }
+        }
+        .onChange(of: autoDischargeEnabled) { _, isAutoDischarge in
+            Task {
+                await batteryControl.setAutoDischarge(
+                    enabled: isAutoDischarge,
+                    limitPercentage: batteryLimitPercentage,
+                    lowerHysteresisDelta: effectiveDelta,
+                    heatProtectionEnabled: batteryHeatProtectionEnabled,
+                    heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
+                    limitEnabled: batteryLimitEnabled,
+                    manualDischargeTarget: manualDischargeTarget
+                )
+            }
+        }
+        .onChange(of: manualDischargeTarget) { _, newTarget in
+            guard batteryLimitEnabled || batteryHeatProtectionEnabled
+                || batteryControl.status.desiredConfiguration?.manualDischargeActive == true
+            else { return }
+            Task {
+                await batteryControl.reconcile(
+                    enabled: batteryLimitEnabled,
+                    limitPercentage: batteryLimitPercentage,
+                    lowerHysteresisDelta: effectiveDelta,
+                    heatProtectionEnabled: batteryHeatProtectionEnabled,
+                    heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
+                    autoDischargeEnabled: autoDischargeEnabled,
+                    manualDischargeActive: batteryControl.status.desiredConfiguration?.manualDischargeActive == true,
+                    manualDischargeTarget: newTarget
+                )
             }
         }
     }
