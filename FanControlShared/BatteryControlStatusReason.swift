@@ -44,6 +44,12 @@ public struct BatteryControlStatusReason: Codable, Equatable, Sendable {
         case topUpHeldAtMax
         case dischargingToTarget
         case dischargingManual
+        /// 캘리브레이션 절차가 100%까지 충전 중이다(원시 명령은 Top Up과 같다).
+        case calibrationCharging
+        /// 캘리브레이션 절차가 하한 또는 100%에서 안정화 대기 중이다.
+        case calibrationHolding
+        /// 캘리브레이션 절차가 CHIE로 하한까지 강제 방전 중이다.
+        case calibrationDischarging
         case batterySensorUnreadable
         case persistenceReadFailed
         case persistenceWriteFailed
@@ -165,6 +171,9 @@ public struct BatteryControlStatusReason: Codable, Equatable, Sendable {
         case .topUpHeldAtMax: return "한 번만 완충 유지 중 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)"
         case .dischargingToTarget: return "목표치(\(target)%)까지 방전 중"
         case .dischargingManual: return "수동 방전 중 (\(target)%까지 방전)"
+        case .calibrationCharging: return "캘리브레이션: \(target)%까지 충전 중"
+        case .calibrationDischarging: return "캘리브레이션: \(target)%까지 방전 중"
+        case .calibrationHolding: return "캘리브레이션: \(target)% 유지 중"
         case .batterySensorUnreadable:
             return "배터리 온도 센서를 읽을 수 없습니다"
         case .persistenceReadFailed: return "저장된 충전 정책을 읽지 못해 충전 허용 상태로 복구합니다"

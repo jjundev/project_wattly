@@ -23,6 +23,7 @@ public struct BatteryScheduleLogEntry: Identifiable, Codable, Equatable, Sendabl
         case catchUpWindowExpired = "잠자기 유효 시간 초과"
         case overriddenByHigherPriority = "동일 시각 상위 작업 우선"
         case heatProtectionActive = "발열 보호 작동 중"
+        case calibrationRunning = "배터리 캘리브레이션 진행 중"
 
         public var localizedDescription: String {
             switch self {
@@ -34,6 +35,8 @@ public struct BatteryScheduleLogEntry: Identifiable, Codable, Equatable, Sendabl
                 return String(localized: "동일 시각 상위 작업 우선")
             case .heatProtectionActive:
                 return String(localized: "발열 보호 작동 중")
+            case .calibrationRunning:
+                return String(localized: "배터리 캘리브레이션 진행 중")
             }
         }
     }

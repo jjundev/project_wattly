@@ -35,8 +35,8 @@ public enum BatteryTopUpExpiry {
     ///     엔진이 이미 하드웨어 게이트까지 반영해 내린 결론이 이것이기 때문이다.
     ///   - reachedFullAt: 저장된 완충 도달 시각. 아직 도달 전이면 `nil`.
     ///   - now: 벽시계. 잠자기 동안에도 진행해야 하므로 단조 시계를 쓰면 안 된다.
-    ///   - calibrationActive: 캘리브레이션 절차가 `topUpActive`를 빌려 쓰는 중인지. 그 플래그는
-    ///     아직 코드베이스에 없으므로 항상 기본값 `false`로 호출된다.
+    ///   - calibrationActive: 캘리브레이션 절차가 `topUpActive`를 빌려 쓰는 중인지.
+    ///     `BatteryControlCoordinator`가 엔진 설정에서 읽어 넘긴다.
     ///     캘리브레이션 중에는 만료뿐 아니라 **최초 스탬프도 찍지 않는다** — 절차가 자기 시계를
     ///     따로 가질지, 아니면 시계 자체가 없어야 할지는 캘리브레이션 설계가 정할 몫이다.
     public static func decide(

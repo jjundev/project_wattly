@@ -158,4 +158,19 @@ import Foundation
         #expect(decodedHeld.limitPercentage == 100)
         #expect(decodedHeld.legacyKoreanDetail == "한 번만 완충 유지 중 (100% 유지 중, 어댑터 분리 시 원래 한도로 복귀)")
     }
+
+    @Test func calibrationReasonsCarryLegacySentences() {
+        #expect(BatteryControlStatusReason(kind: .calibrationCharging, limitPercentage: 100)
+            .legacyKoreanDetail == "캘리브레이션: 100%까지 충전 중")
+        #expect(BatteryControlStatusReason(kind: .calibrationDischarging, limitPercentage: 20)
+            .legacyKoreanDetail == "캘리브레이션: 20%까지 방전 중")
+        #expect(BatteryControlStatusReason(kind: .calibrationHolding, limitPercentage: 20)
+            .legacyKoreanDetail == "캘리브레이션: 20% 유지 중")
+    }
+
+    @Test func everyReasonKindHasANonEmptySentence() {
+        for kind in BatteryControlStatusReason.Kind.allCases where kind != .unrecognized {
+            #expect(BatteryControlStatusReason(kind: kind).legacyKoreanDetail.isEmpty == false)
+        }
+    }
 }

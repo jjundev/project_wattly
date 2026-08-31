@@ -206,5 +206,117 @@ public enum BatteryNotificationManager {
             center.add(request)
         }
     }
+
+    // MARK: - 캘리브레이션
+
+    /// 사용자가 실제로 할 일이 있는 일시정지만 알린다. 열보호는 식으면 스스로 풀리고,
+    /// 잠자기는 사용자가 방금 뚜껑을 닫아서 생긴 상태다 — 둘 다 알림이 소음이다.
+    public static func isActionableForNotification(_ pause: CalibrationPause) -> Bool {
+        switch pause {
+        case .needsAdapter, .externalChargeBlock, .helperUnavailable: return true
+        case .heatProtection, .systemSleep: return false
+        }
+    }
+
+    public static func calibrationFinishedTitle(
+        _ entry: CalibrationHistoryEntry, locale: Locale
+    ) -> String {
+        switch entry.outcome {
+        case .completed: return BatteryCalibration.completionHeadline(locale: locale)
+        case .cancelled: return String(localized: "배터리 캘리브레이션 중지됨", locale: locale)
+        case .expired: return String(localized: "배터리 캘리브레이션 자동 취소됨", locale: locale)
+        case .failed: return String(localized: "배터리 캘리브레이션 실패", locale: locale)
+        }
+    }
+
+    public static func calibrationFinishedBody(
+        _ entry: CalibrationHistoryEntry, locale: Locale
+    ) -> String {
+        switch entry.outcome {
+        case .completed:
+            let note = BatteryCalibration.capacityNote(
+                beginMilliampHours: entry.beginMaxCapacityMilliampHours,
+                endMilliampHours: entry.endMaxCapacityMilliampHours,
+                locale: locale)
+            let base = String(localized: "원래 충전 설정으로 되돌렸습니다.", locale: locale)
+            return note.map { "\(base) \($0)" } ?? base
+        case .cancelled:
+            return String(localized: "원래 충전 설정으로 되돌렸습니다.", locale: locale)
+        case .expired:
+            return String(localized: "12시간 동안 진행이 없어 자동으로 취소하고 원래 충전 설정으로 되돌렸습니다.", locale: locale)
+        case .failed:
+            let reason: String
+            switch entry.failure {
+            case .stepTimeout:
+                reason = String(localized: "한 단계가 제한 시간을 넘겼습니다.", locale: locale)
+            case .pauseBudgetExhausted:
+                reason = String(localized: "일시정지가 2시간을 넘겼습니다.", locale: locale)
+            case .helperLost:
+                reason = String(localized: "도우미 연결이 끊겼습니다.", locale: locale)
+            case .dischargeUnsupported:
+                reason = String(localized: "이 Mac은 강제 방전을 지원하지 않습니다.", locale: locale)
+            case .none:
+                reason = String(localized: "알 수 없는 이유로 중단됐습니다.", locale: locale)
+            }
+            return "\(reason) \(String(localized: "원래 충전 설정으로 되돌렸습니다.", locale: locale))"
+        }
+    }
+
+    public static func calibrationActionNeededTitle(locale: Locale) -> String {
+        String(localized: "배터리 캘리브레이션에 조치가 필요합니다", locale: locale)
+    }
+
+    public static func calibrationActionNeededBody(
+        _ pause: CalibrationPause, locale: Locale
+    ) -> String {
+        switch pause {
+        case .needsAdapter:
+            return String(localized: "전원 어댑터를 다시 연결하면 이어서 진행합니다.", locale: locale)
+        case .externalChargeBlock:
+            return String(localized: "충전이 시작되지 않습니다. 시스템 설정 › 배터리에서 \"최적화된 배터리 충전\"을 꺼 주세요.", locale: locale)
+        case .helperUnavailable:
+            return String(localized: "도우미 연결이 끊겼습니다. Wattly 설정에서 다시 연결해 주세요.", locale: locale)
+        case .heatProtection, .systemSleep:
+            return ""
+        }
+    }
+
+    public static func postCalibrationFinished(_ entry: CalibrationHistoryEntry) {
+        post(identifier: "dev.jjundev.Wattly.calibrationFinished") { locale in
+            (calibrationFinishedTitle(entry, locale: locale),
+             calibrationFinishedBody(entry, locale: locale))
+        }
+    }
+
+    public static func postCalibrationActionNeeded(_ pause: CalibrationPause) {
+        guard isActionableForNotification(pause) else { return }
+        post(identifier: "dev.jjundev.Wattly.calibrationActionNeeded") { locale in
+            (calibrationActionNeededTitle(locale: locale),
+             calibrationActionNeededBody(pause, locale: locale))
+        }
+    }
+
+    /// 기존 `postTopUp*` 세 함수가 똑같이 반복하던 권한 확인 · 로케일 해석 · 요청 생성을
+    /// 한 곳으로 모은 것. 새 알림 3종이 그 반복을 한 번 더 늘리기 전에 뽑아 둔다.
+    private static func post(
+        identifier: String,
+        content: @escaping (Locale) -> (title: String, body: String)
+    ) {
+        let center = UNUserNotificationCenter.current()
+        center.getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized
+                    || settings.authorizationStatus == .provisional else { return }
+            let appLang = UserDefaults.standard.string(forKey: StorageKey.appLanguage)
+                ?? Defaults.appLanguage
+            let locale = AppLanguage.locale(for: appLang)
+            let resolved = content(locale)
+            let notification = UNMutableNotificationContent()
+            notification.title = resolved.title
+            notification.body = resolved.body
+            notification.sound = .default
+            center.add(UNNotificationRequest(
+                identifier: identifier, content: notification, trigger: nil))
+        }
+    }
 }
 

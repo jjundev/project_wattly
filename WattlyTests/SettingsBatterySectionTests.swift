@@ -144,11 +144,13 @@ import Foundation
 
         let monitor = SystemMonitor(providers: FakeProviders.all(scenario: .laptop))
         let fanControl = FanControlClient()
+        let calibrationCoordinator = BatteryCalibrationCoordinator(batteryControl: client, startsTimer: false)
         let settingsView = SettingsView(
             monitor: monitor,
             fanControl: fanControl,
             batteryControl: client,
-            scheduleCoordinator: coordinator
+            scheduleCoordinator: coordinator,
+            calibrationCoordinator: calibrationCoordinator
         )
         #expect(settingsView.scheduleCoordinator != nil)
 

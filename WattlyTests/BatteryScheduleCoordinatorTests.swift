@@ -425,4 +425,35 @@ private func makeIsolatedDefaults() -> UserDefaults {
         coordinator.clearHistory()
         #expect(coordinator.history.isEmpty)
     }
+
+    @MainActor @Test func schedulesAreSkippedAndLoggedWhileCalibrating() async {
+        let name = "schedule.calibration"
+        let defaults = UserDefaults(suiteName: name)!
+        defaults.removePersistentDomain(forName: name)
+        defaults.set(true, forKey: StorageKey.batteryLimitEnabled)
+        defaults.set(80, forKey: StorageKey.batteryLimitPercentage)
+
+        let client = BatteryControlClient { _ in (nil, nil) }
+        let coordinator = BatteryScheduleCoordinator(
+            batteryControl: client,
+            defaults: defaults,
+            isCalibrationRunning: { true })
+
+        coordinator.addSchedule(BatteryChargingSchedule(
+            name: "밤",
+            isEnabled: true,
+            time: ScheduleTime(hour: 3, minute: 0),
+            repeatRule: .daily,
+            action: .setLimit(percentage: 60)))
+
+        var components = DateComponents()
+        components.year = 2026; components.month = 8; components.day = 30
+        components.hour = 3; components.minute = 0
+        let fireDate = Calendar.current.date(from: components)!
+        await coordinator.evaluateSchedules(at: fireDate)
+
+        // 스케줄이 사용자 설정을 덮어쓰면 절차 스냅샷과 저장값이 갈라진다.
+        #expect(defaults.integer(forKey: StorageKey.batteryLimitPercentage) == 80)
+        #expect(coordinator.history.first?.status == .skipped(reason: .calibrationRunning))
+    }
 }

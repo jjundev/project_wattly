@@ -25,6 +25,7 @@ struct CardExpandRegion: View {
     var thresholds: Thresholds = Defaults.thresholds
     var batteryControl: BatteryControlClient? = nil
     var scheduleCoordinator: BatteryScheduleCoordinator? = nil
+    var calibration: BatteryCalibrationCoordinator? = nil
 
     @ViewBuilder
     var body: some View {
@@ -362,6 +363,21 @@ struct CardExpandRegion: View {
                     willShowDischarge: willShowDischarge
                 ) {
                     Divider().background(t.line).opacity(0.6)
+                    if let calibration, let run = calibration.run {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(Tokens.statusOrange)
+                            Text(verbatim: BatteryCalibration.summaryLine(
+                                step: run.step,
+                                pause: run.pause,
+                                remainingMinutes: calibration.estimatedRemainingMinutes ?? 0,
+                                locale: locale))
+                                .font(WattlyFont.at(10.5, weight: .medium))
+                                .foregroundStyle(t.sub)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
                     if willShowTopUp {
                         batteryTopUpRow(batteryControl, s)
                     }
@@ -427,6 +443,7 @@ struct CardExpandRegion: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .disabled(calibration?.isRunning == true)
             .accessibilityLabel(Text(LocalizedStringKey("한 번만 완충")))
             .accessibilityValue(Text(LocalizedStringKey(isTopUp ? "활성화됨" : "비활성화됨")))
         }
@@ -517,7 +534,7 @@ struct CardExpandRegion: View {
                 }
             }
             .buttonStyle(.plain)
-            .disabled(!isDischarging && !canStartDischarge)
+            .disabled(calibration?.isRunning == true || (!isDischarging && !canStartDischarge))
             .help(isDischarging ? "" : (disabledReason ?? ""))
             .accessibilityLabel(Text(LocalizedStringKey("수동 방전 (\(manualDischargeTarget)%)")))
             .accessibilityValue(Text(verbatim: isDischarging

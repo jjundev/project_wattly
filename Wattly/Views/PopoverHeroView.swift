@@ -30,6 +30,7 @@ struct PopoverHeroView: View {
     var powerSmoothed: Bool
     var batteryControl: BatteryControlClient? = nil
     var scheduleCoordinator: BatteryScheduleCoordinator? = nil
+    var calibration: BatteryCalibrationCoordinator? = nil
 
     @AppStorage(StorageKey.heroMetric) private var heroMetric = Defaults.heroMetric
     // Shared with mode A's `PopoverContentView.expandedRaw` — same key, same CSV Set (see the
@@ -54,7 +55,8 @@ struct PopoverHeroView: View {
                          isExpanded: expanded.contains(hero),
                          onToggleExpand: hero.isExpandable ? { toggleExpand(hero) } : nil,
                          batteryControl: batteryControl,
-                         scheduleCoordinator: scheduleCoordinator)
+                         scheduleCoordinator: scheduleCoordinator,
+                         calibration: calibration)
                 list(excluding: hero)
             }
         }
@@ -124,6 +126,7 @@ private struct HeroCard: View {
     var onToggleExpand: (() -> Void)? = nil
     var batteryControl: BatteryControlClient? = nil
     var scheduleCoordinator: BatteryScheduleCoordinator? = nil
+    var calibration: BatteryCalibrationCoordinator? = nil
 
     // Hardcoded light-on-dark surface/text (prototype line 208).
     private static let heroBg = Color(hex: "#171719")
@@ -142,7 +145,8 @@ private struct HeroCard: View {
                     state: state,
                     thresholds: thresholds,
                     batteryControl: batteryControl,
-                    scheduleCoordinator: scheduleCoordinator
+                    scheduleCoordinator: scheduleCoordinator,
+                    calibration: calibration
                 )
                 .environment(\.tokens, Tokens.dark)
             }

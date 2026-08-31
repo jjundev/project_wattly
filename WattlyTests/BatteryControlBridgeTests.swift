@@ -293,6 +293,69 @@ import Foundation
         #expect(BatteryControlBridge.unsupportedStreak(
             5, mode: .unavailable, isHardwareSupported: nil) == 0)
     }
+
+    @Test func preservingActivityCarriesCalibrationForward() {
+        let requested = BatteryControlConfiguration(enabled: false, limitPercentage: 80)
+        let daemon = BatteryControlConfiguration(
+            enabled: true, limitPercentage: 80, topUpActive: true,
+            autoDischargeEnabled: true,
+            calibrationActive: true, calibrationTargetPercentage: 20)
+
+        let merged = BatteryControlBridge.preservingActivity(requested, daemon: daemon)
+
+        #expect(merged.calibrationActive)
+        #expect(merged.calibrationTargetPercentage == 20)
+        // 어느 단계인지도 보존해야 한다 — 충전 단계를 방전 단계로 바꾸면 절차가 망가진다.
+        #expect(merged.topUpActive)
+        // 절차 중에는 정책이 활성이어야 하고 자동 방전은 서 있어야 한다.
+        #expect(merged.enabled)
+        #expect(merged.autoDischargeEnabled == false)
+    }
+
+    @Test func preservingActivityIsUnchangedWhenNoCalibrationRuns() {
+        let requested = BatteryControlConfiguration(
+            enabled: true, limitPercentage: 80, autoDischargeEnabled: true)
+        let daemon = BatteryControlConfiguration(enabled: true, limitPercentage: 80)
+        let merged = BatteryControlBridge.preservingActivity(requested, daemon: daemon)
+        #expect(merged.calibrationActive == false)
+        #expect(merged.autoDischargeEnabled)
+    }
+
+    // MARK: - 탑업 만료 알림 게이트
+
+    /// An expiry that occurred while no calibration was running should announce.
+    @Test func shouldAnnounceTopUpExpiryWhenNotCalibrating() {
+        #expect(BatteryControlBridge.shouldAnnounceTopUpExpiry(
+            didExpire: true,
+            daemon: BatteryControlConfiguration(enabled: true, limitPercentage: 80)) == true)
+    }
+
+    /// An expiry that occurred during calibration should be suppressed.
+    @Test func shouldNotAnnounceTopUpExpiryWhenCalibrating() {
+        let daemon = BatteryControlConfiguration(
+            enabled: true, limitPercentage: 80,
+            calibrationActive: true, calibrationTargetPercentage: 20)
+        #expect(BatteryControlBridge.shouldAnnounceTopUpExpiry(
+            didExpire: true,
+            daemon: daemon) == false)
+    }
+
+    /// No expiry detected means no announcement, calibrating or not.
+    @Test func shouldNotAnnounceWhenNoExpiryDetected() {
+        let daemon = BatteryControlConfiguration(
+            enabled: true, limitPercentage: 80,
+            calibrationActive: true, calibrationTargetPercentage: 20)
+        #expect(BatteryControlBridge.shouldAnnounceTopUpExpiry(
+            didExpire: false,
+            daemon: daemon) == false)
+    }
+
+    /// A helper that has not answered must not silently swallow a real expiry.
+    @Test func shouldAnnounceTopUpExpiryWhenHelperHasNotAnswered() {
+        #expect(BatteryControlBridge.shouldAnnounceTopUpExpiry(
+            didExpire: true,
+            daemon: nil) == true)
+    }
 }
 
 private actor BridgeRequestReceiver {

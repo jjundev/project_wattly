@@ -70,6 +70,11 @@ public enum BatteryControlPolicy {
                 requested.manualDischargeActive = true
                 requested.manualDischargeTarget = desired.manualDischargeTarget
             }
+            // Background periodic reconciliation preserves an in-flight calibration
+            if desired.calibrationActive && !configuration.calibrationActive {
+                requested.calibrationActive = true
+                requested.calibrationTargetPercentage = desired.calibrationTargetPercentage
+            }
             return desired.normalized != requested
         }
         if requested.enabled {

@@ -75,10 +75,19 @@ struct BatteryControlBridge: View {
     ) -> BatteryControlConfiguration {
         guard let desired else { return requested }
         var merged = requested
+        // 데몬의 활동을 끌어올린다. `topUpActive`를 여기서 떨어뜨리면 진행 중인 充전 단계가
+        // 방전 단계로 뒤집힌다. 캘리브레이션은 그 플래그를 "지금이 充전 단계인지"로 빌려 쓴다.
         merged.topUpActive = desired.topUpActive
         merged.manualDischargeActive = desired.manualDischargeActive
         if desired.manualDischargeActive {
             merged.manualDischargeTarget = desired.manualDischargeTarget
+        }
+        merged.calibrationActive = desired.calibrationActive
+        if desired.calibrationActive {
+            merged.calibrationTargetPercentage = desired.calibrationTargetPercentage
+            merged.manualDischargeActive = false
+            merged.enabled = true
+            merged.autoDischargeEnabled = false
         }
         return merged
     }
@@ -141,6 +150,18 @@ struct BatteryControlBridge: View {
             return .refreshStatus
         }
         return configuration.isActive ? .apply : .disableAndConfirm
+    }
+
+    /// Whether a detected Top Up expiry should actually be announced.
+    ///
+    /// 캘리브레이션은 충전 단계에서 `topUpActive`를 빌려 쓴다. 데몬이 절차 중 만료를 막지만,
+    /// 절차 직전에 끝난 Top Up이 남긴 유지보수 레코드가 감지기의 300초 신선도 창 안에서
+    /// 뒤늦게 뜰 수 있다. 감지기는 항상 돌려 레코드를 소비시키고, 알림만 건너뛴다.
+    static func shouldAnnounceTopUpExpiry(
+        didExpire: Bool,
+        daemon: BatteryControlConfiguration?
+    ) -> Bool {
+        didExpire && daemon?.calibrationActive != true
     }
 
     var body: some View {
@@ -316,8 +337,12 @@ struct BatteryControlBridge: View {
                 }
                 // 헬퍼가 스스로 Top Up을 끝낸 경우에만 참이 된다. 사용자가 버튼으로 취소한
                 // 경우와 만료 후 상태가 동일하기 때문에 유지보수 레코드로 구분한다.
-                if topUpExpiryDetector.update(record: newStatus.lastMaintenance,
-                                              now: Date().timeIntervalSince1970) {
+                let didExpire = topUpExpiryDetector.update(
+                    record: newStatus.lastMaintenance,
+                    now: Date().timeIntervalSince1970)
+                if Self.shouldAnnounceTopUpExpiry(
+                    didExpire: didExpire,
+                    daemon: newStatus.desiredConfiguration) {
                     BatteryNotificationManager.postTopUpExpiredNotification()
                 }
             }
@@ -418,8 +443,10 @@ struct BatteryControlBridge: View {
     /// writing, via `preservingActivity` — without this, any push through here (a limit edit, a
     /// wake-triggered apply, the auto-discharge toggle) would default `topUpActive` and
     /// `manualDischargeActive` to `false` and silently cancel a Top Up or manual discharge in
-    /// progress. Forwards all nine `BatteryControlConfiguration` fields so nothing the merge
-    /// produced is dropped on the way to `client.apply`.
+    /// progress. Forwards all eleven `BatteryControlConfiguration` fields so nothing the merge
+    /// produced is dropped on the way to `client.apply`. The client's own chokepoint independently
+    /// re-derives `calibrationActive` and `calibrationTargetPercentage` from daemon status, so this
+    /// forwarding is belt-and-braces protection rather than the sole safeguard.
     ///
     /// `reason` names the call site in the log line so a field log can identify which of the
     /// several paths that share this function — a toggle, a limit edit, a wake — actually wrote to
@@ -440,7 +467,9 @@ struct BatteryControlBridge: View {
             topUpActive: merged.topUpActive,
             autoDischargeEnabled: merged.autoDischargeEnabled,
             manualDischargeActive: merged.manualDischargeActive,
-            manualDischargeTarget: merged.manualDischargeTarget)
+            manualDischargeTarget: merged.manualDischargeTarget,
+            calibrationActive: merged.calibrationActive,
+            calibrationTargetPercentage: merged.calibrationTargetPercentage)
         BatteryControlLog.battery.notice(
             "applyRequested result: reason=\(reason, privacy: .public) accepted=\(result != nil)")
     }

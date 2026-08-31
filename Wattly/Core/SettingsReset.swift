@@ -48,6 +48,8 @@ enum SettingsReset {
         defaults.set(Defaults.batteryChargingSchedules, forKey: StorageKey.batteryChargingSchedules)
         defaults.set(Defaults.batteryScheduleHistory, forKey: StorageKey.batteryScheduleHistory)
         defaults.set(Defaults.batteryScheduleNotificationsEnabled, forKey: StorageKey.batteryScheduleNotificationsEnabled)
+        defaults.set(Defaults.batteryCalibrationState, forKey: StorageKey.batteryCalibrationState)
+        defaults.set(Defaults.batteryCalibrationHistory, forKey: StorageKey.batteryCalibrationHistory)
         defaults.set("", forKey: StorageKey.expandedCards)        // collapse all cards (가정 C)
         defaults.set(Defaults.loginItem, forKey: StorageKey.loginItem)
 
@@ -57,5 +59,19 @@ enum SettingsReset {
 
         // Re-sync the real login item to the default (ON). Best-effort.
         try? login?.setEnabled(Defaults.loginItem)
+    }
+
+    /// "기본값으로 되돌리기"의 실제 진입점. 캘리브레이션이 돌고 있으면 **먼저 멈춘 뒤에**
+    /// 키를 지운다. 순서가 뒤집히면 저장된 실행 상태가 사라진 채 데몬만 CHIE를 든 고아가
+    /// 되고, 앱에는 그것을 정리할 근거가 남지 않는다.
+    @MainActor
+    static func resetEverything(
+        into defaults: UserDefaults = .standard,
+        login: LoginItemControlling? = nil,
+        maxFanRPM: Double? = nil,
+        stoppingCalibration stop: (@MainActor () async -> Void)? = nil
+    ) async {
+        await stop?()
+        applyDefaults(into: defaults, login: login, maxFanRPM: maxFanRPM)
     }
 }

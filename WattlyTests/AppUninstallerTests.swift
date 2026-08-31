@@ -206,4 +206,24 @@ import Foundation
 
         #expect(await events.values.prefix(2).elementsEqual(["release", "remove"]))
     }
+
+    @MainActor @Test func uninstallStopsCalibrationBeforeReleasingTheLimit() async throws {
+        final class Order: @unchecked Sendable { var values: [String] = [] }
+        let order = Order()
+        let name = "uninstall.calibration.order"
+        let defaults = UserDefaults(suiteName: name)!
+        defaults.removePersistentDomain(forName: name)
+
+        try await AppUninstaller.cleanUserData(
+            userDefaults: defaults,
+            loginItem: MockLoginItem(),
+            fileManager: .default,
+            homeDirectory: URL(fileURLWithPath: NSTemporaryDirectory()),
+            bundleID: name,
+            stopCalibration: { order.values.append("stop-calibration") },
+            releaseBatteryLimit: { order.values.append("release-limit") },
+            removeHelper: { order.values.append("remove-helper") })
+
+        #expect(order.values == ["stop-calibration", "release-limit", "remove-helper"])
+    }
 }

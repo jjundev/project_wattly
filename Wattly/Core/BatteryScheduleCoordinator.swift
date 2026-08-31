@@ -11,14 +11,17 @@ import AppKit
 
     private let batteryControl: BatteryControlClient
     private let defaults: UserDefaults
+    private let isCalibrationRunning: @MainActor () -> Bool
     nonisolated(unsafe) private var timerTask: Task<Void, Never>?
 
     public init(
         batteryControl: BatteryControlClient,
-        defaults: UserDefaults = .standard
+        defaults: UserDefaults = .standard,
+        isCalibrationRunning: @escaping @MainActor () -> Bool = { false }
     ) {
         self.batteryControl = batteryControl
         self.defaults = defaults
+        self.isCalibrationRunning = isCalibrationRunning
         loadState()
         startTimer()
     }
@@ -123,6 +126,15 @@ import AppKit
         }
 
         guard let winning = Self.resolveConflict(among: matching) else { return }
+
+        // 캘리브레이션 중에는 발화하지 않는다. `execute`가 `defaults.set`으로 사용자 설정
+        // 자체를 덮어쓰기 때문에, 절차 시작 시점 스냅샷과 저장값이 갈라지고 원복이 잘못된
+        // 값을 되돌린다. 조용히 넘기지 않고 사유를 이력에 남긴다.
+        guard !isCalibrationRunning() else {
+            recordLog(schedule: winning, status: .skipped(reason: .calibrationRunning),
+                      timestamp: date)
+            return
+        }
 
         // Record skipped for lower-priority simultaneous items
         for item in matching where item.id != winning.id {

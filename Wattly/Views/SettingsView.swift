@@ -11,17 +11,20 @@ struct SettingsView: View {
     let fanControl: FanControlClient
     let batteryControl: BatteryControlClient
     var scheduleCoordinator: BatteryScheduleCoordinator? = nil
+    let calibrationCoordinator: BatteryCalibrationCoordinator
 
     init(
         monitor: SystemMonitor,
         fanControl: FanControlClient,
         batteryControl: BatteryControlClient,
-        scheduleCoordinator: BatteryScheduleCoordinator? = nil
+        scheduleCoordinator: BatteryScheduleCoordinator? = nil,
+        calibrationCoordinator: BatteryCalibrationCoordinator
     ) {
         self.monitor = monitor
         self.fanControl = fanControl
         self.batteryControl = batteryControl
         self.scheduleCoordinator = scheduleCoordinator
+        self.calibrationCoordinator = calibrationCoordinator
     }
 
     @AppStorage(StorageKey.theme) private var theme = Defaults.theme
@@ -65,7 +68,8 @@ struct SettingsView: View {
             Button("완전 삭제 및 앱 종료", role: .destructive) {
                 Task {
                     do {
-                        try await AppUninstaller.uninstall()
+                        try await AppUninstaller.uninstall(
+                            stopCalibration: { await calibrationCoordinator.cancel() })
                     } catch {
                         uninstallErrorMessage = error.localizedDescription
                     }
@@ -379,12 +383,19 @@ struct SettingsView: View {
             }
             if monitor.isPresent(.battery) {
                 SettingsBatterySection(batteryControl: batteryControl, scheduleCoordinator: scheduleCoordinator)
+                SettingsBatteryCalibrationSection(
+                    batteryControl: batteryControl, calibration: calibrationCoordinator)
             }
         }
     }
 
     private func applyDefaults() {
-        SettingsReset.applyDefaults(login: loginItem, maxFanRPM: monitor.hardwareMaxFanRPM)
-        loginMirror = loginItem.isEnabled
+        Task {
+            await SettingsReset.resetEverything(
+                login: loginItem,
+                maxFanRPM: monitor.hardwareMaxFanRPM,
+                stoppingCalibration: { await calibrationCoordinator.cancel() })
+            loginMirror = loginItem.isEnabled
+        }
     }
 }

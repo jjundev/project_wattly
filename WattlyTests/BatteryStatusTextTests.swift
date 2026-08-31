@@ -200,5 +200,19 @@ import Foundation
         #expect(BatteryStatusText.text(reason: manualDischargeReason, detail: "", locale: en)
                 == "Manual discharge in progress (Discharging to 70%)")
     }
+
+    @Test func calibrationReasonsRenderInTheUsersLanguage() {
+        let en = Locale(identifier: "en")
+        let charging = BatteryStatusText.text(
+            reason: .init(kind: .calibrationCharging, limitPercentage: 100),
+            detail: "", locale: en)
+        #expect(charging.contains("100"))
+        #expect(charging.contains("캘리브레이션") == false)   // 카탈로그를 거쳐야 한다
+
+        let discharging = BatteryStatusText.text(
+            reason: .init(kind: .calibrationDischarging, limitPercentage: 20),
+            detail: "", locale: Locale(identifier: "ko"))
+        #expect(discharging == "캘리브레이션: 20%까지 방전 중")
+    }
 }
 
