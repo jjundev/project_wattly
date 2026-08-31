@@ -1079,6 +1079,115 @@ import AppKit
             locale: en
         ) == "Battery level is already at or below target.")
     }
+
+    /// 강제 방전 레지스터의 유무는 충전 제어와 다른 축이다. 나머지 조건이 전부 맞아도 이쪽이
+    /// 막히면 방전은 시작되지 않는다. `nil`(구버전 도우미)은 호출부가 "모름 = 지원"으로 접어
+    /// 넘기므로, 순수 함수는 `false`만 미지원으로 취급한다.
+    @Test func manualDischargeDisabledReasonReportsUnsupportedDischargeHardware() {
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true,
+            currentSoC: 80,
+            targetSoC: 70,
+            isHardwareSupported: true,
+            isDischargeHardwareSupported: false,
+            isToggleEnabled: true,
+            locale: ko
+        ) == "이 Mac은 강제 방전을 지원하지 않습니다.")
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true,
+            currentSoC: 80,
+            targetSoC: 70,
+            isHardwareSupported: true,
+            isDischargeHardwareSupported: false,
+            isToggleEnabled: true,
+            locale: en
+        ) == "This Mac does not support force discharge.")
+
+        // 충전 제어 자체가 막혀 있으면 그쪽 사유가 먼저다 — 사용자가 손댈 수 있는 축이니까.
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true,
+            currentSoC: 80,
+            targetSoC: 70,
+            isHardwareSupported: false,
+            isDischargeHardwareSupported: false,
+            isToggleEnabled: true,
+            locale: ko
+        ) == "배터리 충전 제어가 꺼져 있습니다.")
+
+        // 방전 하드웨어가 없으면 어댑터 미연결·목표 미달보다 이쪽이 먼저 보고된다.
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: false,
+            currentSoC: 60,
+            targetSoC: 70,
+            isHardwareSupported: true,
+            isDischargeHardwareSupported: false,
+            isToggleEnabled: true,
+            locale: ko
+        ) == "이 Mac은 강제 방전을 지원하지 않습니다.")
+
+        // 지원하는 Mac은 종전과 동일하게 통과한다 (기본값도 마찬가지).
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true,
+            currentSoC: 80,
+            targetSoC: 70,
+            isHardwareSupported: true,
+            isDischargeHardwareSupported: true,
+            isToggleEnabled: true,
+            locale: ko
+        ) == nil)
+    }
+
+    /// 버튼의 활성 여부와 화면에 뜨는 사유가 갈라지지 않아야 한다.
+    @Test func isManualDischargeActionableMirrorsDisabledReason() {
+        let cases: [(Bool, Int, Int, Bool, Bool, Bool)] = [
+            (true, 80, 70, true, true, true),
+            (true, 80, 70, true, false, true),
+            (true, 80, 70, false, true, true),
+            (true, 80, 70, true, true, false),
+            (false, 80, 70, true, true, true),
+            (true, 70, 70, true, true, true),
+            (true, 100, 99, true, true, true),
+            (true, 100, 100, true, true, true),
+        ]
+        for (plugged, soc, target, hw, dischargeHW, toggle) in cases {
+            let reason = BatterySectionPresentation.manualDischargeDisabledReason(
+                isPluggedIn: plugged,
+                currentSoC: soc,
+                targetSoC: target,
+                isHardwareSupported: hw,
+                isDischargeHardwareSupported: dischargeHW,
+                isToggleEnabled: toggle,
+                locale: ko)
+            let actionable = BatterySectionPresentation.isManualDischargeActionable(
+                isPluggedIn: plugged,
+                currentSoC: soc,
+                targetSoC: target,
+                isHardwareSupported: hw,
+                isDischargeHardwareSupported: dischargeHW,
+                isToggleEnabled: toggle)
+            #expect(actionable == (reason == nil))
+        }
+    }
+
+    /// 목표 100%는 `currentSoC > target`을 만족시킬 수 없어 컨트롤을 영구히 죽인다.
+    @Test func clampedManualDischargeTargetKeepsTheControlReachable() {
+        #expect(BatterySectionPresentation.manualDischargeTargetRange == 50...99)
+        #expect(BatterySectionPresentation.clampedManualDischargeTarget(100) == 99)
+        #expect(BatterySectionPresentation.clampedManualDischargeTarget(120) == 99)
+        #expect(BatterySectionPresentation.clampedManualDischargeTarget(80) == 80)
+        #expect(BatterySectionPresentation.clampedManualDischargeTarget(50) == 50)
+        #expect(BatterySectionPresentation.clampedManualDischargeTarget(0) == 50)
+        #expect(BatterySectionPresentation.clampedManualDischargeTarget(
+            Defaults.batteryManualDischargeTarget) == Defaults.batteryManualDischargeTarget)
+
+        // 클램프를 거치면 만충 상태에서 방전을 시작할 수 있다. 거치지 않으면 못 한다.
+        #expect(BatterySectionPresentation.isManualDischargeActionable(
+            isPluggedIn: true, currentSoC: 100, targetSoC: 100) == false)
+        #expect(BatterySectionPresentation.isManualDischargeActionable(
+            isPluggedIn: true,
+            currentSoC: 100,
+            targetSoC: BatterySectionPresentation.clampedManualDischargeTarget(100)) == true)
+    }
 }
 
 
