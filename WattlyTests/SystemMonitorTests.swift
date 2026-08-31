@@ -611,6 +611,56 @@ struct SystemMonitorTests {
         #expect(await provider.reads == 2)
     }
 
+    /// Pins the actual purpose of `setBatteryLiveDemand`, not just the flag it flips
+    /// (`batteryLiveDemandIsIdempotentAndReversible` covers that separately): while the
+    /// demand is on, the battery provider actually gets polled, and it stops again once the
+    /// demand is off.
+    ///
+    /// This drives the *live* poll loop (`.start()`), not `pollScheduled` calls made
+    /// directly by the test. `currentProviderIntervals` is a computed property that always
+    /// reflects the current `settingsBatteryLive` flag, so a directly-driven test (the shape
+    /// used by `heroCardSpeedsUpScheduledPollWhenPanelVisible` above) can't tell a correct
+    /// implementation apart from one that only sets the flag — each manual `pollScheduled`
+    /// call recomputes the due set fresh either way. Only the live loop exposes the gap: once
+    /// its first cycle has run and it is asleep on the old (battery-less) schedule, nothing
+    /// but an actual `reschedule(forceProviders:)` can make it read the battery within a
+    /// bounded, non-sleeping yield loop — a stub that only flips the flag leaves that loop
+    /// asleep for its full ~2 s real-time interval. The test explicitly waits for that first
+    /// cycle to land (`power.reads == 1`) before touching the demand, precisely so the loop is
+    /// provably already asleep rather than merely not-yet-scheduled — otherwise a lucky race
+    /// (the first cycle happening to run *after* the flag flips) could pass for the wrong
+    /// reason.
+    @Test func batteryLiveDemandStartsAndStopsPollingTheBattery() async {
+        let power = CountingProvider(kind: .power)
+        let battery = CountingProvider(kind: .battery)
+        let monitor = SystemMonitor(providers: [power, battery], clock: ManualClock())
+        monitor.start()
+
+        // Wait for the loop's first cycle to actually complete and go to sleep on the
+        // default (closed eco panel, menubar needs `.power` only) schedule, which never
+        // includes the battery.
+        for _ in 0..<50 where (await power.reads < 1) { await Task.yield() }
+        #expect(await power.reads == 1)
+        #expect(await battery.reads == 0)
+
+        // Demand on: the loop is now genuinely asleep on its old, battery-less schedule.
+        // Yielding (no real sleep) gives a forced-read reschedule a chance to land, but gives
+        // a stub that only flips the flag no chance to — it would need its already-in-flight
+        // sleep to actually elapse first.
+        monitor.setBatteryLiveDemand(true)
+        for _ in 0..<50 where (await battery.reads < 1) { await Task.yield() }
+        #expect(await battery.reads >= 1)
+
+        // Demand off: the battery drops back out of the schedule, so it takes no further
+        // reads even after giving the loop more chances to run.
+        let readsAtOff = await battery.reads
+        monitor.setBatteryLiveDemand(false)
+        for _ in 0..<50 { await Task.yield() }
+        #expect(await battery.reads == readsAtOff)
+
+        monitor.stop()
+    }
+
     @Test func batteryLiveDemandIsIdempotentAndReversible() {
         let battery = ScriptedProvider(kind: .battery, [.pending])
         let monitor = SystemMonitor(providers: [battery], clock: ManualClock())
