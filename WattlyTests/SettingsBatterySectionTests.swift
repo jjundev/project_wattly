@@ -157,4 +157,21 @@ import Foundation
         let section = SettingsBatterySection(batteryControl: client, scheduleCoordinator: coordinator)
         #expect(section.scheduleCoordinator != nil)
     }
+
+    @Test @MainActor func heatThresholdIsReadFromStorageNotTheConstant() {
+        let d = UserDefaults.standard
+        let original = d.object(forKey: StorageKey.batteryHeatProtectionThreshold)
+        defer {
+            if let original { d.set(original, forKey: StorageKey.batteryHeatProtectionThreshold) }
+            else { d.removeObject(forKey: StorageKey.batteryHeatProtectionThreshold) }
+        }
+
+        // 단축어가 임계값을 40으로 바꾼 상황을 재현한다.
+        d.set(40, forKey: StorageKey.batteryHeatProtectionThreshold)
+
+        let client = BatteryControlClient()
+        let view = SettingsBatterySection(batteryControl: client)
+        // 섹션은 상수 35가 아니라 저장된 40을 들고 있어야 한다.
+        #expect(view.heatProtectionThresholdForTesting == 40)
+    }
 }

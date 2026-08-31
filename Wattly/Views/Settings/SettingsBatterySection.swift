@@ -16,6 +16,12 @@ struct SettingsBatterySection: View {
     @AppStorage(StorageKey.batteryHeatProtectionEnabled) private var batteryHeatProtectionEnabled = Defaults.batteryHeatProtectionEnabled
     @AppStorage(StorageKey.batteryAutoDischargeEnabled) private var autoDischargeEnabled = Defaults.batteryAutoDischargeEnabled
     @AppStorage(StorageKey.batteryManualDischargeTarget) private var manualDischargeTarget = Defaults.batteryManualDischargeTarget
+    /// 저장된 발열 임계값. **상수 `Defaults`를 직접 보내면 안 된다** — 단축어가 이 키에 쓰기
+    /// 때문에(`BatteryIntentBridge`), 상수를 보내는 순간 사용자가 단축어로 지정한 값을 되돌린다.
+    @AppStorage(StorageKey.batteryHeatProtectionThreshold) private var heatProtectionThreshold = Defaults.batteryHeatProtectionThreshold
+
+    /// 테스트가 `@AppStorage` 결선을 확인하기 위한 읽기 전용 창구.
+    var heatProtectionThresholdForTesting: Int { heatProtectionThreshold }
     @State private var isInstallFailedAlertPresented = false
     @State private var installErrorMessage = ""
     @State private var isHelpPopoverPresented = false
@@ -177,7 +183,7 @@ struct SettingsBatterySection: View {
                             let limit = batteryLimitPercentage
                             let delta = effectiveDelta
                             let heatEnabled = batteryHeatProtectionEnabled
-                            let heatThreshold = Defaults.batteryHeatProtectionThreshold
+                            let heatThreshold = heatProtectionThreshold
                             let autoDischarge = autoDischargeEnabled
                             let manualTarget = manualDischargeTarget
                             Task {
@@ -261,7 +267,7 @@ struct SettingsBatterySection: View {
                             limitPercentage: batteryLimitPercentage,
                             lowerHysteresisDelta: effectiveDelta,
                             heatProtectionEnabled: batteryHeatProtectionEnabled,
-                            heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
+                            heatProtectionThresholdCelsius: heatProtectionThreshold,
                             autoDischargeEnabled: autoDischargeEnabled,
                             manualDischargeTarget: manualDischargeTarget)
                     }
@@ -271,7 +277,7 @@ struct SettingsBatterySection: View {
                 let limit = batteryLimitPercentage
                 let delta = effectiveDelta
                 let heatEnabled = batteryHeatProtectionEnabled
-                let heatThreshold = Defaults.batteryHeatProtectionThreshold
+                let heatThreshold = heatProtectionThreshold
                 let autoDischarge = autoDischargeEnabled
                 let manualTarget = manualDischargeTarget
                 Task {
@@ -322,7 +328,7 @@ struct SettingsBatterySection: View {
                         limitPercentage: newLimit,
                         lowerHysteresisDelta: effectiveDelta,
                         heatProtectionEnabled: batteryHeatProtectionEnabled,
-                        heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
+                        heatProtectionThresholdCelsius: heatProtectionThreshold,
                         autoDischargeEnabled: autoDischargeEnabled,
                         manualDischargeTarget: manualDischargeTarget)
                 }
@@ -336,7 +342,7 @@ struct SettingsBatterySection: View {
                         limitPercentage: batteryLimitPercentage,
                         lowerHysteresisDelta: delta,
                         heatProtectionEnabled: batteryHeatProtectionEnabled,
-                        heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
+                        heatProtectionThresholdCelsius: heatProtectionThreshold,
                         autoDischargeEnabled: autoDischargeEnabled,
                         manualDischargeTarget: manualDischargeTarget)
                 }
@@ -349,7 +355,7 @@ struct SettingsBatterySection: View {
                         limitPercentage: batteryLimitPercentage,
                         lowerHysteresisDelta: newDelta,
                         heatProtectionEnabled: batteryHeatProtectionEnabled,
-                        heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
+                        heatProtectionThresholdCelsius: heatProtectionThreshold,
                         autoDischargeEnabled: autoDischargeEnabled,
                         manualDischargeTarget: manualDischargeTarget)
                 }
@@ -362,7 +368,7 @@ struct SettingsBatterySection: View {
                             limitPercentage: batteryLimitPercentage,
                             lowerHysteresisDelta: effectiveDelta,
                             heatProtectionEnabled: isEnabled,
-                            heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
+                            heatProtectionThresholdCelsius: heatProtectionThreshold,
                             autoDischargeEnabled: autoDischargeEnabled,
                             manualDischargeTarget: manualDischargeTarget)
                     }
@@ -381,7 +387,7 @@ struct SettingsBatterySection: View {
                                 limitPercentage: batteryLimitPercentage,
                                 lowerHysteresisDelta: effectiveDelta,
                                 heatProtectionEnabled: true,
-                                heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
+                                heatProtectionThresholdCelsius: heatProtectionThreshold,
                                 autoDischargeEnabled: autoDischarge,
                                 manualDischargeTarget: manualTarget,
                                 window: window) {
@@ -397,7 +403,7 @@ struct SettingsBatterySection: View {
                         limitPercentage: batteryLimitPercentage,
                         lowerHysteresisDelta: effectiveDelta,
                         heatProtectionEnabled: true,
-                        heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
+                        heatProtectionThresholdCelsius: heatProtectionThreshold,
                         autoDischargeEnabled: autoDischarge,
                         manualDischargeTarget: manualTarget)
                     if batteryControl.status.isHardwareSupported == false {
@@ -482,7 +488,7 @@ struct SettingsBatterySection: View {
                     let limit = batteryLimitPercentage
                     let delta = effectiveDelta
                     let heatEnabled = batteryHeatProtectionEnabled
-                    let heatThreshold = Defaults.batteryHeatProtectionThreshold
+                    let heatThreshold = heatProtectionThreshold
                     let autoDischarge = autoDischargeEnabled
                     let manualTarget = manualDischargeTarget
                     Task {
@@ -577,7 +583,7 @@ struct SettingsBatterySection: View {
                                        limitPercentage: limit,
                                        lowerHysteresisDelta: delta,
                                        heatProtectionEnabled: batteryHeatProtectionEnabled,
-                                       heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
+                                       heatProtectionThresholdCelsius: heatProtectionThreshold,
                                        autoDischargeEnabled: autoDischarge,
                                        manualDischargeTarget: manualTarget)
         }
@@ -595,7 +601,7 @@ struct SettingsBatterySection: View {
                 limitPercentage: limit,
                 lowerHysteresisDelta: delta,
                 heatProtectionEnabled: batteryHeatProtectionEnabled,
-                heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
+                heatProtectionThresholdCelsius: heatProtectionThreshold,
                 autoDischargeEnabled: autoDischarge,
                 manualDischargeTarget: manualTarget,
                 transferringOwnership: transferringOwnership,
