@@ -172,7 +172,12 @@ struct SettingsScheduleCard: View {
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("\(schedule.time.formattedText) \(schedule.action.summary(locale: locale))"))
+        // `verbatim:`이어야 한다. 보간이 들어간 `Text("...")`는 `LocalizedStringKey`로 해석되어
+        // `"%@ %@"`라는 카탈로그 키를 조회한다 — 어떤 두 문자열 연결이든 같은 키로 몰리는
+        // 충돌 위험이 있고, Xcode의 문자열 추출이 그 키를 기본 언어만 채운 채 카탈로그에
+        // 넣어 "새 문자열은 30개 언어를 모두 채운다"는 규칙을 깬다. 여기 두 값은 이미
+        // 지역화를 거친 완성된 문자열이므로 그대로 읽어야 한다.
+        .accessibilityLabel(Text(verbatim: "\(schedule.time.formattedText) \(schedule.action.summary(locale: locale))"))
         .accessibilityValue(Text(LocalizedStringKey(schedule.isEnabled ? "켜짐" : "꺼짐")))
         .accessibilityAddTraits(.isButton)
         .accessibilityAction {
