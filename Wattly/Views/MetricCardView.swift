@@ -109,7 +109,7 @@ struct MetricCardView: View {
                     .foregroundStyle(t.sub)
                     .fixedSize()
                 if hasChevron {
-                    Image(systemName: "chevron.down")
+                    Image(systemName: CardPresentation.expandChevronSymbol(isExpanded: isExpanded))
                         .font(.system(size: 8, weight: .bold))
                         .foregroundStyle(t.sub)
                 }

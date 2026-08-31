@@ -170,7 +170,7 @@ private struct HeroCard: View {
                     .foregroundStyle(Self.labelColor)
                     .lineLimit(1)
                 if hasChevron {
-                    Image(systemName: "chevron.down")
+                    Image(systemName: CardPresentation.expandChevronSymbol(isExpanded: isExpanded))
                         .font(.system(size: 8, weight: .bold))
                         .foregroundStyle(Self.labelColor)
                 }

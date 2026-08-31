@@ -64,6 +64,12 @@ enum CardPresentation {
         return s.map(\.rawValue).sorted().joined(separator: ",")
     }
 
+    /// Which SF Symbol name to use for expandable card disclosure chevron:
+    /// "chevron.down" when expanded, "chevron.right" when collapsed.
+    static func expandChevronSymbol(isExpanded: Bool) -> String {
+        isExpanded ? "chevron.down" : "chevron.right"
+    }
+
     /// One compact list-row value for the mode-C list (plan 20). **Total** over `MetricState`,
     /// reusing `valueText`/`unitText` so the battery sign (#17) and every unit stay correct and in
     /// step with the cards — including the battery-temperature `°C` the prototype `rowOf` (lines
