@@ -752,6 +752,11 @@ struct CardPresentationTests {
         #expect(CardPresentation.adapterPowerText(48.54) == "48.5 W")
         #expect(CardPresentation.systemPowerText(16.12) == "16.1 W")
     }
+
+    @Test func expandChevronSymbol() {
+        #expect(CardPresentation.expandChevronSymbol(isExpanded: false) == "chevron.right")
+        #expect(CardPresentation.expandChevronSymbol(isExpanded: true) == "chevron.down")
+    }
 }
 
 
