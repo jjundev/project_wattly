@@ -68,6 +68,30 @@ import Testing
         #expect(bodyEn.contains("Top Up to 100%"))
     }
 
+    /// 배너 제목/본문은 이미 로케일을 받고 있었지만, 그 안에 끼워 넣는 `actionSummary`가
+    /// 코디네이터에서 한국어로 굳어 오고 있었다. 코디네이터가 지금 넘기는 것과 같은 방식으로
+    /// — `ScheduleAction.summary(locale:)`로 — 조립했을 때 본문 전체가 그 언어인지 본다.
+    @Test func scheduleTriggeredBodyCarriesLocalizedActionSummary() {
+        func body(_ action: ScheduleAction, _ identifier: String) -> String {
+            let locale = Locale(identifier: identifier)
+            return BatteryNotificationManager.scheduleTriggeredBody(
+                scheduleName: "",
+                actionSummary: action.summary(locale: locale),
+                locale: locale)
+        }
+
+        #expect(body(.setLimit(percentage: 80), "ko") == "설정된 작업이 실행되었습니다: 충전 한도 80%")
+        #expect(body(.setLimit(percentage: 80), "en") == "Scheduled action executed: Charge Limit 80%")
+        #expect(body(.startTopUp, "en") == "Scheduled action executed: Top Up to 100%")
+        #expect(body(.pauseCharging, "en") == "Scheduled action executed: Pause Charging")
+        #expect(body(.setLimit(percentage: 80), "ja") == "設定されたタスクが実行されました: 充電上限 80%")
+
+        // 이름 없는 일정의 제목은 요약을 쓰지 않지만, 같은 로케일을 받는지 함께 확인한다.
+        #expect(BatteryNotificationManager.scheduleTriggeredTitle(
+            scheduleName: "", actionSummary: "", locale: Locale(identifier: "en"))
+                == "Scheduled Charge Triggered")
+    }
+
     @Test func dischargeNotificationTitleAndBodyAreLocalized() {
         let ko = Locale(identifier: "ko")
         let en = Locale(identifier: "en")
