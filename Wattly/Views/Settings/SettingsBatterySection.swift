@@ -440,18 +440,14 @@ struct SettingsBatterySection: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             .accessibilityElement(children: .combine)
-            // 아이콘을 실제 tone에 맞춘다. `maintenanceStatus`는 **절대 nil을 돌려주지 않고
-            // `.green`도 내보내지 않는다** — 성공했을 때조차 `.faint`("마지막 확인 · 성공")다.
-            // 그래서 "정상이면 숨긴다"는 애초에 성립하지 않고, `.green` 외 전부를 경고 아이콘으로
-            // 두면 정상 상태에 경고 삼각형이 뜬다(지금의 물음표보다 나쁘다). 문제를 알리는 톤
-            // (`.red`/`.orange`)일 때만 경고를 쓰고, 정보성 톤은 물음표를 유지한다.
+            // 아이콘 선택은 `MaintenanceStatus.symbolName`(Core)이 판단한다 — 그 이유(tone별
+            // 분기 근거)는 그 프로퍼티의 doc comment에 있다.
             // `if let`은 그대로 둔다 — 지금은 항상 통과하지만, 나중에 nil 경로가 생기면 옳다.
             if let maintenance = resolvedMaintenanceStatus {
                 Button {
                     isMaintenanceHelpPopoverPresented = true
                 } label: {
-                    Image(systemName: maintenance.tone == .red || maintenance.tone == .orange
-                          ? "exclamationmark.triangle.fill" : "questionmark.circle")
+                    Image(systemName: maintenance.symbolName)
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(statusColor(for: maintenance.tone))
                 }

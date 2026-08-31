@@ -130,6 +130,22 @@ import AppKit
                 == "충전 정책 확인 전")
     }
 
+    /// `maintenanceStatus`는 절대 nil을 돌려주지 않고 `.green`도 내보내지 않는다 — 성공했을
+    /// 때조차 `.faint`다. 그래서 아이콘은 문제를 알리는 톤(`.red`/`.orange`)일 때만 경고
+    /// 삼각형이고, 그 외(`.faint`/`.green`)는 물음표를 유지해야 한다.
+    @Test func maintenanceStatusSymbolNameWarnsOnlyForRedOrOrangeTone() {
+        let cases: [(tone: BatterySectionPresentation.Tone, expectedSymbol: String)] = [
+            (.red, "exclamationmark.triangle.fill"),
+            (.orange, "exclamationmark.triangle.fill"),
+            (.faint, "questionmark.circle"),
+            (.green, "questionmark.circle"),
+        ]
+        for (tone, expectedSymbol) in cases {
+            let status = BatterySectionPresentation.MaintenanceStatus(tone: tone, text: "x", action: nil)
+            #expect(status.symbolName == expectedSymbol, "tone \(tone) should map to \(expectedSymbol)")
+        }
+    }
+
     @Test func maintenanceActionsHaveLocalizedVoiceOverLabels() {
         #expect(BatterySectionPresentation.maintenanceActionLabel(.retry, locale: en) == "Check Again")
         #expect(BatterySectionPresentation.maintenanceActionLabel(.updateHelper, locale: en) == "Update Helper")

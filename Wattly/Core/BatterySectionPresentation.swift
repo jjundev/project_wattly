@@ -23,6 +23,17 @@ enum BatterySectionPresentation {
         let tone: Tone
         let text: String
         let action: MaintenanceAction?
+
+        /// 유지보수 상태 버튼에 쓰는 SF Symbol 이름.
+        ///
+        /// `maintenanceStatus`는 **절대 nil을 돌려주지 않고 `.green`도 내보내지 않는다** —
+        /// 성공했을 때조차 `.faint`("마지막 확인 · 성공")다. 그래서 "정상이면 숨긴다"는 애초에
+        /// 성립하지 않고, `.green` 외 전부를 경고 아이콘으로 두면 정상 상태(`.faint`)에도 경고
+        /// 삼각형이 뜬다(지금의 물음표보다 나쁘다). 문제를 알리는 톤(`.red`/`.orange`)일 때만
+        /// 경고를 쓰고, 정보성 톤은 물음표를 유지한다.
+        var symbolName: String {
+            tone == .red || tone == .orange ? "exclamationmark.triangle.fill" : "questionmark.circle"
+        }
     }
 
     enum Indicator: String, Equatable, CaseIterable {

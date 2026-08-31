@@ -98,6 +98,42 @@ struct SettingsScheduleCard: View {
 
     private func scheduleRow(_ schedule: BatteryChargingSchedule) -> some View {
         HStack(alignment: .center, spacing: 10) {
+            scheduleToggleAndDescription(schedule)
+
+            Spacer()
+
+            Button {
+                editingSchedule = schedule
+                isEditorPresented = true
+            } label: {
+                Image(systemName: "pencil")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(t.faint)
+                    .frame(width: 24, height: 24)
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                coordinator.deleteSchedule(id: schedule.id)
+            } label: {
+                Image(systemName: "trash")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.red.opacity(0.8))
+                    .frame(width: 24, height: 24)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+    }
+
+    // 토글과 시각·동작 설명만 하나의 VoiceOver 요소로 묶는다. `scheduleRow` 전체를 묶으면
+    // 옆의 편집·삭제 버튼까지 그 요소 안에 흡수되어 VoiceOver로 도달할 수 없게 된다 —
+    // `SettingsBatterySection.batteryStatusRow`가 같은 함정을 안쪽 HStack만 묶어 피한 것과
+    // 동일한 이유(그쪽 주석 참고). `WattlyToggle`은 자체적으로 `.accessibilityHidden(true)`이므로
+    // (`SettingsComponents.swift`) 이 컨테이너가 라벨·값·액추에이션을 모두 대신 낸다.
+    private func scheduleToggleAndDescription(_ schedule: BatteryChargingSchedule) -> some View {
+        HStack(alignment: .center, spacing: 10) {
             WattlyToggle(
                 isOn: Binding(
                     get: { schedule.isEnabled },
@@ -133,32 +169,15 @@ struct SettingsScheduleCard: View {
                         .foregroundStyle(t.faint)
                 }
             }
-
-            Spacer()
-
-            Button {
-                editingSchedule = schedule
-                isEditorPresented = true
-            } label: {
-                Image(systemName: "pencil")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(t.faint)
-                    .frame(width: 24, height: 24)
-            }
-            .buttonStyle(.plain)
-
-            Button {
-                coordinator.deleteSchedule(id: schedule.id)
-            } label: {
-                Image(systemName: "trash")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.red.opacity(0.8))
-                    .frame(width: 24, height: 24)
-            }
-            .buttonStyle(.plain)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text("\(schedule.time.formattedText) \(schedule.action.summary(locale: locale))"))
+        .accessibilityValue(Text(LocalizedStringKey(schedule.isEnabled ? "켜짐" : "꺼짐")))
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction {
+            coordinator.toggleSchedule(id: schedule.id, isEnabled: !schedule.isEnabled)
+        }
     }
 
     private var historyPopover: some View {
