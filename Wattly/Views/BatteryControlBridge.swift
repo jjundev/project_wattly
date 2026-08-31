@@ -35,6 +35,13 @@ struct BatteryControlBridge: View {
     /// auto-discharge opt-in back off once a minute. `topUpActive` and `manualDischargeActive` are
     /// deliberately absent: they are transient daemon activity, and `BatteryControlPolicy`
     /// preserves them from the helper's own status rather than from preferences.
+    ///
+    /// `manualDischargeTarget` is clamped through `BatterySectionPresentation
+    /// .effectiveDischargeTarget` here, at the one place every push to the daemon funnels
+    /// through — a stored target above 95 (reachable: the old slider went to 100, before the
+    /// 50...95 clamp existed) can never satisfy `currentSoC > target`, so this always-alive
+    /// reconciler must never be the one still pushing a dead 100 while the discharge card, which
+    /// clamps on its own, offers a working 95.
     static func makeConfiguration(
         enabled: Bool,
         limitPercentage: Int,
@@ -53,7 +60,8 @@ struct BatteryControlBridge: View {
             heatProtectionEnabled: heatProtectionEnabled,
             heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
             autoDischargeEnabled: autoDischargeEnabled,
-            manualDischargeTarget: manualDischargeTarget)
+            manualDischargeTarget: BatterySectionPresentation
+                .effectiveDischargeTarget(manualDischargeTarget))
     }
 
     /// Folds the daemon's transient activity into a configuration built from stored preferences.

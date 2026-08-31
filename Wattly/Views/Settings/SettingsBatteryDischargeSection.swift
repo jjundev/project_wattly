@@ -36,8 +36,19 @@ struct SettingsBatteryDischargeSection: View {
     /// 화면·판정·전송이 서로 다른 숫자를 보면 "100%인데 시작 버튼이 영원히 꺼져 있다"가 되므로
     /// 읽는 쪽을 한 곳으로 모은다. 저장값 자체는 건드리지 않는다 — 렌더링이 사용자의 설정을
     /// 조용히 덮어쓰지 않게 하기 위해서다.
+    ///
+    /// 클램프 자체는 `BatterySectionPresentation.effectiveDischargeTarget`에 있다 — 이 파일만
+    /// 클램프하던 예전 버전은 `SettingsBatterySection`·`BatteryControlBridge`·
+    /// `CardExpandRegion`이 계속 원시값을 데몬에 보내는 사각지대를 남겼다.
     private var effectiveManualDischargeTarget: Int {
-        min(max(manualDischargeTarget, 50), 95)
+        BatterySectionPresentation.effectiveDischargeTarget(manualDischargeTarget)
+    }
+
+    /// `Slider`가 요구하는 `ClosedRange<Double>`로 변환한 `dischargeTargetRange` — 슬라이더의
+    /// `in:`과 클램프가 같은 정수 상수를 공유하도록 이 한 곳에서만 변환한다.
+    private var dischargeSliderRange: ClosedRange<Double> {
+        let range = BatterySectionPresentation.dischargeTargetRange
+        return Double(range.lowerBound)...Double(range.upperBound)
     }
 
     private var isHardwareUnsupported: Bool {
@@ -229,8 +240,10 @@ struct SettingsBatteryDischargeSection: View {
                             set: { manualDischargeTarget = Int($0.rounded()) }
                         ),
                         // 100%는 `현재 잔량 > 목표`가 성립할 수 없어 영구 비활성이다 —
-                        // 고를 수 있는 값은 전부 실행 가능한 값이어야 한다.
-                        in: 50...95,
+                        // 고를 수 있는 값은 전부 실행 가능한 값이어야 한다. 리터럴 50...95를
+                        // 다시 쓰지 않는다 — `dischargeSliderRange`(→ `dischargeTargetRange`)가
+                        // 클램프와 공유하는 유일한 출처다.
+                        in: dischargeSliderRange,
                         step: 1
                     )
                     .tint(Tokens.statusOrange)
@@ -241,8 +254,13 @@ struct SettingsBatteryDischargeSection: View {
                     // 눈에 보이는 숫자는 95%인데 VoiceOver만 "100%"라고 말한다.
                     .accessibilityValue(Text(verbatim: "\(effectiveManualDischargeTarget)%"))
 
+                    // 양 끝은 `dischargeTargetRange`에서 뽑는다 — 클램프 상·하한이 바뀌면
+                    // 눈금도 같이 움직여야 슬라이더 트랙과 어긋나지 않는다. 가운데 세 개
+                    // (60/70/80/90)는 그 사이를 고르게 나눈 정지점일 뿐 다른 상수에 매여 있지
+                    // 않으므로 리터럴로 둔다 — 억지로 계산식을 만들면 "10% 간격"이라는 읽기
+                    // 쉬운 사실을 코드 뒤에 숨기게 된다.
                     HStack {
-                        Text("50%")
+                        Text(verbatim: "\(BatterySectionPresentation.dischargeTargetRange.lowerBound)%")
                         Spacer()
                         Text("60%")
                         Spacer()
@@ -252,7 +270,7 @@ struct SettingsBatteryDischargeSection: View {
                         Spacer()
                         Text("90%")
                         Spacer()
-                        Text("95%")
+                        Text(verbatim: "\(BatterySectionPresentation.dischargeTargetRange.upperBound)%")
                     }
                     .font(WattlyFont.at(10, weight: .regular))
                     .monospacedDigit()

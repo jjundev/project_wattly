@@ -534,6 +534,24 @@ enum BatterySectionPresentation {
         String(localized: "방전 시작", locale: locale)
     }
 
+    /// 수동 방전 목표의 안전 범위. 하한(50)은 지나치게 얕은 방전을 막고, 상한(95)은 100을
+    /// 배제한다 — 저장된 목표가 100이면 `currentSoC > target`이 절대 성립하지 않아 시작
+    /// 버튼이 영구히 비활성화된다. 상한을 95로 낮추기 전에 100을 저장한 사용자가 있으므로,
+    /// 아래 `effectiveDischargeTarget`이 **읽는 쪽 전부**가 거쳐야 하는 유일한 클램프 지점이다.
+    /// 저장값(`@AppStorage(.batteryManualDischargeTarget)`) 자체는 이 범위 밖에 있을 수 있고,
+    /// 그래도 된다 — 렌더링·전송이 사용자의 설정을 조용히 덮어쓰지 않기 위해서다.
+    static let dischargeTargetRange: ClosedRange<Int> = 50...95
+
+    /// 저장된 방전 목표를 `dischargeTargetRange`로 좁힌다.
+    ///
+    /// **읽는 쪽(화면 표시, 데몬으로 보내는 값)만** 이 함수를 거친다. 저장하는 쪽
+    /// (`@AppStorage` 선언 자체, `.onChange`/`.task(id:)`의 관찰 대상, 슬라이더 `Binding.set`)은
+    /// 원시값을 그대로 써야 한다 — 그래야 여러 화면이 같은 저장소를 읽을 때 클램프가 저장값
+    /// 자체를 갈아치우는 부작용 없이 항상 같은 유효값에 합의한다.
+    static func effectiveDischargeTarget(_ stored: Int) -> Int {
+        min(max(stored, dischargeTargetRange.lowerBound), dischargeTargetRange.upperBound)
+    }
+
     /// 수동 방전을 시작할 수 없는 이유. 없으면 `nil`.
     ///
     /// 분기 순서가 곧 우선순위다 — 하드웨어가 아예 못 하는 일이 가장 먼저 나오고, 사용자가

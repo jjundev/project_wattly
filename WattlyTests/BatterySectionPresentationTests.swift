@@ -1092,6 +1092,27 @@ import AppKit
         ) == "Battery level is already at or below target.")
     }
 
+    /// 저장된 방전 목표가 안전 범위(50...95) 밖에 있을 수 있다 — 상한을 95로 낮추기 전에
+    /// 100을 저장한 사용자가 있다. 이 클램프가 화면·데몬 전송의 유일한 합의 지점이므로
+    /// 경계 양쪽과 범위 안쪽을 표로 확인한다.
+    @Test func effectiveDischargeTargetClampsToTheSafeRange() {
+        let cases: [(stored: Int, expected: Int)] = [
+            (0, 50),      // 범위 아래: 완전히 벗어난 값
+            (49, 50),     // 범위 아래: 하한 바로 밑
+            (50, 50),     // 하한 경계
+            (70, 70),     // 범위 안
+            (95, 95),     // 상한 경계
+            (96, 95),     // 범위 위: 상한 바로 위 — 예전 슬라이더가 남길 수 있던 값
+            (100, 95),    // 범위 위: 클램프를 도입하기 전 슬라이더의 최댓값
+            (1_000, 95),  // 범위 위: 병적으로 큰 값도 상한에서 멈춘다
+        ]
+        for c in cases {
+            #expect(BatterySectionPresentation.effectiveDischargeTarget(c.stored) == c.expected,
+                    "stored \(c.stored) should clamp to \(c.expected)")
+        }
+        #expect(BatterySectionPresentation.dischargeTargetRange == 50...95)
+    }
+
     @Test func dischargeEstimateStaysHiddenUntilTheEmaWarmsUp() {
         // 방전을 막 시작한 순간 — 4초 EMA는 아직 직전 홀드 상태의 값에 가깝다.
         #expect(BatterySectionPresentation.shouldShowDischargeEstimate(secondsSinceStart: 0) == false)

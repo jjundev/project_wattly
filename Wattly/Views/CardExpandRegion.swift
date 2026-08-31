@@ -27,6 +27,14 @@ struct CardExpandRegion: View {
     var scheduleCoordinator: BatteryScheduleCoordinator? = nil
     var calibration: BatteryCalibrationCoordinator? = nil
 
+    /// 이 뷰는 목표 슬라이더를 그리지 않는다 — 방전 행의 표시(현재 잔량 비교, 버튼 텍스트,
+    /// VoiceOver 값)와 시작/중지 호출 둘 다 이 저장값을 읽는다. 상한(95)을 낮추기 전에 100을
+    /// 저장한 사용자가 있으므로, 클램프 없이 그대로 쓰면 이 카드가 다른 화면(설정 › 배터리 ›
+    /// 방전)과 다른 숫자를 보여주거나 데몬에 다른 목표를 보낸다.
+    private var effectiveManualDischargeTarget: Int {
+        BatterySectionPresentation.effectiveDischargeTarget(manualDischargeTarget)
+    }
+
     @ViewBuilder
     var body: some View {
         if card == .power, case .value(.power(let s)) = state {
@@ -354,7 +362,7 @@ struct CardExpandRegion: View {
                     showSetting: showBatteryManualDischarge,
                     isDischarging: isDischargeActive,
                     currentSoC: currentSoC,
-                    targetSoC: manualDischargeTarget
+                    targetSoC: effectiveManualDischargeTarget
                 )
 
                 if BatterySectionPresentation.shouldShowBatteryControlSection(
@@ -412,7 +420,7 @@ struct CardExpandRegion: View {
                 let heatEnabled = batteryHeatProtectionEnabled
                 let heatThreshold = batteryHeatProtectionThreshold
                 let autoDischarge = batteryAutoDischargeEnabled
-                let target = manualDischargeTarget
+                let target = effectiveManualDischargeTarget
                 Task {
                     if isTopUp {
                         await batteryControl.cancelTopUp(
@@ -454,11 +462,11 @@ struct CardExpandRegion: View {
         let isDischarging = batteryControl.status.activity == .discharging
             || batteryControl.status.desiredConfiguration?.manualDischargeActive == true
         let currentSoC = s.percentage ?? batteryControl.status.currentPercentage
-        let canStartDischarge = s.externalConnected && currentSoC > manualDischargeTarget
+        let canStartDischarge = s.externalConnected && currentSoC > effectiveManualDischargeTarget
         let disabledReason = BatterySectionPresentation.manualDischargeDisabledReason(
             isPluggedIn: s.externalConnected,
             currentSoC: currentSoC,
-            targetSoC: manualDischargeTarget,
+            targetSoC: effectiveManualDischargeTarget,
             isHardwareSupported: true,
             isToggleEnabled: true,
             locale: locale
@@ -466,7 +474,7 @@ struct CardExpandRegion: View {
 
         HStack(alignment: .center) {
             HStack(spacing: 4) {
-                Text(LocalizedStringKey("수동 방전 (\(manualDischargeTarget)%)"))
+                Text(LocalizedStringKey("수동 방전 (\(effectiveManualDischargeTarget)%)"))
                     .font(WattlyFont.at(10.5, weight: .medium))
                     .foregroundStyle(t.faint)
                 if isDischarging {
@@ -482,7 +490,7 @@ struct CardExpandRegion: View {
                 let heatEnabled = batteryHeatProtectionEnabled
                 let heatThreshold = batteryHeatProtectionThreshold
                 let autoDischarge = batteryAutoDischargeEnabled
-                let target = manualDischargeTarget
+                let target = effectiveManualDischargeTarget
                 Task {
                     if isDischarging {
                         await batteryControl.stopManualDischarge(
@@ -516,7 +524,7 @@ struct CardExpandRegion: View {
                         .contentShape(Rectangle())
                 } else {
                     Text(verbatim: BatterySectionPresentation.startDischargeButtonText(
-                        targetSoC: manualDischargeTarget,
+                        targetSoC: effectiveManualDischargeTarget,
                         locale: locale))
                         .font(WattlyFont.at(10.5, weight: .medium))
                         .foregroundStyle(canStartDischarge ? Tokens.statusOrange : t.faint)
@@ -536,11 +544,11 @@ struct CardExpandRegion: View {
             .buttonStyle(.plain)
             .disabled(calibration?.isRunning == true || (!isDischarging && !canStartDischarge))
             .help(isDischarging ? "" : (disabledReason ?? ""))
-            .accessibilityLabel(Text(LocalizedStringKey("수동 방전 (\(manualDischargeTarget)%)")))
+            .accessibilityLabel(Text(LocalizedStringKey("수동 방전 (\(effectiveManualDischargeTarget)%)")))
             .accessibilityValue(Text(verbatim: isDischarging
                 ? String(localized: "방전 중지", locale: locale)
                 : BatterySectionPresentation.startDischargeButtonText(
-                    targetSoC: manualDischargeTarget,
+                    targetSoC: effectiveManualDischargeTarget,
                     locale: locale)))
             .accessibilityHint(Text(isDischarging ? "" : (disabledReason ?? "")))
         }
