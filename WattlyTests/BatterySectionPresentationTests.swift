@@ -1094,6 +1094,16 @@ import AppKit
         #expect(BatterySectionPresentation.shouldShowDischargeEstimate(
             secondsSinceStart: 3, warmUpSeconds: 2) == true)
     }
+
+    @Test func heatProtectionResumeTemperatureMatchesTheDaemonContract() {
+        // 데몬 기본 델타는 2°C다(BatteryControlConfiguration.resumeTemperatureCelsius).
+        #expect(BatterySectionPresentation.heatProtectionResumeCelsius(threshold: 35) == 33)
+        #expect(BatterySectionPresentation.heatProtectionResumeCelsius(threshold: 40) == 38)
+        // 아주 낮은 임계값을 넣어도, 계약 타입 자체가 임계값 하한을 30°C로 걸어 두므로
+        // (BatteryControlConfiguration.clampThreshold) 재개 온도는 30 - 2 = 28°C 아래로
+        // 내려가지 않는다 — resumeTemperatureCelsius 안의 20°C 바닥은 이 경로로는 닿지 않는다.
+        #expect(BatterySectionPresentation.heatProtectionResumeCelsius(threshold: 21) == 28)
+    }
 }
 
 

@@ -167,6 +167,14 @@ enum BatterySectionPresentation {
         }
     }
 
+    /// 발열 보호가 충전을 재개하는 온도. 델타와 하한을 여기서 다시 쓰지 않고 데몬이 쓰는
+    /// 계약 타입에 물어본다 — 앱은 재개 델타를 전송하지 않으므로 데몬은 언제나
+    /// `BatteryControlConfiguration`의 기본값을 쓰고, 두 값이 갈라질 여지를 남기지 않는다.
+    static func heatProtectionResumeCelsius(threshold: Int) -> Int {
+        BatteryControlConfiguration(heatProtectionThresholdCelsius: threshold)
+            .resumeTemperatureCelsius
+    }
+
     /// 설정 화면의 "한 번만 완충" 설명. 종료 조건이 두 개(어댑터 분리 / 시간 만료)가 되었으므로
     /// 둘 다 문장에 나온다. 시간 수를 인자로 받는 이유는 `BatteryTopUpExpiry.duration`이 바뀌어도
     /// 문구가 따로 놀지 않게 하기 위해서다.

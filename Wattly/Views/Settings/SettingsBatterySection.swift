@@ -154,10 +154,18 @@ struct SettingsBatterySection: View {
 
                     SettingsToggleRow(isOn: $batteryHeatProtectionEnabled,
                                       divider: false,
-                                      isEnabled: isToggleEnabled) {
+                                      isEnabled: isToggleEnabled,
+                                      // 충전 제한 토글에는 있는데 여기만 빠져 있었다 —
+                                      // 미지원 기기에서 이유 없이 흐려진 행이 된다.
+                                      disabledReason: isToggleEnabled ? nil : "이 Mac은 충전 제어를 지원하지 않습니다") {
                         VStack(alignment: .leading, spacing: 2) {
                             SettingsRowTitle("발열 보호")
-                            Text("배터리 온도가 35°C를 초과하면 충전을 일시 중단하고, 33°C 이하로 냉각되면 재개합니다.")
+                            Text(verbatim: String(
+                                format: String(localized: "배터리 온도가 %lld°C를 초과하면 충전을 일시 중단하고, %lld°C 이하로 냉각되면 재개합니다.", locale: locale),
+                                locale: locale,
+                                Int64(heatProtectionThreshold),
+                                Int64(BatterySectionPresentation.heatProtectionResumeCelsius(
+                                    threshold: heatProtectionThreshold))))
                                 .font(WattlyFont.at(10.5, weight: .regular))
                                 .foregroundStyle(t.faint)
                                 .fixedSize(horizontal: false, vertical: true)
