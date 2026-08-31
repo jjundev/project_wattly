@@ -235,6 +235,8 @@ struct SettingsBatteryDischargeSection: View {
                     )
                     .tint(Tokens.statusOrange)
                     .disabled(!isManualDischargeActionable)
+                    .accessibilityLabel(Text(LocalizedStringKey("목표 방전 잔량")))
+                    .accessibilityValue(Text(verbatim: "\(manualDischargeTarget)%"))
 
                     HStack {
                         Text("50%")
@@ -252,6 +254,8 @@ struct SettingsBatteryDischargeSection: View {
                     .font(WattlyFont.at(10, weight: .regular))
                     .monospacedDigit()
                     .foregroundStyle(t.faint)
+                    // 슬라이더 값이 이미 읽히므로 눈금은 VoiceOver 정지점이 될 이유가 없다.
+                    .accessibilityHidden(true)
                 }
                 .padding(EdgeInsets(top: 0, leading: 14, bottom: 8, trailing: 14))
 

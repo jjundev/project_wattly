@@ -423,16 +423,23 @@ struct SettingsBatterySection: View {
 
     private func batteryStatusRow(_ resolved: BatterySectionPresentation.Status) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: resolved.indicator.symbolName)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(statusColor(for: resolved.indicator.tone))
-                // The localized status text carries the meaning; hiding the decorative symbol
-                // prevents VoiceOver from reading an English SF Symbol name before it.
-                .accessibilityHidden(true)
-            Text(verbatim: resolved.text)
-                .font(WattlyFont.at(11, weight: .regular))
-                .foregroundStyle(t.sub)
-                .fixedSize(horizontal: false, vertical: true)
+            // 아이콘 + 문장만 하나의 VoiceOver 요소로 묶는다. 행 전체를 `.combine` 하면
+            // 아래 `?` 버튼과 "도우미 설치" 버튼이 그 요소 안으로 흡수되어 VoiceOver로
+            // 도달할 수 없게 된다 — `SettingsToggleRow`가 같은 상황에서 별도
+            // `.accessibilityAction`으로 우회한 것과 같은 함정이다.
+            HStack(spacing: 8) {
+                Image(systemName: resolved.indicator.symbolName)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(statusColor(for: resolved.indicator.tone))
+                    // 지역화된 문장이 의미를 담으므로, 장식용 SF Symbol 이름을 영어로 먼저
+                    // 읽지 않게 감춘다.
+                    .accessibilityHidden(true)
+                Text(verbatim: resolved.text)
+                    .font(WattlyFont.at(11, weight: .regular))
+                    .foregroundStyle(t.sub)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .accessibilityElement(children: .combine)
             Button {
                 isMaintenanceHelpPopoverPresented = true
             } label: {
@@ -441,7 +448,8 @@ struct SettingsBatterySection: View {
                     .foregroundStyle(t.faint)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text(verbatim: BatterySectionPresentation.maintenancePopoverText(
+            .accessibilityLabel(Text(LocalizedStringKey("유지보수 상태 보기")))
+            .accessibilityValue(Text(verbatim: BatterySectionPresentation.maintenancePopoverText(
                 resolvedMaintenanceStatus, locale: locale)))
             .popover(isPresented: $isMaintenanceHelpPopoverPresented, arrowEdge: .bottom) {
                 maintenanceStatusHelpPopover(resolvedMaintenanceStatus)
@@ -495,7 +503,6 @@ struct SettingsBatterySection: View {
             }
         }
         .padding(.vertical, 2)
-        .accessibilityElement(children: .combine)
     }
 
     private var resolvedMaintenanceStatus: BatterySectionPresentation.MaintenanceStatus? {
