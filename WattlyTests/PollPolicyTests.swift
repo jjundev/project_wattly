@@ -84,6 +84,42 @@ struct PollPolicyTests {
         ])
     }
 
+    @Test func settingsBatteryDemandKeepsBatteryPolledWhilePanelClosed() {
+        let all = Set(ProviderKind.allCases)
+
+        // 기준: 팝오버가 닫히고 메뉴바가 배터리를 쓰지 않으면 배터리는 아예 폴링되지 않는다.
+        #expect(providerIntervals(mode: .eco, setting: .auto, panelVisible: false,
+                                  menubarLiveContentEnabled: true, active: all,
+                                  menubarNeeds: [.cpu]) == [.cpu: .seconds(2)])
+
+        // 설정 창이 요구하면 배터리가 2초로 합류한다.
+        #expect(providerIntervals(mode: .eco, setting: .auto, panelVisible: false,
+                                  menubarLiveContentEnabled: true, active: all,
+                                  menubarNeeds: [.cpu],
+                                  settingsBatteryLive: true)
+                == [.cpu: .seconds(2), .battery: .seconds(2)])
+
+        // 배터리 카드를 숨겨 `active`에서 빠져 있어도 삽입된다 — 설정 화면은 카드 표시와 무관하다.
+        #expect(providerIntervals(mode: .eco, setting: .auto, panelVisible: false,
+                                  menubarLiveContentEnabled: false, active: [.cpu],
+                                  menubarNeeds: [],
+                                  settingsBatteryLive: true) == [.battery: .seconds(2)])
+
+        // 이미 더 빠른 간격이 잡혀 있으면 느리게 만들지 않는다.
+        let open = providerIntervals(mode: .eco, setting: .auto, panelVisible: true,
+                                     menubarLiveContentEnabled: false, active: all,
+                                     menubarNeeds: [], heroCard: .battery,
+                                     settingsBatteryLive: true)
+        #expect(open[.battery] == .seconds(1))
+
+        // 고정 간격 설정이 2초보다 느리면 끌어올린다.
+        #expect(providerIntervals(mode: .eco, setting: .s5, panelVisible: false,
+                                  menubarLiveContentEnabled: false, active: [.cpu],
+                                  menubarNeeds: [],
+                                  settingsBatteryLive: true)
+                == [.cpu: .seconds(5), .battery: .seconds(2)])
+    }
+
     @Test func closedMenuRetainsOnlyMotionSourceWhenTextIsOff() {
         let active: Set<ProviderKind> = [.cpu, .gpu, .memory]
         #expect(providerIntervals(mode: .eco, setting: .auto, panelVisible: false,

@@ -32,14 +32,14 @@ func activeProviders(shown: Set<CardKind>, menubarNeeds: Set<CardKind>) -> Set<P
     Set(shown.union(menubarNeeds).map(\.provider))
 }
 
-func providerIntervals(mode: PowerMode,
-                       setting: PollInterval,
-                       panelVisible: Bool,
-                       menubarLiveContentEnabled: Bool,
-                       active: Set<ProviderKind>,
-                       menubarNeeds: Set<CardKind>,
-                       heroCard: CardKind? = nil,
-                       isACConnected: Bool = false) -> [ProviderKind: Duration] {
+private func baseProviderIntervals(mode: PowerMode,
+                                   setting: PollInterval,
+                                   panelVisible: Bool,
+                                   menubarLiveContentEnabled: Bool,
+                                   active: Set<ProviderKind>,
+                                   menubarNeeds: Set<CardKind>,
+                                   heroCard: CardKind? = nil,
+                                   isACConnected: Bool = false) -> [ProviderKind: Duration] {
     if setting != .auto {
         let interval: Duration = switch setting {
         case .s1: .seconds(1)
@@ -107,6 +107,35 @@ func providerIntervals(mode: PowerMode,
             result[kind] = .seconds(5)
         }
     }
+    return result
+}
+
+/// 폴링 간격의 공개 진입점. `baseProviderIntervals`의 결과에 설정 창의 수요를 겹쳐 놓는다.
+///
+/// 설정 › 배터리는 강제 방전 중 실측 전력을 보여준다. 그런데 팝오버가 닫힌 기본(eco) 상태에서
+/// 배터리 provider는 메뉴바가 배터리를 쓰지 않는 한 **한 번도 읽히지 않는다** — 그대로 화면에
+/// 올리면 몇 시간 묵은 표본을 실시간이라고 부르게 된다. performance 모드에서도 닫힌 팝오버는
+/// 5–10초라 방전 추적에는 너무 느리다.
+///
+/// `active`에 `.battery`가 없어도 넣는 이유는, 배터리 **카드**를 숨긴 사용자도 설정 화면은 열기
+/// 때문이다. 카드 표시 여부와 이 화면의 필요는 별개다. 이미 더 빠른 간격이 잡혀 있으면
+/// (팝오버가 함께 열려 있는 경우) 그쪽을 존중한다.
+func providerIntervals(mode: PowerMode,
+                       setting: PollInterval,
+                       panelVisible: Bool,
+                       menubarLiveContentEnabled: Bool,
+                       active: Set<ProviderKind>,
+                       menubarNeeds: Set<CardKind>,
+                       heroCard: CardKind? = nil,
+                       isACConnected: Bool = false,
+                       settingsBatteryLive: Bool = false) -> [ProviderKind: Duration] {
+    var result = baseProviderIntervals(mode: mode, setting: setting, panelVisible: panelVisible,
+                                       menubarLiveContentEnabled: menubarLiveContentEnabled,
+                                       active: active, menubarNeeds: menubarNeeds,
+                                       heroCard: heroCard, isACConnected: isACConnected)
+    guard settingsBatteryLive else { return result }
+    let demand = Duration.seconds(2)
+    result[.battery] = result[.battery].map { min($0, demand) } ?? demand
     return result
 }
 
