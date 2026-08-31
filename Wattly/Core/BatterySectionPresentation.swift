@@ -494,26 +494,32 @@ enum BatterySectionPresentation {
         String(localized: "방전 시작", locale: locale)
     }
 
-    /// Reason why manual discharge cannot be started, or nil if discharge is available.
+    /// 수동 방전을 시작할 수 없는 이유. 없으면 `nil`.
+    ///
+    /// 분기 순서가 곧 우선순위다 — 하드웨어가 아예 못 하는 일이 가장 먼저 나오고, 사용자가
+    /// 지금 고칠 수 있는 이유(어댑터·목표치)가 뒤에 온다. 문구는 전부 카탈로그 키다.
+    /// 이전 구현은 ko/en 두 갈래를 코드에 박아 두어 나머지 28개 언어 사용자에게 영어가 나갔고,
+    /// 첫 분기 문구가 조건과 맞지 않았다("충전 제어가 꺼져 있습니다" ← 실제 조건은 미지원 하드웨어).
     static func manualDischargeDisabledReason(
         isPluggedIn: Bool,
         currentSoC: Int,
         targetSoC: Int,
         isHardwareSupported: Bool = true,
+        isDischargeHardwareSupported: Bool = true,
         isToggleEnabled: Bool = true,
         locale: Locale = Locale(identifier: "ko")
     ) -> String? {
-        guard isHardwareSupported && isToggleEnabled else {
-            let isKo = locale.language.languageCode?.identifier == "ko"
-            return isKo ? "배터리 충전 제어가 꺼져 있습니다." : "Battery charge control is disabled."
+        guard isHardwareSupported, isToggleEnabled else {
+            return String(localized: "이 Mac은 충전 제어를 지원하지 않습니다", locale: locale)
+        }
+        guard isDischargeHardwareSupported else {
+            return String(localized: "이 Mac은 강제 방전을 지원하지 않습니다.", locale: locale)
         }
         guard isPluggedIn else {
-            let isKo = locale.language.languageCode?.identifier == "ko"
-            return isKo ? "전원 어댑터가 연결되어 있어야 방전할 수 있습니다." : "Connect power adapter to start discharge."
+            return String(localized: "전원 어댑터가 연결되어 있어야 방전할 수 있습니다.", locale: locale)
         }
         guard currentSoC > targetSoC else {
-            let isKo = locale.language.languageCode?.identifier == "ko"
-            return isKo ? "현재 배터리 잔량이 목표 잔량 이하입니다." : "Battery level is already at or below target."
+            return String(localized: "현재 배터리 잔량이 목표 잔량 이하입니다.", locale: locale)
         }
         return nil
     }

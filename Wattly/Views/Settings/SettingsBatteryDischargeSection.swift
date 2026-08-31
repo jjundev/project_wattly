@@ -36,6 +36,17 @@ struct SettingsBatteryDischargeSection: View {
         batteryControl.status.isHardwareSupported == false
     }
 
+    /// CHIE 강제 방전 미지원. `nil`은 이 필드를 모르는 구버전 헬퍼이며 "미지원"이 아니라
+    /// "모름"이므로 차단하지 않는다.
+    private var isDischargeUnsupported: Bool {
+        batteryControl.status.isDischargeHardwareSupported == false
+    }
+
+    /// 수동 방전 컨트롤을 조작할 수 있는지. 하드웨어 두 축을 모두 통과해야 한다.
+    private var isManualDischargeActionable: Bool {
+        isToggleEnabled && !isHardwareUnsupported && !isDischargeUnsupported
+    }
+
     private var showsConfigurationControls: Bool {
         BatterySectionPresentation.showsConfigurationControls(
             isHardwareSupported: batteryControl.status.isHardwareSupported)
@@ -196,17 +207,24 @@ struct SettingsBatteryDischargeSection: View {
                             .monospacedDigit()
                             .foregroundStyle(Tokens.statusOrange)
                     }
+                    // 다른 섹션과 같은 방식으로 헤더까지 함께 흐려져야 "지금은 못 만진다"가
+                    // 한 덩어리로 읽힌다.
+                    .opacity(isManualDischargeActionable ? 1 : 0.5)
 
                     Slider(
                         value: Binding(
-                            get: { Double(manualDischargeTarget) },
+                            // 상한을 95로 낮추기 전에 100을 저장한 사용자가 있다. 슬라이더가
+                            // 범위 밖 값을 받으면 엄지 위치가 어긋나므로 읽을 때 좁혀 준다.
+                            get: { Double(min(max(manualDischargeTarget, 50), 95)) },
                             set: { manualDischargeTarget = Int($0.rounded()) }
                         ),
-                        in: 50...100,
+                        // 100%는 `현재 잔량 > 목표`가 성립할 수 없어 영구 비활성이다 —
+                        // 고를 수 있는 값은 전부 실행 가능한 값이어야 한다.
+                        in: 50...95,
                         step: 1
                     )
                     .tint(Tokens.statusOrange)
-                    .disabled(!isToggleEnabled || isHardwareUnsupported)
+                    .disabled(!isManualDischargeActionable)
 
                     HStack {
                         Text("50%")
@@ -219,7 +237,7 @@ struct SettingsBatteryDischargeSection: View {
                         Spacer()
                         Text("90%")
                         Spacer()
-                        Text("100%")
+                        Text("95%")
                     }
                     .font(WattlyFont.at(10, weight: .regular))
                     .monospacedDigit()
@@ -231,7 +249,8 @@ struct SettingsBatteryDischargeSection: View {
 
                 let isPluggedIn = batteryControl.status.isPowerAdapterConnected
                 let currentSoC = batteryControl.status.currentPercentage
-                let canStartDischarge = isToggleEnabled && !isHardwareUnsupported && isPluggedIn && currentSoC > manualDischargeTarget
+                let canStartDischarge = isManualDischargeActionable && isPluggedIn
+                    && currentSoC > manualDischargeTarget
 
                 if isManualDischargeActive {
                     let target = batteryControl.status.desiredConfiguration?.manualDischargeTarget ?? manualDischargeTarget
@@ -303,53 +322,63 @@ struct SettingsBatteryDischargeSection: View {
                         currentSoC: currentSoC,
                         targetSoC: manualDischargeTarget,
                         isHardwareSupported: !isHardwareUnsupported,
+                        isDischargeHardwareSupported: !isDischargeUnsupported,
                         isToggleEnabled: isToggleEnabled,
                         locale: locale
                     )
-                    HStack {
-                        HStack(spacing: 4) {
-                            Text("현재 잔량:")
-                                .font(WattlyFont.at(11, weight: .regular))
-                                .foregroundStyle(t.faint)
-                            Text("\(currentSoC)%")
-                                .font(WattlyFont.at(11, weight: .semibold))
-                                .foregroundStyle(t.text)
-                        }
-                        Spacer()
-                        Button {
-                            Task {
-                                await batteryControl.startManualDischarge(
-                                    target: manualDischargeTarget,
-                                    limitPercentage: batteryLimitPercentage,
-                                    lowerHysteresisDelta: effectiveDelta,
-                                    heatProtectionEnabled: batteryHeatProtectionEnabled,
-                                    heatProtectionThresholdCelsius: heatProtectionThreshold,
-                                    autoDischargeEnabled: autoDischargeEnabled
-                                )
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            HStack(spacing: 4) {
+                                Text("현재 잔량:")
+                                    .font(WattlyFont.at(11, weight: .regular))
+                                    .foregroundStyle(t.faint)
+                                Text("\(currentSoC)%")
+                                    .font(WattlyFont.at(11, weight: .semibold))
+                                    .foregroundStyle(t.text)
                             }
-                        } label: {
-                            Text(verbatim: BatterySectionPresentation.startDischargeButtonText(
-                                targetSoC: manualDischargeTarget,
-                                locale: locale))
-                                .font(WattlyFont.at(11.5, weight: .semibold))
-                                .foregroundStyle(canStartDischarge ? Tokens.statusOrange : t.faint)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 5)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .fill(canStartDischarge ? Tokens.statusOrange.opacity(0.15) : t.segTrack)
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .stroke(canStartDischarge ? Tokens.statusOrange.opacity(0.35) : t.rowBorder, lineWidth: 1)
-                                )
-                                .contentShape(Rectangle())
+                            Spacer()
+                            Button {
+                                Task {
+                                    await batteryControl.startManualDischarge(
+                                        target: manualDischargeTarget,
+                                        limitPercentage: batteryLimitPercentage,
+                                        lowerHysteresisDelta: effectiveDelta,
+                                        heatProtectionEnabled: batteryHeatProtectionEnabled,
+                                        heatProtectionThresholdCelsius: heatProtectionThreshold,
+                                        autoDischargeEnabled: autoDischargeEnabled
+                                    )
+                                }
+                            } label: {
+                                Text(verbatim: BatterySectionPresentation.startDischargeButtonText(
+                                    targetSoC: manualDischargeTarget,
+                                    locale: locale))
+                                    .font(WattlyFont.at(11.5, weight: .semibold))
+                                    .foregroundStyle(canStartDischarge ? Tokens.statusOrange : t.faint)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 5)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .fill(canStartDischarge ? Tokens.statusOrange.opacity(0.15) : t.segTrack)
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .stroke(canStartDischarge ? Tokens.statusOrange.opacity(0.35) : t.rowBorder, lineWidth: 1)
+                                    )
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(!canStartDischarge)
+                            .accessibilityLabel(Text(verbatim: BatterySectionPresentation.startDischargeButtonText(targetSoC: manualDischargeTarget, locale: locale)))
+                            .accessibilityHint(Text(verbatim: disabledReason ?? ""))
                         }
-                        .buttonStyle(.plain)
-                        .disabled(!canStartDischarge)
-                        .help(disabledReason ?? "")
-                        .accessibilityLabel(Text(verbatim: BatterySectionPresentation.startDischargeButtonText(targetSoC: manualDischargeTarget, locale: locale)))
-                        .accessibilityHint(Text(disabledReason ?? ""))
+                        // macOS는 disabled 컨트롤에 `.help()` 툴팁을 띄우지 않는다. 사유를
+                        // 툴팁에만 걸어 두면 정작 필요한 순간에 보이지 않으므로 본문으로 낸다.
+                        if let disabledReason, !canStartDischarge {
+                            Text(verbatim: disabledReason)
+                                .font(WattlyFont.at(10.5, weight: .regular))
+                                .foregroundStyle(t.faint)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                     .padding(EdgeInsets(top: 0, leading: 14, bottom: 14, trailing: 14))
                 }

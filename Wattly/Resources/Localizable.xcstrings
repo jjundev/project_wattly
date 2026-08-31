@@ -108041,6 +108041,376 @@
           }
         }
       }
+    },
+    "전원 어댑터가 연결되어 있어야 방전할 수 있습니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "전원 어댑터가 연결되어 있어야 방전할 수 있습니다."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect power adapter to start discharge."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "放電するには電源アダプタを接続してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请连接电源适配器后再开始放电。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請連接電源轉接器後再開始放電。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schließe das Netzteil an, um die Entladung zu starten."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Branchez l’adaptateur secteur pour lancer la décharge."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conecta el adaptador de corriente para iniciar la descarga."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collega l’alimentatore per avviare la scarica."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conecte o adaptador de energia para iniciar a descarga."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ligue o adaptador de corrente para iniciar a descarga."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключите адаптер питания, чтобы начать разрядку."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sluit de lichtnetadapter aan om te ontladen."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Podłącz zasilacz, aby rozpocząć rozładowanie."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deşarjı başlatmak için güç adaptörünü bağlayın."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anslut nätadaptern för att starta urladdningen."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tilslut strømforsyningen for at starte afladningen."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koble til strømadapteren for å starte utladingen."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kytke verkkolaite purkauksen aloittamiseksi."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Připojte napájecí adaptér a spusťte vybíjení."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A kisütés indításához csatlakoztasd a hálózati adaptert."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectează adaptorul de alimentare pentru a începe descărcarea."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Συνδέστε το τροφοδοτικό για να ξεκινήσει η εκφόρτιση."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Підключіть адаптер живлення, щоб почати розрядку."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เชื่อมต่ออะแดปเตอร์ไฟเพื่อเริ่มการคายประจุ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kết nối bộ đổi nguồn để bắt đầu xả."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sambungkan adaptor daya untuk memulai pengosongan."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डिस्चार्ज शुरू करने के लिए पावर अडैप्टर कनेक्ट करें।"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "وصّل محول الطاقة لبدء التفريغ."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "חבר את מתאם החשמל כדי להתחיל בפריקה."
+          }
+        }
+      }
+    },
+    "현재 배터리 잔량이 목표 잔량 이하입니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "현재 배터리 잔량이 목표 잔량 이하입니다."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Battery level is already at or below target."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バッテリー残量がすでに目標値以下です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "电池电量已达到或低于目标值。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "電池電量已達到或低於目標值。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Batteriestand liegt bereits auf oder unter dem Ziel."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le niveau de la batterie est déjà au niveau cible ou en dessous."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El nivel de la batería ya está en el objetivo o por debajo."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il livello della batteria è già pari o inferiore all’obiettivo."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O nível da bateria já está no alvo ou abaixo dele."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O nível da bateria já está no alvo ou abaixo dele."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Уровень заряда уже равен целевому или ниже."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het batterijniveau is al gelijk aan of lager dan het doel."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poziom baterii jest już na poziomie docelowym lub niższy."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pil düzeyi zaten hedefte veya altında."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Batterinivån är redan på eller under målet."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Batteriniveauet er allerede på eller under målet."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Batterinivået er allerede på eller under målet."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Akun varaus on jo tavoitteessa tai sen alle."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Úroveň baterie je již na cílové hodnotě nebo pod ní."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Az akkumulátor szintje már eléri a célt vagy alatta van."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nivelul bateriei este deja la țintă sau sub aceasta."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Η στάθμη της μπαταρίας είναι ήδη στον στόχο ή χαμηλότερα."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Рівень заряду вже дорівнює цільовому або нижчий."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ระดับแบตเตอรี่อยู่ที่หรือต่ำกว่าเป้าหมายแล้ว"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mức pin đã bằng hoặc thấp hơn mục tiêu."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tingkat baterai sudah pada atau di bawah target."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बैटरी स्तर पहले से ही लक्ष्य पर या उससे नीचे है।"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مستوى البطارية بالفعل عند الهدف أو أقل منه."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "רמת הסוללה כבר ביעד או מתחתיו."
+          }
+        }
+      }
     }
   }
 }
