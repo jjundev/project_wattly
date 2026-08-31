@@ -434,7 +434,9 @@ struct PopoverContentView: View {
     }
 
     private func toggleExpand(_ card: CardKind) {
-        expandedRaw = CardPresentation.togglingExpanded(card, in: expandedRaw)
+        withAnimation(.easeInOut(duration: 0.15)) {
+            expandedRaw = CardPresentation.togglingExpanded(card, in: expandedRaw)
+        }
     }
 }
 

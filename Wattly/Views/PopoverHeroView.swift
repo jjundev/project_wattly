@@ -62,7 +62,9 @@ struct PopoverHeroView: View {
     }
 
     private func toggleExpand(_ card: CardKind) {
-        expandedRaw = CardPresentation.togglingExpanded(card, in: expandedRaw)
+        withAnimation(.easeInOut(duration: 0.15)) {
+            expandedRaw = CardPresentation.togglingExpanded(card, in: expandedRaw)
+        }
     }
 
     // The list = the visible cards minus the hero, in `cardOrder` order (prototype 213–220).
@@ -166,7 +168,7 @@ private struct HeroCard: View {
                     .foregroundStyle(Self.labelColor)
                     .lineLimit(1)
                 if hasChevron {
-                    Image(systemName: "chevron.down")
+                    Image(systemName: CardPresentation.expandChevronSymbol(isExpanded: isExpanded))
                         .font(.system(size: 8, weight: .bold))
                         .foregroundStyle(Self.labelColor)
                 }
