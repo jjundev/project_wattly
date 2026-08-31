@@ -215,15 +215,27 @@ final class SystemMonitor {
     }
 
     /// 설정 › 배터리 방전 섹션이 나타나고 사라질 때 호출한다. `setPanelVisible`과 같은
-    /// before/after 비교 후 재스케줄 패턴을 따른다 — 새로 합류한 provider만 강제로 즉시 읽어
-    /// 첫 화면이 빈 상태로 뜨지 않게 한다.
+    /// before/after 비교 후 재스케줄 패턴을 따른다.
+    ///
+    /// 새로 합류한 provider뿐 아니라, **이미 스케줄에 있던 `.battery`의 간격이 이번 호출로
+    /// 짧아진 경우**도 강제로 즉시 읽는다 — 메뉴바 배터리 칩이 켜져 있거나 performance 모드에서
+    /// 팝오버가 닫혀 있으면(≈10초) 이 함수가 호출되기 전부터 이미 배터리가 스케줄에 있고, 그때는
+    /// "새로 합류한 키"가 비어 있어 강제 읽기가 전혀 일어나지 않았다. 첫 화면의 표본이 최대
+    /// 옛 간격만큼 묵을 수 있었다는 뜻이다 — "강제 읽기 한 번으로 곧 스스로 맞아 들어간다"는
+    /// 전제로 첫 프레임의 묵은 값을 받아들인 결정이 실제로 성립하려면, 여기서 그 전제를 지켜야
+    /// 한다.
     func setBatteryLiveDemand(_ on: Bool) {
         guard on != settingsBatteryLive else { return }
         let before = currentProviderIntervals
         settingsBatteryLive = on
         let after = currentProviderIntervals
         guard after != before else { return }
-        let forced = on ? Set(after.keys).subtracting(before.keys) : []
+        let forced: Set<ProviderKind> = on
+            ? Set(after.keys).filter { kind in
+                guard let previous = before[kind], let current = after[kind] else { return true }
+                return current < previous
+            }
+            : []
         reschedule(forceProviders: forced)
     }
 

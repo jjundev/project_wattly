@@ -661,6 +661,44 @@ struct SystemMonitorTests {
         monitor.stop()
     }
 
+    /// Covers the case the whole-branch review found uncovered: `.battery` is **already** on
+    /// the schedule — at a slow cadence — before the demand turns on, rather than newly
+    /// joining it. The pre-fix `forced` set was `Set(after.keys).subtracting(before.keys)`,
+    /// which is empty here because `.battery` was already a key in `before`; the interval
+    /// still shrinks to 2 s, but nothing forced an immediate read, so a stale sample could sit
+    /// under the live-draw label for up to the *old* interval. This is exactly the "self-corrects
+    /// within one forced read" premise the first-frame staleness tradeoff was accepted on
+    /// (issue 09/settings-battery-discharge), so the fix must force a read whenever the interval
+    /// *shortens*, not only when the provider is new to the schedule.
+    ///
+    /// Performance mode with the panel closed schedules every active provider — `.battery`
+    /// included, at ~10 s — which is the concrete scenario named in the review (the other being
+    /// a menubar battery chip). Same live-loop technique as
+    /// `batteryLiveDemandStartsAndStopsPollingTheBattery`: yielding without a real sleep only
+    /// gives a forced-read reschedule a chance to land, not a stub that merely flips the flag.
+    @Test func batteryLiveDemandForcesAReadWhenBatteryWasAlreadyOnASlowerSchedule() async {
+        let power = CountingProvider(kind: .power)
+        let battery = CountingProvider(kind: .battery)
+        let monitor = SystemMonitor(providers: [power, battery], clock: ManualClock())
+        monitor.setPowerMode(.performance)
+        monitor.start()
+
+        // Wait for the loop's first cycle: with the panel closed in performance mode, every
+        // active provider — battery included — is already scheduled (at a slow cadence), so
+        // this first cycle reads it once before going to sleep on that slow schedule.
+        for _ in 0..<50 where (await battery.reads < 1) { await Task.yield() }
+        #expect(await battery.reads == 1)
+        let readsBeforeDemand = await battery.reads
+
+        // Demand on: `.battery` was already a key in `currentProviderIntervals` before this
+        // call — the "already scheduled" case, as opposed to newly joining the schedule.
+        monitor.setBatteryLiveDemand(true)
+        for _ in 0..<50 where (await battery.reads <= readsBeforeDemand) { await Task.yield() }
+        #expect(await battery.reads > readsBeforeDemand)
+
+        monitor.stop()
+    }
+
     @Test func batteryLiveDemandIsIdempotentAndReversible() {
         let battery = ScriptedProvider(kind: .battery, [.pending])
         let monitor = SystemMonitor(providers: [battery], clock: ManualClock())
