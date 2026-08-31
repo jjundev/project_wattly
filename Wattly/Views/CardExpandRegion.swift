@@ -27,6 +27,12 @@ struct CardExpandRegion: View {
     var scheduleCoordinator: BatteryScheduleCoordinator? = nil
     var calibration: BatteryCalibrationCoordinator? = nil
 
+    /// 저장된 목표 방전 잔량은 그대로 쓰지 않는다. 100까지 열려 있던 슬라이더가 남긴 값은
+    /// `currentSoC > target`을 영원히 만족시키지 못해서 방전 행을 통째로 죽인다.
+    private var dischargeTarget: Int {
+        BatterySectionPresentation.clampedManualDischargeTarget(manualDischargeTarget)
+    }
+
     @ViewBuilder
     var body: some View {
         if card == .power, case .value(.power(let s)) = state {
@@ -354,7 +360,7 @@ struct CardExpandRegion: View {
                     showSetting: showBatteryManualDischarge,
                     isDischarging: isDischargeActive,
                     currentSoC: currentSoC,
-                    targetSoC: manualDischargeTarget
+                    targetSoC: dischargeTarget
                 )
 
                 if BatterySectionPresentation.shouldShowBatteryControlSection(
@@ -412,7 +418,7 @@ struct CardExpandRegion: View {
                 let heatEnabled = batteryHeatProtectionEnabled
                 let heatThreshold = batteryHeatProtectionThreshold
                 let autoDischarge = batteryAutoDischargeEnabled
-                let target = manualDischargeTarget
+                let target = dischargeTarget
                 Task {
                     if isTopUp {
                         await batteryControl.cancelTopUp(
@@ -454,95 +460,118 @@ struct CardExpandRegion: View {
         let isDischarging = batteryControl.status.activity == .discharging
             || batteryControl.status.desiredConfiguration?.manualDischargeActive == true
         let currentSoC = s.percentage ?? batteryControl.status.currentPercentage
-        let canStartDischarge = s.externalConnected && currentSoC > manualDischargeTarget
+        // 상태의 두 하드웨어 플래그는 서로 다른 축이고, 둘 다 `Bool?`이다. `nil`은 필드를
+        // 보고하지 않는 구버전 도우미, 즉 "모름"이므로 지원으로 읽는다 — 미지원으로 읽으면
+        // 멀쩡한 Mac에서 방전 버튼이 통째로 죽는다.
+        let isHardwareSupported = batteryControl.status.isHardwareSupported != false
+        let isDischargeHardwareSupported = batteryControl.status.isDischargeHardwareSupported != false
+        let canStartDischarge = BatterySectionPresentation.isManualDischargeActionable(
+            isPluggedIn: s.externalConnected,
+            currentSoC: currentSoC,
+            targetSoC: dischargeTarget,
+            isHardwareSupported: isHardwareSupported,
+            isDischargeHardwareSupported: isDischargeHardwareSupported
+        )
         let disabledReason = BatterySectionPresentation.manualDischargeDisabledReason(
             isPluggedIn: s.externalConnected,
             currentSoC: currentSoC,
-            targetSoC: manualDischargeTarget,
-            isHardwareSupported: true,
-            isToggleEnabled: true,
+            targetSoC: dischargeTarget,
+            isHardwareSupported: isHardwareSupported,
+            isDischargeHardwareSupported: isDischargeHardwareSupported,
             locale: locale
         )
 
-        HStack(alignment: .center) {
-            HStack(spacing: 4) {
-                Text(LocalizedStringKey("수동 방전 (\(manualDischargeTarget)%)"))
-                    .font(WattlyFont.at(10.5, weight: .medium))
-                    .foregroundStyle(t.faint)
-                if isDischarging {
-                    Circle()
-                        .fill(Tokens.statusOrange)
-                        .frame(width: 6, height: 6)
-                }
-            }
-            Spacer()
-            Button {
-                let limit = batteryLimitPercentage
-                let delta = batterySailingEnabled ? batterySailingDelta : 2
-                let heatEnabled = batteryHeatProtectionEnabled
-                let heatThreshold = batteryHeatProtectionThreshold
-                let autoDischarge = batteryAutoDischargeEnabled
-                let target = manualDischargeTarget
-                Task {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .center) {
+                HStack(spacing: 4) {
+                    Text(LocalizedStringKey("수동 방전 (\(dischargeTarget)%)"))
+                        .font(WattlyFont.at(10.5, weight: .medium))
+                        .foregroundStyle(t.faint)
                     if isDischarging {
-                        await batteryControl.stopManualDischarge(
-                            limitPercentage: limit,
-                            lowerHysteresisDelta: delta,
-                            heatProtectionEnabled: heatEnabled,
-                            heatProtectionThresholdCelsius: heatThreshold,
-                            autoDischargeEnabled: autoDischarge,
-                            manualDischargeTarget: target
-                        )
-                    } else {
-                        await batteryControl.startManualDischarge(
-                            target: target,
-                            limitPercentage: limit,
-                            lowerHysteresisDelta: delta,
-                            heatProtectionEnabled: heatEnabled,
-                            heatProtectionThresholdCelsius: heatThreshold,
-                            autoDischargeEnabled: autoDischarge
-                        )
+                        Circle()
+                            .fill(Tokens.statusOrange)
+                            .frame(width: 6, height: 6)
                     }
                 }
-            } label: {
-                if isDischarging {
-                    Text(LocalizedStringKey("방전 중지"))
-                        .font(WattlyFont.at(10.5, weight: .medium))
-                        .foregroundStyle(Tokens.statusRed)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(RoundedRectangle(cornerRadius: 4).fill(Tokens.statusRed.opacity(0.15)))
-                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Tokens.statusRed.opacity(0.4), lineWidth: 1))
-                        .contentShape(Rectangle())
-                } else {
-                    Text(verbatim: BatterySectionPresentation.startDischargeButtonText(
-                        targetSoC: manualDischargeTarget,
-                        locale: locale))
-                        .font(WattlyFont.at(10.5, weight: .medium))
-                        .foregroundStyle(canStartDischarge ? Tokens.statusOrange : t.faint)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(canStartDischarge ? Tokens.statusOrange.opacity(0.15) : t.segTrack)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 4)
-                                .stroke(canStartDischarge ? Tokens.statusOrange.opacity(0.35) : t.rowBorder, lineWidth: 1)
-                        )
-                        .contentShape(Rectangle())
+                Spacer()
+                Button {
+                    let limit = batteryLimitPercentage
+                    let delta = batterySailingEnabled ? batterySailingDelta : 2
+                    let heatEnabled = batteryHeatProtectionEnabled
+                    let heatThreshold = batteryHeatProtectionThreshold
+                    let autoDischarge = batteryAutoDischargeEnabled
+                    let target = dischargeTarget
+                    Task {
+                        if isDischarging {
+                            await batteryControl.stopManualDischarge(
+                                limitPercentage: limit,
+                                lowerHysteresisDelta: delta,
+                                heatProtectionEnabled: heatEnabled,
+                                heatProtectionThresholdCelsius: heatThreshold,
+                                autoDischargeEnabled: autoDischarge,
+                                manualDischargeTarget: target
+                            )
+                        } else {
+                            await batteryControl.startManualDischarge(
+                                target: target,
+                                limitPercentage: limit,
+                                lowerHysteresisDelta: delta,
+                                heatProtectionEnabled: heatEnabled,
+                                heatProtectionThresholdCelsius: heatThreshold,
+                                autoDischargeEnabled: autoDischarge
+                            )
+                        }
+                    }
+                } label: {
+                    if isDischarging {
+                        Text(LocalizedStringKey("방전 중지"))
+                            .font(WattlyFont.at(10.5, weight: .medium))
+                            .foregroundStyle(Tokens.statusRed)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(RoundedRectangle(cornerRadius: 4).fill(Tokens.statusRed.opacity(0.15)))
+                            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Tokens.statusRed.opacity(0.4), lineWidth: 1))
+                            .contentShape(Rectangle())
+                    } else {
+                        Text(verbatim: BatterySectionPresentation.startDischargeButtonText(
+                            targetSoC: dischargeTarget,
+                            locale: locale))
+                            .font(WattlyFont.at(10.5, weight: .medium))
+                            .foregroundStyle(canStartDischarge ? Tokens.statusOrange : t.faint)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(canStartDischarge ? Tokens.statusOrange.opacity(0.15) : t.segTrack)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .stroke(canStartDischarge ? Tokens.statusOrange.opacity(0.35) : t.rowBorder, lineWidth: 1)
+                            )
+                            .contentShape(Rectangle())
+                    }
                 }
+                .buttonStyle(.plain)
+                .disabled(calibration?.isRunning == true || (!isDischarging && !canStartDischarge))
+                .help(isDischarging ? "" : (disabledReason ?? ""))
+                .accessibilityLabel(Text(LocalizedStringKey("수동 방전 (\(dischargeTarget)%)")))
+                .accessibilityValue(Text(verbatim: isDischarging
+                    ? String(localized: "방전 중지", locale: locale)
+                    : BatterySectionPresentation.startDischargeButtonText(
+                        targetSoC: dischargeTarget,
+                        locale: locale)))
+                .accessibilityHint(Text(isDischarging ? "" : (disabledReason ?? "")))
             }
-            .buttonStyle(.plain)
-            .disabled(calibration?.isRunning == true || (!isDischarging && !canStartDischarge))
-            .help(isDischarging ? "" : (disabledReason ?? ""))
-            .accessibilityLabel(Text(LocalizedStringKey("수동 방전 (\(manualDischargeTarget)%)")))
-            .accessibilityValue(Text(verbatim: isDischarging
-                ? String(localized: "방전 중지", locale: locale)
-                : BatterySectionPresentation.startDischargeButtonText(
-                    targetSoC: manualDischargeTarget,
-                    locale: locale)))
-            .accessibilityHint(Text(isDischarging ? "" : (disabledReason ?? "")))
+            // macOS는 비활성 컨트롤에 툴팁을 띄우지 않는다. `.help`만 달아 두면 사유가 정확히
+            // 필요한 순간에만 보이지 않으므로 본문으로도 내보낸다. VoiceOver 쪽은 위 힌트가 이미
+            // 같은 문장을 읽으므로 여기서는 감춘다.
+            if !isDischarging, let disabledReason {
+                Text(verbatim: disabledReason)
+                    .font(WattlyFont.at(9.5, weight: .regular))
+                    .foregroundStyle(t.faint)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityHidden(true)
+            }
         }
     }
 
