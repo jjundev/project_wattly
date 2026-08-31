@@ -223,13 +223,11 @@ struct SettingsBatteryDischargeSection: View {
 
                 Rectangle().fill(t.line).frame(height: 1)
 
-                let isDischarging = batteryControl.status.activity == .discharging
-                    || batteryControl.status.desiredConfiguration?.manualDischargeActive == true
                 let isPluggedIn = batteryControl.status.isPowerAdapterConnected
                 let currentSoC = batteryControl.status.currentPercentage
                 let canStartDischarge = isToggleEnabled && !isHardwareUnsupported && isPluggedIn && currentSoC > manualDischargeTarget
 
-                if isDischarging {
+                if isManualDischargeActive {
                     let target = batteryControl.status.desiredConfiguration?.manualDischargeTarget ?? manualDischargeTarget
                     VStack(spacing: 8) {
                         HStack {
