@@ -62,7 +62,7 @@ struct PopoverHeroView: View {
     }
 
     private func toggleExpand(_ card: CardKind) {
-        withAnimation(.easeInOut(duration: 0.15)) {
+        withAnimation(.easeInOut(duration: 0.2)) {
             expandedRaw = CardPresentation.togglingExpanded(card, in: expandedRaw)
         }
     }
@@ -168,9 +168,11 @@ private struct HeroCard: View {
                     .foregroundStyle(Self.labelColor)
                     .lineLimit(1)
                 if hasChevron {
-                    Image(systemName: CardPresentation.expandChevronSymbol(isExpanded: isExpanded))
+                    Image(systemName: "chevron.right")
                         .font(.system(size: 8, weight: .bold))
                         .foregroundStyle(Self.labelColor)
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .animation(.easeInOut(duration: 0.2), value: isExpanded)
                 }
             }
             switch state {

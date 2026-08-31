@@ -108,9 +108,11 @@ struct MetricCardView: View {
                     .foregroundStyle(t.sub)
                     .fixedSize()
                 if hasChevron {
-                    Image(systemName: CardPresentation.expandChevronSymbol(isExpanded: isExpanded))
+                    Image(systemName: "chevron.right")
                         .font(.system(size: 8, weight: .bold))
                         .foregroundStyle(t.sub)
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .animation(.easeInOut(duration: 0.2), value: isExpanded)
                 }
             }
             Spacer(minLength: 8)
