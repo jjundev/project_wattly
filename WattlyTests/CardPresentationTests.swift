@@ -108,6 +108,20 @@ struct CardPresentationTests {
         #expect(CardPresentation.batterySign(netW: 0.05, charging: false) == minus)   // boundary: not < 0.05 → sign
     }
 
+    @Test func batteryNetWattTextFollowsTheSharedSignRule() {
+        func sample(netW: Double, charging: Bool) -> BatterySample {
+            BatterySample(netW: netW, milliamps: 0, volts: 12.0,
+                          charging: charging, externalConnected: true)
+        }
+        #expect(CardPresentation.batteryNetWattText(sample(netW: 18.4, charging: false))
+                == "\(minus)18.4 W")
+        #expect(CardPresentation.batteryNetWattText(sample(netW: -30.0, charging: true))
+                == "+30.0 W")
+        // |x| < 0.05 → 부호를 떼는 #17 규칙을 그대로 상속한다.
+        #expect(CardPresentation.batteryNetWattText(sample(netW: 0.02, charging: false))
+                == "0.0 W")
+    }
+
     @Test func batteryValueAndCollapsedSummary() {
         let discharging = MetricState.value(.battery(BatterySample(
             netW: 12.0,
