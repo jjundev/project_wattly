@@ -174,67 +174,26 @@ struct SettingsBatterySection: View {
 
                     Rectangle().fill(t.line).frame(height: 1)
 
-                    HStack {
+                    SettingsToggleRow(
+                        isOn: topUpBinding,
+                        divider: false,
+                        isEnabled: isToggleEnabled && !isHardwareUnsupported
+                            && batteryControl.status.isPowerAdapterConnected,
+                        disabledReason: batteryControl.status.isPowerAdapterConnected
+                            ? nil : "전원 어댑터가 연결되어 있어야 합니다"
+                    ) {
                         VStack(alignment: .leading, spacing: 2) {
                             SettingsRowTitle("한 번만 완충")
-                            Text(BatterySectionPresentation.topUpDescription(
-                                hours: BatteryTopUpExpiry.durationHours, locale: locale))
+                            Text(verbatim: BatterySectionPresentation.topUpStatusText(
+                                kind: batteryControl.status.detailReason?.kind,
+                                isOn: isTopUpActive,
+                                hours: BatteryTopUpExpiry.durationHours,
+                                locale: locale))
                                 .font(WattlyFont.at(10.5, weight: .regular))
                                 .foregroundStyle(t.faint)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                        Spacer()
-                        let isPluggedIn = batteryControl.status.isPowerAdapterConnected
-                        let isTopUp = isPluggedIn && (batteryControl.status.desiredConfiguration?.topUpActive == true
-                            || batteryControl.status.activity == .topUp)
-                        Button {
-                            let limit = batteryLimitPercentage
-                            let delta = effectiveDelta
-                            let heatEnabled = batteryHeatProtectionEnabled
-                            let heatThreshold = heatProtectionThreshold
-                            let autoDischarge = autoDischargeEnabled
-                            let manualTarget = manualDischargeTarget
-                            Task {
-                                if isTopUp {
-                                    await batteryControl.cancelTopUp(
-                                        limitPercentage: limit,
-                                        lowerHysteresisDelta: delta,
-                                        heatProtectionEnabled: heatEnabled,
-                                        heatProtectionThresholdCelsius: heatThreshold,
-                                        autoDischargeEnabled: autoDischarge,
-                                        manualDischargeTarget: manualTarget)
-                                } else {
-                                    await batteryControl.startTopUp(
-                                        limitPercentage: limit,
-                                        lowerHysteresisDelta: delta,
-                                        heatProtectionEnabled: heatEnabled,
-                                        heatProtectionThresholdCelsius: heatThreshold,
-                                        autoDischargeEnabled: autoDischarge,
-                                        manualDischargeTarget: manualTarget)
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 4) {
-                                if isTopUp {
-                                    Image(systemName: "bolt.fill")
-                                        .font(.system(size: 10, weight: .semibold))
-                                }
-                                Text(LocalizedStringKey(isTopUp ? "활성화됨" : "비활성화됨"))
-                                    .font(WattlyFont.at(11.5, weight: .medium))
-                            }
-                            .foregroundStyle(isTopUp ? Tokens.statusOrange : (isPluggedIn ? t.text : t.faint))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(RoundedRectangle(cornerRadius: 6).fill(isTopUp ? Tokens.statusOrange.opacity(0.15) : t.segTrack))
-                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(isTopUp ? Tokens.statusOrange.opacity(0.4) : t.rowBorder, lineWidth: 1))
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(!isToggleEnabled || isHardwareUnsupported || !isPluggedIn)
-                        .accessibilityLabel(Text(LocalizedStringKey("한 번만 완충")))
-                        .accessibilityValue(Text(LocalizedStringKey(isTopUp ? "활성화됨" : "비활성화됨")))
                     }
-                    .padding(EdgeInsets(top: 10, leading: 14, bottom: 14, trailing: 14))
                 }
             }
             .task(id: "\(batteryLimitEnabled)-\(batteryHeatProtectionEnabled)-\(autoDischargeEnabled)-\(manualDischargeTarget)-\(batteryControl.status.desiredConfiguration?.topUpActive == true)-\(batteryControl.status.desiredConfiguration?.manualDischargeActive == true)-\(batteryControl.status.activity == .discharging)") {
@@ -685,6 +644,48 @@ struct SettingsBatterySection: View {
         if let fallback = URL(string: "x-apple.systempreferences:com.apple.preference.battery") {
             NSWorkspace.shared.open(fallback)
         }
+    }
+
+    /// Top Up이 실제로 걸려 있는지. 어댑터가 빠지면 데몬이 스스로 해제하므로 연결 여부를 함께 본다.
+    private var isTopUpActive: Bool {
+        batteryControl.status.isPowerAdapterConnected
+            && (batteryControl.status.desiredConfiguration?.topUpActive == true
+                || batteryControl.status.activity == .topUp)
+    }
+
+    /// 토글 ↔ 데몬 명령. 저장되는 설정이 아니라 데몬이 들고 있는 활동이므로 `@AppStorage`가
+    /// 아니라 상태에서 읽고 명령으로 쓴다.
+    private var topUpBinding: Binding<Bool> {
+        Binding(
+            get: { isTopUpActive },
+            set: { want in
+                let limit = batteryLimitPercentage
+                let delta = effectiveDelta
+                let heatEnabled = batteryHeatProtectionEnabled
+                let heatThreshold = heatProtectionThreshold
+                let autoDischarge = autoDischargeEnabled
+                let manualTarget = manualDischargeTarget
+                Task {
+                    if want {
+                        await batteryControl.startTopUp(
+                            limitPercentage: limit,
+                            lowerHysteresisDelta: delta,
+                            heatProtectionEnabled: heatEnabled,
+                            heatProtectionThresholdCelsius: heatThreshold,
+                            autoDischargeEnabled: autoDischarge,
+                            manualDischargeTarget: manualTarget)
+                    } else {
+                        await batteryControl.cancelTopUp(
+                            limitPercentage: limit,
+                            lowerHysteresisDelta: delta,
+                            heatProtectionEnabled: heatEnabled,
+                            heatProtectionThresholdCelsius: heatThreshold,
+                            autoDischargeEnabled: autoDischarge,
+                            manualDischargeTarget: manualTarget)
+                    }
+                }
+            }
+        )
     }
 
     private var isHardwareUnsupported: Bool {

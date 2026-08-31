@@ -1100,6 +1100,34 @@ import AppKit
         // 내려가지 않는다 — resumeTemperatureCelsius 안의 20°C 바닥은 이 경로로는 닿지 않는다.
         #expect(BatterySectionPresentation.heatProtectionResumeCelsius(threshold: 21) == 28)
     }
+
+    @Test func topUpStatusTextReflectsTheDaemonStage() {
+        let ko = Locale(identifier: "ko")
+        let off = BatterySectionPresentation.topUpDescription(hours: 12, locale: ko)
+
+        // 꺼져 있으면 기존 설명문 그대로.
+        #expect(BatterySectionPresentation.topUpStatusText(
+            kind: nil, isOn: false, hours: 12, locale: ko) == off)
+        #expect(BatterySectionPresentation.topUpStatusText(
+            kind: .topUpCharging, isOn: false, hours: 12, locale: ko) == off)
+
+        // 켜져서 100%로 올라가는 중.
+        #expect(BatterySectionPresentation.topUpStatusText(
+            kind: .topUpCharging, isOn: true, hours: 12, locale: ko) == "100%까지 충전 중")
+
+        // 완충 유지 — 만료 시간 수가 문장에 들어간다.
+        #expect(BatterySectionPresentation.topUpStatusText(
+            kind: .topUpComplete, isOn: true, hours: 12, locale: ko)
+            == "완충 유지 중 · 12시간 후 자동 해제")
+        // `.topUpHeldAtMax`는 현재 엔진이 만들지 않지만, 만들게 되어도 같은 칸에 들어간다.
+        #expect(BatterySectionPresentation.topUpStatusText(
+            kind: .topUpHeldAtMax, isOn: true, hours: 12, locale: ko)
+            == "완충 유지 중 · 12시간 후 자동 해제")
+
+        // 켜져 있는데 reason이 없는 구버전 헬퍼는 기존 설명문으로 안전하게 떨어진다.
+        #expect(BatterySectionPresentation.topUpStatusText(
+            kind: nil, isOn: true, hours: 12, locale: ko) == off)
+    }
 }
 
 

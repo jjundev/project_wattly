@@ -183,6 +183,32 @@ enum BatterySectionPresentation {
                locale: locale, Int64(hours))
     }
 
+    /// "한 번만 완충" 토글 아래에 붙는 부문구. 데몬이 이미 보내는 `detailReason.kind`로
+    /// 충전 중과 완충 유지 중을 가른다.
+    ///
+    /// 정확한 잔여 시간은 여기서 만들 수 없다 — 만료 시계(`topUpReachedFullAt`)는
+    /// `BatteryControlCoordinator`가 소유하고 XPC 상태에 실리지 않는다. 그 값을 실으려면
+    /// 헬퍼 프로토콜을 바꿔야 하고, 그러면 사용자가 도우미를 다시 설치해야 한다. 그 대가를
+    /// 치를 만큼 필요한 정보라는 근거가 생기기 전까지는 시간 수만 문장에 넣는다.
+    static func topUpStatusText(kind: BatteryControlStatusReason.Kind?,
+                                isOn: Bool,
+                                hours: Int,
+                                locale: Locale = Locale(identifier: "ko")) -> String {
+        guard isOn else { return topUpDescription(hours: hours, locale: locale) }
+        switch kind {
+        case .topUpCharging:
+            return String(localized: "100%까지 충전 중", locale: locale)
+        case .topUpComplete, .topUpHeldAtMax:
+            return String(format: String(localized: "완충 유지 중 · %lld시간 후 자동 해제",
+                                         locale: locale),
+                          locale: locale, Int64(hours))
+        default:
+            // 구버전 헬퍼는 `detailReason`을 보내지 않는다. 켜져 있다는 사실만 아는 상태이므로
+            // 단계를 지어내지 않고 원래 설명문으로 떨어진다.
+            return topUpDescription(hours: hours, locale: locale)
+        }
+    }
+
     static func maintenanceActionLabel(_ action: MaintenanceAction, locale: Locale) -> String {
         switch action {
         case .retry: String(localized: "유지보수: 다시 확인", locale: locale)
