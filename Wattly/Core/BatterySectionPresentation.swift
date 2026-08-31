@@ -440,6 +440,22 @@ enum BatterySectionPresentation {
         return String(format: String(localized: "약 %@ 남음", locale: locale), locale: locale, duration)
     }
 
+    /// 강제 방전이 막 시작된 구간에서는 예상 완료 시간을 숨긴다.
+    ///
+    /// 표시에 쓰는 4초 EMA는 방전 직전의 홀드 상태(≈0 W)에서 출발한다. 2초 폴링·τ=4초에서
+    /// 첫 표본은 실제 방전 전력의 약 39%, 두 번째 63%, 10초 지점에서 약 92%다. 워밍업 중에
+    /// 나눗셈을 하면 예상 시간이 두 배 넘게 과대 추정되므로, 숫자를 하나 더 만들어 내기보다
+    /// 그 구간에는 아예 내보내지 않는다. 실시간 소모(W)는 처음부터 표시한다 — 부호와 자릿수는
+    /// 첫 표본부터 맞기 때문이다.
+    ///
+    /// 1분 EMA(`BatterySample.average1mW`)를 쓰지 않는 이유는 따로 있다. 그 EMA는 어댑터 연결
+    /// 변화에만 리셋되는데(`BatteryTelemetryPipeline`), 강제 방전은 어댑터를 꽂은 채 시작하므로
+    /// 리셋되지 않아 1분 내내 어긋난다.
+    static func shouldShowDischargeEstimate(secondsSinceStart: Double,
+                                            warmUpSeconds: Double = 10) -> Bool {
+        secondsSinceStart >= warmUpSeconds
+    }
+
     /// Format discharge status description (e.g. "수동 방전 진행 중", "Manual discharge in progress")
     static func dischargeDescription(
         target _: Int = 0,

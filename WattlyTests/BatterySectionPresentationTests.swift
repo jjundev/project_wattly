@@ -1079,6 +1079,21 @@ import AppKit
             locale: en
         ) == "Battery level is already at or below target.")
     }
+
+    @Test func dischargeEstimateStaysHiddenUntilTheEmaWarmsUp() {
+        // 방전을 막 시작한 순간 — 4초 EMA는 아직 직전 홀드 상태의 값에 가깝다.
+        #expect(BatterySectionPresentation.shouldShowDischargeEstimate(secondsSinceStart: 0) == false)
+        #expect(BatterySectionPresentation.shouldShowDischargeEstimate(secondsSinceStart: 9.9) == false)
+        // 경계 포함.
+        #expect(BatterySectionPresentation.shouldShowDischargeEstimate(secondsSinceStart: 10) == true)
+        #expect(BatterySectionPresentation.shouldShowDischargeEstimate(secondsSinceStart: 3_600) == true)
+        // 창을 여는 순간 이미 방전 중이던 경우는 아주 큰 경과 시간으로 들어온다.
+        #expect(BatterySectionPresentation.shouldShowDischargeEstimate(
+            secondsSinceStart: .greatestFiniteMagnitude) == true)
+        // 임계값은 주입 가능하다.
+        #expect(BatterySectionPresentation.shouldShowDischargeEstimate(
+            secondsSinceStart: 3, warmUpSeconds: 2) == true)
+    }
 }
 
 
