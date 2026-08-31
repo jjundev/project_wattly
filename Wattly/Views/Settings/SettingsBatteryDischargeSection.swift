@@ -154,8 +154,12 @@ struct SettingsBatteryDischargeSection: View {
             SettingsToggleRow(
                 isOn: $autoDischargeEnabled,
                 divider: false,
-                isEnabled: isToggleEnabled,
-                disabledReason: isToggleEnabled ? nil : "이 Mac은 충전 제어를 지원하지 않습니다"
+                // 데몬은 `config.enabled && config.autoDischargeEnabled`일 때만 자동 방전을
+                // 돌린다(BatteryControlEngine). 충전 제한이 꺼져 있는데 켤 수 있게 두면
+                // 아무 일도 하지 않는 스위치가 된다 — Sailing 모드와 같은 게이트를 쓴다.
+                isEnabled: isLimitPickerEnabled,
+                disabledReason: BatterySectionPresentation
+                    .limitPickerDisabledReason(isLimitOn: batteryLimitEnabled)
             ) {
                 VStack(alignment: .leading, spacing: 2) {
                     SettingsRowTitle("자동 방전")
