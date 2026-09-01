@@ -388,12 +388,49 @@ final class WindowAppearanceSyncView: NSView {
     }
 
     private var systemAppearanceObservation: NSKeyValueObservation?
+    private var windowCloseObserver: NSObjectProtocol?
+
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        super.viewWillMove(toWindow: newWindow)
+        if newWindow == nil, let observer = windowCloseObserver {
+            NotificationCenter.default.removeObserver(observer)
+            windowCloseObserver = nil
+        }
+    }
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         applyAppearance()
         systemAppearanceObservation = NSApp.observe(\.effectiveAppearance) { [weak self] _, _ in
             DispatchQueue.main.async { self?.applyAppearance() }
+        }
+
+        if let window = self.window {
+            // Keep regular activation policy while Settings window is open so macOS window manager
+            // preserves focus and does not bury the window when external dialogs or apps close.
+            if NSApp.activationPolicy() != .regular {
+                NSApp.setActivationPolicy(.regular)
+            }
+            if windowCloseObserver == nil {
+                windowCloseObserver = NotificationCenter.default.addObserver(
+                    forName: NSWindow.willCloseNotification,
+                    object: window,
+                    queue: .main
+                ) { [weak self] _ in
+                    MainActor.assumeIsolated {
+                        self?.handleWindowClose(closingWindow: window)
+                    }
+                }
+            }
+        }
+    }
+
+    private func handleWindowClose(closingWindow: NSWindow) {
+        let otherSettingsWindows = NSApp.windows.filter {
+            $0 != closingWindow && $0.isVisible && !($0 is NSPanel) && $0.canBecomeMain
+        }
+        if otherSettingsWindows.isEmpty && NSApp.activationPolicy() != .accessory {
+            NSApp.setActivationPolicy(.accessory)
         }
     }
 

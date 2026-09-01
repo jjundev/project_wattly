@@ -674,6 +674,27 @@ struct SettingsBatterySection: View {
     }
 
     private func openSystemBatterySettings() {
+        let center = NSWorkspace.shared.notificationCenter
+        var observer: NSObjectProtocol?
+        observer = center.addObserver(
+            forName: NSWorkspace.didDeactivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { notif in
+            guard let app = notif.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                  app.bundleIdentifier == "com.apple.systempreferences" || app.bundleIdentifier == "com.apple.SystemSettings"
+            else { return }
+            if let obs = observer {
+                center.removeObserver(obs)
+            }
+            Task { @MainActor in
+                NSApp.activate(ignoringOtherApps: true)
+                for window in NSApp.windows where window.isVisible && !window.className.contains("MenuBarExtra") {
+                    window.orderFrontRegardless()
+                }
+            }
+        }
+
         if let url = URL(string: "x-apple.systempreferences:com.apple.Battery-Settings.extension"),
            NSWorkspace.shared.open(url) {
             return
