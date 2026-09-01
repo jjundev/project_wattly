@@ -322,7 +322,7 @@ struct CardExpandRegion: View {
 
             if let scheduleCoordinator,
                let upcoming = BatteryScheduleCoordinator.nextUpcoming(from: scheduleCoordinator.schedules) {
-                if let upcomingText = BatterySectionPresentation.upcomingScheduleText(schedule: upcoming.schedule, triggerDate: upcoming.triggerDate) {
+                if let upcomingText = BatterySectionPresentation.upcomingScheduleText(schedule: upcoming.schedule, triggerDate: upcoming.triggerDate, locale: locale) {
                     HStack(spacing: 4) {
                         Image(systemName: "calendar")
                             .font(.system(size: 9, weight: .semibold))

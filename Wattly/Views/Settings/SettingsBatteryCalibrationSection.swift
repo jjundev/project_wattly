@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 
-/// 설정 › 배터리 최하단의 "고급 · 배터리 진단" 카드.
+/// 설정 › 배터리 최하단의 "진단" 카드.
 ///
 /// 헬퍼 능력 게이팅을 **이 카드 안에서만** 하는 것이 중요하다.
 /// `BatterySectionPresentation.maintenanceStatus`의 전역 `requiredCapabilities`에
@@ -38,7 +38,7 @@ struct SettingsBatteryCalibrationSection: View {
     }
 
     var body: some View {
-        SettingsSection("고급 · 배터리 진단") {
+        SettingsSection("진단") {
             SettingsCard {
                 VStack(alignment: .leading, spacing: 10) {
                     header

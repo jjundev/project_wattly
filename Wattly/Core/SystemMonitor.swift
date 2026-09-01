@@ -101,6 +101,11 @@ final class SystemMonitor {
     private var tempEnabled = true
     private var isACConnected = false
     private var heroCard: CardKind?
+    /// 설정 › 배터리 방전 섹션이 화면에 있는 동안만 켜지는 수요. 팝오버 가시성과 별개다 —
+    /// 설정 창은 팝오버가 닫힌 채로 열리기 때문이다. 배터리 하나만 끌어올리므로 CPU/GPU/온도를
+    /// 1초로 돌리는 `setPanelVisible(true)`와 달리 자기전력 비용이 거의 없다.
+    private var settingsBatteryLive = false
+    var isBatteryLiveDemanded: Bool { settingsBatteryLive }
 
     init(providers: [any MetricProvider],
          clock: MonotonicClock = LiveClock()) {
@@ -138,7 +143,8 @@ final class SystemMonitor {
         return providerIntervals(mode: powerMode, setting: pollSetting, panelVisible: panelVisible,
                                  menubarLiveContentEnabled: !currentMenubarNeeds.isEmpty,
                                  active: activeProviderKinds, menubarNeeds: currentMenubarNeeds,
-                                 heroCard: heroCard, isACConnected: isACConnected)
+                                 heroCard: heroCard, isACConnected: isACConnected,
+                                 settingsBatteryLive: settingsBatteryLive)
     }
 
     private func nextScheduledDelay(at instant: ContinuousClock.Instant) -> Duration {
@@ -206,6 +212,31 @@ final class SystemMonitor {
                 await self.poll(kinds: [.power], at: self.clock.now())
             }
         }
+    }
+
+    /// 설정 › 배터리 방전 섹션이 나타나고 사라질 때 호출한다. `setPanelVisible`과 같은
+    /// before/after 비교 후 재스케줄 패턴을 따른다.
+    ///
+    /// 새로 합류한 provider뿐 아니라, **이미 스케줄에 있던 `.battery`의 간격이 이번 호출로
+    /// 짧아진 경우**도 강제로 즉시 읽는다 — 메뉴바 배터리 칩이 켜져 있거나 performance 모드에서
+    /// 팝오버가 닫혀 있으면(≈10초) 이 함수가 호출되기 전부터 이미 배터리가 스케줄에 있고, 그때는
+    /// "새로 합류한 키"가 비어 있어 강제 읽기가 전혀 일어나지 않았다. 첫 화면의 표본이 최대
+    /// 옛 간격만큼 묵을 수 있었다는 뜻이다 — "강제 읽기 한 번으로 곧 스스로 맞아 들어간다"는
+    /// 전제로 첫 프레임의 묵은 값을 받아들인 결정이 실제로 성립하려면, 여기서 그 전제를 지켜야
+    /// 한다.
+    func setBatteryLiveDemand(_ on: Bool) {
+        guard on != settingsBatteryLive else { return }
+        let before = currentProviderIntervals
+        settingsBatteryLive = on
+        let after = currentProviderIntervals
+        guard after != before else { return }
+        let forced: Set<ProviderKind> = on
+            ? Set(after.keys).filter { kind in
+                guard let previous = before[kind], let current = after[kind] else { return true }
+                return current < previous
+            }
+            : []
+        reschedule(forceProviders: forced)
     }
 
     /// The user picked a cadence in settings.

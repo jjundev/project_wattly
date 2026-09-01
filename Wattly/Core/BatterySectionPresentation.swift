@@ -1,6 +1,6 @@
 import Foundation
 
-/// 설정 › 배터리 충전 제어 섹션의 순수 표시 판단. SwiftUI도 I/O도 없다 —
+/// 설정 › 배터리 섹션들의 순수 표시 판단. SwiftUI도 I/O도 없다 —
 /// `CardPresentation` / `Accessibility` / `BatteryControlPolicy`와 같은 방식으로,
 /// 뷰가 내리던 결정을 테이블 테스트가 가능한 함수로 옮겨둔 것이다.
 ///
@@ -23,6 +23,17 @@ enum BatterySectionPresentation {
         let tone: Tone
         let text: String
         let action: MaintenanceAction?
+
+        /// 유지보수 상태 버튼에 쓰는 SF Symbol 이름.
+        ///
+        /// `maintenanceStatus`는 **절대 nil을 돌려주지 않고 `.green`도 내보내지 않는다** —
+        /// 성공했을 때조차 `.faint`("마지막 확인 · 성공")다. 그래서 "정상이면 숨긴다"는 애초에
+        /// 성립하지 않고, `.green` 외 전부를 경고 아이콘으로 두면 정상 상태(`.faint`)에도 경고
+        /// 삼각형이 뜬다(지금의 물음표보다 나쁘다). 문제를 알리는 톤(`.red`/`.orange`)일 때만
+        /// 경고를 쓰고, 정보성 톤은 물음표를 유지한다.
+        var symbolName: String {
+            tone == .red || tone == .orange ? "exclamationmark.triangle.fill" : "questionmark.circle"
+        }
     }
 
     enum Indicator: String, Equatable, CaseIterable {
@@ -167,12 +178,46 @@ enum BatterySectionPresentation {
         }
     }
 
+    /// 발열 보호가 충전을 재개하는 온도. 델타와 하한을 여기서 다시 쓰지 않고 데몬이 쓰는
+    /// 계약 타입에 물어본다 — 앱은 재개 델타를 전송하지 않으므로 데몬은 언제나
+    /// `BatteryControlConfiguration`의 기본값을 쓰고, 두 값이 갈라질 여지를 남기지 않는다.
+    static func heatProtectionResumeCelsius(threshold: Int) -> Int {
+        BatteryControlConfiguration(heatProtectionThresholdCelsius: threshold)
+            .resumeTemperatureCelsius
+    }
+
     /// 설정 화면의 "한 번만 완충" 설명. 종료 조건이 두 개(어댑터 분리 / 시간 만료)가 되었으므로
     /// 둘 다 문장에 나온다. 시간 수를 인자로 받는 이유는 `BatteryTopUpExpiry.duration`이 바뀌어도
     /// 문구가 따로 놀지 않게 하기 위해서다.
     static func topUpDescription(hours: Int, locale: Locale) -> String {
         String(format: String(localized: "다음 외출이나 출장을 위해 배터리를 일회성으로 100%%까지 완전 충전합니다. 어댑터를 분리하거나 완충 후 %lld시간이 지나면 기존 충전 제한으로 자동 복귀합니다.", locale: locale),
                locale: locale, Int64(hours))
+    }
+
+    /// "한 번만 완충" 토글 아래에 붙는 부문구. 데몬이 이미 보내는 `detailReason.kind`로
+    /// 충전 중과 완충 유지 중을 가른다.
+    ///
+    /// 정확한 잔여 시간은 여기서 만들 수 없다 — 만료 시계(`topUpReachedFullAt`)는
+    /// `BatteryControlCoordinator`가 소유하고 XPC 상태에 실리지 않는다. 그 값을 실으려면
+    /// 헬퍼 프로토콜을 바꿔야 하고, 그러면 사용자가 도우미를 다시 설치해야 한다. 그 대가를
+    /// 치를 만큼 필요한 정보라는 근거가 생기기 전까지는 시간 수만 문장에 넣는다.
+    static func topUpStatusText(kind: BatteryControlStatusReason.Kind?,
+                                isOn: Bool,
+                                hours: Int,
+                                locale: Locale = Locale(identifier: "ko")) -> String {
+        guard isOn else { return topUpDescription(hours: hours, locale: locale) }
+        switch kind {
+        case .topUpCharging:
+            return String(localized: "100%까지 충전 중", locale: locale)
+        case .topUpComplete, .topUpHeldAtMax:
+            return String(format: String(localized: "완충 유지 중 · %lld시간 후 자동 해제",
+                                         locale: locale),
+                          locale: locale, Int64(hours))
+        default:
+            // 구버전 헬퍼는 `detailReason`을 보내지 않는다. 켜져 있다는 사실만 아는 상태이므로
+            // 단계를 지어내지 않고 원래 설명문으로 떨어진다.
+            return topUpDescription(hours: hours, locale: locale)
+        }
     }
 
     static func maintenanceActionLabel(_ action: MaintenanceAction, locale: Locale) -> String {
@@ -381,11 +426,14 @@ enum BatterySectionPresentation {
 
     public static func upcomingScheduleText(
         schedule: BatteryChargingSchedule?,
-        triggerDate: Date?
+        triggerDate: Date?,
+        locale: Locale = Locale(identifier: "ko")
     ) -> String? {
-        guard let schedule, let triggerDate else { return nil }
-        let timeStr = schedule.time.formattedText
-        return "다음: \(timeStr) \(schedule.action.summary)"
+        guard let schedule, triggerDate != nil else { return nil }
+        return String(format: String(localized: "다음: %@ %@", locale: locale),
+                      locale: locale,
+                      schedule.time.formattedText,
+                      schedule.action.summary(locale: locale))
     }
 
     // MARK: - Discharge & Power Flow Presentation
@@ -440,6 +488,22 @@ enum BatterySectionPresentation {
         return String(format: String(localized: "약 %@ 남음", locale: locale), locale: locale, duration)
     }
 
+    /// 강제 방전이 막 시작된 구간에서는 예상 완료 시간을 숨긴다.
+    ///
+    /// 표시에 쓰는 4초 EMA는 방전 직전의 홀드 상태(≈0 W)에서 출발한다. 2초 폴링·τ=4초에서
+    /// 첫 표본은 실제 방전 전력의 약 39%, 두 번째 63%, 10초 지점에서 약 92%다. 워밍업 중에
+    /// 나눗셈을 하면 예상 시간이 두 배 넘게 과대 추정되므로, 숫자를 하나 더 만들어 내기보다
+    /// 그 구간에는 아예 내보내지 않는다. 실시간 소모(W)는 처음부터 표시한다 — 부호와 자릿수는
+    /// 첫 표본부터 맞기 때문이다.
+    ///
+    /// 1분 EMA(`BatterySample.average1mW`)를 쓰지 않는 이유는 따로 있다. 그 EMA는 어댑터 연결
+    /// 변화에만 리셋되는데(`BatteryTelemetryPipeline`), 강제 방전은 어댑터를 꽂은 채 시작하므로
+    /// 리셋되지 않아 1분 내내 어긋난다.
+    static func shouldShowDischargeEstimate(secondsSinceStart: Double,
+                                            warmUpSeconds: Double = 10) -> Bool {
+        secondsSinceStart >= warmUpSeconds
+    }
+
     /// Format discharge status description (e.g. "수동 방전 진행 중", "Manual discharge in progress")
     static func dischargeDescription(
         target _: Int = 0,
@@ -481,6 +545,11 @@ enum BatterySectionPresentation {
 
     /// 저장된 목표 잔량을 위 범위로 접는다. 슬라이더가 100까지 열려 있던 버전이 남긴 값을
     /// 읽는 쪽에서 무해하게 만드는 것이 목적이라, 저장값 자체는 고쳐 쓰지 않는다.
+    ///
+    /// **읽는 쪽만** 이 함수를 거친다 — 화면 표시와 데몬으로 보내는 값이 대상이고, 저장하는 쪽
+    /// (`@AppStorage` 선언, `.onChange`/`.task(id:)`의 관찰 대상, 슬라이더 `Binding.set`)은
+    /// 원시값을 그대로 쓴다. 한 곳이라도 원시값을 읽으면 화면·판정·전송이 서로 다른 숫자를 보고,
+    /// "100%인데 시작 버튼이 영원히 꺼져 있다"가 그대로 재발한다.
     static func clampedManualDischargeTarget(_ raw: Int) -> Int {
         min(max(raw, manualDischargeTargetRange.lowerBound), manualDischargeTargetRange.upperBound)
     }
@@ -500,20 +569,17 @@ enum BatterySectionPresentation {
         isToggleEnabled: Bool = true,
         locale: Locale = Locale(identifier: "ko")
     ) -> String? {
-        guard isHardwareSupported && isToggleEnabled else {
-            let isKo = locale.language.languageCode?.identifier == "ko"
-            return isKo ? "배터리 충전 제어가 꺼져 있습니다." : "Battery charge control is disabled."
+        guard isHardwareSupported, isToggleEnabled else {
+            return String(localized: "이 Mac은 충전 제어를 지원하지 않습니다", locale: locale)
         }
         guard isDischargeHardwareSupported else {
             return String(localized: "이 Mac은 강제 방전을 지원하지 않습니다.", locale: locale)
         }
         guard isPluggedIn else {
-            let isKo = locale.language.languageCode?.identifier == "ko"
-            return isKo ? "전원 어댑터가 연결되어 있어야 방전할 수 있습니다." : "Connect power adapter to start discharge."
+            return String(localized: "전원 어댑터가 연결되어 있어야 방전할 수 있습니다.", locale: locale)
         }
         guard currentSoC > targetSoC else {
-            let isKo = locale.language.languageCode?.identifier == "ko"
-            return isKo ? "현재 배터리 잔량이 목표 잔량 이하입니다." : "Battery level is already at or below target."
+            return String(localized: "현재 배터리 잔량이 목표 잔량 이하입니다.", locale: locale)
         }
         return nil
     }

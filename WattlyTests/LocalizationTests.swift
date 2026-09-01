@@ -242,10 +242,10 @@ struct LocalizationTests {
     }
 
     @Test func batterySettingsSectionTranslations() {
-        #expect(String(localized: "배터리 충전 제어", locale: Locale(identifier: "en")) == "Battery Charge Control")
-        #expect(String(localized: "배터리 충전 제어", locale: Locale(identifier: "ja")) == "バッテリー充電制御")
-        #expect(String(localized: "배터리 충전 제어", locale: Locale(identifier: "de")) == "Batterieladesteuerung")
-        #expect(String(localized: "배터리 충전 제어", locale: Locale(identifier: "zh-Hans")) == "电池充电控制")
+        #expect(String(localized: "충전 제한", locale: Locale(identifier: "en")) == "Charge Limit")
+        #expect(String(localized: "충전 제한", locale: Locale(identifier: "ja")) == "充電上限")
+        #expect(String(localized: "충전 제한", locale: Locale(identifier: "de")) == "Ladelimit")
+        #expect(String(localized: "충전 제한", locale: Locale(identifier: "zh-Hans")) == "充电上限")
 
         #expect(String(localized: "배터리 충전 제한", locale: Locale(identifier: "en")) == "Battery Charge Limit")
         #expect(String(localized: "배터리 충전 제한", locale: Locale(identifier: "fr"))
@@ -297,7 +297,12 @@ struct LocalizationTests {
 
     @Test func heatProtectionTranslationsAcrossLocales() {
         #expect(String(localized: "발열 보호", locale: Locale(identifier: "en")) == "Heat Protection")
-        #expect(String(localized: "배터리 온도가 35°C를 초과하면 충전을 일시 중단하고, 33°C 이하로 냉각되면 재개합니다.", locale: Locale(identifier: "en")) != "")
+        // 임계값이 문장에 박히지 않고 인자로 들어간다 — 단축어가 임계값을 바꿔도 문구가 따라간다.
+        let en = Locale(identifier: "en")
+        let text = String(format: String(localized: "배터리 온도가 %lld°C를 초과하면 충전을 일시 중단하고, %lld°C 이하로 냉각되면 재개합니다.", locale: en),
+                          locale: en, Int64(40), Int64(38))
+        #expect(text.contains("40"))
+        #expect(text.contains("38"))
     }
 
     @Test func topUpTranslations() {

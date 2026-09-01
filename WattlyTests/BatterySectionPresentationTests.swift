@@ -130,6 +130,22 @@ import AppKit
                 == "충전 정책 확인 전")
     }
 
+    /// `maintenanceStatus`는 절대 nil을 돌려주지 않고 `.green`도 내보내지 않는다 — 성공했을
+    /// 때조차 `.faint`다. 그래서 아이콘은 문제를 알리는 톤(`.red`/`.orange`)일 때만 경고
+    /// 삼각형이고, 그 외(`.faint`/`.green`)는 물음표를 유지해야 한다.
+    @Test func maintenanceStatusSymbolNameWarnsOnlyForRedOrOrangeTone() {
+        let cases: [(tone: BatterySectionPresentation.Tone, expectedSymbol: String)] = [
+            (.red, "exclamationmark.triangle.fill"),
+            (.orange, "exclamationmark.triangle.fill"),
+            (.faint, "questionmark.circle"),
+            (.green, "questionmark.circle"),
+        ]
+        for (tone, expectedSymbol) in cases {
+            let status = BatterySectionPresentation.MaintenanceStatus(tone: tone, text: "x", action: nil)
+            #expect(status.symbolName == expectedSymbol, "tone \(tone) should map to \(expectedSymbol)")
+        }
+    }
+
     @Test func maintenanceActionsHaveLocalizedVoiceOverLabels() {
         #expect(BatterySectionPresentation.maintenanceActionLabel(.retry, locale: en) == "Check Again")
         #expect(BatterySectionPresentation.maintenanceActionLabel(.updateHelper, locale: en) == "Update Helper")
@@ -993,39 +1009,35 @@ import AppKit
             locale: en
         ) == nil)
 
-        // 2. Hardware unsupported or toggle disabled -> "배터리 충전 제어가 꺼져 있습니다." / "Battery charge control is disabled."
+        // 2. 하드웨어 미지원 또는 토글 비활성 -> 조건과 일치하는 문구를 쓴다.
         #expect(BatterySectionPresentation.manualDischargeDisabledReason(
-            isPluggedIn: true,
-            currentSoC: 80,
-            targetSoC: 70,
-            isHardwareSupported: false,
-            isToggleEnabled: true,
-            locale: ko
-        ) == "배터리 충전 제어가 꺼져 있습니다.")
+            isPluggedIn: true, currentSoC: 80, targetSoC: 70,
+            isHardwareSupported: false, isToggleEnabled: true, locale: ko
+        ) == "이 Mac은 충전 제어를 지원하지 않습니다")
         #expect(BatterySectionPresentation.manualDischargeDisabledReason(
-            isPluggedIn: true,
-            currentSoC: 80,
-            targetSoC: 70,
-            isHardwareSupported: false,
-            isToggleEnabled: true,
-            locale: en
-        ) == "Battery charge control is disabled.")
+            isPluggedIn: true, currentSoC: 80, targetSoC: 70,
+            isHardwareSupported: false, isToggleEnabled: true, locale: en
+        ) == "This Mac does not support charge control")
         #expect(BatterySectionPresentation.manualDischargeDisabledReason(
-            isPluggedIn: true,
-            currentSoC: 80,
-            targetSoC: 70,
-            isHardwareSupported: true,
-            isToggleEnabled: false,
-            locale: ko
-        ) == "배터리 충전 제어가 꺼져 있습니다.")
+            isPluggedIn: true, currentSoC: 80, targetSoC: 70,
+            isHardwareSupported: true, isToggleEnabled: false, locale: ko
+        ) == "이 Mac은 충전 제어를 지원하지 않습니다")
         #expect(BatterySectionPresentation.manualDischargeDisabledReason(
-            isPluggedIn: true,
-            currentSoC: 80,
-            targetSoC: 70,
-            isHardwareSupported: true,
-            isToggleEnabled: false,
-            locale: en
-        ) == "Battery charge control is disabled.")
+            isPluggedIn: true, currentSoC: 80, targetSoC: 70,
+            isHardwareSupported: true, isToggleEnabled: false, locale: en
+        ) == "This Mac does not support charge control")
+
+        // 2-b. 충전 제어는 되지만 CHIE 강제 방전을 지원하지 않는 Mac.
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true, currentSoC: 80, targetSoC: 70,
+            isHardwareSupported: true, isDischargeHardwareSupported: false,
+            isToggleEnabled: true, locale: ko
+        ) == "이 Mac은 강제 방전을 지원하지 않습니다.")
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true, currentSoC: 80, targetSoC: 70,
+            isHardwareSupported: true, isDischargeHardwareSupported: false,
+            isToggleEnabled: true, locale: en
+        ) == "This Mac does not support force discharge.")
 
         // 3. Not plugged in -> "전원 어댑터가 연결되어 있어야 방전할 수 있습니다." / "Connect power adapter to start discharge."
         #expect(BatterySectionPresentation.manualDischargeDisabledReason(
@@ -1112,7 +1124,7 @@ import AppKit
             isDischargeHardwareSupported: false,
             isToggleEnabled: true,
             locale: ko
-        ) == "배터리 충전 제어가 꺼져 있습니다.")
+        ) == "이 Mac은 충전 제어를 지원하지 않습니다")
 
         // 방전 하드웨어가 없으면 어댑터 미연결·목표 미달보다 이쪽이 먼저 보고된다.
         #expect(BatterySectionPresentation.manualDischargeDisabledReason(

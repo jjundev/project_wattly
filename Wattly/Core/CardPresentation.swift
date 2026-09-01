@@ -298,6 +298,12 @@ enum CardPresentation {
         return "\(sign)\(f1(abs(average))) W"
     }
 
+    /// 순간 배터리 순전력 한 줄 표기. 부호는 `batterySign`이 단독으로 정하므로 이 함수는
+    /// 크기와 단위만 붙인다 — 헤드라인 값·평균 표기와 규칙이 갈라지지 않게 하기 위해서다.
+    static func batteryNetWattText(_ s: BatterySample) -> String {
+        "\(batterySign(netW: s.netW, charging: s.charging))\(f1(abs(s.netW))) W"
+    }
+
     static func batteryRemainingCapacityText(_ s: BatterySample) -> String? {
         guard let wh = s.remainingWh, wh.isFinite, wh >= 0 else { return nil }
         return "\(f1(wh)) Wh"

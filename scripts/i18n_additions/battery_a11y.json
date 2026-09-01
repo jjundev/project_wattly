@@ -1,0 +1,18 @@
+{
+  "유지보수 상태 보기": {
+    "ko": "유지보수 상태 보기", "en": "View maintenance status", "ja": "メンテナンス状況を表示",
+    "zh-Hans": "查看维护状态", "zh-Hant": "查看維護狀態",
+    "de": "Wartungsstatus anzeigen", "fr": "Afficher l’état de maintenance",
+    "es": "Ver estado de mantenimiento", "it": "Mostra stato di manutenzione",
+    "pt-BR": "Ver status de manutenção", "pt-PT": "Ver estado de manutenção",
+    "ru": "Показать состояние обслуживания", "nl": "Onderhoudsstatus tonen",
+    "pl": "Pokaż stan konserwacji", "tr": "Bakım durumunu görüntüle",
+    "sv": "Visa underhållsstatus", "da": "Vis vedligeholdelsesstatus",
+    "nb": "Vis vedlikeholdsstatus", "fi": "Näytä ylläpidon tila",
+    "cs": "Zobrazit stav údržby", "hu": "Karbantartási állapot megtekintése",
+    "ro": "Afișează starea de întreținere", "el": "Προβολή κατάστασης συντήρησης",
+    "uk": "Показати стан обслуговування", "th": "ดูสถานะการบำรุงรักษา",
+    "vi": "Xem trạng thái bảo trì", "id": "Lihat status pemeliharaan",
+    "hi": "रखरखाव स्थिति देखें", "ar": "عرض حالة الصيانة", "he": "הצג מצב תחזוקה"
+  }
+}

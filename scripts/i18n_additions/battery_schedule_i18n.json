@@ -1,0 +1,14 @@
+{
+  "다음: %@ %@": {
+    "ko": "다음: %@ %@", "en": "Next: %@ %@", "ja": "次回: %@ %@",
+    "zh-Hans": "下次：%@ %@", "zh-Hant": "下次：%@ %@",
+    "de": "Nächste: %@ %@", "fr": "Suivant : %@ %@", "es": "Siguiente: %@ %@",
+    "it": "Prossimo: %@ %@", "pt-BR": "Próximo: %@ %@", "pt-PT": "Seguinte: %@ %@",
+    "ru": "Далее: %@ %@", "nl": "Volgende: %@ %@", "pl": "Następne: %@ %@",
+    "tr": "Sonraki: %@ %@", "sv": "Nästa: %@ %@", "da": "Næste: %@ %@",
+    "nb": "Neste: %@ %@", "fi": "Seuraava: %@ %@", "cs": "Další: %@ %@",
+    "hu": "Következő: %@ %@", "ro": "Următorul: %@ %@", "el": "Επόμενο: %@ %@",
+    "uk": "Далі: %@ %@", "th": "ถัดไป: %@ %@", "vi": "Tiếp theo: %@ %@",
+    "id": "Berikutnya: %@ %@", "hi": "अगला: %@ %@", "ar": "التالي: %@ %@", "he": "הבא: %@ %@"
+  }
+}

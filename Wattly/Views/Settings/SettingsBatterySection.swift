@@ -16,6 +16,12 @@ struct SettingsBatterySection: View {
     @AppStorage(StorageKey.batteryHeatProtectionEnabled) private var batteryHeatProtectionEnabled = Defaults.batteryHeatProtectionEnabled
     @AppStorage(StorageKey.batteryAutoDischargeEnabled) private var autoDischargeEnabled = Defaults.batteryAutoDischargeEnabled
     @AppStorage(StorageKey.batteryManualDischargeTarget) private var manualDischargeTarget = Defaults.batteryManualDischargeTarget
+    /// 저장된 발열 임계값. **상수 `Defaults`를 직접 보내면 안 된다** — 단축어가 이 키에 쓰기
+    /// 때문에(`BatteryIntentBridge`), 상수를 보내는 순간 사용자가 단축어로 지정한 값을 되돌린다.
+    @AppStorage(StorageKey.batteryHeatProtectionThreshold) private var heatProtectionThreshold = Defaults.batteryHeatProtectionThreshold
+
+    /// 테스트가 `@AppStorage` 결선을 확인하기 위한 읽기 전용 창구.
+    var heatProtectionThresholdForTesting: Int { heatProtectionThreshold }
     @State private var isInstallFailedAlertPresented = false
     @State private var installErrorMessage = ""
     @State private var isHelpPopoverPresented = false
@@ -33,23 +39,17 @@ struct SettingsBatterySection: View {
     /// 저장된 목표 방전 잔량을 UI가 실제로 쓸 수 있는 범위로 접는다. 상한이 100이던 시절에
     /// 저장된 값은 `currentSoC > target`을 영원히 만족시키지 못해 방전 버튼을 죽여 놓는다
     /// (`BatterySectionPresentation.manualDischargeTargetRange` 참고).
+    ///
+    /// 이 화면은 목표 슬라이더를 그리지 않는다(방전 카드는 `SettingsBatteryDischargeSection`에
+    /// 있다). 그런데도 클램프가 필요한 이유는, 충전 한도·세일링·발열 보호를 바꿀 때마다 이
+    /// 화면이 저장된 방전 목표를 **그대로 데몬에 함께 실어 보내기** 때문이다. 두 화면이 서로
+    /// 다른 값을 밀면 `BatteryControlPolicy.shouldReapply`가 둘을 영원히 화해시키려 든다.
     private var dischargeTarget: Int {
         BatterySectionPresentation.clampedManualDischargeTarget(manualDischargeTarget)
     }
 
-    /// 슬라이더가 노출하는 범위. 순수 타입이 갖는 `manualDischargeTargetRange`를 그대로 따른다.
-    private static let dischargeTargetSliderRange: ClosedRange<Double> =
-        Double(BatterySectionPresentation.manualDischargeTargetRange.lowerBound)
-        ... Double(BatterySectionPresentation.manualDischargeTargetRange.upperBound)
-
-    /// 강제 방전 레지스터의 유무. 충전 제어(`isHardwareUnsupported`)와는 다른 축이라 따로 본다.
-    /// `nil`은 이 필드를 보고하지 않는 구버전 도우미, 즉 "모름"이므로 지원으로 읽는다.
-    private var isDischargeHardwareSupported: Bool {
-        batteryControl.status.isDischargeHardwareSupported != false
-    }
-
     var body: some View {
-        SettingsSection(title: "배터리 충전 제어") {
+        SettingsSection(title: "충전 제한") {
             SettingsCard {
                 // Rendering never writes the stored value: flipping it off here would look like the
                 // app undoing the user's choice, and it would be wrong the moment the same
@@ -88,7 +88,7 @@ struct SettingsBatterySection: View {
                             Button {
                                 isHelpPopoverPresented = true
                             } label: {
-                                Image(systemName: "exclamationmark.circle")
+                                Image(systemName: "questionmark.circle")
                                     .font(.system(size: 13, weight: .medium))
                                     .foregroundStyle(t.faint)
                             }
@@ -166,10 +166,18 @@ struct SettingsBatterySection: View {
 
                     SettingsToggleRow(isOn: $batteryHeatProtectionEnabled,
                                       divider: false,
-                                      isEnabled: isToggleEnabled) {
+                                      isEnabled: isToggleEnabled,
+                                      // 충전 제한 토글에는 있는데 여기만 빠져 있었다 —
+                                      // 미지원 기기에서 이유 없이 흐려진 행이 된다.
+                                      disabledReason: isToggleEnabled ? nil : "이 Mac은 충전 제어를 지원하지 않습니다") {
                         VStack(alignment: .leading, spacing: 2) {
                             SettingsRowTitle("발열 보호")
-                            Text("배터리 온도가 35°C를 초과하면 충전을 일시 중단하고, 33°C 이하로 냉각되면 재개합니다.")
+                            Text(verbatim: String(
+                                format: String(localized: "배터리 온도가 %lld°C를 초과하면 충전을 일시 중단하고, %lld°C 이하로 냉각되면 재개합니다.", locale: locale),
+                                locale: locale,
+                                Int64(heatProtectionThreshold),
+                                Int64(BatterySectionPresentation.heatProtectionResumeCelsius(
+                                    threshold: heatProtectionThreshold))))
                                 .font(WattlyFont.at(10.5, weight: .regular))
                                 .foregroundStyle(t.faint)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -178,67 +186,37 @@ struct SettingsBatterySection: View {
 
                     Rectangle().fill(t.line).frame(height: 1)
 
-                    HStack {
+                    SettingsToggleRow(
+                        isOn: topUpBinding,
+                        divider: false,
+                        // 캘리브레이션 충전 단계는 이 Top Up 플래그를 빌려 쓴다
+                        // (`BatteryControlClient.applyCalibration`) — 그동안 토글을 끄면
+                        // `cancelTopUp`이 저장된 `autoDischargeEnabled`를 그대로 데몬에 보내고,
+                        // 데몬의 `revivedConfiguration`은 그 값을 복원하지 않는다. 캘리브레이션이
+                        // 막 끝낸 충전 단계 위에서 자동 방전이 시작될 수 있다 — CHIE 경합을 막으려고
+                        // `applyCalibration`이 존재하는 바로 그 상황이다. `CardExpandRegion`의
+                        // Top Up 행이 이미 같은 이유로 `.disabled(calibration?.isRunning == true)`를
+                        // 쓴다 — 여기서도 같은 게이트를 건다.
+                        isEnabled: isToggleEnabled && !isHardwareUnsupported
+                            && batteryControl.status.isPowerAdapterConnected
+                            && !isCalibrationRunning,
+                        disabledReason: isCalibrationRunning
+                            ? "배터리 캘리브레이션 진행 중"
+                            : (batteryControl.status.isPowerAdapterConnected
+                               ? nil : "전원 어댑터가 연결되어 있어야 합니다")
+                    ) {
                         VStack(alignment: .leading, spacing: 2) {
                             SettingsRowTitle("한 번만 완충")
-                            Text(BatterySectionPresentation.topUpDescription(
-                                hours: BatteryTopUpExpiry.durationHours, locale: locale))
+                            Text(verbatim: BatterySectionPresentation.topUpStatusText(
+                                kind: batteryControl.status.detailReason?.kind,
+                                isOn: isTopUpActive,
+                                hours: BatteryTopUpExpiry.durationHours,
+                                locale: locale))
                                 .font(WattlyFont.at(10.5, weight: .regular))
                                 .foregroundStyle(t.faint)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                        Spacer()
-                        let isPluggedIn = batteryControl.status.isPowerAdapterConnected
-                        let isTopUp = isPluggedIn && (batteryControl.status.desiredConfiguration?.topUpActive == true
-                            || batteryControl.status.activity == .topUp)
-                        Button {
-                            let limit = batteryLimitPercentage
-                            let delta = effectiveDelta
-                            let heatEnabled = batteryHeatProtectionEnabled
-                            let heatThreshold = Defaults.batteryHeatProtectionThreshold
-                            let autoDischarge = autoDischargeEnabled
-                            let manualTarget = dischargeTarget
-                            Task {
-                                if isTopUp {
-                                    await batteryControl.cancelTopUp(
-                                        limitPercentage: limit,
-                                        lowerHysteresisDelta: delta,
-                                        heatProtectionEnabled: heatEnabled,
-                                        heatProtectionThresholdCelsius: heatThreshold,
-                                        autoDischargeEnabled: autoDischarge,
-                                        manualDischargeTarget: manualTarget)
-                                } else {
-                                    await batteryControl.startTopUp(
-                                        limitPercentage: limit,
-                                        lowerHysteresisDelta: delta,
-                                        heatProtectionEnabled: heatEnabled,
-                                        heatProtectionThresholdCelsius: heatThreshold,
-                                        autoDischargeEnabled: autoDischarge,
-                                        manualDischargeTarget: manualTarget)
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 4) {
-                                if isTopUp {
-                                    Image(systemName: "bolt.fill")
-                                        .font(.system(size: 10, weight: .semibold))
-                                }
-                                Text(LocalizedStringKey(isTopUp ? "활성화됨" : "비활성화됨"))
-                                    .font(WattlyFont.at(11.5, weight: .medium))
-                            }
-                            .foregroundStyle(isTopUp ? Tokens.statusOrange : (isPluggedIn ? t.text : t.faint))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(RoundedRectangle(cornerRadius: 6).fill(isTopUp ? Tokens.statusOrange.opacity(0.15) : t.segTrack))
-                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(isTopUp ? Tokens.statusOrange.opacity(0.4) : t.rowBorder, lineWidth: 1))
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(!isToggleEnabled || isHardwareUnsupported || !isPluggedIn)
-                        .accessibilityLabel(Text(LocalizedStringKey("한 번만 완충")))
-                        .accessibilityValue(Text(LocalizedStringKey(isTopUp ? "활성화됨" : "비활성화됨")))
                     }
-                    .padding(EdgeInsets(top: 10, leading: 14, bottom: 14, trailing: 14))
                 }
             }
             .task(id: "\(batteryLimitEnabled)-\(batteryHeatProtectionEnabled)-\(autoDischargeEnabled)-\(dischargeTarget)-\(batteryControl.status.desiredConfiguration?.topUpActive == true)-\(batteryControl.status.desiredConfiguration?.manualDischargeActive == true)-\(batteryControl.status.activity == .discharging)") {
@@ -279,7 +257,7 @@ struct SettingsBatterySection: View {
                             limitPercentage: batteryLimitPercentage,
                             lowerHysteresisDelta: effectiveDelta,
                             heatProtectionEnabled: batteryHeatProtectionEnabled,
-                            heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
+                            heatProtectionThresholdCelsius: heatProtectionThreshold,
                             autoDischargeEnabled: autoDischargeEnabled,
                             manualDischargeTarget: dischargeTarget)
                     }
@@ -289,7 +267,7 @@ struct SettingsBatterySection: View {
                 let limit = batteryLimitPercentage
                 let delta = effectiveDelta
                 let heatEnabled = batteryHeatProtectionEnabled
-                let heatThreshold = Defaults.batteryHeatProtectionThreshold
+                let heatThreshold = heatProtectionThreshold
                 let autoDischarge = autoDischargeEnabled
                 let manualTarget = dischargeTarget
                 Task {
@@ -340,7 +318,7 @@ struct SettingsBatterySection: View {
                         limitPercentage: newLimit,
                         lowerHysteresisDelta: effectiveDelta,
                         heatProtectionEnabled: batteryHeatProtectionEnabled,
-                        heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
+                        heatProtectionThresholdCelsius: heatProtectionThreshold,
                         autoDischargeEnabled: autoDischargeEnabled,
                         manualDischargeTarget: dischargeTarget)
                 }
@@ -354,7 +332,7 @@ struct SettingsBatterySection: View {
                         limitPercentage: batteryLimitPercentage,
                         lowerHysteresisDelta: delta,
                         heatProtectionEnabled: batteryHeatProtectionEnabled,
-                        heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
+                        heatProtectionThresholdCelsius: heatProtectionThreshold,
                         autoDischargeEnabled: autoDischargeEnabled,
                         manualDischargeTarget: dischargeTarget)
                 }
@@ -367,7 +345,7 @@ struct SettingsBatterySection: View {
                         limitPercentage: batteryLimitPercentage,
                         lowerHysteresisDelta: newDelta,
                         heatProtectionEnabled: batteryHeatProtectionEnabled,
-                        heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
+                        heatProtectionThresholdCelsius: heatProtectionThreshold,
                         autoDischargeEnabled: autoDischargeEnabled,
                         manualDischargeTarget: dischargeTarget)
                 }
@@ -380,7 +358,7 @@ struct SettingsBatterySection: View {
                             limitPercentage: batteryLimitPercentage,
                             lowerHysteresisDelta: effectiveDelta,
                             heatProtectionEnabled: isEnabled,
-                            heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
+                            heatProtectionThresholdCelsius: heatProtectionThreshold,
                             autoDischargeEnabled: autoDischargeEnabled,
                             manualDischargeTarget: dischargeTarget)
                     }
@@ -399,7 +377,7 @@ struct SettingsBatterySection: View {
                                 limitPercentage: batteryLimitPercentage,
                                 lowerHysteresisDelta: effectiveDelta,
                                 heatProtectionEnabled: true,
-                                heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
+                                heatProtectionThresholdCelsius: heatProtectionThreshold,
                                 autoDischargeEnabled: autoDischarge,
                                 manualDischargeTarget: manualTarget,
                                 window: window) {
@@ -415,7 +393,7 @@ struct SettingsBatterySection: View {
                         limitPercentage: batteryLimitPercentage,
                         lowerHysteresisDelta: effectiveDelta,
                         heatProtectionEnabled: true,
-                        heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
+                        heatProtectionThresholdCelsius: heatProtectionThreshold,
                         autoDischargeEnabled: autoDischarge,
                         manualDischargeTarget: manualTarget)
                     if batteryControl.status.isHardwareSupported == false {
@@ -423,43 +401,11 @@ struct SettingsBatterySection: View {
                     }
                 }
             }
-            .onChange(of: autoDischargeEnabled) { _, isAutoDischarge in
-                Task {
-                    await batteryControl.setAutoDischarge(
-                        enabled: isAutoDischarge,
-                        limitPercentage: batteryLimitPercentage,
-                        lowerHysteresisDelta: effectiveDelta,
-                        heatProtectionEnabled: batteryHeatProtectionEnabled,
-                        heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
-                        limitEnabled: batteryLimitEnabled,
-                        manualDischargeTarget: dischargeTarget
-                    )
-                }
-            }
-            .onChange(of: manualDischargeTarget) { _, rawTarget in
-                let newTarget = BatterySectionPresentation.clampedManualDischargeTarget(rawTarget)
-                guard batteryLimitEnabled || batteryHeatProtectionEnabled || batteryControl.status.desiredConfiguration?.manualDischargeActive == true else { return }
-                Task {
-                    await batteryControl.reconcile(
-                        enabled: batteryLimitEnabled,
-                        limitPercentage: batteryLimitPercentage,
-                        lowerHysteresisDelta: effectiveDelta,
-                        heatProtectionEnabled: batteryHeatProtectionEnabled,
-                        heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
-                        autoDischargeEnabled: autoDischargeEnabled,
-                        manualDischargeActive: batteryControl.status.desiredConfiguration?.manualDischargeActive == true,
-                        manualDischargeTarget: newTarget
-                    )
-                }
-            }
 
-            if showsConfigurationControls {
-                autoDischargeCard
-                manualDischargeCard
-            }
-            
             if showsConfigurationControls, let scheduleCoordinator {
-                SettingsScheduleCard(coordinator: scheduleCoordinator)
+                SettingsSection("예약 충전") {
+                    SettingsScheduleCard(coordinator: scheduleCoordinator)
+                }
             }
         }
         .alert("도우미 설치 실패", isPresented: $isInstallFailedAlertPresented) {
@@ -500,28 +446,41 @@ struct SettingsBatterySection: View {
 
     private func batteryStatusRow(_ resolved: BatterySectionPresentation.Status) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: resolved.indicator.symbolName)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(statusColor(for: resolved.indicator.tone))
-                // The localized status text carries the meaning; hiding the decorative symbol
-                // prevents VoiceOver from reading an English SF Symbol name before it.
-                .accessibilityHidden(true)
-            Text(verbatim: resolved.text)
-                .font(WattlyFont.at(11, weight: .regular))
-                .foregroundStyle(t.sub)
-                .fixedSize(horizontal: false, vertical: true)
-            Button {
-                isMaintenanceHelpPopoverPresented = true
-            } label: {
-                Image(systemName: "questionmark.circle")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(t.faint)
+            // 아이콘 + 문장만 하나의 VoiceOver 요소로 묶는다. 행 전체를 `.combine` 하면
+            // 아래 `?` 버튼과 "도우미 설치" 버튼이 그 요소 안으로 흡수되어 VoiceOver로
+            // 도달할 수 없게 된다 — `SettingsToggleRow`가 같은 상황에서 별도
+            // `.accessibilityAction`으로 우회한 것과 같은 함정이다.
+            HStack(spacing: 8) {
+                Image(systemName: resolved.indicator.symbolName)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(statusColor(for: resolved.indicator.tone))
+                    // 지역화된 문장이 의미를 담으므로, 장식용 SF Symbol 이름을 영어로 먼저
+                    // 읽지 않게 감춘다.
+                    .accessibilityHidden(true)
+                Text(verbatim: resolved.text)
+                    .font(WattlyFont.at(11, weight: .regular))
+                    .foregroundStyle(t.sub)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text(verbatim: BatterySectionPresentation.maintenancePopoverText(
-                resolvedMaintenanceStatus, locale: locale)))
-            .popover(isPresented: $isMaintenanceHelpPopoverPresented, arrowEdge: .bottom) {
-                maintenanceStatusHelpPopover(resolvedMaintenanceStatus)
+            .accessibilityElement(children: .combine)
+            // 아이콘 선택은 `MaintenanceStatus.symbolName`(Core)이 판단한다 — 그 이유(tone별
+            // 분기 근거)는 그 프로퍼티의 doc comment에 있다.
+            // `if let`은 그대로 둔다 — 지금은 항상 통과하지만, 나중에 nil 경로가 생기면 옳다.
+            if let maintenance = resolvedMaintenanceStatus {
+                Button {
+                    isMaintenanceHelpPopoverPresented = true
+                } label: {
+                    Image(systemName: maintenance.symbolName)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(statusColor(for: maintenance.tone))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text(LocalizedStringKey("유지보수 상태 보기")))
+                .accessibilityValue(Text(verbatim: BatterySectionPresentation
+                    .maintenancePopoverText(maintenance, locale: locale)))
+                .popover(isPresented: $isMaintenanceHelpPopoverPresented, arrowEdge: .bottom) {
+                    maintenanceStatusHelpPopover(maintenance)
+                }
             }
             Spacer()
             if BatterySectionPresentation.isInstallButtonVisible(
@@ -534,7 +493,7 @@ struct SettingsBatterySection: View {
                     let limit = batteryLimitPercentage
                     let delta = effectiveDelta
                     let heatEnabled = batteryHeatProtectionEnabled
-                    let heatThreshold = Defaults.batteryHeatProtectionThreshold
+                    let heatThreshold = heatProtectionThreshold
                     let autoDischarge = autoDischargeEnabled
                     let manualTarget = dischargeTarget
                     Task {
@@ -572,7 +531,6 @@ struct SettingsBatterySection: View {
             }
         }
         .padding(.vertical, 2)
-        .accessibilityElement(children: .combine)
     }
 
     private var resolvedMaintenanceStatus: BatterySectionPresentation.MaintenanceStatus? {
@@ -629,7 +587,7 @@ struct SettingsBatterySection: View {
                                        limitPercentage: limit,
                                        lowerHysteresisDelta: delta,
                                        heatProtectionEnabled: batteryHeatProtectionEnabled,
-                                       heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
+                                       heatProtectionThresholdCelsius: heatProtectionThreshold,
                                        autoDischargeEnabled: autoDischarge,
                                        manualDischargeTarget: manualTarget)
         }
@@ -647,7 +605,7 @@ struct SettingsBatterySection: View {
                 limitPercentage: limit,
                 lowerHysteresisDelta: delta,
                 heatProtectionEnabled: batteryHeatProtectionEnabled,
-                heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
+                heatProtectionThresholdCelsius: heatProtectionThreshold,
                 autoDischargeEnabled: autoDischarge,
                 manualDischargeTarget: manualTarget,
                 transferringOwnership: transferringOwnership,
@@ -656,226 +614,6 @@ struct SettingsBatterySection: View {
                 isInstallFailedAlertPresented = true
             }
             installedOwnership = FanHelperInstaller.installedOwnership()
-        }
-    }
-
-    @ViewBuilder
-    private var autoDischargeCard: some View {
-        SettingsCard {
-            SettingsToggleRow(
-                isOn: $autoDischargeEnabled,
-                divider: false,
-                isEnabled: isToggleEnabled,
-                disabledReason: isToggleEnabled ? nil : "이 Mac은 충전 제어를 지원하지 않습니다"
-            ) {
-                VStack(alignment: .leading, spacing: 2) {
-                    SettingsRowTitle("자동 방전")
-                    Text("충전 한도를 현재 잔량보다 낮게 변경하면 별도 조작 없이 자동으로 한도까지 방전합니다.")
-                        .font(WattlyFont.at(10.5, weight: .regular))
-                        .foregroundStyle(t.faint)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var manualDischargeCard: some View {
-        SettingsCard {
-            VStack(alignment: .leading, spacing: 10) {
-                VStack(alignment: .leading, spacing: 2) {
-                    SettingsRowTitle("수동 방전")
-                    Text("원하는 목표 잔량까지 배터리를 전원 어댑터 연결 상태에서 강제로 방전합니다.")
-                        .font(WattlyFont.at(10.5, weight: .regular))
-                        .foregroundStyle(t.faint)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(EdgeInsets(top: 14, leading: 14, bottom: 0, trailing: 14))
-
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Text("목표 방전 잔량")
-                            .font(WattlyFont.at(11.5, weight: .medium))
-                            .foregroundStyle(t.sub)
-                        Spacer()
-                        Text("\(dischargeTarget)%")
-                            .font(WattlyFont.at(13, weight: .bold))
-                            .monospacedDigit()
-                            .foregroundStyle(Tokens.statusOrange)
-                    }
-
-                    Slider(
-                        value: Binding(
-                            get: { Double(dischargeTarget) },
-                            set: { manualDischargeTarget = Int($0.rounded()) }
-                        ),
-                        in: Self.dischargeTargetSliderRange,
-                        step: 1
-                    )
-                    .tint(Tokens.statusOrange)
-                    .disabled(!isToggleEnabled || isHardwareUnsupported)
-
-                    HStack {
-                        Text("50%")
-                        Spacer()
-                        Text("60%")
-                        Spacer()
-                        Text("70%")
-                        Spacer()
-                        Text("80%")
-                        Spacer()
-                        Text("90%")
-                        Spacer()
-                        Text("99%")
-                    }
-                    .font(WattlyFont.at(10, weight: .regular))
-                    .monospacedDigit()
-                    .foregroundStyle(t.faint)
-                }
-                .padding(EdgeInsets(top: 0, leading: 14, bottom: 8, trailing: 14))
-
-                Rectangle().fill(t.line).frame(height: 1)
-
-                let isDischarging = batteryControl.status.activity == .discharging
-                    || batteryControl.status.desiredConfiguration?.manualDischargeActive == true
-                let isPluggedIn = batteryControl.status.isPowerAdapterConnected
-                let currentSoC = batteryControl.status.currentPercentage
-                let canStartDischarge = BatterySectionPresentation.isManualDischargeActionable(
-                    isPluggedIn: isPluggedIn,
-                    currentSoC: currentSoC,
-                    targetSoC: dischargeTarget,
-                    isHardwareSupported: !isHardwareUnsupported,
-                    isDischargeHardwareSupported: isDischargeHardwareSupported,
-                    isToggleEnabled: isToggleEnabled)
-
-                if isDischarging {
-                    let target = batteryControl.status.desiredConfiguration?.manualDischargeTarget ?? dischargeTarget
-                    VStack(spacing: 8) {
-                        HStack {
-                            HStack(spacing: 6) {
-                                Circle()
-                                    .fill(Tokens.statusOrange)
-                                    .frame(width: 7, height: 7)
-                                Text(LocalizedStringKey("수동 방전 진행 중"))
-                                    .font(WattlyFont.at(11.5, weight: .semibold))
-                                    .foregroundStyle(Tokens.statusOrange)
-                            }
-                            Spacer()
-                            Button {
-                                Task {
-                                    await batteryControl.stopManualDischarge(
-                                        limitPercentage: batteryLimitPercentage,
-                                        lowerHysteresisDelta: effectiveDelta,
-                                        heatProtectionEnabled: batteryHeatProtectionEnabled,
-                                        heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
-                                        autoDischargeEnabled: autoDischargeEnabled,
-                                        manualDischargeTarget: dischargeTarget
-                                    )
-                                }
-                            } label: {
-                                Text("방전 중지")
-                                    .font(WattlyFont.at(11, weight: .semibold))
-                                    .foregroundStyle(Tokens.statusRed)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 4)
-                                    .background(RoundedRectangle(cornerRadius: 5).fill(Tokens.statusRed.opacity(0.15)))
-                                    .overlay(RoundedRectangle(cornerRadius: 5).stroke(Tokens.statusRed.opacity(0.35), lineWidth: 1))
-                            }
-                            .buttonStyle(.plain)
-                        }
-
-                        HStack {
-                            let estMin = max(1, (currentSoC - target) * 3)
-                            Text("실시간 소모: -18.4 W")
-                                .font(WattlyFont.at(10.5, weight: .regular))
-                                .foregroundStyle(t.sub)
-                            Spacer()
-                            let durationStr = BatterySectionPresentation.formatDuration(minutes: estMin, locale: locale)
-                            Text(String(format: String(localized: "예상 완료: 약 %@ 후", locale: locale), durationStr))
-                                .font(WattlyFont.at(10.5, weight: .regular))
-                                .foregroundStyle(t.sub)
-                        }
-                    }
-                    .padding(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
-                    .background(
-                        RoundedRectangle(cornerRadius: 9)
-                            .fill(Tokens.statusOrange.opacity(0.08))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 9)
-                            .stroke(Tokens.statusOrange.opacity(0.28), lineWidth: 1)
-                    )
-                    .padding(EdgeInsets(top: 0, leading: 14, bottom: 12, trailing: 14))
-                } else {
-                    let disabledReason = BatterySectionPresentation.manualDischargeDisabledReason(
-                        isPluggedIn: isPluggedIn,
-                        currentSoC: currentSoC,
-                        targetSoC: dischargeTarget,
-                        isHardwareSupported: !isHardwareUnsupported,
-                        isDischargeHardwareSupported: isDischargeHardwareSupported,
-                        isToggleEnabled: isToggleEnabled,
-                        locale: locale
-                    )
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            HStack(spacing: 4) {
-                                Text("현재 잔량:")
-                                    .font(WattlyFont.at(11, weight: .regular))
-                                    .foregroundStyle(t.faint)
-                                Text("\(currentSoC)%")
-                                    .font(WattlyFont.at(11, weight: .semibold))
-                                    .foregroundStyle(t.text)
-                            }
-                            Spacer()
-                            Button {
-                                Task {
-                                    await batteryControl.startManualDischarge(
-                                        target: dischargeTarget,
-                                        limitPercentage: batteryLimitPercentage,
-                                        lowerHysteresisDelta: effectiveDelta,
-                                        heatProtectionEnabled: batteryHeatProtectionEnabled,
-                                        heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
-                                        autoDischargeEnabled: autoDischargeEnabled
-                                    )
-                                }
-                            } label: {
-                                Text(verbatim: BatterySectionPresentation.startDischargeButtonText(
-                                    targetSoC: dischargeTarget,
-                                    locale: locale))
-                                    .font(WattlyFont.at(11.5, weight: .semibold))
-                                    .foregroundStyle(canStartDischarge ? Tokens.statusOrange : t.faint)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 5)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 6)
-                                            .fill(canStartDischarge ? Tokens.statusOrange.opacity(0.15) : t.segTrack)
-                                    )
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 6)
-                                            .stroke(canStartDischarge ? Tokens.statusOrange.opacity(0.35) : t.rowBorder, lineWidth: 1)
-                                    )
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(!canStartDischarge)
-                            .help(disabledReason ?? "")
-                            .accessibilityLabel(Text(verbatim: BatterySectionPresentation.startDischargeButtonText(targetSoC: dischargeTarget, locale: locale)))
-                            .accessibilityHint(Text(disabledReason ?? ""))
-                        }
-                        // macOS는 비활성 컨트롤 위에 툴팁을 띄우지 않는다. `.help`만 달아 두면 사유가
-                        // 정확히 필요한 순간에만 보이지 않으므로 본문으로도 내보낸다. VoiceOver는 위
-                        // 힌트가 같은 문장을 읽으므로 여기서는 감춘다.
-                        if let disabledReason {
-                            Text(verbatim: disabledReason)
-                                .font(WattlyFont.at(10.5, weight: .regular))
-                                .foregroundStyle(t.faint)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .accessibilityHidden(true)
-                        }
-                    }
-                    .padding(EdgeInsets(top: 0, leading: 14, bottom: 14, trailing: 14))
-                }
-            }
         }
     }
 
@@ -943,6 +681,54 @@ struct SettingsBatterySection: View {
         if let fallback = URL(string: "x-apple.systempreferences:com.apple.preference.battery") {
             NSWorkspace.shared.open(fallback)
         }
+    }
+
+    /// Top Up이 실제로 걸려 있는지. 어댑터가 빠지면 데몬이 스스로 해제하므로 연결 여부를 함께 본다.
+    private var isTopUpActive: Bool {
+        batteryControl.status.isPowerAdapterConnected
+            && (batteryControl.status.desiredConfiguration?.topUpActive == true
+                || batteryControl.status.activity == .topUp)
+    }
+
+    /// 캘리브레이션이 도는 동안 Top Up 토글을 사용자가 손대지 못하게 막는 데 쓴다.
+    /// 새 배관이 필요 없다 — `calibrationActive`는 이미 상태에 실려 온다.
+    private var isCalibrationRunning: Bool {
+        batteryControl.status.desiredConfiguration?.calibrationActive == true
+    }
+
+    /// 토글 ↔ 데몬 명령. 저장되는 설정이 아니라 데몬이 들고 있는 활동이므로 `@AppStorage`가
+    /// 아니라 상태에서 읽고 명령으로 쓴다.
+    private var topUpBinding: Binding<Bool> {
+        Binding(
+            get: { isTopUpActive },
+            set: { want in
+                let limit = batteryLimitPercentage
+                let delta = effectiveDelta
+                let heatEnabled = batteryHeatProtectionEnabled
+                let heatThreshold = heatProtectionThreshold
+                let autoDischarge = autoDischargeEnabled
+                let manualTarget = dischargeTarget
+                Task {
+                    if want {
+                        await batteryControl.startTopUp(
+                            limitPercentage: limit,
+                            lowerHysteresisDelta: delta,
+                            heatProtectionEnabled: heatEnabled,
+                            heatProtectionThresholdCelsius: heatThreshold,
+                            autoDischargeEnabled: autoDischarge,
+                            manualDischargeTarget: manualTarget)
+                    } else {
+                        await batteryControl.cancelTopUp(
+                            limitPercentage: limit,
+                            lowerHysteresisDelta: delta,
+                            heatProtectionEnabled: heatEnabled,
+                            heatProtectionThresholdCelsius: heatThreshold,
+                            autoDischargeEnabled: autoDischarge,
+                            manualDischargeTarget: manualTarget)
+                    }
+                }
+            }
+        )
     }
 
     private var isHardwareUnsupported: Bool {

@@ -1,0 +1,38 @@
+{
+  "충전 제한": {
+    "ko": "충전 제한", "en": "Charge Limit", "ja": "充電上限",
+    "zh-Hans": "充电上限", "zh-Hant": "充電上限",
+    "de": "Ladelimit", "fr": "Limite de charge", "es": "Límite de carga",
+    "it": "Limite di ricarica", "pt-BR": "Limite de carga", "pt-PT": "Limite de carga",
+    "ru": "Лимит заряда", "nl": "Oplaadlimiet", "pl": "Limit ładowania",
+    "tr": "Şarj Sınırı", "sv": "Laddningsgräns", "da": "Opladningsgrænse",
+    "nb": "Ladegrense", "fi": "Latausraja", "cs": "Limit nabíjení",
+    "hu": "Töltési korlát", "ro": "Limită de încărcare", "el": "Όριο φόρτισης",
+    "uk": "Ліміт заряду", "th": "ขีดจำกัดการชาร์จ", "vi": "Giới hạn sạc",
+    "id": "Batas Pengisian", "hi": "चार्ज सीमा", "ar": "حد الشحن", "he": "מגבלת טעינה"
+  },
+  "방전 제어": {
+    "ko": "방전 제어", "en": "Discharge Control", "ja": "放電制御",
+    "zh-Hans": "放电控制", "zh-Hant": "放電控制",
+    "de": "Entladesteuerung", "fr": "Contrôle de décharge", "es": "Control de descarga",
+    "it": "Controllo della scarica", "pt-BR": "Controle de descarga", "pt-PT": "Controlo de descarga",
+    "ru": "Управление разрядкой", "nl": "Ontlaadregeling", "pl": "Sterowanie rozładowaniem",
+    "tr": "Deşarj Denetimi", "sv": "Urladdningskontroll", "da": "Afladningsstyring",
+    "nb": "Utladingskontroll", "fi": "Purkauksen hallinta", "cs": "Řízení vybíjení",
+    "hu": "Kisütés vezérlése", "ro": "Control descărcare", "el": "Έλεγχος εκφόρτισης",
+    "uk": "Керування розрядкою", "th": "การควบคุมการคายประจุ", "vi": "Điều khiển xả",
+    "id": "Kontrol Pengosongan", "hi": "डिस्चार्ज नियंत्रण", "ar": "التحكم في التفريغ", "he": "בקרת פריקה"
+  },
+  "진단": {
+    "ko": "진단", "en": "Diagnostics", "ja": "診断",
+    "zh-Hans": "诊断", "zh-Hant": "診斷",
+    "de": "Diagnose", "fr": "Diagnostics", "es": "Diagnóstico",
+    "it": "Diagnostica", "pt-BR": "Diagnóstico", "pt-PT": "Diagnóstico",
+    "ru": "Диагностика", "nl": "Diagnostiek", "pl": "Diagnostyka",
+    "tr": "Tanılama", "sv": "Diagnostik", "da": "Diagnostik",
+    "nb": "Diagnostikk", "fi": "Diagnostiikka", "cs": "Diagnostika",
+    "hu": "Diagnosztika", "ro": "Diagnostice", "el": "Διαγνωστικά",
+    "uk": "Діагностика", "th": "การวินิจฉัย", "vi": "Chẩn đoán",
+    "id": "Diagnostik", "hi": "निदान", "ar": "التشخيص", "he": "אבחון"
+  }
+}
