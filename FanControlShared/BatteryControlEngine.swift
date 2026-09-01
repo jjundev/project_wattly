@@ -88,10 +88,12 @@ public final class BatteryControlEngine: @unchecked Sendable {
         let target: Int
         if config.calibrationActive {
             target = config.topUpActive ? 100 : config.clampedCalibrationTarget
+        } else if config.manualDischargeActive {
+            // `update`와 같은 순서다 (수동 방전 > Top Up). 두 곳이 갈라져 있으면 코디네이터의
+            // 상호배제가 한 번이라도 새는 날, 상태가 하드웨어와 다른 목표를 말한다.
+            target = config.clampedManualDischargeTarget
         } else if config.topUpActive {
             target = 100
-        } else if config.manualDischargeActive {
-            target = config.clampedManualDischargeTarget
         } else {
             target = config.clampedLimitPercentage
         }
@@ -211,11 +213,13 @@ public final class BatteryControlEngine: @unchecked Sendable {
             _ = attemptDischargeWrite(active: true)
         }
         if isCurrentlyInhibited {
-            // `statusForCurrentBelief`와 같은 우선순위 체계를 쓴다 (캘리브레이션 우선) — 그래야
-            // 두 곳이 서로 갈라지지 않는다. 이 함수는 프로덕션 호출자가 없다(테스트 전용).
+            // `update`·`statusForCurrentBelief`와 같은 우선순위 체계를 쓴다
+            // (캘리브레이션 > 수동 방전 > Top Up > 한도). 이 함수는 프로덕션 호출자가 없다(테스트 전용).
             let target = config.calibrationActive
                 ? (config.topUpActive ? 100 : config.clampedCalibrationTarget)
-                : (config.topUpActive ? 100 : (config.manualDischargeActive ? config.clampedManualDischargeTarget : config.clampedLimitPercentage))
+                : (config.manualDischargeActive
+                    ? config.clampedManualDischargeTarget
+                    : (config.topUpActive ? 100 : config.clampedLimitPercentage))
             if !attemptWrite(inhibited: true, targetLimit: target) {
                 // The reassertion did not verify, so the next update must rebuild a known baseline.
                 hasInitializedState = false
