@@ -354,11 +354,13 @@ struct CardExpandRegion: View {
 
                 let willShowTopUp = BatterySectionPresentation.shouldShowTopUpRow(
                     showSetting: showBatteryTopUp,
-                    isTopUpActive: isTopUpActive
+                    isTopUpActive: isTopUpActive,
+                    isDischargeActive: isDischargeActive
                 )
                 let willShowDischarge = BatterySectionPresentation.shouldShowManualDischargeRow(
                     showSetting: showBatteryManualDischarge,
                     isDischarging: isDischargeActive,
+                    isTopUpActive: isTopUpActive,
                     currentSoC: currentSoC,
                     targetSoC: dischargeTarget
                 )

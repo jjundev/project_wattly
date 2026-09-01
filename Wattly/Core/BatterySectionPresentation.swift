@@ -640,23 +640,30 @@ enum BatterySectionPresentation {
     }
 
     /// Determines whether the "한 번만 완충 (Top-Up)" row should be visible in the expanded battery card.
-    /// Returns true if enabled by user settings, or if top-up is currently active.
+    /// Returns true if top-up is active (safety override), false if discharge is active (mutual exclusion),
+    /// or user setting if both are idle.
     static func shouldShowTopUpRow(
         showSetting: Bool,
-        isTopUpActive: Bool
+        isTopUpActive: Bool,
+        isDischargeActive: Bool
     ) -> Bool {
-        showSetting || isTopUpActive
+        if isTopUpActive { return true }
+        if isDischargeActive { return false }
+        return showSetting
     }
 
     /// Determines whether the "수동 방전 (Manual Discharge)" row should be visible in the expanded battery card.
-    /// Returns true if currently discharging (safety override), or if enabled by settings and current SoC exceeds target.
+    /// Returns true if currently discharging (safety override), false if top-up is active (mutual exclusion),
+    /// or if enabled by settings and current SoC exceeds target when idle.
     static func shouldShowManualDischargeRow(
         showSetting: Bool,
         isDischarging: Bool,
+        isTopUpActive: Bool,
         currentSoC: Int,
         targetSoC: Int
     ) -> Bool {
         if isDischarging { return true }
+        if isTopUpActive { return false }
         guard showSetting else { return false }
         return currentSoC > targetSoC
     }

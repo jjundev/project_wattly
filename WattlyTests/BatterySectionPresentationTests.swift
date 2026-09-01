@@ -881,48 +881,106 @@ import AppKit
     }
 
     @Test func topUpRowVisibilityPolicy() {
-        // Setting ON + Inactive -> Shown
-        #expect(BatterySectionPresentation.shouldShowTopUpRow(showSetting: true, isTopUpActive: false))
-        // Setting OFF + Inactive -> Hidden
-        #expect(!BatterySectionPresentation.shouldShowTopUpRow(showSetting: false, isTopUpActive: false))
-        // Setting OFF + Active -> Shown (Safety override)
-        #expect(BatterySectionPresentation.shouldShowTopUpRow(showSetting: false, isTopUpActive: true))
-        // Setting ON + Active -> Shown
-        #expect(BatterySectionPresentation.shouldShowTopUpRow(showSetting: true, isTopUpActive: true))
+        // Setting ON + Top-up Inactive + Discharge Inactive -> Shown
+        #expect(BatterySectionPresentation.shouldShowTopUpRow(showSetting: true, isTopUpActive: false, isDischargeActive: false))
+        // Setting OFF + Top-up Inactive + Discharge Inactive -> Hidden
+        #expect(!BatterySectionPresentation.shouldShowTopUpRow(showSetting: false, isTopUpActive: false, isDischargeActive: false))
+        // Setting OFF + Top-up Active + Discharge Inactive -> Shown (Safety override)
+        #expect(BatterySectionPresentation.shouldShowTopUpRow(showSetting: false, isTopUpActive: true, isDischargeActive: false))
+        // Setting ON + Top-up Active + Discharge Inactive -> Shown
+        #expect(BatterySectionPresentation.shouldShowTopUpRow(showSetting: true, isTopUpActive: true, isDischargeActive: false))
+        // Discharge Active + Top-up Inactive -> Hidden (Mutual exclusion)
+        #expect(!BatterySectionPresentation.shouldShowTopUpRow(showSetting: true, isTopUpActive: false, isDischargeActive: true))
+        // Dual active (abnormal edge case) -> Shown (Emergency fallback)
+        #expect(BatterySectionPresentation.shouldShowTopUpRow(showSetting: false, isTopUpActive: true, isDischargeActive: true))
     }
 
     @Test func manualDischargeRowVisibilityPolicy() {
-        // Setting ON, current SoC 90 > target 80, not discharging -> Shown
+        // Setting ON, SoC 90 > target 80, not discharging, top-up inactive -> Shown
         #expect(BatterySectionPresentation.shouldShowManualDischargeRow(
             showSetting: true,
             isDischarging: false,
+            isTopUpActive: false,
             currentSoC: 90,
             targetSoC: 80
         ))
 
-        // Setting ON, current SoC 70 <= target 80, not discharging -> Hidden (SoC below target)
+        // Setting ON, SoC 70 <= target 80, not discharging, top-up inactive -> Hidden (SoC below target)
         #expect(!BatterySectionPresentation.shouldShowManualDischargeRow(
             showSetting: true,
             isDischarging: false,
+            isTopUpActive: false,
             currentSoC: 70,
             targetSoC: 80
         ))
 
-        // Setting OFF, not discharging -> Hidden even if SoC > target
+        // Setting OFF, not discharging, top-up inactive -> Hidden even if SoC > target
         #expect(!BatterySectionPresentation.shouldShowManualDischargeRow(
             showSetting: false,
             isDischarging: false,
+            isTopUpActive: false,
             currentSoC: 90,
             targetSoC: 80
         ))
 
-        // Setting OFF, but actively discharging -> Shown (Safety override to allow stopping)
+        // Setting OFF, actively discharging, top-up inactive -> Shown (Safety override)
         #expect(BatterySectionPresentation.shouldShowManualDischargeRow(
             showSetting: false,
             isDischarging: true,
+            isTopUpActive: false,
             currentSoC: 70,
             targetSoC: 80
         ))
+
+        // Top-up active, discharge inactive -> Hidden (Mutual exclusion even if setting ON and SoC > target)
+        #expect(!BatterySectionPresentation.shouldShowManualDischargeRow(
+            showSetting: true,
+            isDischarging: false,
+            isTopUpActive: true,
+            currentSoC: 90,
+            targetSoC: 80
+        ))
+
+        // Dual active (abnormal edge case) -> Shown (Emergency fallback to allow stopping)
+        #expect(BatterySectionPresentation.shouldShowManualDischargeRow(
+            showSetting: false,
+            isDischarging: true,
+            isTopUpActive: true,
+            currentSoC: 70,
+            targetSoC: 80
+        ))
+    }
+
+    @Test func batteryControlRowsMutualExclusionPolicy() {
+        // Case 1: Top-up active -> Top-up shown, Discharge hidden
+        let topUp1 = BatterySectionPresentation.shouldShowTopUpRow(showSetting: true, isTopUpActive: true, isDischargeActive: false)
+        let discharge1 = BatterySectionPresentation.shouldShowManualDischargeRow(showSetting: true, isDischarging: false, isTopUpActive: true, currentSoC: 90, targetSoC: 80)
+        #expect(topUp1 == true)
+        #expect(discharge1 == false)
+
+        // Case 2: Discharge active -> Top-up hidden, Discharge shown
+        let topUp2 = BatterySectionPresentation.shouldShowTopUpRow(showSetting: true, isTopUpActive: false, isDischargeActive: true)
+        let discharge2 = BatterySectionPresentation.shouldShowManualDischargeRow(showSetting: true, isDischarging: true, isTopUpActive: false, currentSoC: 90, targetSoC: 80)
+        #expect(topUp2 == false)
+        #expect(discharge2 == true)
+
+        // Case 3: Both inactive, both settings ON, SoC > target -> Both shown
+        let topUp3 = BatterySectionPresentation.shouldShowTopUpRow(showSetting: true, isTopUpActive: false, isDischargeActive: false)
+        let discharge3 = BatterySectionPresentation.shouldShowManualDischargeRow(showSetting: true, isDischarging: false, isTopUpActive: false, currentSoC: 90, targetSoC: 80)
+        #expect(topUp3 == true)
+        #expect(discharge3 == true)
+
+        // Case 4: Both inactive, both settings ON, SoC <= target -> Top-up shown, Discharge hidden
+        let topUp4 = BatterySectionPresentation.shouldShowTopUpRow(showSetting: true, isTopUpActive: false, isDischargeActive: false)
+        let discharge4 = BatterySectionPresentation.shouldShowManualDischargeRow(showSetting: true, isDischarging: false, isTopUpActive: false, currentSoC: 70, targetSoC: 80)
+        #expect(topUp4 == true)
+        #expect(discharge4 == false)
+
+        // Case 5: Both active (edge case) -> Both shown (Safety override)
+        let topUp5 = BatterySectionPresentation.shouldShowTopUpRow(showSetting: false, isTopUpActive: true, isDischargeActive: true)
+        let discharge5 = BatterySectionPresentation.shouldShowManualDischargeRow(showSetting: false, isDischarging: true, isTopUpActive: true, currentSoC: 70, targetSoC: 80)
+        #expect(topUp5 == true)
+        #expect(discharge5 == true)
     }
 
     @Test func batteryControlSectionDividerAndContainerGating() {
