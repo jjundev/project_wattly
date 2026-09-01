@@ -676,5 +676,54 @@ enum BatterySectionPresentation {
     ) -> Bool {
         showControlRows && (willShowTopUp || willShowDischarge)
     }
+
+    // MARK: - 강제 방전의 주인
+
+    /// 강제 방전(CHIE)을 지금 누가 소유하고 있는지.
+    ///
+    /// 엔진은 자동 방전과 수동 방전을 별개 분기로 돌리지만, 둘 다 `activity == .discharging`
+    /// 하나로 접혀서 나온다(`BatteryControlEngine`의 `activity: .inferred(from: reason)`).
+    /// 뷰가 그것만 보고 "수동 방전 중"이라고 읽으면 자동 방전이 수동 방전으로 표시되고,
+    /// 그 위에 뜬 "방전 중지"는 자동 방전 옵트인을 끄지 못해 눌러도 아무 일이 없는 버튼이
+    /// 된다. 판별은 여기 한 곳에서만 한다 — 예전에는 뷰 네 곳이 조건을 각자 적고 있었다.
+    enum DischargeOwner: Equatable {
+        /// 강제 방전이 걸려 있지 않다.
+        case idle
+        /// 사용자가 연 수동 방전 세션. 목표에 도달해 전류가 멈춘 뒤에도 사용자가 중지하기
+        /// 전까지는 계속 `.manual`이다 — 그 구간에 "방전 중지" 버튼이 남아 있어야 한다.
+        case manual
+        /// 충전 한도 정책이 스스로 돌리는 자동 방전.
+        case automatic
+    }
+
+    /// `manualDischargeActive`에는 `status.desiredConfiguration?.manualDischargeActive`를 그대로
+    /// 넘긴다. `nil`은 `desiredConfiguration`을 보내지 않는 구버전 도우미이며 "미지원"이 아니라
+    /// "모름"이다 — 현행 도우미는 모든 응답에 이 필드를 채운다
+    /// (`BatteryControlCoordinator`의 `sample`/`publish`).
+    static func dischargeOwner(
+        manualDischargeActive: Bool?,
+        reasonKind: BatteryControlStatusReason.Kind?,
+        activity: BatteryControlActivity?
+    ) -> DischargeOwner {
+        if manualDischargeActive == true { return .manual }
+        if reasonKind == .dischargingManual { return .manual }
+        if reasonKind == .dischargingToTarget { return .automatic }
+        guard manualDischargeActive == nil else { return .idle }
+        // 여기까지 왔다는 것은 `desiredConfiguration`도 알아볼 수 있는 reason도 없다는 뜻이다.
+        // 그 도우미에는 두 방전을 가를 신호 자체가 없으므로 예전 동작을 유지한다.
+        return activity == .discharging ? .manual : .idle
+    }
+
+    /// 지금 실제로 배터리에서 전류가 빠지고 있는지 — 주인이 누구든 참이다. "물리적으로 방전
+    /// 중"만 알면 되는 자리(주황 스파크라인, 전원 공급 섹션 노출)에 쓴다. 수동 방전이 목표에
+    /// 도달해 홀드로 넘어가면 거짓이 된다.
+    static func isForcedDischargeRunning(
+        reasonKind: BatteryControlStatusReason.Kind?,
+        activity: BatteryControlActivity?
+    ) -> Bool {
+        reasonKind == .dischargingManual
+            || reasonKind == .dischargingToTarget
+            || activity == .discharging
+    }
 }
 

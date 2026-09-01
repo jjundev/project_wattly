@@ -1258,6 +1258,64 @@ import AppKit
             currentSoC: 100,
             targetSoC: BatterySectionPresentation.clampedManualDischargeTarget(100)) == true)
     }
+
+    // MARK: - 강제 방전의 주인
+
+    @Test func manualSessionOwnsDischargeEvenWhileHoldingAtTarget() {
+        // 목표 도달 후: 전류는 멈췄지만 세션은 열려 있다. 이 구간에도 "방전 중지" 버튼이
+        // 남아 있어야 하므로 `.manual`이어야 한다.
+        #expect(BatterySectionPresentation.dischargeOwner(
+            manualDischargeActive: true,
+            reasonKind: .inhibitedAtLimit,
+            activity: .holdingAtLimit) == .manual)
+    }
+
+    @Test func autoDischargeIsNotReportedAsManual() {
+        #expect(BatterySectionPresentation.dischargeOwner(
+            manualDischargeActive: false,
+            reasonKind: .dischargingToTarget,
+            activity: .discharging) == .automatic)
+    }
+
+    @Test func legacyHelperWithoutDesiredConfigurationFallsBackToReason() {
+        #expect(BatterySectionPresentation.dischargeOwner(
+            manualDischargeActive: nil,
+            reasonKind: .dischargingManual,
+            activity: .discharging) == .manual)
+        #expect(BatterySectionPresentation.dischargeOwner(
+            manualDischargeActive: nil,
+            reasonKind: .dischargingToTarget,
+            activity: .discharging) == .automatic)
+        // reason조차 없는 아주 오래된 도우미에는 두 방전을 가를 신호가 아예 없다.
+        // 예전 동작(방전 = 수동)을 그대로 둔다.
+        #expect(BatterySectionPresentation.dischargeOwner(
+            manualDischargeActive: nil,
+            reasonKind: nil,
+            activity: .discharging) == .manual)
+    }
+
+    @Test func idleStateHasNoDischargeOwner() {
+        #expect(BatterySectionPresentation.dischargeOwner(
+            manualDischargeActive: false,
+            reasonKind: .inhibitedAtLimit,
+            activity: .holdingAtLimit) == .idle)
+        #expect(BatterySectionPresentation.dischargeOwner(
+            manualDischargeActive: nil,
+            reasonKind: nil,
+            activity: nil) == .idle)
+    }
+
+    @Test func forcedDischargeRunningIsTrueForBothOwnersAndFalseAtHold() {
+        #expect(BatterySectionPresentation.isForcedDischargeRunning(
+            reasonKind: .dischargingManual, activity: .discharging))
+        #expect(BatterySectionPresentation.isForcedDischargeRunning(
+            reasonKind: .dischargingToTarget, activity: .discharging))
+        // 수동 방전이 목표에 도달해 홀드로 넘어가면 전류가 멈춘다.
+        #expect(!BatterySectionPresentation.isForcedDischargeRunning(
+            reasonKind: .inhibitedAtLimit, activity: .holdingAtLimit))
+        #expect(!BatterySectionPresentation.isForcedDischargeRunning(
+            reasonKind: nil, activity: nil))
+    }
 }
 
 
