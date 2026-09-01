@@ -1316,6 +1316,80 @@ import AppKit
         #expect(!BatterySectionPresentation.isForcedDischargeRunning(
             reasonKind: nil, activity: nil))
     }
+
+    // MARK: - 자동/수동 방전 상호배제 사유
+
+    @Test func autoDischargeBlocksManualDischargeWithItsOwnReason() {
+        let reason = BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true,
+            currentSoC: 95,
+            targetSoC: 80,
+            isAutoDischargeEnabled: true,
+            locale: ko)
+        #expect(reason == "자동 방전이 켜져 있어 수동 방전을 사용할 수 없습니다.")
+        #expect(!BatterySectionPresentation.isManualDischargeActionable(
+            isPluggedIn: true,
+            currentSoC: 95,
+            targetSoC: 80,
+            isAutoDischargeEnabled: true))
+    }
+
+    @Test func autoDischargeReasonOutranksAdapterAndSoCReasons() {
+        // 어댑터도 빠져 있고 잔량도 목표 이하지만, 먼저 고쳐야 할 것은 자동 방전이다.
+        // 어댑터를 꽂아도 잔량을 낮춰도 수동 방전은 시작되지 않는다.
+        let reason = BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: false,
+            currentSoC: 70,
+            targetSoC: 80,
+            isAutoDischargeEnabled: true,
+            locale: ko)
+        #expect(reason == "자동 방전이 켜져 있어 수동 방전을 사용할 수 없습니다.")
+    }
+
+    @Test func hardwareReasonsStillOutrankAutoDischarge() {
+        let reason = BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true,
+            currentSoC: 95,
+            targetSoC: 80,
+            isDischargeHardwareSupported: false,
+            isAutoDischargeEnabled: true,
+            locale: ko)
+        #expect(reason == "이 Mac은 강제 방전을 지원하지 않습니다.")
+    }
+
+    @Test func autoDischargeOffLeavesTheExistingReasonsUntouched() {
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: false,
+            currentSoC: 95,
+            targetSoC: 80,
+            locale: ko) == "전원 어댑터가 연결되어 있어야 방전할 수 있습니다.")
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true,
+            currentSoC: 95,
+            targetSoC: 80,
+            locale: ko) == nil)
+    }
+
+    @Test func autoDischargeToggleIsLockedWhileAManualSessionIsOpen() {
+        #expect(!BatterySectionPresentation.isAutoDischargeToggleEnabled(
+            isLimitOn: true, dischargeOwner: .manual))
+        #expect(BatterySectionPresentation.autoDischargeToggleDisabledReason(
+            isLimitOn: true, dischargeOwner: .manual, locale: ko)
+            == "수동 방전이 진행 중입니다.")
+    }
+
+    @Test func autoDischargeToggleKeepsTheChargeLimitGate() {
+        #expect(!BatterySectionPresentation.isAutoDischargeToggleEnabled(
+            isLimitOn: false, dischargeOwner: .idle))
+        #expect(BatterySectionPresentation.autoDischargeToggleDisabledReason(
+            isLimitOn: false, dischargeOwner: .idle, locale: ko)
+            == "충전 제한을 켜면 한도를 조절할 수 있습니다.")
+        // 자동 방전이 돌고 있는 것은 토글을 잠글 이유가 아니다 — 그게 유일한 끄는 방법이다.
+        #expect(BatterySectionPresentation.isAutoDischargeToggleEnabled(
+            isLimitOn: true, dischargeOwner: .automatic))
+        #expect(BatterySectionPresentation.autoDischargeToggleDisabledReason(
+            isLimitOn: true, dischargeOwner: .automatic, locale: ko) == nil)
+    }
 }
 
 

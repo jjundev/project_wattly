@@ -567,6 +567,7 @@ enum BatterySectionPresentation {
         isHardwareSupported: Bool = true,
         isDischargeHardwareSupported: Bool = true,
         isToggleEnabled: Bool = true,
+        isAutoDischargeEnabled: Bool = false,
         locale: Locale = Locale(identifier: "ko")
     ) -> String? {
         guard isHardwareSupported, isToggleEnabled else {
@@ -574,6 +575,12 @@ enum BatterySectionPresentation {
         }
         guard isDischargeHardwareSupported else {
             return String(localized: "이 Mac은 강제 방전을 지원하지 않습니다.", locale: locale)
+        }
+        // 하드웨어 두 축 다음, 어댑터·잔량보다 앞에 둔다. 자동 방전이 켜져 있으면 어댑터를
+        // 꽂아도 잔량을 낮춰도 수동 방전은 시작되지 않으므로, 그 사유가 먼저 보여야 사용자가
+        // 헛수고를 하지 않는다.
+        guard !isAutoDischargeEnabled else {
+            return String(localized: "자동 방전이 켜져 있어 수동 방전을 사용할 수 없습니다.", locale: locale)
         }
         guard isPluggedIn else {
             return String(localized: "전원 어댑터가 연결되어 있어야 방전할 수 있습니다.", locale: locale)
@@ -594,7 +601,8 @@ enum BatterySectionPresentation {
         targetSoC: Int,
         isHardwareSupported: Bool = true,
         isDischargeHardwareSupported: Bool = true,
-        isToggleEnabled: Bool = true
+        isToggleEnabled: Bool = true,
+        isAutoDischargeEnabled: Bool = false
     ) -> Bool {
         manualDischargeDisabledReason(
             isPluggedIn: isPluggedIn,
@@ -602,7 +610,8 @@ enum BatterySectionPresentation {
             targetSoC: targetSoC,
             isHardwareSupported: isHardwareSupported,
             isDischargeHardwareSupported: isDischargeHardwareSupported,
-            isToggleEnabled: isToggleEnabled) == nil
+            isToggleEnabled: isToggleEnabled,
+            isAutoDischargeEnabled: isAutoDischargeEnabled) == nil
     }
 
     /// Gate for showing the Power Supply section in the expanded battery card.
@@ -724,6 +733,31 @@ enum BatterySectionPresentation {
         reasonKind == .dischargingManual
             || reasonKind == .dischargingToTarget
             || activity == .discharging
+    }
+
+    /// 자동 방전 토글을 만질 수 있는지.
+    ///
+    /// 두 조건이다. 충전 한도가 켜져 있어야 하고(꺼져 있으면 데몬이 자동 방전을 돌리지 않아
+    /// 아무 일도 하지 않는 스위치가 된다), 수동 방전 세션이 열려 있지 않아야 한다. 후자는
+    /// 자동 방전이 수동 방전을 이어받아 사용자가 고른 목표를 지나쳐 버리기 때문이다.
+    /// 자동 방전이 **돌고 있는 것**은 잠글 이유가 아니다 — 이 토글이 그것을 끄는 유일한 길이다.
+    static func isAutoDischargeToggleEnabled(
+        isLimitOn: Bool,
+        dischargeOwner: DischargeOwner
+    ) -> Bool {
+        isLimitOn && dischargeOwner != .manual
+    }
+
+    /// 위 게이트가 거짓일 때의 사유. 활성일 때는 `nil`.
+    static func autoDischargeToggleDisabledReason(
+        isLimitOn: Bool,
+        dischargeOwner: DischargeOwner,
+        locale: Locale = Locale(identifier: "ko")
+    ) -> String? {
+        if dischargeOwner == .manual {
+            return String(localized: "수동 방전이 진행 중입니다.", locale: locale)
+        }
+        return limitPickerDisabledReason(isLimitOn: isLimitOn)
     }
 }
 
