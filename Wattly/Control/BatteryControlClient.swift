@@ -116,7 +116,7 @@ import AppKit
     ///
     /// 같은 이유로 `manualDischargeTarget`도 여기서 한 번 클램프한다: `apply`가 데몬으로
     /// 내보내는 유일한 길목이라는 이 함수의 성격 자체가, 저장값이 `BatterySectionPresentation
-    /// .dischargeTargetRange`(50...95) 밖일 수 있는 모든 호출부(Shortcuts/App Intents, 스케줄,
+    /// .manualDischargeTargetRange`(50...99) 밖일 수 있는 모든 호출부(Shortcuts/App Intents, 스케줄,
     /// 캘리브레이션 스냅샷, 도우미 업데이트 재적용 등)를 대신 지나는 자리이기도 하다. 뷰
     /// 4곳은 이미 표시·판정을 위해 각자 클램프하지만, 그 클램프는 화면 몫이지 전송 몫이
     /// 아니다 — 여기서 다시 하지 않으면 저장값 100이 뷰를 거치지 않는 경로로 그대로 나가
@@ -129,7 +129,7 @@ import AppKit
     ) async -> BatteryControlConfiguration {
         var config = config
         config.manualDischargeTarget = BatterySectionPresentation
-            .effectiveDischargeTarget(config.manualDischargeTarget)
+            .clampedManualDischargeTarget(config.manualDischargeTarget)
         // 캐시가 비어 있는 건 "확인 안 됨"이지 "캘리브레이션 없음"이 아니다. Shortcuts/App
         // Intents(BatteryIntentBridge)는 호출마다 새 BatteryControlClient를 만들어 쓰기 전에
         // status를 읽지 않으므로 desiredConfiguration이 항상 nil이다 — 여기서 한 번 읽지

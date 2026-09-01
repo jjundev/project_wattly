@@ -187,12 +187,18 @@ public enum BatteryNotificationManager {
         return String(format: String(localized: "설정된 작업이 실행되었습니다: %@", locale: locale), locale: locale, actionSummary)
     }
 
-    public static func postScheduleTriggeredNotification(scheduleName: String, actionSummary: String) {
+    /// `actionSummary`는 호출자가 **이미 로케일을 확정해 넘긴** 문자열이다. 그 로케일을 함께 받아
+    /// 제목/본문도 같은 언어로 맞춘다 — 넘기지 않으면 예전처럼 저장된 앱 언어에서 되살린다.
+    public static func postScheduleTriggeredNotification(
+        scheduleName: String,
+        actionSummary: String,
+        locale: Locale? = nil
+    ) {
         let center = UNUserNotificationCenter.current()
         center.getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
-            let appLang = UserDefaults.standard.string(forKey: StorageKey.appLanguage) ?? Defaults.appLanguage
-            let locale = AppLanguage.locale(for: appLang)
+            let locale = locale ?? AppLanguage.locale(
+                for: UserDefaults.standard.string(forKey: StorageKey.appLanguage) ?? Defaults.appLanguage)
             let content = UNMutableNotificationContent()
             content.title = scheduleTriggeredTitle(scheduleName: scheduleName, actionSummary: actionSummary, locale: locale)
             content.body = scheduleTriggeredBody(scheduleName: scheduleName, actionSummary: actionSummary, locale: locale)

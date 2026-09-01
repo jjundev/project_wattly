@@ -760,9 +760,10 @@ struct BatteryControlClientTests {
         } else {
             Issue.record("Expected configure request")
         }
-        // BatterySectionPresentation.dischargeTargetRange caps at 95, so the out-of-range stored
-        // value of 100 must reach the daemon clamped — never raw.
-        #expect(recordedRequest?.configuration.manualDischargeTarget == 95)
+        // 범위 상한을 리터럴로 박지 않는다 — 상한이 바뀌면 이 테스트가 조용히 낡는다.
+        // 확인하려는 계약은 "범위 밖 저장값은 클램프되어 데몬에 닿는다"이지 특정 숫자가 아니다.
+        #expect(recordedRequest?.configuration.manualDischargeTarget
+                == BatterySectionPresentation.manualDischargeTargetRange.upperBound)
     }
 
     /// Counterpart to the clamp test above: an already in-range target must pass through untouched,

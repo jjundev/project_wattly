@@ -36,15 +36,16 @@ struct SettingsBatterySection: View {
         batterySailingEnabled ? batterySailingDelta : 2
     }
 
-    /// 이 화면은 목표 슬라이더를 그리지 않지만, 저장된 방전 목표를 그대로 데몬에 계속
-    /// 전달한다 — 충전 한도·세일링·발열 보호를 바꿀 때마다, 그리고 항상-깨어있는 백그라운드
-    /// 리컨사일러(`BatteryControlBridge`)가 아니라 이 화면 자체가 직접 호출하는 지점들에서.
-    /// `SettingsBatteryDischargeSection`이 클램프하는 값과 이 화면이 보내는 값이 다르면,
-    /// 방전 카드는 95%로 시작 가능한데 이 화면·Top Up·백그라운드 리컨사일러는 계속 100을
-    /// 밀어 넣어 `BatteryControlPolicy.shouldReapply`가 둘을 영원히 화해시키려 든다.
-    /// 저장값 자체는 건드리지 않는다 — 여기서 읽어 데몬에 보내는 값만 좁힌다.
-    private var effectiveManualDischargeTarget: Int {
-        BatterySectionPresentation.effectiveDischargeTarget(manualDischargeTarget)
+    /// 저장된 목표 방전 잔량을 UI가 실제로 쓸 수 있는 범위로 접는다. 상한이 100이던 시절에
+    /// 저장된 값은 `currentSoC > target`을 영원히 만족시키지 못해 방전 버튼을 죽여 놓는다
+    /// (`BatterySectionPresentation.manualDischargeTargetRange` 참고).
+    ///
+    /// 이 화면은 목표 슬라이더를 그리지 않는다(방전 카드는 `SettingsBatteryDischargeSection`에
+    /// 있다). 그런데도 클램프가 필요한 이유는, 충전 한도·세일링·발열 보호를 바꿀 때마다 이
+    /// 화면이 저장된 방전 목표를 **그대로 데몬에 함께 실어 보내기** 때문이다. 두 화면이 서로
+    /// 다른 값을 밀면 `BatteryControlPolicy.shouldReapply`가 둘을 영원히 화해시키려 든다.
+    private var dischargeTarget: Int {
+        BatterySectionPresentation.clampedManualDischargeTarget(manualDischargeTarget)
     }
 
     var body: some View {
@@ -218,7 +219,7 @@ struct SettingsBatterySection: View {
                     }
                 }
             }
-            .task(id: "\(batteryLimitEnabled)-\(batteryHeatProtectionEnabled)-\(autoDischargeEnabled)-\(manualDischargeTarget)-\(batteryControl.status.desiredConfiguration?.topUpActive == true)-\(batteryControl.status.desiredConfiguration?.manualDischargeActive == true)-\(batteryControl.status.activity == .discharging)") {
+            .task(id: "\(batteryLimitEnabled)-\(batteryHeatProtectionEnabled)-\(autoDischargeEnabled)-\(dischargeTarget)-\(batteryControl.status.desiredConfiguration?.topUpActive == true)-\(batteryControl.status.desiredConfiguration?.manualDischargeActive == true)-\(batteryControl.status.activity == .discharging)") {
                 // One read regardless of the opt-in: a Mac with no charge register has to disable
                 // its toggle before the user ever reaches for it. This is also the read that
                 // decides whether the configuration controls remain visible.
@@ -258,7 +259,7 @@ struct SettingsBatterySection: View {
                             heatProtectionEnabled: batteryHeatProtectionEnabled,
                             heatProtectionThresholdCelsius: heatProtectionThreshold,
                             autoDischargeEnabled: autoDischargeEnabled,
-                            manualDischargeTarget: effectiveManualDischargeTarget)
+                            manualDischargeTarget: dischargeTarget)
                     }
                     return
                 }
@@ -268,7 +269,7 @@ struct SettingsBatterySection: View {
                 let heatEnabled = batteryHeatProtectionEnabled
                 let heatThreshold = heatProtectionThreshold
                 let autoDischarge = autoDischargeEnabled
-                let manualTarget = effectiveManualDischargeTarget
+                let manualTarget = dischargeTarget
                 Task {
                     let mode = batteryControl.status.mode
                     if BatteryControlPolicy.shouldRunInstaller(mode: mode) {
@@ -319,7 +320,7 @@ struct SettingsBatterySection: View {
                         heatProtectionEnabled: batteryHeatProtectionEnabled,
                         heatProtectionThresholdCelsius: heatProtectionThreshold,
                         autoDischargeEnabled: autoDischargeEnabled,
-                        manualDischargeTarget: effectiveManualDischargeTarget)
+                        manualDischargeTarget: dischargeTarget)
                 }
             }
             .onChange(of: batterySailingEnabled) { _, isSailing in
@@ -333,7 +334,7 @@ struct SettingsBatterySection: View {
                         heatProtectionEnabled: batteryHeatProtectionEnabled,
                         heatProtectionThresholdCelsius: heatProtectionThreshold,
                         autoDischargeEnabled: autoDischargeEnabled,
-                        manualDischargeTarget: effectiveManualDischargeTarget)
+                        manualDischargeTarget: dischargeTarget)
                 }
             }
             .onChange(of: batterySailingDelta) { _, newDelta in
@@ -346,7 +347,7 @@ struct SettingsBatterySection: View {
                         heatProtectionEnabled: batteryHeatProtectionEnabled,
                         heatProtectionThresholdCelsius: heatProtectionThreshold,
                         autoDischargeEnabled: autoDischargeEnabled,
-                        manualDischargeTarget: effectiveManualDischargeTarget)
+                        manualDischargeTarget: dischargeTarget)
                 }
             }
             .onChange(of: batteryHeatProtectionEnabled) { _, isEnabled in
@@ -359,13 +360,13 @@ struct SettingsBatterySection: View {
                             heatProtectionEnabled: isEnabled,
                             heatProtectionThresholdCelsius: heatProtectionThreshold,
                             autoDischargeEnabled: autoDischargeEnabled,
-                            manualDischargeTarget: effectiveManualDischargeTarget)
+                            manualDischargeTarget: dischargeTarget)
                     }
                     return
                 }
                 let window = NSApp.keyWindow
                 let autoDischarge = autoDischargeEnabled
-                let manualTarget = effectiveManualDischargeTarget
+                let manualTarget = dischargeTarget
                 Task {
                     let mode = batteryControl.status.mode
                     if BatteryControlPolicy.shouldRunInstaller(mode: mode) {
@@ -494,7 +495,7 @@ struct SettingsBatterySection: View {
                     let heatEnabled = batteryHeatProtectionEnabled
                     let heatThreshold = heatProtectionThreshold
                     let autoDischarge = autoDischargeEnabled
-                    let manualTarget = effectiveManualDischargeTarget
+                    let manualTarget = dischargeTarget
                     Task {
                         if let failure = await batteryControl.installAndApply(
                             enabled: batteryLimitEnabled,
@@ -580,7 +581,7 @@ struct SettingsBatterySection: View {
         let limit = batteryLimitPercentage
         let delta = effectiveDelta
         let autoDischarge = autoDischargeEnabled
-        let manualTarget = effectiveManualDischargeTarget
+        let manualTarget = dischargeTarget
         Task {
             await batteryControl.apply(enabled: batteryLimitEnabled,
                                        limitPercentage: limit,
@@ -597,7 +598,7 @@ struct SettingsBatterySection: View {
         let limit = batteryLimitPercentage
         let delta = effectiveDelta
         let autoDischarge = autoDischargeEnabled
-        let manualTarget = effectiveManualDischargeTarget
+        let manualTarget = dischargeTarget
         Task {
             if let failure = await batteryControl.installAndApply(
                 enabled: batteryLimitEnabled,
@@ -706,7 +707,7 @@ struct SettingsBatterySection: View {
                 let heatEnabled = batteryHeatProtectionEnabled
                 let heatThreshold = heatProtectionThreshold
                 let autoDischarge = autoDischargeEnabled
-                let manualTarget = effectiveManualDischargeTarget
+                let manualTarget = dischargeTarget
                 Task {
                     if want {
                         await batteryControl.startTopUp(

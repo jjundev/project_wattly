@@ -456,4 +456,121 @@ private func makeIsolatedDefaults() -> UserDefaults {
         #expect(defaults.integer(forKey: StorageKey.batteryLimitPercentage) == 80)
         #expect(coordinator.history.first?.status == .skipped(reason: .calibrationRunning))
     }
+
+    // MARK: - Locale (i18n)
+
+    /// 코디네이터는 뷰가 아니라 `@Environment(\.locale)`을 못 받는다. 대신 주입된 `defaults`에
+    /// 저장된 앱 언어에서 로케일을 되살리는 것이 이 계약이다.
+    @Test @MainActor func activeLocaleFollowsStoredAppLanguage() {
+        let defaults = makeIsolatedDefaults()
+        let client = makeMockClient(state: MockBatteryState())
+        let coordinator = BatteryScheduleCoordinator(batteryControl: client, defaults: defaults)
+
+        // 키가 없으면 `Defaults.appLanguage`("system") — 시스템 로케일을 따라간다.
+        #expect(coordinator.activeLocale == Locale.autoupdatingCurrent)
+
+        defaults.set("en", forKey: StorageKey.appLanguage)
+        #expect(coordinator.activeLocale.identifier.hasPrefix("en"))
+
+        defaults.set("ja", forKey: StorageKey.appLanguage)
+        #expect(coordinator.activeLocale.identifier.hasPrefix("ja"))
+
+        defaults.set("ko", forKey: StorageKey.appLanguage)
+        #expect(coordinator.activeLocale.identifier.hasPrefix("ko"))
+    }
+
+    /// 이력 항목은 `actionSummary`를 문자열 그대로 저장한다. 한국어로 굳어 버리면 다른 언어
+    /// 사용자의 "실행 이력" 팝오버가 영구히 한국어로 남는다.
+    @Test @MainActor func recordLogWritesActionSummaryInAppLanguage() async {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let testDate = calendar.date(from: DateComponents(year: 2026, month: 8, day: 25, hour: 8, minute: 0))!
+
+        // 이름 없는 일정: `scheduleName`도 요약으로 대체되므로 두 필드 모두 번역돼야 한다.
+        func summaries(appLanguage: String) async -> (scheduleName: String, actionSummary: String) {
+            let defaults = makeIsolatedDefaults()
+            defaults.set(appLanguage, forKey: StorageKey.appLanguage)
+            let state = MockBatteryState()
+            let client = makeMockClient(state: state)
+            _ = await client.refreshStatus()
+            let coordinator = BatteryScheduleCoordinator(batteryControl: client, defaults: defaults)
+            coordinator.addSchedule(BatteryChargingSchedule(
+                name: "",
+                time: ScheduleTime(hour: 8, minute: 0),
+                repeatRule: .daily,
+                action: .setLimit(percentage: 80)
+            ))
+            await coordinator.evaluateSchedules(at: testDate, isWake: false, calendar: calendar)
+            let entry = coordinator.history[0]
+            #expect(entry.status == BatteryScheduleLogEntry.Status.success)
+            return (entry.scheduleName, entry.actionSummary)
+        }
+
+        let ko = await summaries(appLanguage: "ko")
+        #expect(ko.actionSummary == "충전 한도 80%")
+        #expect(ko.scheduleName == "충전 한도 80%")
+
+        let en = await summaries(appLanguage: "en")
+        #expect(en.actionSummary == "Charge Limit 80%")
+        #expect(en.scheduleName == "Charge Limit 80%")
+
+        let ja = await summaries(appLanguage: "ja")
+        #expect(ja.actionSummary == "充電上限 80%")
+        #expect(ja.scheduleName == "充電上限 80%")
+    }
+
+    /// 이름이 있으면 그 이름은 사용자가 쓴 그대로 두고, 요약만 번역한다.
+    @Test @MainActor func recordLogKeepsCustomNameButLocalizesSummary() async {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+
+        let defaults = makeIsolatedDefaults()
+        defaults.set("en", forKey: StorageKey.appLanguage)
+        let state = MockBatteryState()
+        let client = makeMockClient(state: state)
+        _ = await client.refreshStatus()
+        let coordinator = BatteryScheduleCoordinator(batteryControl: client, defaults: defaults)
+
+        coordinator.addSchedule(BatteryChargingSchedule(
+            name: "Morning Commute",
+            time: ScheduleTime(hour: 8, minute: 0),
+            repeatRule: .daily,
+            action: .pauseCharging
+        ))
+
+        let testDate = calendar.date(from: DateComponents(year: 2026, month: 8, day: 25, hour: 8, minute: 0))!
+        await coordinator.evaluateSchedules(at: testDate, isWake: false, calendar: calendar)
+
+        #expect(coordinator.history[0].scheduleName == "Morning Commute")
+        #expect(coordinator.history[0].actionSummary == "Pause Charging")
+    }
+
+    /// 건너뛴 항목도 같은 `recordLog`를 지나므로 함께 번역된다.
+    @Test @MainActor func skippedLogAlsoUsesAppLanguage() async {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+
+        let defaults = makeIsolatedDefaults()
+        defaults.set("en", forKey: StorageKey.appLanguage)
+        let state = MockBatteryState()
+        await state.setAdapterConnected(false)
+        let client = makeMockClient(state: state)
+        _ = await client.refreshStatus()
+        let coordinator = BatteryScheduleCoordinator(batteryControl: client, defaults: defaults)
+
+        coordinator.addSchedule(BatteryChargingSchedule(
+            name: "",
+            time: ScheduleTime(hour: 8, minute: 0),
+            repeatRule: .daily,
+            action: .startTopUp
+        ))
+
+        let testDate = calendar.date(from: DateComponents(year: 2026, month: 8, day: 25, hour: 8, minute: 0))!
+        await coordinator.evaluateSchedules(at: testDate, isWake: false, calendar: calendar)
+
+        #expect(coordinator.history[0].status
+                == BatteryScheduleLogEntry.Status.skipped(reason: .adapterDisconnected))
+        #expect(coordinator.history[0].actionSummary == "Top Up to 100%")
+        #expect(coordinator.history[0].scheduleName == "Top Up to 100%")
+    }
 }

@@ -1092,87 +1092,113 @@ import AppKit
         ) == "Battery level is already at or below target.")
     }
 
-    /// 저장된 방전 목표가 안전 범위(50...95) 밖에 있을 수 있다 — 상한을 95로 낮추기 전에
-    /// 100을 저장한 사용자가 있다. 이 클램프가 화면·데몬 전송의 유일한 합의 지점이므로
-    /// 경계 양쪽과 범위 안쪽을 표로 확인한다.
-    @Test func effectiveDischargeTargetClampsToTheSafeRange() {
-        let cases: [(stored: Int, expected: Int)] = [
-            (0, 50),      // 범위 아래: 완전히 벗어난 값
-            (49, 50),     // 범위 아래: 하한 바로 밑
-            (50, 50),     // 하한 경계
-            (70, 70),     // 범위 안
-            (95, 95),     // 상한 경계
-            (96, 95),     // 범위 위: 상한 바로 위 — 예전 슬라이더가 남길 수 있던 값
-            (100, 95),    // 범위 위: 클램프를 도입하기 전 슬라이더의 최댓값
-            (1_000, 95),  // 범위 위: 병적으로 큰 값도 상한에서 멈춘다
+    /// 강제 방전 레지스터의 유무는 충전 제어와 다른 축이다. 나머지 조건이 전부 맞아도 이쪽이
+    /// 막히면 방전은 시작되지 않는다. `nil`(구버전 도우미)은 호출부가 "모름 = 지원"으로 접어
+    /// 넘기므로, 순수 함수는 `false`만 미지원으로 취급한다.
+    @Test func manualDischargeDisabledReasonReportsUnsupportedDischargeHardware() {
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true,
+            currentSoC: 80,
+            targetSoC: 70,
+            isHardwareSupported: true,
+            isDischargeHardwareSupported: false,
+            isToggleEnabled: true,
+            locale: ko
+        ) == "이 Mac은 강제 방전을 지원하지 않습니다.")
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true,
+            currentSoC: 80,
+            targetSoC: 70,
+            isHardwareSupported: true,
+            isDischargeHardwareSupported: false,
+            isToggleEnabled: true,
+            locale: en
+        ) == "This Mac does not support force discharge.")
+
+        // 충전 제어 자체가 막혀 있으면 그쪽 사유가 먼저다 — 사용자가 손댈 수 있는 축이니까.
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true,
+            currentSoC: 80,
+            targetSoC: 70,
+            isHardwareSupported: false,
+            isDischargeHardwareSupported: false,
+            isToggleEnabled: true,
+            locale: ko
+        ) == "이 Mac은 충전 제어를 지원하지 않습니다")
+
+        // 방전 하드웨어가 없으면 어댑터 미연결·목표 미달보다 이쪽이 먼저 보고된다.
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: false,
+            currentSoC: 60,
+            targetSoC: 70,
+            isHardwareSupported: true,
+            isDischargeHardwareSupported: false,
+            isToggleEnabled: true,
+            locale: ko
+        ) == "이 Mac은 강제 방전을 지원하지 않습니다.")
+
+        // 지원하는 Mac은 종전과 동일하게 통과한다 (기본값도 마찬가지).
+        #expect(BatterySectionPresentation.manualDischargeDisabledReason(
+            isPluggedIn: true,
+            currentSoC: 80,
+            targetSoC: 70,
+            isHardwareSupported: true,
+            isDischargeHardwareSupported: true,
+            isToggleEnabled: true,
+            locale: ko
+        ) == nil)
+    }
+
+    /// 버튼의 활성 여부와 화면에 뜨는 사유가 갈라지지 않아야 한다.
+    @Test func isManualDischargeActionableMirrorsDisabledReason() {
+        let cases: [(Bool, Int, Int, Bool, Bool, Bool)] = [
+            (true, 80, 70, true, true, true),
+            (true, 80, 70, true, false, true),
+            (true, 80, 70, false, true, true),
+            (true, 80, 70, true, true, false),
+            (false, 80, 70, true, true, true),
+            (true, 70, 70, true, true, true),
+            (true, 100, 99, true, true, true),
+            (true, 100, 100, true, true, true),
         ]
-        for c in cases {
-            #expect(BatterySectionPresentation.effectiveDischargeTarget(c.stored) == c.expected,
-                    "stored \(c.stored) should clamp to \(c.expected)")
+        for (plugged, soc, target, hw, dischargeHW, toggle) in cases {
+            let reason = BatterySectionPresentation.manualDischargeDisabledReason(
+                isPluggedIn: plugged,
+                currentSoC: soc,
+                targetSoC: target,
+                isHardwareSupported: hw,
+                isDischargeHardwareSupported: dischargeHW,
+                isToggleEnabled: toggle,
+                locale: ko)
+            let actionable = BatterySectionPresentation.isManualDischargeActionable(
+                isPluggedIn: plugged,
+                currentSoC: soc,
+                targetSoC: target,
+                isHardwareSupported: hw,
+                isDischargeHardwareSupported: dischargeHW,
+                isToggleEnabled: toggle)
+            #expect(actionable == (reason == nil))
         }
-        #expect(BatterySectionPresentation.dischargeTargetRange == 50...95)
     }
 
-    @Test func dischargeEstimateStaysHiddenUntilTheEmaWarmsUp() {
-        // 방전을 막 시작한 순간 — 4초 EMA는 아직 직전 홀드 상태의 값에 가깝다.
-        #expect(BatterySectionPresentation.shouldShowDischargeEstimate(secondsSinceStart: 0) == false)
-        #expect(BatterySectionPresentation.shouldShowDischargeEstimate(secondsSinceStart: 9.9) == false)
-        // 경계 포함.
-        #expect(BatterySectionPresentation.shouldShowDischargeEstimate(secondsSinceStart: 10) == true)
-        #expect(BatterySectionPresentation.shouldShowDischargeEstimate(secondsSinceStart: 3_600) == true)
-        // 창을 여는 순간 이미 방전 중이던 경우는 아주 큰 경과 시간으로 들어온다.
-        #expect(BatterySectionPresentation.shouldShowDischargeEstimate(
-            secondsSinceStart: .greatestFiniteMagnitude) == true)
-        // 임계값은 주입 가능하다.
-        #expect(BatterySectionPresentation.shouldShowDischargeEstimate(
-            secondsSinceStart: 3, warmUpSeconds: 2) == true)
-    }
+    /// 목표 100%는 `currentSoC > target`을 만족시킬 수 없어 컨트롤을 영구히 죽인다.
+    @Test func clampedManualDischargeTargetKeepsTheControlReachable() {
+        #expect(BatterySectionPresentation.manualDischargeTargetRange == 50...99)
+        #expect(BatterySectionPresentation.clampedManualDischargeTarget(100) == 99)
+        #expect(BatterySectionPresentation.clampedManualDischargeTarget(120) == 99)
+        #expect(BatterySectionPresentation.clampedManualDischargeTarget(80) == 80)
+        #expect(BatterySectionPresentation.clampedManualDischargeTarget(50) == 50)
+        #expect(BatterySectionPresentation.clampedManualDischargeTarget(0) == 50)
+        #expect(BatterySectionPresentation.clampedManualDischargeTarget(
+            Defaults.batteryManualDischargeTarget) == Defaults.batteryManualDischargeTarget)
 
-    @Test func heatProtectionResumeTemperatureMatchesTheDaemonContract() {
-        // 데몬 기본 델타는 2°C다(BatteryControlConfiguration.resumeTemperatureCelsius).
-        #expect(BatterySectionPresentation.heatProtectionResumeCelsius(threshold: 35) == 33)
-        #expect(BatterySectionPresentation.heatProtectionResumeCelsius(threshold: 40) == 38)
-        // 아주 낮은 임계값을 넣어도, 계약 타입 자체가 임계값 하한을 30°C로 걸어 두므로
-        // (BatteryControlConfiguration.clampThreshold) 재개 온도는 30 - 2 = 28°C 아래로
-        // 내려가지 않는다 — resumeTemperatureCelsius 안의 20°C 바닥은 이 경로로는 닿지 않는다.
-        #expect(BatterySectionPresentation.heatProtectionResumeCelsius(threshold: 21) == 28)
-    }
-
-    @Test func topUpStatusTextReflectsTheDaemonStage() {
-        let ko = Locale(identifier: "ko")
-        let off = BatterySectionPresentation.topUpDescription(hours: 12, locale: ko)
-
-        // 꺼져 있으면 기존 설명문 그대로.
-        #expect(BatterySectionPresentation.topUpStatusText(
-            kind: nil, isOn: false, hours: 12, locale: ko) == off)
-        #expect(BatterySectionPresentation.topUpStatusText(
-            kind: .topUpCharging, isOn: false, hours: 12, locale: ko) == off)
-
-        // 켜져서 100%로 올라가는 중.
-        #expect(BatterySectionPresentation.topUpStatusText(
-            kind: .topUpCharging, isOn: true, hours: 12, locale: ko) == "100%까지 충전 중")
-
-        // 완충 유지 — 만료 시간 수가 문장에 들어간다.
-        #expect(BatterySectionPresentation.topUpStatusText(
-            kind: .topUpComplete, isOn: true, hours: 12, locale: ko)
-            == "완충 유지 중 · 12시간 후 자동 해제")
-        // `.topUpHeldAtMax`는 현재 엔진이 만들지 않지만, 만들게 되어도 같은 칸에 들어간다.
-        #expect(BatterySectionPresentation.topUpStatusText(
-            kind: .topUpHeldAtMax, isOn: true, hours: 12, locale: ko)
-            == "완충 유지 중 · 12시간 후 자동 해제")
-
-        // 켜져 있는데 reason이 없는 구버전 헬퍼는 기존 설명문으로 안전하게 떨어진다.
-        #expect(BatterySectionPresentation.topUpStatusText(
-            kind: nil, isOn: true, hours: 12, locale: ko) == off)
-
-        // 캘리브레이션 충전 단계는 이 Top Up 플래그를 빌려 쓴다
-        // (`BatteryControlClient.applyCalibration`이 `topUpActive: isRunning && isChargingStep`을
-        // 보낸다). 이 함수는 그 사실을 모르고 몰라도 된다 — 새 문구를 지어내는 대신 구버전
-        // 헬퍼와 같은 안전한 기본 설명문으로 떨어진다. 실제 안내(캘리브레이션이 도는 동안이라는
-        // 사실)는 이 텍스트가 아니라 행 자체를 비활성화하는 쪽(`SettingsBatterySection`의
-        // `disabledReason`)이 맡는다.
-        #expect(BatterySectionPresentation.topUpStatusText(
-            kind: .calibrationCharging, isOn: true, hours: 12, locale: ko) == off)
+        // 클램프를 거치면 만충 상태에서 방전을 시작할 수 있다. 거치지 않으면 못 한다.
+        #expect(BatterySectionPresentation.isManualDischargeActionable(
+            isPluggedIn: true, currentSoC: 100, targetSoC: 100) == false)
+        #expect(BatterySectionPresentation.isManualDischargeActionable(
+            isPluggedIn: true,
+            currentSoC: 100,
+            targetSoC: BatterySectionPresentation.clampedManualDischargeTarget(100)) == true)
     }
 }
 

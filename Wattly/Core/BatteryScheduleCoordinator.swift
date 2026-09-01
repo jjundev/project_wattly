@@ -148,6 +148,19 @@ import AppKit
         await execute(schedule: winning, at: date)
     }
 
+    /// 알림 배너와 실행 이력에 남길 문자열을 확정할 로케일.
+    ///
+    /// 이 코디네이터는 SwiftUI 뷰가 아니라 `@Observable` 클래스라 `@Environment(\.locale)`을 받을 수
+    /// 없다. 그래서 `BatteryNotificationManager`가 쓰는 방식 그대로 저장된 앱 언어에서 로케일을
+    /// 되살린다. 다만 `.standard`를 직접 읽지 않고 주입된 `defaults`를 읽는다 — 운영에서는 둘이
+    /// 같은 저장소이고(`@AppStorage`도 `.standard`에 쓴다), 테스트는 언어를 격리해 제어할 수 있다.
+    ///
+    /// 이력 항목은 `actionSummary`를 **문자열 그대로** 저장하므로, 여기서 고른 언어가 그 항목의
+    /// 언어로 영구히 굳는다. 나중에 앱 언어를 바꿔도 지난 기록은 실행 당시 언어로 남는다.
+    var activeLocale: Locale {
+        AppLanguage.locale(for: defaults.string(forKey: StorageKey.appLanguage) ?? Defaults.appLanguage)
+    }
+
     /// `defaults.integer(forKey:)` returns `0` for an absent key, but `Defaults.batteryManualDischargeTarget`
     /// is `80` — a bare read would send `0`, which the daemon clamps to 50 and silently overwrites a
     /// user-configured target. Guard on presence instead, the same way `BatteryIntentBridge` does.
@@ -254,18 +267,21 @@ import AppKit
 
         // Send notification if enabled
         if defaults.bool(forKey: StorageKey.batteryScheduleNotificationsEnabled) {
+            let locale = activeLocale
             BatteryNotificationManager.postScheduleTriggeredNotification(
                 scheduleName: schedule.name,
-                actionSummary: schedule.action.summary
+                actionSummary: schedule.action.summary(locale: locale),
+                locale: locale
             )
         }
     }
 
     private func recordLog(schedule: BatteryChargingSchedule, status: BatteryScheduleLogEntry.Status, timestamp: Date) {
+        let summary = schedule.action.summary(locale: activeLocale)
         let entry = BatteryScheduleLogEntry(
             scheduleId: schedule.id,
-            scheduleName: schedule.name.isEmpty ? schedule.action.summary : schedule.name,
-            actionSummary: schedule.action.summary,
+            scheduleName: schedule.name.isEmpty ? summary : schedule.name,
+            actionSummary: summary,
             timestamp: timestamp,
             status: status,
             batteryPercentage: batteryControl.status.currentPercentage,

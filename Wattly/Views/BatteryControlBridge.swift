@@ -37,7 +37,7 @@ struct BatteryControlBridge: View {
     /// preserves them from the helper's own status rather than from preferences.
     ///
     /// `manualDischargeTarget` is clamped through `BatterySectionPresentation
-    /// .effectiveDischargeTarget` here, at the one place every push to the daemon funnels
+    /// .clampedManualDischargeTarget` here, at the one place every push to the daemon funnels
     /// through — a stored target above 95 (reachable: the old slider went to 100, before the
     /// 50...95 clamp existed) can never satisfy `currentSoC > target`, so this always-alive
     /// reconciler must never be the one still pushing a dead 100 while the discharge card, which
@@ -61,7 +61,7 @@ struct BatteryControlBridge: View {
             heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
             autoDischargeEnabled: autoDischargeEnabled,
             manualDischargeTarget: BatterySectionPresentation
-                .effectiveDischargeTarget(manualDischargeTarget))
+                .clampedManualDischargeTarget(manualDischargeTarget))
     }
 
     /// Folds the daemon's transient activity into a configuration built from stored preferences.

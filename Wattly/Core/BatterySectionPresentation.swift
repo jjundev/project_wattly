@@ -534,30 +534,32 @@ enum BatterySectionPresentation {
         String(localized: "방전 시작", locale: locale)
     }
 
-    /// 수동 방전 목표의 안전 범위. 하한(50)은 지나치게 얕은 방전을 막고, 상한(95)은 100을
-    /// 배제한다 — 저장된 목표가 100이면 `currentSoC > target`이 절대 성립하지 않아 시작
-    /// 버튼이 영구히 비활성화된다. 상한을 95로 낮추기 전에 100을 저장한 사용자가 있으므로,
-    /// 아래 `effectiveDischargeTarget`이 **읽는 쪽 전부**가 거쳐야 하는 유일한 클램프 지점이다.
-    /// 저장값(`@AppStorage(.batteryManualDischargeTarget)`) 자체는 이 범위 밖에 있을 수 있고,
-    /// 그래도 된다 — 렌더링·전송이 사용자의 설정을 조용히 덮어쓰지 않기 위해서다.
-    static let dischargeTargetRange: ClosedRange<Int> = 50...95
-
-    /// 저장된 방전 목표를 `dischargeTargetRange`로 좁힌다.
+    /// 목표 방전 잔량이 UI에서 가질 수 있는 범위.
     ///
-    /// **읽는 쪽(화면 표시, 데몬으로 보내는 값)만** 이 함수를 거친다. 저장하는 쪽
-    /// (`@AppStorage` 선언 자체, `.onChange`/`.task(id:)`의 관찰 대상, 슬라이더 `Binding.set`)은
-    /// 원시값을 그대로 써야 한다 — 그래야 여러 화면이 같은 저장소를 읽을 때 클램프가 저장값
-    /// 자체를 갈아치우는 부작용 없이 항상 같은 유효값에 합의한다.
-    static func effectiveDischargeTarget(_ stored: Int) -> Int {
-        min(max(stored, dischargeTargetRange.lowerBound), dischargeTargetRange.upperBound)
+    /// 방전 가능 조건은 `currentSoC > targetSoC`이고 잔량은 100을 넘지 못한다. 그래서 목표가
+    /// 100이면 어떤 잔량에서도 방전이 시작되지 않는다 — 조작은 되는데 결과가 절대 없는 죽은
+    /// 값이다. 상한을 99로 접어 두는 이유가 그것이다. IPC 계약 쪽 클램프
+    /// (`BatteryControlConfiguration`의 50...100)는 충전 한도와 범위를 공유하므로 건드리지
+    /// 않는다.
+    static let manualDischargeTargetRange: ClosedRange<Int> = 50...99
+
+    /// 저장된 목표 잔량을 위 범위로 접는다. 슬라이더가 100까지 열려 있던 버전이 남긴 값을
+    /// 읽는 쪽에서 무해하게 만드는 것이 목적이라, 저장값 자체는 고쳐 쓰지 않는다.
+    ///
+    /// **읽는 쪽만** 이 함수를 거친다 — 화면 표시와 데몬으로 보내는 값이 대상이고, 저장하는 쪽
+    /// (`@AppStorage` 선언, `.onChange`/`.task(id:)`의 관찰 대상, 슬라이더 `Binding.set`)은
+    /// 원시값을 그대로 쓴다. 한 곳이라도 원시값을 읽으면 화면·판정·전송이 서로 다른 숫자를 보고,
+    /// "100%인데 시작 버튼이 영원히 꺼져 있다"가 그대로 재발한다.
+    static func clampedManualDischargeTarget(_ raw: Int) -> Int {
+        min(max(raw, manualDischargeTargetRange.lowerBound), manualDischargeTargetRange.upperBound)
     }
 
-    /// 수동 방전을 시작할 수 없는 이유. 없으면 `nil`.
+    /// Reason why manual discharge cannot be started, or nil if discharge is available.
     ///
-    /// 분기 순서가 곧 우선순위다 — 하드웨어가 아예 못 하는 일이 가장 먼저 나오고, 사용자가
-    /// 지금 고칠 수 있는 이유(어댑터·목표치)가 뒤에 온다. 문구는 전부 카탈로그 키다.
-    /// 이전 구현은 ko/en 두 갈래를 코드에 박아 두어 나머지 28개 언어 사용자에게 영어가 나갔고,
-    /// 첫 분기 문구가 조건과 맞지 않았다("충전 제어가 꺼져 있습니다" ← 실제 조건은 미지원 하드웨어).
+    /// `isDischargeHardwareSupported`는 충전 제어(`isHardwareSupported`)와 별개의 축이다.
+    /// 충전 한도는 걸리지만 강제 방전 레지스터는 없는 Mac이 있고, 그 Mac에서는 나머지 조건이
+    /// 모두 맞아도 방전이 시작되지 않는다. 도우미가 이 필드를 보고하지 않는 구버전이면
+    /// 호출부가 "모름"을 지원으로 넘겨야 한다 — `nil`은 미지원이 아니다.
     static func manualDischargeDisabledReason(
         isPluggedIn: Bool,
         currentSoC: Int,
@@ -580,6 +582,27 @@ enum BatterySectionPresentation {
             return String(localized: "현재 배터리 잔량이 목표 잔량 이하입니다.", locale: locale)
         }
         return nil
+    }
+
+    /// 방전 시작 버튼을 실제로 누를 수 있는지.
+    ///
+    /// `manualDischargeDisabledReason`의 부재로 정의한다. 조건을 따로 적으면 버튼의 활성 여부와
+    /// 화면에 뜨는 사유가 갈라질 수 있고, 실제로 팝오버가 그렇게 갈라져 있었다.
+    static func isManualDischargeActionable(
+        isPluggedIn: Bool,
+        currentSoC: Int,
+        targetSoC: Int,
+        isHardwareSupported: Bool = true,
+        isDischargeHardwareSupported: Bool = true,
+        isToggleEnabled: Bool = true
+    ) -> Bool {
+        manualDischargeDisabledReason(
+            isPluggedIn: isPluggedIn,
+            currentSoC: currentSoC,
+            targetSoC: targetSoC,
+            isHardwareSupported: isHardwareSupported,
+            isDischargeHardwareSupported: isDischargeHardwareSupported,
+            isToggleEnabled: isToggleEnabled) == nil
     }
 
     /// Gate for showing the Power Supply section in the expanded battery card.
