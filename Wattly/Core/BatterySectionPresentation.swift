@@ -504,14 +504,17 @@ enum BatterySectionPresentation {
         secondsSinceStart >= warmUpSeconds
     }
 
-    /// Format discharge status description (e.g. "수동 방전 진행 중", "Manual discharge in progress")
+    /// Format discharge status description (e.g. "수동 방전 진행 중", "자동 방전 진행 중", "Manual discharge in progress", "Auto discharge in progress")
     static func dischargeDescription(
+        owner: DischargeOwner = .manual,
         target _: Int = 0,
         currentSoC _: Int = 0,
         watts _: Double = 0,
         locale: Locale = Locale(identifier: "ko")
     ) -> String {
-        String(localized: "수동 방전 진행 중", locale: locale)
+        owner == .automatic
+            ? String(localized: "자동 방전 진행 중", locale: locale)
+            : String(localized: "수동 방전 진행 중", locale: locale)
     }
 
     /// Blocked adapter power text during forced discharge (e.g. "0.0 W (차단됨)", "0.0 W (Blocked)")

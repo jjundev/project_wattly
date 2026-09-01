@@ -84,7 +84,7 @@ struct MetricCardView: View {
             let target = batteryControl?.status.desiredConfiguration?.manualDischargeTarget ?? s.targetPercentage
             let currentPct = s.percentage ?? (batteryControl?.status.currentPercentage ?? 0)
             let watts = s.netW > 0 ? -s.netW : s.netW
-            let desc = BatterySectionPresentation.dischargeDescription(target: target, currentSoC: currentPct, watts: watts, locale: locale)
+            let desc = BatterySectionPresentation.dischargeDescription(owner: dischargeOwner, target: target, currentSoC: currentPct, watts: watts, locale: locale)
             HStack(spacing: 5) {
                 Circle()
                     .fill(Tokens.statusOrange)
@@ -222,9 +222,18 @@ struct MetricCardView: View {
     private var hasSparkArea: Bool { card.hasSparkArea }   // battery: polyline only (line 100)
     private var hasValue: Bool { if case .value = state { return true }; return false }
 
+    private var dischargeOwner: BatterySectionPresentation.DischargeOwner {
+        BatterySectionPresentation.dischargeOwner(
+            manualDischargeActive: batteryControl?.status.desiredConfiguration?.manualDischargeActive,
+            reasonKind: batteryControl?.status.detailReason?.kind,
+            activity: batteryControl?.status.activity)
+    }
+
     private var isDischarging: Bool {
         if card == .battery {
-            if batteryControl?.status.activity == .discharging
+            if BatterySectionPresentation.isForcedDischargeRunning(
+                reasonKind: batteryControl?.status.detailReason?.kind,
+                activity: batteryControl?.status.activity)
                 || batteryControl?.status.desiredConfiguration?.manualDischargeActive == true {
                 return true
             }

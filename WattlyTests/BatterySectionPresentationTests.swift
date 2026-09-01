@@ -748,11 +748,17 @@ import AppKit
     }
 
     @Test func dischargePresentationText() {
-        let textKo = BatterySectionPresentation.dischargeDescription(target: 70, currentSoC: 85, watts: -18.4, locale: ko)
+        let textKo = BatterySectionPresentation.dischargeDescription(owner: .manual, target: 70, currentSoC: 85, watts: -18.4, locale: ko)
         #expect(textKo == "수동 방전 진행 중")
 
-        let textEn = BatterySectionPresentation.dischargeDescription(target: 70, currentSoC: 85, watts: -18.4, locale: en)
+        let textEn = BatterySectionPresentation.dischargeDescription(owner: .manual, target: 70, currentSoC: 85, watts: -18.4, locale: en)
         #expect(textEn == "Manual discharge in progress")
+
+        let autoKo = BatterySectionPresentation.dischargeDescription(owner: .automatic, target: 80, currentSoC: 95, watts: -11.1, locale: ko)
+        #expect(autoKo == "자동 방전 진행 중")
+
+        let autoEn = BatterySectionPresentation.dischargeDescription(owner: .automatic, target: 80, currentSoC: 95, watts: -11.1, locale: en)
+        #expect(autoEn == "Auto discharge in progress")
     }
 
     @Test func estimatedDischargeTimeCalculation() {
