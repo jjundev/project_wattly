@@ -40,42 +40,27 @@ public struct BatteryTopUpExpiryDetector: Sendable {
     }
 }
 
+/// 수동 방전이 **목표에 도달**한 순간만 잡는다.
+///
+/// 엔진은 목표 도달 시 평범한 `inhibitedAtLimit`을 내므로 reason만으로는 일반 한도 홀드와
+/// 구분되지 않는다. 세션이 아직 열려 있는지(`desiredConfiguration.manualDischargeActive`)를
+/// 함께 봐야 한다 — 사용자가 "방전 중지"를 누른 경우에는 같은 틱에 그 플래그가 내려가므로
+/// 걸러진다. 자동 방전은 배경 정책이라 알리지 않는다.
 public struct BatteryDischargeTransitionDetector: Sendable {
-    private var lastReasonKind: BatteryControlStatusReason.Kind?
-    private var lastActivity: BatteryControlActivity?
+    private var wasDischargingManually = false
 
     public init() {}
 
-    public mutating func update(reasonKind: BatteryControlStatusReason.Kind?) -> Bool {
-        defer { lastReasonKind = reasonKind }
-        guard let reasonKind else { return false }
-        let wasDischarging = lastReasonKind == .dischargingManual || lastReasonKind == .dischargingToTarget
-        let isComplete = reasonKind == .inhibitedAtLimit || reasonKind == .topUpComplete || reasonKind == .topUpHeldAtMax
-        if wasDischarging && isComplete {
-            return true
-        }
-        return false
-    }
-
-    public mutating func update(activity: BatteryControlActivity?) -> Bool {
-        defer { lastActivity = activity }
-        guard let activity else { return false }
-        let wasDischarging = lastActivity == .discharging
-        let isComplete = activity == .holdingAtLimit || activity == .topUp
-        if wasDischarging && isComplete {
-            return true
-        }
-        return false
-    }
-
-    public mutating func update(status: BatteryControlServiceStatus) -> Bool {
-        if let reasonKind = status.detailReason?.kind {
-            return update(reasonKind: reasonKind)
-        }
-        if let activity = status.activity {
-            return update(activity: activity)
-        }
-        return false
+    /// 목표 도달이면 알릴 목표 잔량(%), 아니면 `nil`.
+    public mutating func update(status: BatteryControlServiceStatus) -> Int? {
+        let isDischargingManually = status.detailReason?.kind == .dischargingManual
+        defer { wasDischargingManually = isDischargingManually }
+        guard wasDischargingManually,
+              !isDischargingManually,
+              status.desiredConfiguration?.manualDischargeActive == true
+        else { return nil }
+        return status.detailReason?.limitPercentage
+            ?? status.desiredConfiguration?.manualDischargeTarget
     }
 }
 
