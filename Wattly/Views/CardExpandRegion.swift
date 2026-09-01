@@ -33,6 +33,16 @@ struct CardExpandRegion: View {
         BatterySectionPresentation.clampedManualDischargeTarget(manualDischargeTarget)
     }
 
+    /// 강제 방전을 지금 누가 소유하고 있는지. 세 자리(전원 소스 문구, Top Up 상호배제,
+    /// 수동 방전 행)가 조건을 각자 적어서 자동 방전이 수동 방전으로 표시됐다 — 한 곳으로 모은다.
+    /// `batteryControl`이 `nil`이면 판별 근거가 없으므로 `.idle`이 나온다.
+    private var dischargeOwner: BatterySectionPresentation.DischargeOwner {
+        BatterySectionPresentation.dischargeOwner(
+            manualDischargeActive: batteryControl?.status.desiredConfiguration?.manualDischargeActive,
+            reasonKind: batteryControl?.status.detailReason?.kind,
+            activity: batteryControl?.status.activity)
+    }
+
     @ViewBuilder
     var body: some View {
         if card == .power, case .value(.power(let s)) = state {
@@ -251,9 +261,11 @@ struct CardExpandRegion: View {
             // [범주 1] 전원 공급 및 소비 전력 — 물리 어댑터 연결 또는 강제 방전 중 노출
             if let flow = s.powerFlow {
                 let activity = batteryControl?.status.activity
-                let manualDischargeActive =
-                    batteryControl?.status.desiredConfiguration?.manualDischargeActive == true
-                let isDischarging = activity == .discharging
+                let owner = dischargeOwner
+                let manualDischargeActive = owner == .manual
+                let isDischarging = BatterySectionPresentation.isForcedDischargeRunning(
+                    reasonKind: batteryControl?.status.detailReason?.kind,
+                    activity: activity)
                     || manualDischargeActive
                     || flow.scenario == .activeDischarge
                 let shouldShowPowerSupply =
@@ -268,7 +280,7 @@ struct CardExpandRegion: View {
 
                 if shouldShowPowerSupply {
                     let powerSourceValue = isDischarging
-                        ? BatterySectionPresentation.forcedDischargeText(locale: locale)
+                        ? BatterySectionPresentation.forcedDischargeText(owner: owner, locale: locale)
                         : CardPresentation.powerSourceText(flow.scenario, locale: locale)
                     let adapterPowerValue = isDischarging
                         ? BatterySectionPresentation.adapterPowerBlockedText(locale: locale)
@@ -348,8 +360,7 @@ struct CardExpandRegion: View {
 
                 let isTopUpActive = batteryControl.status.desiredConfiguration?.topUpActive == true
                     || batteryControl.status.activity == .topUp
-                let isDischargeActive = batteryControl.status.activity == .discharging
-                    || batteryControl.status.desiredConfiguration?.manualDischargeActive == true
+                let isDischargeActive = dischargeOwner == .manual
                 let currentSoC = s.percentage ?? batteryControl.status.currentPercentage
 
                 let willShowTopUp = BatterySectionPresentation.shouldShowTopUpRow(
@@ -459,8 +470,7 @@ struct CardExpandRegion: View {
 
     @ViewBuilder
     private func batteryDischargeRow(_ batteryControl: BatteryControlClient, _ s: BatterySample) -> some View {
-        let isDischarging = batteryControl.status.activity == .discharging
-            || batteryControl.status.desiredConfiguration?.manualDischargeActive == true
+        let isDischarging = dischargeOwner == .manual
         let currentSoC = s.percentage ?? batteryControl.status.currentPercentage
         // 상태의 두 하드웨어 플래그는 서로 다른 축이고, 둘 다 `Bool?`이다. `nil`은 필드를
         // 보고하지 않는 구버전 도우미, 즉 "모름"이므로 지원으로 읽는다 — 미지원으로 읽으면
@@ -472,7 +482,8 @@ struct CardExpandRegion: View {
             currentSoC: currentSoC,
             targetSoC: dischargeTarget,
             isHardwareSupported: isHardwareSupported,
-            isDischargeHardwareSupported: isDischargeHardwareSupported
+            isDischargeHardwareSupported: isDischargeHardwareSupported,
+            isAutoDischargeEnabled: batteryAutoDischargeEnabled
         )
         let disabledReason = BatterySectionPresentation.manualDischargeDisabledReason(
             isPluggedIn: s.externalConnected,
@@ -480,6 +491,7 @@ struct CardExpandRegion: View {
             targetSoC: dischargeTarget,
             isHardwareSupported: isHardwareSupported,
             isDischargeHardwareSupported: isDischargeHardwareSupported,
+            isAutoDischargeEnabled: batteryAutoDischargeEnabled,
             locale: locale
         )
 

@@ -800,6 +800,18 @@ import AppKit
         #expect(BatterySectionPresentation.startDischargeButtonText(targetSoC: 70, locale: en) == "Start Discharge")
     }
 
+    @Test func forcedDischargeTextNamesTheOwner() {
+        #expect(BatterySectionPresentation.forcedDischargeText(owner: .manual, locale: ko)
+            == "배터리 (수동 방전 중)")
+        #expect(BatterySectionPresentation.forcedDischargeText(owner: .automatic, locale: ko)
+            == "배터리 (자동 방전 중)")
+        #expect(BatterySectionPresentation.forcedDischargeText(owner: .automatic, locale: en)
+            == "Battery (Auto Discharge)")
+        // 인자를 주지 않는 기존 호출부는 수동 문구를 그대로 받는다.
+        #expect(BatterySectionPresentation.forcedDischargeText(locale: ko)
+            == "배터리 (수동 방전 중)")
+    }
+
     @Test func powerSupplyVisibilityUsesEffectiveAdapterStateDuringForcedDischarge() {
         #expect(BatterySectionPresentation.shouldShowPowerSupplySection(
             sampleExternalConnected: false,

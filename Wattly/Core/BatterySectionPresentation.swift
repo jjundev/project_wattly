@@ -524,9 +524,15 @@ enum BatterySectionPresentation {
         String(localized: "완충 완료 (어댑터 전원 구동)", locale: locale)
     }
 
-    /// Forced discharge label (e.g. "배터리 (수동 방전 중)", "Battery (Manual Discharge)")
-    static func forcedDischargeText(locale: Locale = Locale(identifier: "ko")) -> String {
-        String(localized: "배터리 (수동 방전 중)", locale: locale)
+    /// 강제 방전 중 전원 소스 값. 자동 방전과 수동 방전은 물리적으로 같은 상태지만 사용자가
+    /// 할 수 있는 일이 다르므로(수동은 이 화면의 중지 버튼, 자동은 설정의 토글) 문구를 나눈다.
+    static func forcedDischargeText(
+        owner: DischargeOwner = .manual,
+        locale: Locale = Locale(identifier: "ko")
+    ) -> String {
+        owner == .automatic
+            ? String(localized: "배터리 (자동 방전 중)", locale: locale)
+            : String(localized: "배터리 (수동 방전 중)", locale: locale)
     }
 
     /// Start discharge button label (e.g. "방전 시작", "Start Discharge")
