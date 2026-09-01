@@ -148,7 +148,11 @@ import AppKit
             config.enabled = true
             config.manualDischargeActive = false
         }
-        return config
+        // 마지막에 한 번 정규화한다. 전송값과 `shouldReapply`/`accepted`의 비교값이 같은 규칙을
+        // 쓰게 만드는 것이 목적이다 — 특히 `normalized`의 수동/자동 방전 상호배제는 여기를
+        // 지나야 실제로 데몬에 도달한다. 나머지 클램프는 데몬이 수신 시 어차피 적용하는 것과
+        // 같은 값이므로, 이 호출로 달라지는 동작은 그 불변식 하나뿐이다.
+        return config.normalized
     }
 
     /// 캘리브레이션 코디네이터 전용 쓰기. 절차 중 자동 방전을 강제로 끄는 것이 여기다 —
