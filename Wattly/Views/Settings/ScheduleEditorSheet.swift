@@ -16,6 +16,7 @@ struct ScheduleEditorSheet: View {
     @State private var actionType: Int = 0 // 0: setLimit, 1: startTopUp, 2: pauseCharging
     @State private var targetLimit: Int = 80
     @State private var catchUpMinutes: Int = 30
+    @AppStorage(StorageKey.batteryAutoDischargeEnabled) private var autoDischargeEnabled = Defaults.batteryAutoDischargeEnabled
 
     init(
         initialSchedule: BatteryChargingSchedule? = nil,
@@ -90,6 +91,26 @@ struct ScheduleEditorSheet: View {
                     fontSize: 11.5,
                     pillVPadding: 5
                 )
+
+                // "충전 일시 정지"는 한도를 내리는 것으로 구현돼 있어서, 자동 방전이 켜져
+                // 있으면 그 한도 변경이 곧 강제 방전이 된다. 저장하기 전에 알린다.
+                // 어떤 동작이 경고 대상인지는 코디네이터가 정한다 — 이 뷰는 선택된 동작을
+                // 그대로 넘기기만 한다.
+                let selectedAction: ScheduleAction = switch actionType {
+                case 1: .startTopUp
+                case 2: .pauseCharging
+                default: .setLimit(percentage: targetLimit)
+                }
+                if let warning = BatteryScheduleCoordinator.autoDischargeWarning(
+                    action: selectedAction,
+                    isAutoDischargeEnabled: autoDischargeEnabled,
+                    locale: locale) {
+                    Text(verbatim: warning)
+                        .font(WattlyFont.at(10.5, weight: .regular))
+                        .foregroundStyle(Tokens.statusOrange)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 4)
+                }
 
                 if actionType == 0 {
                     HStack {

@@ -177,7 +177,8 @@ public enum BatteryNotificationManager {
     public static func postScheduleTriggeredNotification(
         scheduleName: String,
         actionSummary: String,
-        locale: Locale? = nil
+        locale: Locale? = nil,
+        note: String? = nil
     ) {
         let center = UNUserNotificationCenter.current()
         center.getNotificationSettings { settings in
@@ -186,7 +187,10 @@ public enum BatteryNotificationManager {
                 for: UserDefaults.standard.string(forKey: StorageKey.appLanguage) ?? Defaults.appLanguage)
             let content = UNMutableNotificationContent()
             content.title = scheduleTriggeredTitle(scheduleName: scheduleName, actionSummary: actionSummary, locale: locale)
-            content.body = scheduleTriggeredBody(scheduleName: scheduleName, actionSummary: actionSummary, locale: locale)
+            var body = scheduleTriggeredBody(scheduleName: scheduleName, actionSummary: actionSummary, locale: locale)
+            // 라벨만으로는 알 수 없는 부작용을 한 줄 덧붙인다 (예: 자동 방전이 켜진 상태의 "충전 일시 정지").
+            if let note { body += "\n" + note }
+            content.body = body
             content.sound = .default
 
             let request = UNNotificationRequest(
