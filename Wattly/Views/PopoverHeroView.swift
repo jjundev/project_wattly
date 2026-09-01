@@ -201,7 +201,7 @@ private struct HeroCard: View {
 
     // value 40/700 white + unit 16/600 → spark (h32, area+line) → sub 11 (prototype 208).
     @ViewBuilder private var valueBody: some View {
-        let d = CardPresentation.display(card, state, locale: locale)
+        let d = CardPresentation.display(card, state, dischargeOwner: dischargeOwner, locale: locale)
         HStack(alignment: .firstTextBaseline, spacing: 4) {
             Text(d.valueText)
                 .font(WattlyFont.at(40, weight: .bold)).tracking(-1.2)
@@ -226,22 +226,54 @@ private struct HeroCard: View {
 
     @ViewBuilder
     private func subTextView(_ fallbackSubText: String?) -> some View {
-        if let sub = fallbackSubText, !sub.isEmpty {
+        if isDischarging, case .value(.battery(let s)) = state {
+            let target = batteryControl?.status.desiredConfiguration?.manualDischargeTarget ?? s.targetPercentage
+            let currentPct = s.percentage ?? (batteryControl?.status.currentPercentage ?? 0)
+            let watts = s.netW > 0 ? -s.netW : s.netW
+            let desc = BatterySectionPresentation.dischargeDescription(owner: dischargeOwner, target: target, currentSoC: currentPct, watts: watts, locale: locale)
+            Text(desc)
+                .lineLimit(isExpanded ? 2 : 1)
+                .fixedSize(horizontal: false, vertical: isExpanded)
+        } else if let sub = fallbackSubText, !sub.isEmpty {
             Text(sub)
                 .lineLimit(isExpanded ? 2 : 1)
                 .fixedSize(horizontal: false, vertical: isExpanded)
         }
     }
 
+    private var dischargeOwner: BatterySectionPresentation.DischargeOwner {
+        BatterySectionPresentation.dischargeOwner(
+            manualDischargeActive: batteryControl?.status.desiredConfiguration?.manualDischargeActive,
+            reasonKind: batteryControl?.status.detailReason?.kind,
+            activity: batteryControl?.status.activity)
+    }
+
+    private var isDischarging: Bool {
+        if card == .battery {
+            if BatterySectionPresentation.isForcedDischargeRunning(
+                reasonKind: batteryControl?.status.detailReason?.kind,
+                activity: batteryControl?.status.activity)
+                || batteryControl?.status.desiredConfiguration?.manualDischargeActive == true {
+                return true
+            }
+            if case .value(.battery(let s)) = state {
+                return s.powerFlow?.scenario == .activeDischarge
+            }
+        }
+        return false
+    }
+
     // Spark colors on the DARK hero card (prototype heroColorMap 705–715): threshold cards use the
     // theme-independent status colors; the accented (power) card uses an on-dark accent (#3385ff,
     // NOT the panel accent #0066ff); everything else (battery / neutral) uses a light-on-dark tone.
     private var sparkStroke: Color {
+        if isDischarging { return Tokens.statusOrange }
         if let level = CardPresentation.thresholdLevel(card, state, thresholds) { return level.stroke }
         return card.isAccented ? Color(hex: "#3385ff") : .rgba(247, 247, 248, 0.85)
     }
 
     private var sparkFill: Color {
+        if isDischarging { return Tokens.statusOrange.opacity(0.18) }
         if let level = CardPresentation.thresholdLevel(card, state, thresholds) { return level.fill }
         return card.isAccented ? .rgba(51, 133, 255, 0.18) : .rgba(247, 247, 248, 0.12)
     }

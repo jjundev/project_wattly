@@ -31,11 +31,16 @@ enum CardPresentation {
     /// `MetricState`: `.loading`/`.unavailable` yield `valueText == "—"` (so callers
     /// like `MenuBarLabel` are always safe). The unavailable *layout* is the view's
     /// concern; it still shares `label(_:)` for its copy.
-    static func display(_ card: CardKind, _ state: MetricState, locale: Locale = Locale(identifier: "ko")) -> CardDisplay {
+    static func display(
+        _ card: CardKind,
+        _ state: MetricState,
+        dischargeOwner: BatterySectionPresentation.DischargeOwner = .idle,
+        locale: Locale = Locale(identifier: "ko")
+    ) -> CardDisplay {
         CardDisplay(label: label(card),
                     valueText: valueText(card, state),
                     unitText: unitText(card, state),
-                    subText: subText(state, locale: locale),
+                    subText: subText(state, dischargeOwner: dischargeOwner, locale: locale),
                     tint: card.isAccented ? .accent : .neutral)
     }
 
@@ -184,7 +189,11 @@ enum CardPresentation {
 
     /// Sub-line beneath the sparkline. nil for loading/unavailable and for the
     /// temperature cards (which carry their detail in the expand region).
-    static func subText(_ state: MetricState, locale: Locale = Locale(identifier: "ko")) -> String? {
+    static func subText(
+        _ state: MetricState,
+        dischargeOwner: BatterySectionPresentation.DischargeOwner = .idle,
+        locale: Locale = Locale(identifier: "ko")
+    ) -> String? {
         guard case .value(let sample) = state else { return nil }
         switch sample {
         case .power(let s):
@@ -194,7 +203,8 @@ enum CardPresentation {
                 let target = s.targetPercentage
                 let currentPct = s.percentage ?? (s.remainingWh != nil && s.maxWh != nil && s.maxWh! > 0 ? Int((s.remainingWh! / s.maxWh! * 100.0).rounded()) : 0)
                 let watts = s.netW > 0 ? -s.netW : s.netW
-                return BatterySectionPresentation.dischargeDescription(target: target, currentSoC: currentPct, watts: watts, locale: locale)
+                let owner = dischargeOwner == .automatic ? .automatic : BatterySectionPresentation.DischargeOwner.manual
+                return BatterySectionPresentation.dischargeDescription(owner: owner, target: target, currentSoC: currentPct, watts: watts, locale: locale)
             }
             return batteryRemainingTimeSummary(s, locale: locale)
         case .cpu(let s):

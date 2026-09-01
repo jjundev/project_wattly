@@ -33,7 +33,7 @@ struct MetricCardView: View {
     // MARK: Standard card (loading or value)
 
     private var standardCard: some View {
-        let d = CardPresentation.display(card, state, locale: locale)
+        let d = CardPresentation.display(card, state, dischargeOwner: dischargeOwner, locale: locale)
         return VStack(alignment: .leading, spacing: 8) {
             summaryGroup(d)
                 .contentShape(Rectangle())
