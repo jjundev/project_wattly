@@ -384,4 +384,34 @@ import Testing
         let requested = BatteryControlConfiguration(enabled: true, limitPercentage: 80)
         #expect(BatteryControlPolicy.shouldReapply(configuration: requested, status: status) == false)
     }
+
+    @Test func reapplyDoesNotChaseAPreservedManualDischargeForever() {
+        // 데몬은 수동 방전 중이고 불변식 때문에 자동 방전은 꺼져 있다. 앱의 저장된 선호는
+        // 자동 방전 켜짐이다. 활동을 보존한 뒤 재정규화하지 않으면 요청과 실제가 어긋난
+        // 채로 남아 앱을 켤 때마다 불필요한 재전송이 한 번씩 나간다.
+        let daemon = BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            autoDischargeEnabled: false,
+            manualDischargeActive: true,
+            manualDischargeTarget: 90)
+        let status = BatteryControlServiceStatus(
+            mode: .inhibited,
+            currentPercentage: 92,
+            isPowerAdapterConnected: true,
+            detail: "",
+            updatedAt: 1,
+            isHardwareSupported: true,
+            desiredConfiguration: daemon,
+            actualGate: .inhibited(appliedLimitPercentage: 90),
+            capabilities: [.persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1])
+        let stored = BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            autoDischargeEnabled: true,
+            manualDischargeActive: false,
+            manualDischargeTarget: 90)
+
+        #expect(BatteryControlPolicy.shouldReapply(configuration: stored, status: status) == false)
+    }
 }

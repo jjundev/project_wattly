@@ -504,14 +504,17 @@ enum BatterySectionPresentation {
         secondsSinceStart >= warmUpSeconds
     }
 
-    /// Format discharge status description (e.g. "수동 방전 진행 중", "Manual discharge in progress")
+    /// Format discharge status description (e.g. "수동 방전 진행 중", "자동 방전 진행 중", "Manual discharge in progress", "Auto discharge in progress")
     static func dischargeDescription(
+        owner: DischargeOwner = .manual,
         target _: Int = 0,
         currentSoC _: Int = 0,
         watts _: Double = 0,
         locale: Locale = Locale(identifier: "ko")
     ) -> String {
-        String(localized: "수동 방전 진행 중", locale: locale)
+        owner == .automatic
+            ? String(localized: "자동 방전 진행 중", locale: locale)
+            : String(localized: "수동 방전 진행 중", locale: locale)
     }
 
     /// Blocked adapter power text during forced discharge (e.g. "0.0 W (차단됨)", "0.0 W (Blocked)")
@@ -524,9 +527,15 @@ enum BatterySectionPresentation {
         String(localized: "완충 완료 (어댑터 전원 구동)", locale: locale)
     }
 
-    /// Forced discharge label (e.g. "배터리 (수동 방전 중)", "Battery (Manual Discharge)")
-    static func forcedDischargeText(locale: Locale = Locale(identifier: "ko")) -> String {
-        String(localized: "배터리 (수동 방전 중)", locale: locale)
+    /// 강제 방전 중 전원 소스 값. 자동 방전과 수동 방전은 물리적으로 같은 상태지만 사용자가
+    /// 할 수 있는 일이 다르므로(수동은 이 화면의 중지 버튼, 자동은 설정의 토글) 문구를 나눈다.
+    static func forcedDischargeText(
+        owner: DischargeOwner = .manual,
+        locale: Locale = Locale(identifier: "ko")
+    ) -> String {
+        owner == .automatic
+            ? String(localized: "배터리 (자동 방전 중)", locale: locale)
+            : String(localized: "배터리 (수동 방전 중)", locale: locale)
     }
 
     /// Start discharge button label (e.g. "방전 시작", "Start Discharge")
@@ -567,6 +576,7 @@ enum BatterySectionPresentation {
         isHardwareSupported: Bool = true,
         isDischargeHardwareSupported: Bool = true,
         isToggleEnabled: Bool = true,
+        isAutoDischargeEnabled: Bool = false,
         locale: Locale = Locale(identifier: "ko")
     ) -> String? {
         guard isHardwareSupported, isToggleEnabled else {
@@ -574,6 +584,12 @@ enum BatterySectionPresentation {
         }
         guard isDischargeHardwareSupported else {
             return String(localized: "이 Mac은 강제 방전을 지원하지 않습니다.", locale: locale)
+        }
+        // 하드웨어 두 축 다음, 어댑터·잔량보다 앞에 둔다. 자동 방전이 켜져 있으면 어댑터를
+        // 꽂아도 잔량을 낮춰도 수동 방전은 시작되지 않으므로, 그 사유가 먼저 보여야 사용자가
+        // 헛수고를 하지 않는다.
+        guard !isAutoDischargeEnabled else {
+            return String(localized: "자동 방전이 켜져 있어 수동 방전을 사용할 수 없습니다.", locale: locale)
         }
         guard isPluggedIn else {
             return String(localized: "전원 어댑터가 연결되어 있어야 방전할 수 있습니다.", locale: locale)
@@ -594,7 +610,8 @@ enum BatterySectionPresentation {
         targetSoC: Int,
         isHardwareSupported: Bool = true,
         isDischargeHardwareSupported: Bool = true,
-        isToggleEnabled: Bool = true
+        isToggleEnabled: Bool = true,
+        isAutoDischargeEnabled: Bool = false
     ) -> Bool {
         manualDischargeDisabledReason(
             isPluggedIn: isPluggedIn,
@@ -602,7 +619,8 @@ enum BatterySectionPresentation {
             targetSoC: targetSoC,
             isHardwareSupported: isHardwareSupported,
             isDischargeHardwareSupported: isDischargeHardwareSupported,
-            isToggleEnabled: isToggleEnabled) == nil
+            isToggleEnabled: isToggleEnabled,
+            isAutoDischargeEnabled: isAutoDischargeEnabled) == nil
     }
 
     /// Gate for showing the Power Supply section in the expanded battery card.
@@ -675,6 +693,80 @@ enum BatterySectionPresentation {
         willShowDischarge: Bool
     ) -> Bool {
         showControlRows && (willShowTopUp || willShowDischarge)
+    }
+
+    // MARK: - 강제 방전의 주인
+
+    /// 강제 방전(CHIE)을 지금 누가 소유하고 있는지.
+    ///
+    /// 엔진은 자동 방전과 수동 방전을 별개 분기로 돌리지만, 둘 다 `activity == .discharging`
+    /// 하나로 접혀서 나온다(`BatteryControlEngine`의 `activity: .inferred(from: reason)`).
+    /// 뷰가 그것만 보고 "수동 방전 중"이라고 읽으면 자동 방전이 수동 방전으로 표시되고,
+    /// 그 위에 뜬 "방전 중지"는 자동 방전 옵트인을 끄지 못해 눌러도 아무 일이 없는 버튼이
+    /// 된다. 판별은 여기 한 곳에서만 한다 — 예전에는 뷰 네 곳이 조건을 각자 적고 있었다.
+    enum DischargeOwner: Equatable {
+        /// 강제 방전이 걸려 있지 않다.
+        case idle
+        /// 사용자가 연 수동 방전 세션. 목표에 도달해 전류가 멈춘 뒤에도 사용자가 중지하기
+        /// 전까지는 계속 `.manual`이다 — 그 구간에 "방전 중지" 버튼이 남아 있어야 한다.
+        case manual
+        /// 충전 한도 정책이 스스로 돌리는 자동 방전.
+        case automatic
+    }
+
+    /// `manualDischargeActive`에는 `status.desiredConfiguration?.manualDischargeActive`를 그대로
+    /// 넘긴다. `nil`은 `desiredConfiguration`을 보내지 않는 구버전 도우미이며 "미지원"이 아니라
+    /// "모름"이다 — 현행 도우미는 모든 응답에 이 필드를 채운다
+    /// (`BatteryControlCoordinator`의 `sample`/`publish`).
+    static func dischargeOwner(
+        manualDischargeActive: Bool?,
+        reasonKind: BatteryControlStatusReason.Kind?,
+        activity: BatteryControlActivity?
+    ) -> DischargeOwner {
+        if manualDischargeActive == true { return .manual }
+        if reasonKind == .dischargingManual { return .manual }
+        if reasonKind == .dischargingToTarget { return .automatic }
+        guard manualDischargeActive == nil else { return .idle }
+        // 여기까지 왔다는 것은 `desiredConfiguration`도 알아볼 수 있는 reason도 없다는 뜻이다.
+        // 그 도우미에는 두 방전을 가를 신호 자체가 없으므로 예전 동작을 유지한다.
+        return activity == .discharging ? .manual : .idle
+    }
+
+    /// 지금 실제로 배터리에서 전류가 빠지고 있는지 — 주인이 누구든 참이다. "물리적으로 방전
+    /// 중"만 알면 되는 자리(주황 스파크라인, 전원 공급 섹션 노출)에 쓴다. 수동 방전이 목표에
+    /// 도달해 홀드로 넘어가면 거짓이 된다.
+    static func isForcedDischargeRunning(
+        reasonKind: BatteryControlStatusReason.Kind?,
+        activity: BatteryControlActivity?
+    ) -> Bool {
+        reasonKind == .dischargingManual
+            || reasonKind == .dischargingToTarget
+            || activity == .discharging
+    }
+
+    /// 자동 방전 토글을 만질 수 있는지.
+    ///
+    /// 두 조건이다. 충전 한도가 켜져 있어야 하고(꺼져 있으면 데몬이 자동 방전을 돌리지 않아
+    /// 아무 일도 하지 않는 스위치가 된다), 수동 방전 세션이 열려 있지 않아야 한다. 후자는
+    /// 자동 방전이 수동 방전을 이어받아 사용자가 고른 목표를 지나쳐 버리기 때문이다.
+    /// 자동 방전이 **돌고 있는 것**은 잠글 이유가 아니다 — 이 토글이 그것을 끄는 유일한 길이다.
+    static func isAutoDischargeToggleEnabled(
+        isLimitOn: Bool,
+        dischargeOwner: DischargeOwner
+    ) -> Bool {
+        isLimitOn && dischargeOwner != .manual
+    }
+
+    /// 위 게이트가 거짓일 때의 사유. 활성일 때는 `nil`.
+    static func autoDischargeToggleDisabledReason(
+        isLimitOn: Bool,
+        dischargeOwner: DischargeOwner,
+        locale: Locale = Locale(identifier: "ko")
+    ) -> String? {
+        if dischargeOwner == .manual {
+            return String(localized: "수동 방전이 진행 중입니다.", locale: locale)
+        }
+        return limitPickerDisabledReason(isLimitOn: isLimitOn)
     }
 }
 

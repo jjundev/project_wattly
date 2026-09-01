@@ -91,6 +91,12 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         copy.manualDischargeTarget = Self.clampLimit(manualDischargeTarget)
         copy.calibrationActive = calibrationActive
         copy.calibrationTargetPercentage = Self.clampCalibrationTarget(calibrationTargetPercentage)
+        // 수동 방전과 자동 방전은 같은 CHIE를 다투는데 목적지가 서로 다르다 — 수동은
+        // `manualDischargeTarget`, 자동은 `limitPercentage`. 둘이 함께 켜지면 수동 방전이
+        // 끝나는 순간 자동 방전이 이어받아 사용자가 고른 목표를 지나쳐 계속 방전한다.
+        // UI 게이트가 1차 방어선이고, 이 불변식은 그 게이트를 지나지 않는 경로(스케줄,
+        // 재조정 루프의 활동 보존)와 게이트 회귀에 대한 방어선이다.
+        if copy.manualDischargeActive { copy.autoDischargeEnabled = false }
         return copy
     }
 

@@ -40,6 +40,14 @@ struct LocalizationTests {
 
         #expect(String(localized: "(권장) SoC 전체 전력 소비량(W)에 비례하여 움직입니다. 시스템의 실제 작업 부하를 가장 정확하게 반영합니다.", locale: Locale(identifier: "en")).hasPrefix("(Recommended)"))
         #expect(String(localized: "(권장) 메뉴바 상주 시에는 ProMotion 절전을 위해 24 fps로 고정되며, 팝오버를 열거나 설정창을 볼 때는 전원 상태(AC 60 fps / 배터리 24 fps)에 따라 부드럽게 동작합니다.", locale: Locale(identifier: "en")).hasPrefix("(Recommended)"))
+
+        #expect(String(localized: "배터리 (자동 방전 중)", locale: Locale(identifier: "en")) == "Battery (Auto Discharge)")
+        #expect(String(localized: "배터리 (자동 방전 중)", locale: Locale(identifier: "ja")) == "バッテリー（自動放電中）")
+        #expect(String(localized: "자동 방전 진행 중", locale: Locale(identifier: "en")) == "Auto discharge in progress")
+        #expect(String(localized: "자동 방전 진행 중", locale: Locale(identifier: "de")) == "Automatisches Entladen läuft")
+        #expect(String(localized: "자동 방전이 켜져 있어 수동 방전을 사용할 수 없습니다.", locale: Locale(identifier: "en")) == "Manual discharge is unavailable while auto discharge is on.")
+        #expect(String(localized: "수동 방전이 진행 중입니다.", locale: Locale(identifier: "en")) == "Manual discharge is in progress.")
+        #expect(String(localized: "자동 방전이 켜져 있어 이 스케줄은 배터리를 %lld%%까지 방전합니다.", locale: Locale(identifier: "en")) == "Auto discharge is on, so this schedule will discharge the battery to %lld%%.")
     }
 
     @Test func iconDesignThemeTranslations() {

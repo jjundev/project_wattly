@@ -23,6 +23,7 @@ struct BatteryControlBridge: View {
 
     @State private var topUpDetector = BatteryTopUpTransitionDetector()
     @State private var topUpExpiryDetector = BatteryTopUpExpiryDetector()
+    @State private var dischargeDetector = BatteryDischargeTransitionDetector()
 
     /// Sailing off means the fixed 2-point hysteresis the daemon assumes by default.
     static func effectiveDelta(sailingEnabled: Bool, sailingDelta: Int) -> Int {
@@ -352,6 +353,12 @@ struct BatteryControlBridge: View {
                     didExpire: didExpire,
                     daemon: newStatus.desiredConfiguration) {
                     BatteryNotificationManager.postTopUpExpiredNotification()
+                }
+                // 수동 방전이 목표에 도달한 순간에만 값이 나온다. 자동 방전과 사용자 중지는
+                // 디텍터가 걸러낸다. 이 배선이 없어서 "방전 완료" 알림은 만들어져 있는데
+                // 한 번도 뜨지 않았다.
+                if let target = dischargeDetector.update(status: newStatus) {
+                    BatteryNotificationManager.notifyDischargeCompleted(target: target)
                 }
             }
     }

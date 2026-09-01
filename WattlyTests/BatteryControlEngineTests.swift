@@ -1603,4 +1603,22 @@ struct BatteryControlEngineTests {
         let status = engine.update(currentSoC: 70, isPluggedIn: true)
         #expect(status.isDischargeHardwareSupported == true)
     }
+
+    @Test func believedStatusPrefersManualDischargeOverTopUpLikeUpdateDoes() {
+        let mockHardware = MockBatteryHardware()
+        let engine = BatteryControlEngine(hardware: mockHardware)
+        // 코디네이터의 상호배제가 정상적으로는 막는 모순 입력이다. `update`는 수동 방전을
+        // 먼저 보는데 `statusForCurrentBelief`는 Top Up을 먼저 봤다 — 두 곳이 갈라져 있으면
+        // 상호배제가 새는 날 상태 표시와 하드웨어가 서로 다른 목표를 말한다.
+        engine.configure(BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            topUpActive: true,
+            manualDischargeActive: true,
+            manualDischargeTarget: 70))
+
+        let believed = engine.statusForCurrentBelief(currentSoC: 90, isPluggedIn: true)
+        #expect(believed.detailReason?.limitPercentage == 70)
+    }
 }
+

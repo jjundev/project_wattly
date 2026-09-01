@@ -106,68 +106,53 @@ import Testing
         #expect(bodyEn == "Reached target level (80%). Switched to power adapter bypass mode.")
     }
 
-    @Test func dischargeTransitionDetectionFiresOnlyOnTransitionToComplete() {
-        var detector = BatteryDischargeTransitionDetector()
-
-        // 1. Initial manual discharge state: no notification
-        #expect(detector.update(reasonKind: .dischargingManual) == false)
-
-        // 2. Still manual discharging: no notification
-        #expect(detector.update(reasonKind: .dischargingManual) == false)
-
-        // 3. Transition to inhibitedAtLimit (holding bypass): notification FIRES
-        #expect(detector.update(reasonKind: .inhibitedAtLimit) == true)
-
-        // 4. Continued inhibited state: does not repeat
-        #expect(detector.update(reasonKind: .inhibitedAtLimit) == false)
-
-        // 5. Transition to auto discharging
-        #expect(detector.update(reasonKind: .dischargingToTarget) == false)
-
-        // 6. Transition to inhibitedAtLimit: FIRES again
-        #expect(detector.update(reasonKind: .inhibitedAtLimit) == true)
-
-        // 7. Unplugged does not trigger completion
-        #expect(detector.update(reasonKind: .dischargingManual) == false)
-        #expect(detector.update(reasonKind: .onBatteryPower) == false)
-
-        // 8. Heat protection does not trigger completion
-        #expect(detector.update(reasonKind: .dischargingManual) == false)
-        #expect(detector.update(reasonKind: .heatProtectionActive) == false)
+    private static func dischargeStatus(
+        kind: BatteryControlStatusReason.Kind,
+        target: Int,
+        sessionOpen: Bool
+    ) -> BatteryControlServiceStatus {
+        BatteryControlServiceStatus(
+            mode: .inhibited,
+            currentPercentage: target,
+            isPowerAdapterConnected: true,
+            detail: "",
+            updatedAt: 1,
+            detailReason: .init(kind: kind, limitPercentage: target),
+            desiredConfiguration: BatteryControlConfiguration(
+                enabled: true,
+                limitPercentage: 80,
+                manualDischargeActive: sessionOpen,
+                manualDischargeTarget: target))
     }
 
-    @Test func dischargeTransitionDetectionWithActivityAndStatus() {
+    @Test func dischargeCompletionFiresOnceWhenTheManualSessionReachesItsTarget() {
         var detector = BatteryDischargeTransitionDetector()
+        let running = Self.dischargeStatus(kind: .dischargingManual, target: 70, sessionOpen: true)
+        let reached = Self.dischargeStatus(kind: .inhibitedAtLimit, target: 70, sessionOpen: true)
 
-        // Using activity directly
-        #expect(detector.update(activity: .discharging) == false)
-        #expect(detector.update(activity: .holdingAtLimit) == true)
-        #expect(detector.update(activity: .holdingAtLimit) == false)
+        #expect(detector.update(status: running) == nil)
+        #expect(detector.update(status: reached) == 70)
+        // 같은 상태가 반복돼도 다시 알리지 않는다.
+        #expect(detector.update(status: reached) == nil)
+    }
 
-        // Using status
-        let dischargingStatus = BatteryControlServiceStatus(
-            mode: .charging,
-            currentPercentage: 85,
-            isPowerAdapterConnected: true,
-            detail: "목표치(80%)까지 방전 중",
-            updatedAt: 1.0,
-            detailReason: .init(kind: .dischargingToTarget, limitPercentage: 80),
-            activity: .discharging
-        )
-        let completeStatus = BatteryControlServiceStatus(
-            mode: .inhibited,
-            currentPercentage: 80,
-            isPowerAdapterConnected: true,
-            detail: "충전 제한 80% 도달 (전원 어댑터 바이패스 구동)",
-            updatedAt: 2.0,
-            detailReason: .init(kind: .inhibitedAtLimit, limitPercentage: 80),
-            activity: .holdingAtLimit
-        )
+    @Test func userStoppingTheDischargeDoesNotAnnounceCompletion() {
+        var detector = BatteryDischargeTransitionDetector()
+        let running = Self.dischargeStatus(kind: .dischargingManual, target: 70, sessionOpen: true)
+        // "방전 중지"를 누르면 세션 플래그가 같은 틱에 내려간다.
+        let stopped = Self.dischargeStatus(kind: .inhibitedAtLimit, target: 80, sessionOpen: false)
 
-        var statusDetector = BatteryDischargeTransitionDetector()
-        #expect(statusDetector.update(status: dischargingStatus) == false)
-        #expect(statusDetector.update(status: completeStatus) == true)
-        #expect(statusDetector.update(status: completeStatus) == false)
+        #expect(detector.update(status: running) == nil)
+        #expect(detector.update(status: stopped) == nil)
+    }
+
+    @Test func autoDischargeReachingTheLimitIsNotAnnounced() {
+        var detector = BatteryDischargeTransitionDetector()
+        let running = Self.dischargeStatus(kind: .dischargingToTarget, target: 80, sessionOpen: false)
+        let reached = Self.dischargeStatus(kind: .inhibitedAtLimit, target: 80, sessionOpen: false)
+
+        #expect(detector.update(status: running) == nil)
+        #expect(detector.update(status: reached) == nil)
     }
 
     @Test func expiryNotificationTitleAndBodyAreLocalized() {

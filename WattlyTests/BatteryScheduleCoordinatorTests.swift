@@ -573,4 +573,26 @@ private func makeIsolatedDefaults() -> UserDefaults {
         #expect(coordinator.history[0].actionSummary == "Top Up to 100%")
         #expect(coordinator.history[0].scheduleName == "Top Up to 100%")
     }
+
+    @Test func pauseChargingWarnsWhenAutoDischargeWouldTurnItIntoADischarge() {
+        let ko = Locale(identifier: "ko")
+        #expect(BatteryScheduleCoordinator.autoDischargeWarning(
+            action: .pauseCharging, isAutoDischargeEnabled: true, locale: ko)
+            == "자동 방전이 켜져 있어 이 스케줄은 배터리를 50%까지 방전합니다.")
+    }
+
+    @Test func autoDischargeWarningIsSilentWhenItDoesNotApply() {
+        let ko = Locale(identifier: "ko")
+        #expect(BatteryScheduleCoordinator.autoDischargeWarning(
+            action: .pauseCharging, isAutoDischargeEnabled: false, locale: ko) == nil)
+        #expect(BatteryScheduleCoordinator.autoDischargeWarning(
+            action: .setLimit(percentage: 80), isAutoDischargeEnabled: true, locale: ko) == nil)
+        #expect(BatteryScheduleCoordinator.autoDischargeWarning(
+            action: .startTopUp, isAutoDischargeEnabled: true, locale: ko) == nil)
+    }
+
+    @Test func pauseChargingLimitIsTheOneTheWarningQuotes() {
+        #expect(BatteryScheduleCoordinator.pauseChargingLimitPercentage == 50)
+    }
 }
+

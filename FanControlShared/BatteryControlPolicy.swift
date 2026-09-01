@@ -75,7 +75,9 @@ public enum BatteryControlPolicy {
                 requested.calibrationActive = true
                 requested.calibrationTargetPercentage = desired.calibrationTargetPercentage
             }
-            return desired.normalized != requested
+            // 위 세 블록은 정규화가 끝난 뒤에 활동을 되살린다. 되살린 `manualDischargeActive`에는
+            // `normalized`의 수동/자동 상호배제가 아직 적용되지 않았으므로 한 번 더 통과시킨다.
+            return desired.normalized != requested.normalized
         }
         if requested.enabled {
             return status.appliedLimitPercentage != requested.clampedLimitPercentage

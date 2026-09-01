@@ -86,11 +86,18 @@ struct SettingsBatteryDischargeSection: View {
         BatterySectionPresentation.isLimitPickerEnabled(isLimitOn: batteryLimitEnabled)
     }
 
-    /// 강제 방전이 진행 중인지 — 데몬이 보고한 활동과 원하는 설정 둘 다 본다.
-    private var isManualDischargeActive: Bool {
-        batteryControl.status.activity == .discharging
-            || batteryControl.status.desiredConfiguration?.manualDischargeActive == true
+    /// 강제 방전을 지금 누가 소유하고 있는지. 판별은 `BatterySectionPresentation`에만 있다 —
+    /// 예전에는 이 뷰가 `activity == .discharging`을 직접 읽어서 자동 방전이 "수동 방전
+    /// 진행 중" 배너와 "방전 중지" 버튼으로 표시됐고, 그 버튼은 자동 방전을 끄지 못했다.
+    private var dischargeOwner: BatterySectionPresentation.DischargeOwner {
+        BatterySectionPresentation.dischargeOwner(
+            manualDischargeActive: batteryControl.status.desiredConfiguration?.manualDischargeActive,
+            reasonKind: batteryControl.status.detailReason?.kind,
+            activity: batteryControl.status.activity)
     }
+
+    /// 사용자가 연 수동 방전 세션이 열려 있는지 — 목표 도달 후 홀드 구간도 포함한다.
+    private var isManualDischargeActive: Bool { dischargeOwner == .manual }
 
     /// 4초 EMA를 거친 배터리 표본. 표본이 30초 넘게 끊겼다가 재개되면 EMA가 원시값으로
     /// 재시드되므로(`PowerSmoothing.emaStep`의 `maxGap`), 설정 창을 방전 도중에 열었을 때는
@@ -190,15 +197,33 @@ struct SettingsBatteryDischargeSection: View {
             SettingsToggleRow(
                 isOn: $autoDischargeEnabled,
                 divider: false,
-                // 데몬은 `config.enabled && config.autoDischargeEnabled`일 때만 자동 방전을
-                // 돌린다(BatteryControlEngine). 충전 제한이 꺼져 있는데 켤 수 있게 두면
-                // 아무 일도 하지 않는 스위치가 된다 — Sailing 모드와 같은 게이트를 쓴다.
-                isEnabled: isLimitPickerEnabled,
-                disabledReason: BatterySectionPresentation
-                    .limitPickerDisabledReason(isLimitOn: batteryLimitEnabled)
+                // 게이트 두 축은 `BatterySectionPresentation`이 정의한다. 충전 한도가 꺼져
+                // 있으면 데몬이 자동 방전을 돌리지 않아 아무 일도 하지 않는 스위치가 되고,
+                // 수동 방전 세션 중에는 자동 방전이 그것을 이어받아 버리므로 잠근다.
+                isEnabled: BatterySectionPresentation.isAutoDischargeToggleEnabled(
+                    isLimitOn: batteryLimitEnabled,
+                    dischargeOwner: dischargeOwner),
+                disabledReason: BatterySectionPresentation.autoDischargeToggleDisabledReason(
+                    isLimitOn: batteryLimitEnabled,
+                    dischargeOwner: dischargeOwner,
+                    locale: locale)
             ) {
                 VStack(alignment: .leading, spacing: 2) {
-                    SettingsRowTitle("자동 방전")
+                    HStack(spacing: 6) {
+                        SettingsRowTitle("자동 방전")
+                        // 자동 방전에는 지금까지 자기 표시가 없어서, 진행 중인 것이 수동
+                        // 방전 카드의 배너로 잘못 나타났다.
+                        if dischargeOwner == .automatic {
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .fill(Tokens.statusOrange)
+                                    .frame(width: 6, height: 6)
+                                Text(LocalizedStringKey("자동 방전 진행 중"))
+                                    .font(WattlyFont.at(10, weight: .semibold))
+                                    .foregroundStyle(Tokens.statusOrange)
+                            }
+                        }
+                    }
                     Text("충전 한도를 현재 잔량보다 낮게 변경하면 별도 조작 없이 자동으로 한도까지 방전합니다.")
                         .font(WattlyFont.at(10.5, weight: .regular))
                         .foregroundStyle(t.faint)
@@ -296,7 +321,8 @@ struct SettingsBatteryDischargeSection: View {
                     targetSoC: dischargeTarget,
                     isHardwareSupported: !isHardwareUnsupported,
                     isDischargeHardwareSupported: !isDischargeUnsupported,
-                    isToggleEnabled: isToggleEnabled)
+                    isToggleEnabled: isToggleEnabled,
+                    isAutoDischargeEnabled: autoDischargeEnabled)
 
                 if isManualDischargeActive {
                     let target = batteryControl.status.desiredConfiguration?.manualDischargeTarget ?? dischargeTarget
@@ -370,6 +396,7 @@ struct SettingsBatteryDischargeSection: View {
                         isHardwareSupported: !isHardwareUnsupported,
                         isDischargeHardwareSupported: !isDischargeUnsupported,
                         isToggleEnabled: isToggleEnabled,
+                        isAutoDischargeEnabled: autoDischargeEnabled,
                         locale: locale
                     )
                     VStack(alignment: .leading, spacing: 6) {

@@ -474,4 +474,28 @@ struct BatteryControlProtocolTests {
             BatteryControlServiceStatus.self, from: Data(legacy.utf8))
         #expect(decoded.isDischargeHardwareSupported == nil)
     }
+
+    @Test func normalizingClearsAutoDischargeWhileManualDischargeIsActive() {
+        let running = BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 80,
+            autoDischargeEnabled: true,
+            manualDischargeActive: true,
+            manualDischargeTarget: 90)
+        #expect(running.normalized.autoDischargeEnabled == false)
+        #expect(running.normalized.manualDischargeActive == true)
+
+        // 수동 방전이 없으면 사용자의 자동 방전 옵트인은 그대로 살아 있어야 한다.
+        var idle = running
+        idle.manualDischargeActive = false
+        #expect(idle.normalized.autoDischargeEnabled == true)
+    }
+
+    @Test func normalizationIsIdempotent() {
+        let config = BatteryControlConfiguration(
+            enabled: true,
+            autoDischargeEnabled: true,
+            manualDischargeActive: true)
+        #expect(config.normalized.normalized == config.normalized)
+    }
 }

@@ -161,6 +161,25 @@ import AppKit
         AppLanguage.locale(for: defaults.string(forKey: StorageKey.appLanguage) ?? Defaults.appLanguage)
     }
 
+    /// "충전 일시 정지"가 내리는 한도. 편집기의 경고 문구와 실제 실행이 같은 숫자를 봐야 하므로
+    /// 리터럴로 두지 않는다.
+    public nonisolated static let pauseChargingLimitPercentage = 50
+
+    /// "충전 일시 정지"는 한도를 낮추는 것으로 구현돼 있어서, 자동 방전이 켜져 있으면 그
+    /// 한도 변경이 곧 강제 방전 명령이 된다. 라벨은 "정지"인데 실제로는 배터리를 태워 내리는
+    /// 셈이므로 편집기와 실행 알림 양쪽에서 같은 문장으로 알린다. 동작 자체는 바꾸지 않는다.
+    public nonisolated static func autoDischargeWarning(
+        action: ScheduleAction,
+        isAutoDischargeEnabled: Bool,
+        locale: Locale
+    ) -> String? {
+        guard action == .pauseCharging, isAutoDischargeEnabled else { return nil }
+        return String(
+            format: String(localized: "자동 방전이 켜져 있어 이 스케줄은 배터리를 %lld%%까지 방전합니다.", locale: locale),
+            locale: locale,
+            Int64(pauseChargingLimitPercentage))
+    }
+
     /// `defaults.integer(forKey:)` returns `0` for an absent key, but `Defaults.batteryManualDischargeTarget`
     /// is `80` — a bare read would send `0`, which the daemon clamps to 50 and silently overwrites a
     /// user-configured target. Guard on presence instead, the same way `BatteryIntentBridge` does.
@@ -237,10 +256,10 @@ import AppKit
 
         case .pauseCharging:
             defaults.set(true, forKey: StorageKey.batteryLimitEnabled)
-            defaults.set(50, forKey: StorageKey.batteryLimitPercentage)
+            defaults.set(Self.pauseChargingLimitPercentage, forKey: StorageKey.batteryLimitPercentage)
             let status = await batteryControl.apply(
                 enabled: true,
-                limitPercentage: 50,
+                limitPercentage: Self.pauseChargingLimitPercentage,
                 lowerHysteresisDelta: 2,
                 heatProtectionEnabled: defaults.bool(forKey: StorageKey.batteryHeatProtectionEnabled),
                 heatProtectionThresholdCelsius: effectiveHeatProtectionThreshold,
@@ -271,7 +290,12 @@ import AppKit
             BatteryNotificationManager.postScheduleTriggeredNotification(
                 scheduleName: schedule.name,
                 actionSummary: schedule.action.summary(locale: locale),
-                locale: locale
+                locale: locale,
+                // 편집기 경고를 못 보고 저장한 스케줄도 있을 수 있으므로 실행 시점에 한 번 더 알린다.
+                note: Self.autoDischargeWarning(
+                    action: schedule.action,
+                    isAutoDischargeEnabled: defaults.bool(forKey: StorageKey.batteryAutoDischargeEnabled),
+                    locale: locale)
             )
         }
     }
