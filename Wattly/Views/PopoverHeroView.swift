@@ -173,6 +173,7 @@ private struct HeroCard: View {
                     Image(systemName: CardPresentation.expandChevronSymbol(isExpanded: isExpanded))
                         .font(.system(size: 8, weight: .bold))
                         .foregroundStyle(Self.labelColor)
+                        .offset(y: CardPresentation.expandChevronYOffset)
                 }
             }
             switch state {

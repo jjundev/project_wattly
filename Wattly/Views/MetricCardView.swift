@@ -112,6 +112,7 @@ struct MetricCardView: View {
                     Image(systemName: CardPresentation.expandChevronSymbol(isExpanded: isExpanded))
                         .font(.system(size: 8, weight: .bold))
                         .foregroundStyle(t.sub)
+                        .offset(y: CardPresentation.expandChevronYOffset)
                 }
             }
             Spacer(minLength: 8)
