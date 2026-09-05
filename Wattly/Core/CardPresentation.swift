@@ -75,6 +75,12 @@ enum CardPresentation {
         isExpanded ? "chevron.down" : "chevron.right"
     }
 
+    /// Vertical offset (pt) to align SF Symbol chevron with Pretendard text cap/baseline center.
+    /// Pretendard's line box includes descender padding below baseline while Hangul/cap glyphs
+    /// sit above baseline, so SF Symbol chevrons vertically centered in HStack(.center) appear
+    /// ~1.5pt too low without this compensation.
+    static let expandChevronYOffset: CGFloat = -1.5
+
     /// One compact list-row value for the mode-C list (plan 20). **Total** over `MetricState`,
     /// reusing `valueText`/`unitText` so the battery sign (#17) and every unit stay correct and in
     /// step with the cards — including the battery-temperature `°C` the prototype `rowOf` (lines

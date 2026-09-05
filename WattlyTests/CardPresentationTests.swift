@@ -773,6 +773,10 @@ struct CardPresentationTests {
         #expect(CardPresentation.expandChevronSymbol(isExpanded: false) == "chevron.right")
         #expect(CardPresentation.expandChevronSymbol(isExpanded: true) == "chevron.down")
     }
+
+    @Test func expandChevronYOffset() {
+        #expect(CardPresentation.expandChevronYOffset == -1.5)
+    }
 }
 
 
