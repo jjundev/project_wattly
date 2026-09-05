@@ -775,7 +775,7 @@ struct CardPresentationTests {
     }
 
     @Test func expandChevronYOffset() {
-        #expect(CardPresentation.expandChevronYOffset == -1.5)
+        #expect(CardPresentation.expandChevronYOffset == -0.5)
     }
 }
 
