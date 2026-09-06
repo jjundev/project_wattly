@@ -90,27 +90,27 @@ struct SettingsHelperRow: View {
     }
 
     private var statusLabel: some View {
-        Text(statusText)
+        Text(statusKey)
             .font(WattlyFont.at(11.5, weight: .regular))
             .foregroundStyle(t.faint)
     }
 
-    private var statusText: String {
+    private var statusKey: LocalizedStringKey {
         switch coordinator.state {
         case .checking:
-            String(localized: "확인 중…")
+            "확인 중…"
         case .installing:
-            String(localized: "도우미 설치 중…")
+            "도우미 설치 중…"
         case .running:
-            String(localized: "정상 작동 중")
+            "정상 작동 중"
         case .updateAvailable:
-            String(localized: "업데이트 필요")
+            "업데이트 필요"
         case .notInstalled:
-            String(localized: "미설치")
+            "미설치"
         case .unavailable:
-            String(localized: "응답 없음")
+            "응답 없음"
         case .ownershipMismatch:
-            String(localized: "다른 사용자 소유")
+            "다른 사용자 소유"
         }
     }
 
@@ -228,7 +228,7 @@ struct SettingsHelperRow: View {
                 )
                 diagnosticLine(
                     label: "팬 XPC 상태",
-                    value: hasFan ? coordinator.diagnostics.fanMode.rawValue : String(localized: "미지원 (팬 없음)")
+                    value: hasFan ? coordinator.diagnostics.fanMode.rawValue : String(localized: "미지원 (팬 없음)", locale: locale)
                 )
                 diagnosticLine(
                     label: "바이너리 일치",
@@ -278,17 +278,17 @@ struct SettingsHelperRow: View {
 
     private func ownershipDescription(_ ownership: FanHelperInstaller.InstalledOwnership) -> String {
         switch ownership {
-        case .notInstalled: return String(localized: "미설치")
-        case .owner(let uid): return "UID \(uid) (\(String(localized: "현재:")) \(coordinator.diagnostics.currentUID))"
-        case .invalidMetadata: return String(localized: "메타데이터 오류")
+        case .notInstalled: return String(localized: "미설치", locale: locale)
+        case .owner(let uid): return "UID \(uid) (\(String(localized: "현재:", locale: locale)) \(coordinator.diagnostics.currentUID))"
+        case .invalidMetadata: return String(localized: "메타데이터 오류", locale: locale)
         }
     }
 
     private func binaryMatchDescription(_ match: Bool?) -> String {
         switch match {
-        case true: return String(localized: "최신 바이너리와 일치")
-        case false: return String(localized: "업데이트 필요 (불일치)")
-        case nil: return String(localized: "확인 불가")
+        case true: return String(localized: "최신 바이너리와 일치", locale: locale)
+        case false: return String(localized: "업데이트 필요 (불일치)", locale: locale)
+        case nil: return String(localized: "확인 불가", locale: locale)
         }
     }
 
