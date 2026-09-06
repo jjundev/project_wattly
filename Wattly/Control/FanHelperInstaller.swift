@@ -14,7 +14,7 @@ enum FanHelperInstaller {
 
     typealias PrivilegedRunner = @Sendable (String) async throws -> Void
 
-    enum InstalledOwnership: Equatable {
+    enum InstalledOwnership: Equatable, Sendable {
         case notInstalled
         case owner(UInt32)
         case invalidMetadata
@@ -34,15 +34,28 @@ enum FanHelperInstaller {
         }
     }
 
-    enum InstallError: LocalizedError {
+    enum InstallError: LocalizedError, Equatable {
         case daemonMissing
         case scriptWriteFailed
         case authFailedOrCancelled(String)
+        case userCancelled
+
+        var isCancellation: Bool {
+            switch self {
+            case .userCancelled:
+                return true
+            case .authFailedOrCancelled(let detail):
+                return detail.contains("-128") || detail.localizedCaseInsensitiveContains("canceled") || detail.localizedCaseInsensitiveContains("cancelled")
+            default:
+                return false
+            }
+        }
 
         var errorDescription: String? {
             switch self {
             case .daemonMissing: String(localized: "앱 번들에서 도우미 실행 파일을 찾을 수 없습니다.")
             case .scriptWriteFailed: String(localized: "설치 스크립트를 임시 폴더에 쓰지 못했습니다.")
+            case .userCancelled: String(localized: "관리자 인증이 취소되었거나 실패했습니다.")
             case .authFailedOrCancelled(let detail): detail
             }
         }
@@ -250,8 +263,12 @@ enum FanHelperInstaller {
                     // osascript exits non-zero on a cancelled prompt (-128) or a failed script.
                     let msg = String(data: errData, encoding: .utf8)?
                         .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                    cont.resume(throwing: InstallError.authFailedOrCancelled(
-                        msg.isEmpty ? String(localized: "관리자 인증이 취소되었거나 실패했습니다.") : msg))
+                    if msg.contains("-128") || msg.localizedCaseInsensitiveContains("canceled") || msg.localizedCaseInsensitiveContains("cancelled") {
+                        cont.resume(throwing: InstallError.userCancelled)
+                    } else {
+                        cont.resume(throwing: InstallError.authFailedOrCancelled(
+                            msg.isEmpty ? String(localized: "관리자 인증이 취소되었거나 실패했습니다.") : msg))
+                    }
                 }
             }
         }

@@ -13,6 +13,11 @@ struct SettingsView: View {
     var scheduleCoordinator: BatteryScheduleCoordinator? = nil
     let calibrationCoordinator: BatteryCalibrationCoordinator
 
+    @State private var helperCoordinator: HelperHealthCoordinator
+    @AppStorage(StorageKey.fanControlEnabled) private var fanControlEnabled = Defaults.fanControlEnabled
+    @AppStorage(StorageKey.fanCurve) private var fanCurve = Defaults.fanCurve
+
+    @MainActor
     init(
         monitor: SystemMonitor,
         fanControl: FanControlClient,
@@ -25,6 +30,10 @@ struct SettingsView: View {
         self.batteryControl = batteryControl
         self.scheduleCoordinator = scheduleCoordinator
         self.calibrationCoordinator = calibrationCoordinator
+        self._helperCoordinator = State(initialValue: HelperHealthCoordinator(
+            batteryControl: batteryControl,
+            fanControl: fanControl
+        ))
     }
 
     @AppStorage(StorageKey.theme) private var theme = Defaults.theme
@@ -175,6 +184,17 @@ struct SettingsView: View {
                     updateActionButton
                 }
                 .padding(EdgeInsets(top: 10, leading: 14, bottom: 10, trailing: 14))
+
+                Rectangle().fill(t.line).frame(height: 1)
+
+                // 시스템 도우미 (상태 진단 및 재설치)
+                SettingsHelperRow(
+                    coordinator: helperCoordinator,
+                    hasFan: monitor.isPresent(.fan),
+                    onReapplySettings: {
+                        await reapplyAllSettingsAfterHelperReinstall()
+                    }
+                )
 
                 Rectangle().fill(t.line).frame(height: 1)
 
@@ -408,6 +428,27 @@ struct SettingsView: View {
                 maxFanRPM: monitor.hardwareMaxFanRPM,
                 stoppingCalibration: { await calibrationCoordinator.cancel() })
             loginMirror = loginItem.isEnabled
+        }
+    }
+
+    @MainActor
+    private func reapplyAllSettingsAfterHelperReinstall() async {
+        let snapshot = calibrationCoordinator.currentSnapshot()
+        let delta = snapshot.sailingEnabled ? snapshot.sailingDelta : 2
+        let manualTarget = BatterySectionPresentation.clampedManualDischargeTarget(snapshot.manualDischargeTarget)
+
+        await batteryControl.apply(
+            enabled: snapshot.limitEnabled,
+            limitPercentage: snapshot.limitPercentage,
+            lowerHysteresisDelta: delta,
+            heatProtectionEnabled: snapshot.heatProtectionEnabled,
+            heatProtectionThresholdCelsius: snapshot.heatProtectionThresholdCelsius,
+            autoDischargeEnabled: snapshot.autoDischargeEnabled,
+            manualDischargeTarget: manualTarget
+        )
+
+        if fanControlEnabled {
+            await fanControl.apply(enabled: true, curve: fanCurve)
         }
     }
 }
