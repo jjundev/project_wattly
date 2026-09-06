@@ -557,6 +557,16 @@ struct LocalizationTests {
                 != "캘리브레이션 시작")
         #expect(String(localized: "20%까지 방전", locale: Locale(identifier: "de"))
                 != "20%까지 방전")
+        #expect(String(localized: "배터리 잔량 표시의 추정 오차를 보정합니다.", locale: Locale(identifier: "en"))
+                != "배터리 잔량 표시의 추정 오차를 보정합니다.")
+        #expect(String(localized: "방전 중 Mac 사용 권장 확인", locale: Locale(identifier: "en"))
+                != "방전 중 Mac 사용 권장 확인")
+        #expect(String(localized: "최적화된 배터리 충전 비활성화 확인", locale: Locale(identifier: "ja"))
+                != "최적화된 배터리 충전 비활성화 확인")
+        #expect(String(localized: "배터리 캘리브레이션 안내", locale: Locale(identifier: "de"))
+                != "배터리 캘리브레이션 안내")
+        #expect(String(localized: "최근 캘리브레이션 결과", locale: Locale(identifier: "fr"))
+                != "최근 캘리브레이션 결과")
     }
 
     @Test func stringCatalogAllKeysHaveAllSupportedLocales() throws {
