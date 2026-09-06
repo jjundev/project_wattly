@@ -177,7 +177,13 @@ struct SettingsBatteryCalibrationSection: View {
                         HStack(spacing: 4) {
                             Image(systemName: "clock.arrow.circlepath")
                                 .font(.system(size: 10))
-                            Text("최근 보정 이력 (\(calibration.history.count))")
+                            Text(
+                                String(
+                                    format: String(localized: "최근 보정 이력 (%lld)", locale: locale),
+                                    locale: locale,
+                                    Int64(calibration.history.count)
+                                )
+                            )
                                 .font(WattlyFont.at(10.5, weight: .regular))
                         }
                         .foregroundStyle(t.faint)
@@ -398,7 +404,16 @@ struct SettingsBatteryCalibrationSection: View {
                 }
             }
 
-            Text("측정된 용량 변화는 자연 변동폭(약 \(BatteryCalibration.naturalCapacityDriftMilliampHours) mAh) 내에 있을 수 있으며, 이 절차의 주 목적은 BMS의 잔량 표시 보정입니다.")
+            Text(
+                String(
+                    format: String(
+                        localized: "측정된 용량 변화는 자연 변동폭(약 %lld mAh) 내에 있을 수 있으며, 이 절차의 주 목적은 BMS의 잔량 표시 보정입니다.",
+                        locale: locale
+                    ),
+                    locale: locale,
+                    Int64(BatteryCalibration.naturalCapacityDriftMilliampHours)
+                )
+            )
                 .font(WattlyFont.at(10, weight: .regular))
                 .foregroundStyle(t.faint)
                 .fixedSize(horizontal: false, vertical: true)
