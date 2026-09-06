@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import AppKit
 @testable import Wattly
 
 /// Characterization tests for the pure card-presentation seam (issue: deepen the
@@ -485,9 +486,19 @@ struct CardPresentationTests {
     @Test func powerValueSubAndTint() {
         let st = MetricState.value(.power(PowerSample(totalW: 12.34, cpuW: 5.62, gpuW: 2.10, npuW: 0.30)))
         #expect(CardPresentation.valueText(.power, st) == "12.3")
-        #expect(CardPresentation.subText(st) == "CPU 5.6 W · GPU 2.1 W · ANE 0.3 W")
+        #expect(CardPresentation.subText(st, processorName: "Apple M5") == "Apple M5 · CPU 5.6W · GPU 2.1W · ANE 0.3W")
+        #expect(CardPresentation.subText(st, processorName: "") == "CPU 5.6W · GPU 2.1W · ANE 0.3W")
+        #expect(CardPresentation.display(.power, st, processorName: "Apple M5").subText == "Apple M5 · CPU 5.6W · GPU 2.1W · ANE 0.3W")
         #expect(CardPresentation.display(.power, st).tint == .accent)
         #expect(CardPresentation.display(.cpu, .loading).tint == .neutral)
+
+        let detected = currentProcessorName()
+        let liveSubText = CardPresentation.subText(st)
+        print("[HARDWARE CHECK] currentHardwareModel():", currentHardwareModel())
+        print("[HARDWARE CHECK] currentProcessorName():", detected)
+        print("[HARDWARE CHECK] CardPresentation.subText(st) default:", liveSubText ?? "nil")
+        #expect(!detected.isEmpty)
+        #expect(liveSubText?.hasPrefix(detected) == true)
     }
 
     // MARK: Temperature fan-out — value per category, defensive "—"

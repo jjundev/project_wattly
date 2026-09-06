@@ -35,12 +35,13 @@ enum CardPresentation {
         _ card: CardKind,
         _ state: MetricState,
         dischargeOwner: BatterySectionPresentation.DischargeOwner = .idle,
-        locale: Locale = Locale(identifier: "ko")
+        locale: Locale = Locale(identifier: "ko"),
+        processorName: String = currentProcessorName()
     ) -> CardDisplay {
         CardDisplay(label: label(card),
                     valueText: valueText(card, state),
                     unitText: unitText(card, state),
-                    subText: subText(state, dischargeOwner: dischargeOwner, locale: locale),
+                    subText: subText(state, dischargeOwner: dischargeOwner, locale: locale, processorName: processorName),
                     tint: card.isAccented ? .accent : .neutral)
     }
 
@@ -198,12 +199,19 @@ enum CardPresentation {
     static func subText(
         _ state: MetricState,
         dischargeOwner: BatterySectionPresentation.DischargeOwner = .idle,
-        locale: Locale = Locale(identifier: "ko")
+        locale: Locale = Locale(identifier: "ko"),
+        processorName: String = currentProcessorName()
     ) -> String? {
         guard case .value(let sample) = state else { return nil }
         switch sample {
         case .power(let s):
-            return "CPU \(f1(s.cpuW)) W · GPU \(f1(s.gpuW)) W · ANE \(f1(s.npuW)) W"
+            let parts: [String?] = [
+                processorName.isEmpty ? nil : processorName,
+                "CPU \(f1(s.cpuW))W",
+                "GPU \(f1(s.gpuW))W",
+                "ANE \(f1(s.npuW))W"
+            ]
+            return parts.compactMap { $0 }.joined(separator: " · ")
         case .battery(let s):
             if s.powerFlow?.scenario == .activeDischarge {
                 let target = s.targetPercentage
