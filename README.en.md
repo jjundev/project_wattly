@@ -156,12 +156,12 @@ Wattly provides a complete Battery Management Suite to prevent high-voltage chem
 ### 6. Battery Calibration Suite
 - **Resolving BMS Gauge Drift & Preventing Sudden Shutdowns**: Maintaining continuous AC power and charge limits over prolonged periods can cause the Battery Management System (BMS) gas gauge to drift, leading to unexpected shutdowns even when battery percentage appears remaining. The Battery Calibration Suite recalibrates the upper and lower reference thresholds of the BMS to restore precision accuracy to battery percentage readings.
 - **6-Stage Automated Cycle**:
-  1. **Preflight**: Validates essential prerequisites including helper daemon connectivity, power adapter connection, hardware capabilities, thermal conditions, and ensuring macOS "Optimized Battery Charging" is disabled.
-  2. **100% Full Charge**: Fully charges the battery to 100%.
-  3. **Cooldown 1**: Allows cell voltages and chemical reactions to settle at full charge.
-  4. **Forced Discharge to 15%**: Safely forces battery discharge down to the 15% floor while preventing idle system sleep via `SleepAssertion` (`IOPMAssertionCreateWithName`).
-  5. **Cooldown 2**: Holds at low state-of-charge for 10 minutes to stabilize chemical equilibrium (Soak Low).
-  6. **100% Full Re-charge & Restore**: Charges the battery back to 100% to update the BMS full-scale reference point, followed by a 60-minute final soak (Soak Final) before safely restoring original user charge limits and preferences.
+  1. **Preflight**: Verifies prerequisites including privileged helper connectivity, AC adapter presence, hardware discharge capability, thermal safety, and disabling macOS "Optimized Battery Charging".
+  2. **100% Full Charge**: Charges battery to 100% capacity.
+  3. **Discharge to 20%**: Safely forces battery discharge down to the 20% floor while maintaining `SleepAssertion` (`IOPMAssertionCreateWithName`) to prevent idle system sleep.
+  4. **Low-Charge Soak (10 min)**: Holds at the 20% floor for 10 minutes to allow cell voltage and chemical equilibrium to settle.
+  5. **Full Re-charge to 100%**: Charges the battery back to 100% to recalibrate full-scale capacity registers in the BMS gas gauge.
+  6. **Final Soak & Restore (60 min)**: Completes a 60-minute post-charge stabilization period before safely restoring original charge limits and user policies.
 - **Dedicated Diagnostic UI Card**: Features a real-time progress bar, stage-by-stage breakdown and remaining time estimates in Settings › Battery, a Safe Abort option to cancel at any time, a 90-day / 40-cycle cooldown recommendation, and a historical calibration log popover.
 
 ### 7. Scheduled Charging
