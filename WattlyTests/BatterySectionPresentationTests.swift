@@ -1408,6 +1408,58 @@ import AppKit
         #expect(BatterySectionPresentation.autoDischargeToggleDisabledReason(
             isLimitOn: true, dischargeOwner: .automatic, locale: ko) == nil)
     }
+
+    // MARK: - 클램쉘 방전 토글
+
+    private static let current: [BatteryControlCapability] = [
+        .persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1,
+        .calibrationV1, .clamshellDischargeV1,
+    ]
+
+    @Test func clamshellToggleIsEnabledOnlyWithACurrentHelperAndDischargeHardware() {
+        #expect(BatterySectionPresentation.isClamshellDischargeToggleEnabled(
+            helperMode: .charging, capabilities: Self.current, isDischargeHardwareSupported: true))
+        // `nil`은 "모름"이지 "미지원"이 아니다.
+        #expect(BatterySectionPresentation.isClamshellDischargeToggleEnabled(
+            helperMode: .charging, capabilities: Self.current, isDischargeHardwareSupported: nil))
+        #expect(BatterySectionPresentation.isClamshellDischargeToggleEnabled(
+            helperMode: .unavailable, capabilities: Self.current, isDischargeHardwareSupported: true) == false)
+        #expect(BatterySectionPresentation.isClamshellDischargeToggleEnabled(
+            helperMode: .charging, capabilities: [.persistedPolicyV1, .calibrationV1],
+            isDischargeHardwareSupported: true) == false)
+        #expect(BatterySectionPresentation.isClamshellDischargeToggleEnabled(
+            helperMode: .charging, capabilities: Self.current, isDischargeHardwareSupported: false) == false)
+    }
+
+    @Test func clamshellToggleDisabledReasonNamesTheBlocker() {
+        let ko = Locale(identifier: "ko")
+        #expect(BatterySectionPresentation.clamshellDischargeToggleDisabledReason(
+            helperMode: .charging, capabilities: Self.current,
+            isDischargeHardwareSupported: true, locale: ko) == nil)
+        #expect(BatterySectionPresentation.clamshellDischargeToggleDisabledReason(
+            helperMode: .unavailable, capabilities: Self.current,
+            isDischargeHardwareSupported: true, locale: ko) == "도우미에 연결되지 않음")
+        #expect(BatterySectionPresentation.clamshellDischargeToggleDisabledReason(
+            helperMode: .charging, capabilities: [.persistedPolicyV1],
+            isDischargeHardwareSupported: true, locale: ko)
+            == "클램쉘 방전을 사용하려면 도우미 업데이트가 필요합니다.")
+        #expect(BatterySectionPresentation.clamshellDischargeToggleDisabledReason(
+            helperMode: .charging, capabilities: Self.current,
+            isDischargeHardwareSupported: false, locale: ko)
+            == "이 Mac은 강제 방전을 지원하지 않습니다.")
+    }
+
+    @Test func sleepInhibitedTextUsesTheCatalogKey() {
+        #expect(BatterySectionPresentation.sleepInhibitedText(locale: Locale(identifier: "ko"))
+            == "잠자기 차단 중 (덮개를 닫아도 방전이 계속됩니다)")
+    }
+
+    @Test func calibrationLidGuidanceFollowsTheClamshellAllowance() {
+        let ko = Locale(identifier: "ko")
+        #expect(BatterySectionPresentation.calibrationLidGuidanceText(clamshellAllowed: false, locale: ko)
+            == "방전 구간에는 뚜껑을 열고 Mac을 사용 중인 상태로 두어야 합니다.")
+        #expect(BatterySectionPresentation.calibrationLidGuidanceText(clamshellAllowed: true, locale: ko)
+            == "클램쉘 방전이 켜져 있어 외장 디스플레이가 연결된 동안은 뚜껑을 닫아도 됩니다.")
+    }
+
 }
-
-

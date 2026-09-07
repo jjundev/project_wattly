@@ -768,5 +768,56 @@ enum BatterySectionPresentation {
         }
         return limitPickerDisabledReason(isLimitOn: isLimitOn)
     }
+
+    // MARK: - 클램쉘 방전
+
+    /// "덮개를 닫아도 방전 계속" 토글을 만질 수 있는지. 전역 `requiredCapabilities`에
+    /// `.clamshellDischargeV1`을 넣지 않는 대신 여기서만 게이팅한다 — 넣으면 이 기능을 쓰지 않는
+    /// 전 사용자가 "도우미 업데이트 필요"가 된다.
+    static func isClamshellDischargeToggleEnabled(
+        helperMode: BatteryControlServiceMode,
+        capabilities: [BatteryControlCapability]?,
+        isDischargeHardwareSupported: Bool?
+    ) -> Bool {
+        clamshellDischargeToggleDisabledReason(
+            helperMode: helperMode,
+            capabilities: capabilities,
+            isDischargeHardwareSupported: isDischargeHardwareSupported) == nil
+    }
+
+    /// 위 게이트가 거짓일 때의 사유. 활성일 때는 `nil`. `nil` 하드웨어 지원은 "모름"이라 막지 않는다.
+    static func clamshellDischargeToggleDisabledReason(
+        helperMode: BatteryControlServiceMode,
+        capabilities: [BatteryControlCapability]?,
+        isDischargeHardwareSupported: Bool?,
+        locale: Locale = Locale(identifier: "ko")
+    ) -> String? {
+        if helperMode == .unavailable {
+            return String(localized: "도우미에 연결되지 않음", locale: locale)
+        }
+        if capabilities?.contains(.clamshellDischargeV1) != true {
+            return String(localized: "클램쉘 방전을 사용하려면 도우미 업데이트가 필요합니다.", locale: locale)
+        }
+        if isDischargeHardwareSupported == false {
+            return String(localized: "이 Mac은 강제 방전을 지원하지 않습니다.", locale: locale)
+        }
+        return nil
+    }
+
+    /// 데몬이 `isSystemSleepInhibited == true`를 보고할 때 방전 배너에 붙는 줄.
+    static func sleepInhibitedText(locale: Locale = Locale(identifier: "ko")) -> String {
+        String(localized: "잠자기 차단 중 (덮개를 닫아도 방전이 계속됩니다)", locale: locale)
+    }
+
+    /// 캘리브레이션 preflight의 뚜껑 안내. 클램쉘 방전이 실제로 적용될 상태(옵트인 && 외장
+    /// 디스플레이)면 "닫아도 된다"로 바뀐다(결정 #22).
+    static func calibrationLidGuidanceText(
+        clamshellAllowed: Bool,
+        locale: Locale = Locale(identifier: "ko")
+    ) -> String {
+        clamshellAllowed
+            ? String(localized: "클램쉘 방전이 켜져 있어 외장 디스플레이가 연결된 동안은 뚜껑을 닫아도 됩니다.", locale: locale)
+            : String(localized: "방전 구간에는 뚜껑을 열고 Mac을 사용 중인 상태로 두어야 합니다.", locale: locale)
+    }
 }
 

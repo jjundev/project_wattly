@@ -120991,6 +120991,931 @@
           }
         }
       }
+    },
+    "덮개를 닫아도 방전 계속": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "덮개를 닫아도 방전 계속"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep discharging with the lid closed"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ふたを閉じても放電を続ける"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "合盖后继续放电"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "闔上上蓋後繼續放電"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entladen bei geschlossenem Deckel fortsetzen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuer la décharge capot fermé"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seguir descargando con la tapa cerrada"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continua a scaricare con il coperchio chiuso"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar descarregando com a tampa fechada"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar a descarregar com a tampa fechada"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Продолжать разряд с закрытой крышкой"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blijven ontladen met gesloten deksel"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontynuuj rozładowywanie przy zamkniętej pokrywie"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kapak kapalıyken deşarja devam et"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fortsätt urladdning med stängt lock"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fortsæt afladning med lukket låg"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fortsett utlading med lukket lokk"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jatka purkamista kansi suljettuna"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pokračovat ve vybíjení se zavřeným víkem"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kisütés folytatása lecsukott fedéllel"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuă descărcarea cu capacul închis"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Συνέχιση εκφόρτισης με κλειστό καπάκι"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Продовжувати розряд із закритою кришкою"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "המשך פריקה כשהמכסה סגור"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "متابعة التفريغ والغطاء مغلق"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ढक्कन बंद होने पर भी डिस्चार्ज जारी रखें"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ปล่อยประจุต่อแม้ปิดฝา"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tiếp tục xả khi đóng nắp"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lanjutkan pengosongan saat penutup ditutup"
+          }
+        }
+      }
+    },
+    "외장 디스플레이가 연결된 동안 방전 중에는 Mac이 잠들지 않습니다. Apple 메뉴의 잠자기도 동작하지 않습니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "외장 디스플레이가 연결된 동안 방전 중에는 Mac이 잠들지 않습니다. Apple 메뉴의 잠자기도 동작하지 않습니다."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While an external display is connected, the Mac will not sleep during discharge. Sleep in the Apple menu is also disabled."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部ディスプレイ接続中は放電中にMacがスリープしません。Appleメニューのスリープも無効になります。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接外接显示器时，放电期间 Mac 不会睡眠。Apple 菜单中的“睡眠”也将不可用。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "連接外接顯示器時，放電期間 Mac 不會睡眠。Apple 選單中的「睡眠」也會失效。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solange ein externes Display angeschlossen ist, geht der Mac während des Entladens nicht in den Ruhezustand. Auch „Ruhezustand“ im Apple-Menü ist deaktiviert."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tant qu’un écran externe est connecté, le Mac ne se met pas en veille pendant la décharge. La commande Suspendre du menu Pomme est aussi désactivée."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mientras haya una pantalla externa conectada, el Mac no entrará en reposo durante la descarga. El reposo del menú Apple también queda desactivado."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finché è collegato un monitor esterno, il Mac non entra in stop durante la scarica. Anche Stop nel menu Apple è disattivato."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enquanto um monitor externo estiver conectado, o Mac não entrará em repouso durante a descarga. O repouso do menu Apple também fica desativado."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enquanto um monitor externo estiver ligado, o Mac não entra em pausa durante a descarga. A pausa do menu Apple também fica desativada."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пока подключён внешний дисплей, Mac не будет засыпать во время разряда. Пункт «Режим сна» в меню Apple тоже не работает."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zolang een extern beeldscherm is aangesloten, gaat de Mac tijdens het ontladen niet in de sluimerstand. Sluimer in het Apple-menu is ook uitgeschakeld."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gdy podłączony jest zewnętrzny monitor, Mac nie uśpi się podczas rozładowywania. Uśpienie z menu Apple również nie działa."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Harici ekran bağlıyken deşarj sırasında Mac uyku moduna girmez. Apple menüsündeki Uyku da devre dışı kalır."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Så länge en extern skärm är ansluten går datorn inte i vila under urladdningen. Vila i Apple-menyn är också avstängd."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Så længe en ekstern skærm er tilsluttet, går Mac’en ikke på vågeblus under afladning. Vågeblus i Apple-menuen er også slået fra."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Så lenge en ekstern skjerm er tilkoblet, går ikke Mac-en i dvale under utlading. Dvale i Apple-menyen er også slått av."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kun ulkoinen näyttö on kytkettynä, Mac ei mene lepotilaan purkamisen aikana. Myös Apple-valikon Lepotila on poissa käytöstä."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dokud je připojen externí displej, Mac během vybíjení neusne. Nefunguje ani Uspat v nabídce Apple."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Amíg külső kijelző van csatlakoztatva, a Mac nem alszik el kisütés közben. Az Apple menü Altatás parancsa sem működik."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cât timp este conectat un monitor extern, Mac-ul nu intră în repaus în timpul descărcării. Nici Repaus din meniul Apple nu funcționează."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Όσο είναι συνδεδεμένη εξωτερική οθόνη, το Mac δεν θα μπαίνει σε ύπνο κατά την εκφόρτιση. Η Ύπνωση στο μενού Apple επίσης απενεργοποιείται."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Поки під’єднано зовнішній дисплей, Mac не засинатиме під час розряду. Пункт «Сон» у меню Apple також не працює."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "כל עוד מחובר מסך חיצוני, ה‑Mac לא יעבור לשינה במהלך הפריקה. גם ‚שינה‘ בתפריט Apple מושבת."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أثناء توصيل شاشة خارجية، لن يدخل Mac في وضع السكون خلال التفريغ. كما يتم تعطيل السكون من قائمة Apple."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जब तक बाहरी डिस्प्ले जुड़ा है, डिस्चार्ज के दौरान Mac स्लीप में नहीं जाएगा। Apple मेनू का स्लीप भी अक्षम रहेगा।"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ขณะเชื่อมต่อจอภาพภายนอก Mac จะไม่พักเครื่องระหว่างปล่อยประจุ คำสั่งพักเครื่องในเมนู Apple จะใช้ไม่ได้ด้วย"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi đang kết nối màn hình ngoài, máy Mac sẽ không ngủ trong lúc xả. Lệnh Ngủ trong menu Apple cũng bị tắt."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selama layar eksternal terhubung, Mac tidak akan tidur saat pengosongan. Tidur di menu Apple juga dinonaktifkan."
+          }
+        }
+      }
+    },
+    "잠자기 차단 중 (덮개를 닫아도 방전이 계속됩니다)": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "잠자기 차단 중 (덮개를 닫아도 방전이 계속됩니다)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sleep blocked (discharge continues with the lid closed)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スリープ抑制中（ふたを閉じても放電は続きます）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已阻止睡眠（合盖后仍继续放电）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已阻止睡眠（闔上上蓋仍繼續放電）"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ruhezustand blockiert (Entladen läuft bei geschlossenem Deckel weiter)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veille bloquée (la décharge continue capot fermé)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reposo bloqueado (la descarga continúa con la tapa cerrada)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop bloccato (la scarica continua con il coperchio chiuso)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repouso bloqueado (a descarga continua com a tampa fechada)"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausa bloqueada (a descarga continua com a tampa fechada)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сон заблокирован (разряд продолжается с закрытой крышкой)"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sluimerstand geblokkeerd (ontladen gaat door met gesloten deksel)"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uśpienie zablokowane (rozładowywanie trwa przy zamkniętej pokrywie)"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uyku engellendi (kapak kapalıyken deşarj sürer)"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vila blockerad (urladdningen fortsätter med stängt lock)"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vågeblus blokeret (afladning fortsætter med lukket låg)"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dvale blokkert (utlading fortsetter med lukket lokk)"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lepotila estetty (purkaminen jatkuu kansi suljettuna)"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uspání blokováno (vybíjení pokračuje se zavřeným víkem)"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Altatás letiltva (a kisütés lecsukott fedéllel is folytatódik)"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repaus blocat (descărcarea continuă cu capacul închis)"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ύπνωση αποκλεισμένη (η εκφόρτιση συνεχίζεται με κλειστό καπάκι)"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сон заблоковано (розряд триває із закритою кришкою)"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "שינה חסומה (הפריקה נמשכת כשהמכסה סגור)"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "السكون محظور (يستمر التفريغ والغطاء مغلق)"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स्लीप अवरुद्ध (ढक्कन बंद होने पर भी डिस्चार्ज जारी)"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "บล็อกการพักเครื่อง (ปล่อยประจุต่อแม้ปิดฝา)"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã chặn ngủ (tiếp tục xả khi đóng nắp)"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tidur diblokir (pengosongan berlanjut saat penutup ditutup)"
+          }
+        }
+      }
+    },
+    "클램쉘 방전을 사용하려면 도우미 업데이트가 필요합니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "클램쉘 방전을 사용하려면 도우미 업데이트가 필요합니다."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update the helper to use clamshell discharge."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クラムシェル放電を使うにはヘルパーの更新が必要です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要更新辅助程序才能使用合盖放电。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要更新輔助程式才能使用闔蓋放電。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für das Entladen bei geschlossenem Deckel muss der Helfer aktualisiert werden."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mettez à jour l’assistant pour utiliser la décharge capot fermé."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualiza el asistente para usar la descarga con la tapa cerrada."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiorna l’helper per usare la scarica a coperchio chiuso."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualize o auxiliar para usar a descarga com a tampa fechada."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualize o auxiliar para usar a descarga com a tampa fechada."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновите помощник, чтобы использовать разряд с закрытой крышкой."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Werk de helper bij om ontladen met gesloten deksel te gebruiken."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zaktualizuj pomocnika, aby używać rozładowywania przy zamkniętej pokrywie."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kapak kapalı deşarj için yardımcıyı güncelleyin."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppdatera hjälparen för att använda urladdning med stängt lock."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opdater hjælperen for at bruge afladning med lukket låg."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oppdater hjelperen for å bruke utlading med lukket lokk."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Päivitä apuohjelma käyttääksesi purkamista kansi suljettuna."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro vybíjení se zavřeným víkem aktualizujte pomocníka."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A lecsukott fedeles kisütéshez frissítsd a segédprogramot."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualizează asistentul pentru a folosi descărcarea cu capacul închis."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ενημερώστε τον βοηθό για εκφόρτιση με κλειστό καπάκι."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оновіть помічник, щоб використовувати розряд із закритою кришкою."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "יש לעדכן את העוזר כדי להשתמש בפריקה עם מכסה סגור."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حدّث المساعد لاستخدام التفريغ والغطاء مغلق."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ढक्कन बंद डिस्चार्ज के लिए हेल्पर अपडेट करें।"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "อัปเดตตัวช่วยเพื่อใช้การปล่อยประจุแบบปิดฝา"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cập nhật trình trợ giúp để dùng xả khi đóng nắp."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perbarui pembantu untuk menggunakan pengosongan dengan penutup tertutup."
+          }
+        }
+      }
+    },
+    "클램쉘 방전이 켜져 있어 외장 디스플레이가 연결된 동안은 뚜껑을 닫아도 됩니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "클램쉘 방전이 켜져 있어 외장 디스플레이가 연결된 동안은 뚜껑을 닫아도 됩니다."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clamshell discharge is on, so the lid can stay closed while an external display is connected."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クラムシェル放電がオンのため、外部ディスプレイ接続中はふたを閉じても構いません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已开启合盖放电，连接外接显示器时可以合上盖子。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已開啟闔蓋放電，連接外接顯示器時可以闔上上蓋。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entladen bei geschlossenem Deckel ist aktiv – solange ein externes Display angeschlossen ist, kann der Deckel zu bleiben."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La décharge capot fermé est activée : le capot peut rester fermé tant qu’un écran externe est connecté."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La descarga con la tapa cerrada está activada: puedes mantener la tapa cerrada mientras haya una pantalla externa conectada."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La scarica a coperchio chiuso è attiva: puoi tenere il coperchio chiuso finché è collegato un monitor esterno."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A descarga com a tampa fechada está ativada: a tampa pode ficar fechada enquanto um monitor externo estiver conectado."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A descarga com a tampa fechada está ativada: a tampa pode ficar fechada enquanto um monitor externo estiver ligado."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Разряд с закрытой крышкой включён: крышку можно держать закрытой, пока подключён внешний дисплей."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ontladen met gesloten deksel staat aan: het deksel mag dicht blijven zolang een extern beeldscherm is aangesloten."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rozładowywanie przy zamkniętej pokrywie jest włączone – pokrywa może pozostać zamknięta, gdy podłączony jest zewnętrzny monitor."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kapak kapalı deşarj açık; harici ekran bağlıyken kapak kapalı kalabilir."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Urladdning med stängt lock är på – locket kan vara stängt så länge en extern skärm är ansluten."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afladning med lukket låg er slået til – låget kan forblive lukket, så længe en ekstern skærm er tilsluttet."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utlading med lukket lokk er på – lokket kan være lukket så lenge en ekstern skjerm er tilkoblet."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Purkaminen kansi suljettuna on käytössä – kansi voi olla kiinni, kun ulkoinen näyttö on kytkettynä."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vybíjení se zavřeným víkem je zapnuté – víko může zůstat zavřené, dokud je připojen externí displej."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A lecsukott fedeles kisütés be van kapcsolva – a fedél zárva maradhat, amíg külső kijelző van csatlakoztatva."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descărcarea cu capacul închis este activată: capacul poate rămâne închis cât timp este conectat un monitor extern."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Η εκφόρτιση με κλειστό καπάκι είναι ενεργή· το καπάκι μπορεί να μείνει κλειστό όσο είναι συνδεδεμένη εξωτερική οθόνη."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Розряд із закритою кришкою увімкнено: кришку можна тримати закритою, поки під’єднано зовнішній дисплей."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "פריקה עם מכסה סגור פעילה – המכסה יכול להישאר סגור כל עוד מחובר מסך חיצוני."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التفريغ والغطاء مغلق مفعّل، لذا يمكن إبقاء الغطاء مغلقًا أثناء توصيل شاشة خارجية."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ढक्कन बंद डिस्चार्ज चालू है, इसलिए बाहरी डिस्प्ले जुड़े रहने तक ढक्कन बंद रह सकता है।"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "เปิดการปล่อยประจุแบบปิดฝาไว้ จึงปิดฝาได้ขณะเชื่อมต่อจอภาพภายนอก"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xả khi đóng nắp đang bật, nên có thể đóng nắp khi đang kết nối màn hình ngoài."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pengosongan dengan penutup tertutup aktif, jadi penutup boleh tetap tertutup selama layar eksternal terhubung."
+          }
+        }
+      }
     }
   }
 }
