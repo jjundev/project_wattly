@@ -30,6 +30,8 @@
   <img src="docs/assets/menubar-live.gif" alt="메뉴바 키네틱 모션" width="720" />
 </p>
 
+https://github.com/user-attachments/assets/6e1fd0a5-dc44-4cb5-9b87-73d9aae14484
+
 ### 핵심 특징
 
 - **순수 Swift 6 & 네이티브 SwiftUI**: 서드파티 런타임 의존성 0개, Electron 오버헤드 전무, 불필요한 Metal GPU 웨이크업 완전 배제.

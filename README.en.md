@@ -30,6 +30,8 @@
   <img src="docs/assets/menubar-live.gif" alt="Menu Bar Kinetic Motion" width="720" />
 </p>
 
+https://github.com/user-attachments/assets/6e1fd0a5-dc44-4cb5-9b87-73d9aae14484
+
 ### Key Features
 
 - **Pure Swift 6 & Native SwiftUI**: Zero third-party runtime dependencies, zero Electron overhead, and completely eliminates unnecessary Metal GPU wakeups.
