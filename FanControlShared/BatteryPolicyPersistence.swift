@@ -52,6 +52,16 @@ public protocol BatteryPolicyStoring: Sendable {
     func load() throws -> PersistedBatteryPolicy?
     func save(_ policy: PersistedBatteryPolicy) throws
     func remove() throws
+    /// `sleepInhibitedAt` 마커만, `Codable` 전체 디코딩 없이 읽는다. `load()`가
+    /// `unreadablePayload`·`unsupportedSchema`·`rollbackFailed`로 던지는 바로 그 순간에도
+    /// 마커는 여전히 필요하다 — 그 값이 재부팅을 넘어 남는 `SleepDisabled`의 유일한 정리
+    /// 단서이기 때문이다. 기본 구현은 `nil`(메모리 기반 저장소는 원시 바이트가 없다);
+    /// `BatteryPolicyFileStore`만 실제로 읽는다.
+    func loadSleepInhibitedAtLenient() -> TimeInterval?
+}
+
+extension BatteryPolicyStoring {
+    public func loadSleepInhibitedAtLenient() -> TimeInterval? { nil }
 }
 
 public final class BatteryPolicyFileStore: BatteryPolicyStoring, @unchecked Sendable {
@@ -159,6 +169,20 @@ public final class BatteryPolicyFileStore: BatteryPolicyStoring, @unchecked Send
             try? fileManager.removeItem(at: temporaryURL)
             throw error
         }
+    }
+
+    /// 순수 읽기, 부수효과 없음 — `load()`의 `.previous` 롤백 rename은 여기서 하지 않는다.
+    /// 그 rename은 `load()`만의 몫이다: 저 함수가 이미 호출돼 실패했을 시점에는 캐노니컬
+    /// 파일이 놓일 자리에 이미 올바른 내용이 있거나(롤백 성공 후 디코드만 실패), 애초에
+    /// `.previous`가 없었거나(디코드 실패) 둘 중 하나다. 원시 JSON에서 `sleepInhibitedAt`
+    /// 키 하나만 뽑아내므로, 현재 바이너리가 `schemaVersion`을 이해하지 못해도(다운그레이드
+    /// 등) 값이 나온다. 파일이 없거나, 못 읽거나, JSON이 아니거나, 키가 없으면 `nil`.
+    public func loadSleepInhibitedAtLenient() -> TimeInterval? {
+        guard let data = try? Data(contentsOf: fileURL) else { return nil }
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
+        }
+        return json["sleepInhibitedAt"] as? TimeInterval
     }
 
     public func remove() throws {

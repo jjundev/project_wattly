@@ -97,6 +97,12 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
                 reason: failure)
         } catch {
             engine.configure(.init(enabled: false))
+            // `store.load()`가 던지면(스키마 다운그레이드, 손상된 페이로드, 롤백 실패) 위의
+            // `resolvedStoredPolicy()`는 마커를 미러링할 기회조차 없었다. 정상 디코딩 없이
+            // 원시 바이트에서 마커만 건져 온다 — 이 값이 없으면 아래 두 정리 경로 모두
+            // `sleepInhibitedAt == nil`이라 `releaseSleepInhibition`이 조용히 no-op이 되고,
+            // 재부팅을 넘어 남는 `SleepDisabled`를 이 프로세스의 생애 내내 다시는 못 지운다.
+            sleepInhibitedAt = store.loadSleepInhibitedAtLenient()
             if isRollbackFailure(error) {
                 isSafeToServe = false
                 _ = releaseForTermination()
@@ -150,6 +156,10 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
                 reason: .init(kind: .powerSourceUnreadable))
         } catch {
             engine.configure(.init(enabled: false))
+            // `restore`의 같은 catch 블록과 동일한 이유다: 이게 없으면 `store.load()`가 던질 때
+            // 마커(와 그것이 지키는, 재부팅을 넘어 남는 `SleepDisabled`)를 다음 시작까지도
+            // 되돌릴 방법이 없어진다.
+            sleepInhibitedAt = store.loadSleepInhibitedAtLenient()
             if isRollbackFailure(error) {
                 isSafeToServe = false
                 _ = releaseForTermination()

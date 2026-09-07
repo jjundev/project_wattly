@@ -424,6 +424,54 @@ import Testing
         #expect(decoded.topUpReachedFullAt == nil)
     }
 
+    /// 이게 이 함수가 존재하는 유일한 이유다: 지금 바이너리가 이해하지 못하는 스키마라
+    /// `Codable` 경로(`load()`)는 `unsupportedSchema`로 던지지만, 마커는 여전히 원시 JSON
+    /// 안에 그대로 있고 이 함수는 그것을 뽑아낼 수 있어야 한다.
+    @Test func lenientReadRecoversTheMarkerFromAPayloadTheCodablePathCannotDecode() throws {
+        let (directory, store) = try temporaryStore(synchronizeDirectory: { _ in })
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        var policy = PersistedBatteryPolicy(
+            ownerUID: 501,
+            configuration: .init(enabled: true, limitPercentage: 80),
+            updatedAt: 10,
+            sleepInhibitedAt: 1_234)
+        policy.schemaVersion = 99
+        try JSONEncoder().encode(policy).write(to: store.fileURL)
+
+        #expect(throws: BatteryPolicyStoreError.unsupportedSchema(99)) {
+            _ = try store.load()
+        }
+        #expect(store.loadSleepInhibitedAtLenient() == 1_234)
+    }
+
+    /// 마커가 진짜로 없는 파일(정상 스키마, 필드만 없음)에서는 `nil`이어야 한다 — "값이 없다"와
+    /// "못 읽는다"를 섞으면 안 된다.
+    @Test func lenientReadReturnsNilForAGenuinelyAbsentMarker() throws {
+        let (directory, store) = try temporaryStore(synchronizeDirectory: { _ in })
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try store.save(.init(
+            ownerUID: 501,
+            configuration: .init(enabled: true, limitPercentage: 80),
+            updatedAt: 10))
+
+        #expect(try store.load()?.sleepInhibitedAt == nil)
+        #expect(store.loadSleepInhibitedAtLenient() == nil)
+    }
+
+    /// 파일이 아예 없거나 JSON조차 아니면 `nil` — 부수효과 없이 조용히 포기해야 한다(파일을
+    /// 만들거나, `.previous`를 롤백하거나, 뭔가를 쓰면 안 된다).
+    @Test func lenientReadReturnsNilForUnreadableBytes() throws {
+        let (directory, store) = try temporaryStore(synchronizeDirectory: { _ in })
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        #expect(store.loadSleepInhibitedAtLenient() == nil)
+
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try Data("not-json".utf8).write(to: store.fileURL)
+        #expect(store.loadSleepInhibitedAtLenient() == nil)
+    }
+
     /// 현재 코드가 쓴 파일을 구버전 헬퍼가 읽어도 스키마 검사를 통과해야 한다.
     @Test func keepsSchemaVersionOneSoOlderHelpersCanStillRead() throws {
         let data = try JSONEncoder().encode(PersistedBatteryPolicy(
