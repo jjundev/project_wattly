@@ -130,6 +130,52 @@ struct SnapshotGeneratorTests {
         }
     }
 
+    /// Enhanced expanded thermals wrapper with light/dark adaptive tokens
+    struct ExpandedThermalsWrapper: View {
+        let cpuSample: MetricSample
+        let gpuSample: MetricSample
+        let monitor: SystemMonitor
+        @Environment(\.tokens) private var t
+
+        var body: some View {
+            VStack(spacing: 8) {
+                MetricCardView(
+                    card: .cpuTemp,
+                    state: .value(cpuSample),
+                    historyValues: monitor.historyValues(for: .cpuTemp, smoothed: false),
+                    isExpanded: true
+                )
+                MetricCardView(
+                    card: .gpuTemp,
+                    state: .value(gpuSample),
+                    historyValues: monitor.historyValues(for: .gpuTemp, smoothed: false),
+                    isExpanded: true
+                )
+            }
+            .padding(14)
+            .frame(width: 320, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 16).fill(t.panelBg))
+            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(t.panelBorder, lineWidth: 1))
+            .shadow(color: Tokens.shadowFar.color, radius: Tokens.shadowFar.radius, x: 0, y: Tokens.shadowFar.y)
+            .shadow(color: Tokens.shadowNear.color, radius: Tokens.shadowNear.radius, x: 0, y: Tokens.shadowNear.y)
+        }
+    }
+
+    /// Snapshot wrapper for Settings sections with light/dark adaptive background
+    struct SettingsSectionSnapshotWrapper<Content: View>: View {
+        @ViewBuilder var content: () -> Content
+        @Environment(\.tokens) private var t
+
+        var body: some View {
+            VStack(spacing: 0) {
+                content()
+            }
+            .padding(16)
+            .frame(width: 440)
+            .background(RoundedRectangle(cornerRadius: 12).fill(t.settingsBg))
+        }
+    }
+
     /// Authentic macOS Menu Bar Simulation Strip & Balanced Theme Showcase
     struct MacOSMenuBarSimulationView: View {
         let frame: Int
@@ -452,6 +498,7 @@ struct SnapshotGeneratorTests {
             .background(Color.clear)
 
         let hostingView = NSHostingView(rootView: targetView)
+        hostingView.appearance = NSAppearance(named: .aqua)
         hostingView.frame = NSRect(x: 0, y: 0, width: targetWidth + 28, height: 1600)
         hostingView.layoutSubtreeIfNeeded()
         let fitting = hostingView.fittingSize
@@ -556,7 +603,7 @@ struct SnapshotGeneratorTests {
 
     private func generateLanguageScreenshots(language: String, subfolder: String?) async {
         UserDefaults.standard.set(language, forKey: StorageKey.appLanguage)
-        UserDefaults.standard.set(ThemeMode.dark.rawValue, forKey: StorageKey.theme)
+        UserDefaults.standard.set(ThemeMode.light.rawValue, forKey: StorageKey.theme)
         let isEnglish = (language == "en")
 
         let (monitor, fanControl, sampleMap) = await setupRichMonitor(isEnglish: isEnglish)
@@ -677,37 +724,24 @@ struct SnapshotGeneratorTests {
 
         // 9. Expand Thermals (CPU & GPU)
         let expandThermalsView = ThemedRoot {
-            VStack(spacing: 8) {
-                MetricCardView(
-                    card: .cpuTemp,
-                    state: .value(sampleMap[.cpuTemp]!),
-                    historyValues: monitor.historyValues(for: .cpuTemp, smoothed: false),
-                    isExpanded: true
-                )
-                MetricCardView(
-                    card: .gpuTemp,
-                    state: .value(sampleMap[.gpuTemp]!),
-                    historyValues: monitor.historyValues(for: .gpuTemp, smoothed: false),
-                    isExpanded: true
-                )
-            }
-            .padding(14)
-            .frame(width: 320, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Tokens.dark.panelBg))
-            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Tokens.dark.panelBorder, lineWidth: 1))
-            .shadow(color: Tokens.shadowFar.color, radius: Tokens.shadowFar.radius, x: 0, y: Tokens.shadowFar.y)
+            ExpandedThermalsWrapper(
+                cpuSample: sampleMap[.cpuTemp]!,
+                gpuSample: sampleMap[.gpuTemp]!,
+                monitor: monitor
+            )
         }
         saveSnapshot(view: expandThermalsView, filename: "expand-thermals.png", subfolder: subfolder, targetWidth: 320)
 
         // 10. Settings: Battery Section
+        let calibrationCoordinator = BatteryCalibrationCoordinator(batteryControl: batteryControlClient)
         let batterySectionView = ThemedRoot {
-            VStack(spacing: 9) {
-                SettingsBatterySection(batteryControl: batteryControlClient, scheduleCoordinator: scheduleCoordinator)
-                SettingsBatteryDischargeSection(monitor: monitor, batteryControl: batteryControlClient)
+            SettingsSectionSnapshotWrapper {
+                VStack(spacing: 9) {
+                    SettingsBatterySection(batteryControl: batteryControlClient, scheduleCoordinator: scheduleCoordinator)
+                    SettingsBatteryDischargeSection(monitor: monitor, batteryControl: batteryControlClient)
+                    SettingsBatteryCalibrationSection(batteryControl: batteryControlClient, calibration: calibrationCoordinator)
+                }
             }
-            .padding(16)
-            .frame(width: 440)
-            .background(RoundedRectangle(cornerRadius: 12).fill(Color(nsColor: .windowBackgroundColor)))
         }
         saveSnapshot(view: batterySectionView, filename: "settings-battery.png", subfolder: subfolder, targetWidth: 440)
 
@@ -715,45 +749,33 @@ struct SnapshotGeneratorTests {
         UserDefaults.standard.set(true, forKey: StorageKey.fanControlEnabled)
         await fanControl.refreshStatus()
         let fanSectionView = ThemedRoot {
-            VStack(spacing: 0) {
+            SettingsSectionSnapshotWrapper {
                 SettingsFanCurveSection(monitor: monitor, fanControl: fanControl)
             }
-            .padding(16)
-            .frame(width: 440)
-            .background(RoundedRectangle(cornerRadius: 12).fill(Color(nsColor: .windowBackgroundColor)))
         }
         saveSnapshot(view: fanSectionView, filename: "settings-fan-curve.png", subfolder: subfolder, targetWidth: 440)
 
         // 12. Settings: Menu Bar Section
         let menubarSectionView = ThemedRoot {
-            VStack(spacing: 0) {
+            SettingsSectionSnapshotWrapper {
                 SettingsMenuBarSection(monitor: monitor)
             }
-            .padding(16)
-            .frame(width: 440)
-            .background(RoundedRectangle(cornerRadius: 12).fill(Color(nsColor: .windowBackgroundColor)))
         }
         saveSnapshot(view: menubarSectionView, filename: "settings-menubar.png", subfolder: subfolder, targetWidth: 440)
 
         // 13. Settings: Thresholds Section
         let thresholdSectionView = ThemedRoot {
-            VStack(spacing: 0) {
+            SettingsSectionSnapshotWrapper {
                 SettingsThresholdSection(showsFan: monitor.isPresent(.fan))
             }
-            .padding(16)
-            .frame(width: 440)
-            .background(RoundedRectangle(cornerRadius: 12).fill(Color(nsColor: .windowBackgroundColor)))
         }
         saveSnapshot(view: thresholdSectionView, filename: "settings-thresholds.png", subfolder: subfolder, targetWidth: 440)
 
         // 14. Settings: Display Section
         let displaySectionView = ThemedRoot {
-            VStack(spacing: 0) {
+            SettingsSectionSnapshotWrapper {
                 SettingsDisplaySection(monitor: monitor)
             }
-            .padding(16)
-            .frame(width: 440)
-            .background(RoundedRectangle(cornerRadius: 12).fill(Color(nsColor: .windowBackgroundColor)))
         }
         saveSnapshot(view: displaySectionView, filename: "settings-display.png", subfolder: subfolder, targetWidth: 440)
     }

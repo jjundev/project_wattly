@@ -30,14 +30,16 @@
   <img src="docs/assets/menubar-live.gif" alt="Menu Bar Kinetic Motion" width="720" />
 </p>
 
+https://github.com/user-attachments/assets/6e1fd0a5-dc44-4cb5-9b87-73d9aae14484
+
 ### Key Features
 
 - **Pure Swift 6 & Native SwiftUI**: Zero third-party runtime dependencies, zero Electron overhead, and completely eliminates unnecessary Metal GPU wakeups.
-- **Zero-Privilege Telemetry**: Read-only telemetry operates 100% in standard user-space via `IOReport`, AppleSMC read keys, Mach kernel APIs, and IOHID. Standard monitoring requires zero root privileges or background daemons.
-- **Battery Health Suite**: 80%~95% customizable Charge Limit, Sailing Mode (natural discharge delta band), 35°C Heat Protection, One-Time Top-Up, auto and manual forced Discharge via `CHIE`, and scheduled charging with intelligent Catch-up policy.
+- **Zero-Privilege Telemetry & Helper Daemon Diagnostics**: Read-only telemetry operates 100% in standard user-space via `IOReport`, AppleSMC read keys, Mach kernel APIs, and IOHID. Standard monitoring requires zero root privileges or background daemons, while the helper daemon handling privileged system writes (fan and charge control) features real-time Health Diagnostics and One-Click Reinstall/Repair within Settings.
+- **Battery Health Suite**: 6-stage automated Battery Calibration Suite resolving BMS gas gauge drift, 80%~95% customizable Charge Limit with dynamic target completion time (Target ETA, e.g., 85% / 90%), One-Time Top-Up with a 12-hour auto-expiry safety mechanism, live telemetry wattage (-W) based auto and manual forced Discharge (50%~99%), and scheduled charging with intelligent Catch-up policy.
 - **Apple Shortcuts & App Intents Integration**: Full automation for checking battery status, setting charge limits, toggling Sailing mode, and starting top-ups via Siri and the Shortcuts app.
 - **App-Identity Intelligent Process Grouping**: Powered by the `AppIdentity` engine to group multi-instance processes by Bundle Identifier (`CFBundleIdentifier`) and display accurate user-facing application names (`CFBundleDisplayName`).
-- **Milliwatt (mW) Precision SoC Power Breakdown**: Continuous per-engine power tracking for CPU, GPU, and Apple Neural Engine (ANE) via private `IOReport` Energy Model subscriptions with 4-second EMA smoothing.
+- **Milliwatt (mW) Precision SoC Power Breakdown & Real-Time Processor Identification**: Live Apple Silicon chipset model identification via `machdep.cpu.brand_string` kernel query, combined with continuous per-engine power tracking for CPU, GPU, and Apple Neural Engine (ANE) via private `IOReport` Energy Model subscriptions with 4-second EMA smoothing.
 - **Microarchitecture CPU & GPU Metrics**: Super, Performance (P), and Efficiency (E) core cluster utilization, real-time clock frequencies (GHz), GPU 3D Renderer and Tiler utilization, and unified Metal VRAM allocations.
 - **True System Net Discharge**: Accurate whole-system power draw (including display, SSD, Wi-Fi, and audio) computed from AppleSMC voltage and amperage telemetry with signed 64-bit two's complement decoding.
 - **Smart Fan Curves & Hardware Warnings**: Zero-RPM hysteresis hold zone (48°C~55°C), relative fan load percentage (70% caution / 90% danger) threshold warnings based on `FanSample.loadPercent`, watchdog failsafes, and Verified Release hardware recovery.
@@ -66,7 +68,8 @@ Each telemetry domain in Wattly expands into a dedicated diagnostic card with re
   <img src="docs/assets/en/expand-power.png" alt="Processor Power Telemetry" width="640" />
 </p>
 
-- **Real-Time Engine Power (W)**: Continuous power tracking for CPU, GPU, and Apple Neural Engine (ANE) via private `IOReport` Energy Model channels at milliwatt precision.
+- **Real-Time Engine Power (W) & Chipset Identification**: Runtime chipset model identification via `machdep.cpu.brand_string` query displays the processor name and per-engine power in the card subline (e.g., `Apple M3 Max · CPU 1.2W · GPU 0.8W · ANE 0.0W`). Continuous power tracking for CPU, GPU, and Apple Neural Engine (ANE) is performed via private `IOReport` Energy Model channels at milliwatt precision.
+- **Compact Unit Formatting**: Implements space-efficient compact unit formatting (`CPU 1.2W`) to maximize UI information density and deliver an at-a-glance engine power profile.
 - **Top Power Consumers**: Real-time process ranking via `BundleMetadataCache` memoization, tracking foreground and background apps without unnecessary disk I/O.
 - **EMA Filtered Trends**: 4-second time-constant exponential moving average (EMA) filters eliminate sensor jitter while maintaining rapid transient response.
 
@@ -125,8 +128,9 @@ Wattly provides a complete Battery Management Suite to prevent high-voltage chem
   <img src="docs/assets/en/settings-battery.png" alt="Battery Charge Limit and Health Management" width="640" />
 </p>
 
-### 1. Charge Limit
+### 1. Charge Limit & Dynamic Target ETA
 - **Customizable Charge Ceiling**: Select desired battery charge thresholds such as 80%, 85%, 90%, or 95%.
+- **Dynamic Target ETA**: Rather than only calculating remaining time to a flat 100% full charge, Wattly computes the exact energy needed to reach your active charge ceiling (e.g., 85%, 90%) using real-time charging power (W) and remaining capacity (Wh) (e.g., `"About 25m to 85%"` or `"About 40m to 90%"`). Initiating a One-Time Top-Up seamlessly transitions the estimate to `"About 1h to full"`.
 - **Adapter AC Bypass**: Once the configured charge limit is reached, Wattly closes the battery charging gate via SMC registers (`CHTE` / `CH0B` / `BCLM`) and powers your Mac purely from the AC adapter, eliminating battery wear and heat generation.
 - **Single Write on State Transition**: Avoids polling-loop SMC writes by updating registers only on discrete state transitions, preventing `PowerLog` wakeups and CPU overhead.
 
@@ -140,14 +144,29 @@ Wattly provides a complete Battery Management Suite to prevent high-voltage chem
 
 ### 4. One-Time Top-Up
 - **One-Click 100% Charge for Travel**: Temporarily charges the battery to 100% before travel or meetings without modifying your established charge limit preferences.
-- **Dual Automatic Restoration**: Reverts to your configured charge limit (e.g., 80%) as soon as the power adapter is unplugged. Even if you stay plugged in, the helper ends Top Up on its own 12 hours after reaching 100% and notifies you — so leaving it on by accident never parks the battery at 100% indefinitely.
+- **12-Hour Auto-Expiry Safety & Notifications**: Reverts to your configured charge limit (e.g., 80%) as soon as the power adapter is unplugged. Even if you stay plugged in, the helper automatically terminates Top-Up 12 hours after reaching 100% to prevent prolonged high-voltage exposure and delivers a system notification — so leaving it on by accident never parks the battery at 100% indefinitely.
+- **Mutual Exclusion with Manual Discharge**: To prevent conflicting charge and discharge logic, manual forced discharge control is mutually excluded while One-Time Top-Up is active.
 
 ### 5. Auto & Manual Forced Discharge (Discharge Control)
-- **Forced Discharge on AC Power**: Employs SMC `CHIE` register control to draw power from the battery even while plugged in, safely draining the battery to your target level.
-- **Auto Discharge**: When lowering your charge limit below current battery level (e.g., from 90% down to 80%), Wattly automatically discharges the battery to the new threshold.
-- **Manual Discharge**: Set a custom target level (50%–100%) via slider and initiate immediate discharge with live wattage (-W) and estimated time to completion.
+- **Forced Discharge on AC Power**: Employs SMC `CHIE` register control to draw power from the battery even while plugged into AC power, safely discharging the battery to your target level.
+- **Auto Discharge vs. Manual Discharge**:
+  - **Auto Discharge**: When lowering your charge limit below current battery level (e.g., from 90% down to 80%), Wattly automatically discharges the battery to the new threshold without extra interaction.
+  - **Manual Discharge**: Set a custom target level (50%~99%) via slider and initiate immediate discharge while monitoring live power draw (-W) and estimated time to completion (the upper bound is limited to 99% since discharging to 100% has no operational purpose).
+- **Live Wattage (-W) Dynamic Discharge ETA**: Instead of static estimations, Wattly accurately calculates remaining discharge time based on live system net discharge power (negative watts, -W) and remaining battery Wh. A 10-second EMA warm-up window filters initial current surge noise to provide reliable completion time estimates.
+- **CHIE Hardware Capability Gating**: The discharge interface is safely enabled only on Apple Silicon models whose SMC hardware officially supports `CHIE` register control.
 
-### 6. Scheduled Charging
+### 6. Battery Calibration Suite
+- **Resolving BMS Gauge Drift & Preventing Sudden Shutdowns**: Maintaining continuous AC power and charge limits over prolonged periods can cause the Battery Management System (BMS) gas gauge to drift, leading to unexpected shutdowns even when battery percentage appears remaining. The Battery Calibration Suite recalibrates the upper and lower reference thresholds of the BMS to restore precision accuracy to battery percentage readings.
+- **6-Stage Automated Cycle**:
+  1. **Preflight**: Verifies prerequisites including privileged helper connectivity, AC adapter presence, hardware discharge capability, thermal safety, and disabling macOS "Optimized Battery Charging".
+  2. **100% Full Charge**: Charges battery to 100% capacity.
+  3. **Discharge to 20%**: Safely forces battery discharge down to the 20% floor while maintaining `SleepAssertion` (`IOPMAssertionCreateWithName`) to prevent idle system sleep.
+  4. **Low-Charge Soak (10 min)**: Holds at the 20% floor for 10 minutes to allow cell voltage and chemical equilibrium to settle.
+  5. **Full Re-charge to 100%**: Charges the battery back to 100% to recalibrate full-scale capacity registers in the BMS gas gauge.
+  6. **Final Soak & Restore (60 min)**: Completes a 60-minute post-charge stabilization period before safely restoring original charge limits and user policies.
+- **Dedicated Diagnostic UI Card**: Features a real-time progress bar, stage-by-stage breakdown and remaining time estimates in Settings › Battery, a Safe Abort option to cancel at any time, a 90-day / 40-cycle cooldown recommendation, and a historical calibration log popover.
+
+### 7. Scheduled Charging
 - **Time-Based Custom Routines**: Schedule charge limits and top-ups by day of the week and time (e.g., charge to 100% at 8:00 AM on weekdays, pause charging overnight).
 - **Intelligent Catch-up Policy**: If your Mac was asleep when a scheduled event was set to fire, Wattly intelligently catches up and applies the scheduled policy within 30 minutes of waking.
 
@@ -223,6 +242,7 @@ Wattly implements a strict separation of concerns to guarantee maximum security,
    - Registered as a `launchd` system service via a single, secure administrator authorization prompt only when fan control or battery charge limiting is explicitly enabled.
    - Strictly limited to writing fan target RPM registers (`F0Tg`, `F0md`) and battery SMC registers (`CHTE`, `CH0B`/`CH0C`, `CHIE`, `BCLM`).
    - Communication is secured via local XPC MachService with audit-token UID verification and a 15-second heartbeat watchdog.
+   - **Health Diagnostics & Recovery Mechanism**: Actively monitors XPC ping latency, binary version alignment, launchd registration state, and root:wheel file ownership/permissions in real time. When communication timeouts or permission degradation are detected, Settings provides an immediate one-click repair path.
    - **Verified Release**: On daemon shutdown or unexpected termination, SMC registers are read back to verify that hardware control has been cleanly restored to macOS defaults.
 
 ---
@@ -272,6 +292,7 @@ Tailor the menu bar item to match your aesthetic and information density require
   <img src="docs/assets/en/settings-display.png" alt="Display and Behavior Settings" width="640" />
 </p>
 
+- **Helper Daemon Diagnostics & One-Click Repair**: Inspect daemon operational status, version alignment, and XPC communication health directly in the 'General' settings tab via intuitive status badges. In case of daemon anomalies or permission errors, restore proper operation with a single click (`One-Click Reinstall/Repair`, including ownership transfer across user accounts).
 - **Adaptive Polling Intervals**: Configurable active (1–2s) and background (2–5s) refresh rates.
 - **Launch at Login**: Clean auto-start configuration via `SMAppService`.
 - **Temperature Units**: Toggle between Celsius (°C) and Fahrenheit (°F).
