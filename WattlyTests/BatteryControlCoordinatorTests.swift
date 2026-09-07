@@ -1845,9 +1845,12 @@ struct BatteryControlCoordinatorTests {
     @Test func restoreClearsAnOrphanedSleepInhibition() {
         let clock = MutableClock(5_000)
         let store = PolicyStoreSpy()
+        // 70은 `BatteryControlConfiguration()`의 기본 `limitPercentage`(80)와 달라야 한다 —
+        // 안 그러면 아래 마지막 검증이 순서 버그(해제가 `engine.configure(desired)`보다 먼저
+        // 실행돼 사용자 정책이 엔진 기본값으로 덮어써지는 사고)를 통과시켜 버린다.
         store.stored = PersistedBatteryPolicy(
             ownerUID: 501,
-            configuration: .init(enabled: true, limitPercentage: 80),
+            configuration: .init(enabled: true, limitPercentage: 70),
             updatedAt: 1_000,
             sleepInhibitedAt: 1_000)
         let inhibitor = SleepInhibitorSpy()
@@ -1864,7 +1867,7 @@ struct BatteryControlCoordinatorTests {
         // 해제가 사용자의 저장된 정책을 엔진 기본값으로 덮어쓰지 않았는지 확인한다 — 순서가
         // 뒤집히면(해제가 `engine.configure(desired)`보다 먼저 실행되면) 깨진다.
         #expect(store.stored?.configuration.enabled == true)
-        #expect(store.stored?.configuration.limitPercentage == 80)
+        #expect(store.stored?.configuration.limitPercentage == 70)
     }
 
     @Test func restoreWithoutPowerReadingAlsoClearsAnOrphanedSleepInhibition() {

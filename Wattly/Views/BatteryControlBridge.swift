@@ -524,10 +524,17 @@ struct BatteryControlBridge: View {
     /// writing, via `preservingActivity` — without this, any push through here (a limit edit, a
     /// wake-triggered apply, the auto-discharge toggle) would default `topUpActive` and
     /// `manualDischargeActive` to `false` and silently cancel a Top Up or manual discharge in
-    /// progress. Forwards all eleven `BatteryControlConfiguration` fields so nothing the merge
-    /// produced is dropped on the way to `client.apply`. The client's own chokepoint independently
-    /// re-derives `calibrationActive` and `calibrationTargetPercentage` from daemon status, so this
-    /// forwarding is belt-and-braces protection rather than the sole safeguard.
+    /// progress. Forwards every `BatteryControlConfiguration` field `client.apply` accepts as a
+    /// parameter so nothing the merge produced is dropped on the way there — except
+    /// `clamshellDischargeAllowed`, which is deliberately NOT one of `apply`'s parameters and so
+    /// is never threaded through here. That field is owned and recomputed by the client's own
+    /// chokepoint (`BatteryControlClient.revivedConfiguration`, via `clamshellAllowance()`), which
+    /// reads `NSScreen` live and is therefore fresher than this bridge's `@State` mirror of
+    /// `merged`. Do not "fix" this by adding a `clamshellDischargeAllowed` parameter here — that
+    /// reintroduces the twelve-call-site default-`false` hazard the chokepoint exists to prevent.
+    /// The client's own chokepoint independently re-derives `calibrationActive` and
+    /// `calibrationTargetPercentage` from daemon status too, so this forwarding is belt-and-braces
+    /// protection rather than the sole safeguard.
     ///
     /// `reason` names the call site in the log line so a field log can identify which of the
     /// several paths that share this function — a toggle, a limit edit, a wake — actually wrote to
