@@ -19,18 +19,25 @@ public struct PersistedBatteryPolicy: Codable, Equatable, Sendable {
     /// 헬퍼가 쓴 파일도 그대로 읽힌다. `schemaVersion`을 올려서는 안 되는 이유는
     /// `BatteryPolicyFileStore.load()`가 정확한 일치를 요구하기 때문이다.
     public var topUpReachedFullAt: TimeInterval?
+    /// Wattly가 시스템 `SleepDisabled`를 켠 벽시계 시각. **소유 마커 겸 12시간 만료 시계**다.
+    /// 우리가 켜지 않았으면(사용자가 직접 `pmset disablesleep 1`을 했더라도) `nil`.
+    /// 플래그를 켜기 **전에** 저장한다 — 그 사이에 데몬이 죽어도 재시작이 마커만 보고 정리한다.
+    /// `topUpReachedFullAt`과 같은 이유로 `configuration` 안이 아니라 여기 있다.
+    public var sleepInhibitedAt: TimeInterval?
 
     public init(
         ownerUID: UInt32,
         configuration: BatteryControlConfiguration,
         updatedAt: TimeInterval,
-        topUpReachedFullAt: TimeInterval? = nil
+        topUpReachedFullAt: TimeInterval? = nil,
+        sleepInhibitedAt: TimeInterval? = nil
     ) {
         schemaVersion = Self.currentSchemaVersion
         self.ownerUID = ownerUID
         self.configuration = configuration.normalized
         self.updatedAt = updatedAt
         self.topUpReachedFullAt = topUpReachedFullAt
+        self.sleepInhibitedAt = sleepInhibitedAt
     }
 }
 
@@ -109,7 +116,8 @@ public final class BatteryPolicyFileStore: BatteryPolicyStoring, @unchecked Send
             ownerUID: policy.ownerUID,
             configuration: policy.configuration,
             updatedAt: policy.updatedAt,
-            topUpReachedFullAt: policy.topUpReachedFullAt
+            topUpReachedFullAt: policy.topUpReachedFullAt,
+            sleepInhibitedAt: policy.sleepInhibitedAt
         )
         let directory = fileURL.deletingLastPathComponent()
         try fileManager.createDirectory(

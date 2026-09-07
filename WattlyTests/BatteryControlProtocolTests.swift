@@ -498,4 +498,60 @@ struct BatteryControlProtocolTests {
             manualDischargeActive: true)
         #expect(config.normalized.normalized == config.normalized)
     }
+
+    // MARK: - 클램쉘 방전
+
+    /// 필드를 모르는 구버전 페이로드(구버전 앱 → 새 데몬, 새 앱 → 구버전 데몬 양쪽).
+    @Test func clamshellDischargeFieldDefaultsOffAndDecodesLeniently() throws {
+        let legacy = #"{"enabled":true,"limitPercentage":80,"lowerHysteresisDelta":2}"#
+        let decoded = try BatteryControlCodec.decode(
+            BatteryControlConfiguration.self, from: Data(legacy.utf8))
+        #expect(decoded.clamshellDischargeAllowed == false)
+    }
+
+    @Test func clamshellDischargeFieldRoundTrips() throws {
+        let config = BatteryControlConfiguration(enabled: true, clamshellDischargeAllowed: true)
+        let data = try BatteryControlCodec.encode(config)
+        let decoded = try BatteryControlCodec.decode(BatteryControlConfiguration.self, from: data)
+        #expect(decoded.clamshellDischargeAllowed == true)
+        #expect(decoded.normalized.clamshellDischargeAllowed == true)
+    }
+
+    /// 옵트인 자체는 정책이 아니다 — 한도도 방전도 없는 설정이 이 필드 때문에 "활성"이 되면
+    /// 데몬이 아무 일도 없는데 하드웨어 상태를 붙들고 있게 된다.
+    @Test func clamshellDischargeDoesNotCountAsActivePolicy() {
+        #expect(BatteryControlConfiguration(clamshellDischargeAllowed: true).isActive == false)
+    }
+
+    @Test func statusDecodesSleepInhibitionLeniently() throws {
+        let legacy = Data(#"{"mode":"charging","currentPercentage":70,"isPowerAdapterConnected":true,"detail":"충전 중","updatedAt":1.0}"#.utf8)
+        let decoded = try BatteryControlCodec.decode(BatteryControlServiceStatus.self, from: legacy)
+        #expect(decoded.isSystemSleepInhibited == nil)
+
+        let status = BatteryControlServiceStatus(
+            mode: .charging, currentPercentage: 70, isPowerAdapterConnected: true,
+            detail: "OK", updatedAt: 1, isSystemSleepInhibited: true)
+        let round = try BatteryControlCodec.decode(
+            BatteryControlServiceStatus.self, from: BatteryControlCodec.encode(status))
+        #expect(round.isSystemSleepInhibited == true)
+    }
+
+    @Test func clamshellCapabilityRoundTripsAndOldCapabilityListsStillDecode() throws {
+        let data = try BatteryControlCodec.encode([BatteryControlCapability.clamshellDischargeV1])
+        #expect(String(decoding: data, as: UTF8.self) == #"["clamshell-discharge-v1"]"#)
+        let decoded = try BatteryControlCodec.decode([BatteryControlCapability].self, from: data)
+        #expect(decoded == [.clamshellDischargeV1])
+    }
+
+    @Test func persistedPolicyCarriesTheSleepInhibitionMarkerLeniently() throws {
+        let legacy = #"{"schemaVersion":1,"ownerUID":501,"configuration":{"enabled":true,"limitPercentage":80,"lowerHysteresisDelta":2},"updatedAt":1.0}"#
+        let decoded = try JSONDecoder().decode(PersistedBatteryPolicy.self, from: Data(legacy.utf8))
+        #expect(decoded.sleepInhibitedAt == nil)
+
+        let policy = PersistedBatteryPolicy(
+            ownerUID: 501, configuration: .init(enabled: true), updatedAt: 5, sleepInhibitedAt: 42)
+        let round = try JSONDecoder().decode(
+            PersistedBatteryPolicy.self, from: JSONEncoder().encode(policy))
+        #expect(round.sleepInhibitedAt == 42)
+    }
 }

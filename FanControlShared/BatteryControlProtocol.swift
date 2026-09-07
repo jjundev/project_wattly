@@ -19,6 +19,12 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
     /// 캘리브레이션이 내려갈 하한. `manualDischargeTarget`(하한 50)과 클램프 범위가 다르므로
     /// 별도 필드다 — 기존 수동 방전 계약을 바꾸면 Shortcuts·스케줄·UI가 전부 재검증 대상이 된다.
     public var calibrationTargetPercentage: Int
+    /// 클램쉘 방전 허용 — 앱이 "사용자 옵트인 && 외장 디스플레이 존재"로 계산해 보낸다.
+    /// 데몬은 이 값과 엔진의 실제 CHIE 상태가 함께 참일 때만 시스템 잠자기를 억제한다.
+    /// `manualDischargeActive`처럼 정책 파일에는 **저장하지 않는다** — 앱이 죽은 채 데몬만
+    /// 재시작하면 잠자기 차단 없이 시작하는 것이 안전한 방향이고, 앱이 살아 있으면 60초
+    /// reconcile이 다시 보낸다. `isActive`에는 포함하지 않는다: 옵트인은 정책이 아니다.
+    public var clamshellDischargeAllowed: Bool
 
     public init(
         enabled: Bool = false,
@@ -33,7 +39,8 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         manualDischargeActive: Bool = false,
         manualDischargeTarget: Int = 80,
         calibrationActive: Bool = false,
-        calibrationTargetPercentage: Int = 20
+        calibrationTargetPercentage: Int = 20,
+        clamshellDischargeAllowed: Bool = false
     ) {
         self.enabled = enabled
         self.limitPercentage = limitPercentage
@@ -48,6 +55,7 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         self.manualDischargeTarget = manualDischargeTarget
         self.calibrationActive = calibrationActive
         self.calibrationTargetPercentage = calibrationTargetPercentage
+        self.clamshellDischargeAllowed = clamshellDischargeAllowed
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -56,6 +64,7 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         case topUpActive
         case autoDischargeEnabled, manualDischargeActive, manualDischargeTarget
         case calibrationActive, calibrationTargetPercentage
+        case clamshellDischargeAllowed
     }
 
     public init(from decoder: any Decoder) throws {
@@ -73,6 +82,7 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         manualDischargeTarget = (try? container.decodeIfPresent(Int.self, forKey: .manualDischargeTarget)) ?? 80
         calibrationActive = (try? container.decodeIfPresent(Bool.self, forKey: .calibrationActive)) ?? false
         calibrationTargetPercentage = (try? container.decodeIfPresent(Int.self, forKey: .calibrationTargetPercentage)) ?? 20
+        clamshellDischargeAllowed = (try? container.decodeIfPresent(Bool.self, forKey: .clamshellDischargeAllowed)) ?? false
     }
 
     /// Range-clamped copy. Configurations reach the root daemon through the synthesized
@@ -91,6 +101,7 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         copy.manualDischargeTarget = Self.clampLimit(manualDischargeTarget)
         copy.calibrationActive = calibrationActive
         copy.calibrationTargetPercentage = Self.clampCalibrationTarget(calibrationTargetPercentage)
+        copy.clamshellDischargeAllowed = clamshellDischargeAllowed
         // 수동 방전과 자동 방전은 같은 CHIE를 다투는데 목적지가 서로 다르다 — 수동은
         // `manualDischargeTarget`, 자동은 `limitPercentage`. 둘이 함께 켜지면 수동 방전이
         // 끝나는 순간 자동 방전이 이어받아 사용자가 고른 목표를 지나쳐 계속 방전한다.
@@ -153,6 +164,9 @@ public enum BatteryControlCapability: String, Codable, Equatable, Sendable {
     case hardwareGateReadbackV1 = "hardware-gate-readback-v1"
     case systemPowerEventsV1 = "system-power-events-v1"
     case calibrationV1 = "calibration-v1"
+    /// 방전 중 뚜껑 닫힘 잠자기 억제. 토글 게이팅에만 쓰고 전역 `requiredCapabilities`에는
+    /// 넣지 않는다 — 넣으면 이 기능을 쓰지 않는 전 사용자가 "도우미 업데이트 필요"가 된다.
+    case clamshellDischargeV1 = "clamshell-discharge-v1"
     case unrecognized
 
     public init(from decoder: any Decoder) throws {
@@ -353,6 +367,9 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
     public var lastMaintenance: BatteryMaintenanceRecord?
     public var capabilities: [BatteryControlCapability]?
     public var batteryTemperatureCelsius: Double?
+    /// 데몬이 지금 클램쉘 방전을 위해 시스템 잠자기를 억제 중인지. `nil`은 이 필드를 모르는
+    /// 구버전 헬퍼. 앱은 이걸로 "잠자기 차단 중" 표시를 켠다.
+    public var isSystemSleepInhibited: Bool?
 
     public init(
         mode: BatteryControlServiceMode,
@@ -371,7 +388,8 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
         releaseVerification: BatteryReleaseVerification? = nil,
         lastMaintenance: BatteryMaintenanceRecord? = nil,
         capabilities: [BatteryControlCapability]? = nil,
-        batteryTemperatureCelsius: Double? = nil
+        batteryTemperatureCelsius: Double? = nil,
+        isSystemSleepInhibited: Bool? = nil
     ) {
         self.mode = mode
         self.currentPercentage = currentPercentage
@@ -390,6 +408,7 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
         self.lastMaintenance = lastMaintenance
         self.capabilities = capabilities
         self.batteryTemperatureCelsius = batteryTemperatureCelsius
+        self.isSystemSleepInhibited = isSystemSleepInhibited
     }
 }
 
