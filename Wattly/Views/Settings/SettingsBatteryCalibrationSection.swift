@@ -16,6 +16,7 @@ struct SettingsBatteryCalibrationSection: View {
 
     @State private var confirmedOptimizedChargingOff = false
     @State private var confirmedDuration = false
+    @AppStorage(StorageKey.batteryClamshellDischargeEnabled) private var clamshellDischargeEnabled = Defaults.batteryClamshellDischargeEnabled
     @State private var isCooldownConfirmationPresented = false
     @State private var isInstallFailedAlertPresented = false
     @State private var installErrorMessage = ""
@@ -105,7 +106,10 @@ struct SettingsBatteryCalibrationSection: View {
                         Text("방전 중 Mac 사용 권장 확인")
                             .font(WattlyFont.at(11, weight: .medium))
                             .foregroundStyle(t.text)
-                        Text("방전 구간에는 뚜껑을 열고 Mac을 사용 중인 상태로 두어야 합니다.")
+                        Text(verbatim: BatterySectionPresentation.calibrationLidGuidanceText(
+                            clamshellAllowed: clamshellDischargeEnabled
+                                && ExternalDisplayDetector.hasExternalDisplay(),
+                            locale: locale))
                             .font(WattlyFont.at(10, weight: .regular))
                             .foregroundStyle(t.faint)
                     }
