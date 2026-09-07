@@ -37,6 +37,7 @@
 		198E5CFB5D9718F72EFE88B1 /* MenuBarIconStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9DF9C2337653F5655C6E07C /* MenuBarIconStyle.swift */; };
 		1A2C69151BFE413F8609A063 /* FontRegistration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16699BC4854BB993A0BB6073 /* FontRegistration.swift */; };
 		1A724723A0F5517BF2BB945B /* MemoryProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBCFA8BD7953C7F1E6ED403C /* MemoryProvider.swift */; };
+		1B862C99FA79ACB0D1341910 /* SettingsHelperRowLocalizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8068843C1FE28538F84F823 /* SettingsHelperRowLocalizationTests.swift */; };
 		1BDA2834177F662ACC57E584 /* BatteryStateEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4494CD37C9CAE7B02BBA37CA /* BatteryStateEntity.swift */; };
 		1BDA88F4FC4858A8AD46A93B /* BatteryChargingSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A8F3737B4F160FB33E672F4 /* BatteryChargingSchedule.swift */; };
 		1C869B4AB9D45B967B953622 /* GetBatteryIntentsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9461EE0905313DCF0554D1A /* GetBatteryIntentsTests.swift */; };
@@ -53,11 +54,11 @@
 		299C745CE8201FE44D8C72E7 /* SetBatterySailingIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA003D6FD18426AA656705DB /* SetBatterySailingIntent.swift */; };
 		29CF63C8A5421285E940C99E /* AppleSmartBatteryReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B3645D455E2C04DF25E60E4 /* AppleSmartBatteryReader.swift */; };
 		2AC9061FF4DAA4F40409049C /* FanControlHardware.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D4830FA8F8BCCF06F3E5A6C /* FanControlHardware.swift */; };
-		2B1BF599389F437188E735B3 /* HelperHealthStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5C0BDCF907DFCA909997529 /* HelperHealthStatus.swift */; };
 		2D6C0C7BC3844C99900DCB3E /* LegacyBatteryDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3887AF0101C918C79812CE /* LegacyBatteryDetail.swift */; };
 		2E7C67D524ED5BB3C4DB0F1C /* ContactDeveloperHelperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42A2AAD1ABE517C684E0D643 /* ContactDeveloperHelperTests.swift */; };
 		2EB4D74291423268439F3CAD /* SMC.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9717A4622D508E51C16FA8 /* SMC.swift */; };
 		2F21C6921E2896512BD4FF55 /* AccessibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C59C21E293258105C63FB142 /* AccessibilityTests.swift */; };
+		312F92E11E384D05F53F2A52 /* HelperHealthStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F208D4C56EC3111C9DCE741 /* HelperHealthStatusTests.swift */; };
 		31926AD6C690491825627C11 /* OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = DECFD3734A1569FA8CFE4AF5 /* OFL.txt */; };
 		31F04BE09B697A6978E859E1 /* BatteryControlProtocolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD2D0B67397C1DDEB96E5299 /* BatteryControlProtocolTests.swift */; };
 		327B519F858C0BCAE3AB2296 /* AppReplacer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124595F06443853225A78F1C /* AppReplacer.swift */; };
@@ -73,10 +74,10 @@
 		3BD1982FD6CD538B49E62046 /* BatteryControlActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCD99ABF37248BDC9F8C75D8 /* BatteryControlActivity.swift */; };
 		3FBFEC2F4475DCB65D4DB34C /* GPUUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B90A4620183939CBA21A31BD /* GPUUsage.swift */; };
 		4008F7B4281DBE89FA852633 /* GPUProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A603117030042BF767DFF5 /* GPUProvider.swift */; };
+		4049DF17FB570D655330719E /* HelperHealthCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C388705F7073C004821DBF /* HelperHealthCoordinator.swift */; };
 		4207020B2E75513096E2A520 /* MenuBarIconStyleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0A9DCD494EBC66A4EAD8798 /* MenuBarIconStyleTests.swift */; };
 		4219CC4B500EF72AA9C617E6 /* CardPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FADA80FC02FE00A50BB9B45 /* CardPresentation.swift */; };
 		4246E0D4D39477B3418FAF05 /* MetricState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8438B433DF80F449BCB80630 /* MetricState.swift */; };
-		4283CCF2E0DD458F8606F2CE /* HelperHealthCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D61E958F20AE4BD1898E2FE2 /* HelperHealthCoordinatorTests.swift */; };
 		42D2D7E93A275138AD2FD1BB /* FanControlProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8986A56C6D4C7B2671573BA6 /* FanControlProtocol.swift */; };
 		4587922601A6E87A81367A73 /* GPUProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E17CA2A3537249BE71E29BDA /* GPUProviderTests.swift */; };
 		459C8A0FEDF87980EB44E521 /* ProcessPowerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE68DC8258B9BDE754435964 /* ProcessPowerTests.swift */; };
@@ -84,6 +85,7 @@
 		485735366A6681DDDB9B001C /* CPUUsageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C6277EFF84708F461754CA3 /* CPUUsageTests.swift */; };
 		49AA601B5366311728109CD7 /* BatteryCalibrationStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF1EBF296BE952176C65626F /* BatteryCalibrationStateTests.swift */; };
 		4BC2EA1A342CCFB33F863AF2 /* GlyphsRenderingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD98A9BCB03687E506F17880 /* GlyphsRenderingTests.swift */; };
+		4C49B4A67584FC4AE1144348 /* SettingsHelperRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE2A8F1258C5C6019C93D87B /* SettingsHelperRow.swift */; };
 		4D2FE12ACAD52D739A069CB8 /* KineticNotchMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 747B4163C3F814DAB3F6FF79 /* KineticNotchMotion.swift */; };
 		4D6D1758D912C9665D61B30E /* FanHelperInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBFEAF99D7BA99D508081973 /* FanHelperInstaller.swift */; };
 		4E359CE50E7147418034BB56 /* SystemPowerEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5965A3F35F0E5712BFCCBE1E /* SystemPowerEvent.swift */; };
@@ -113,7 +115,6 @@
 		6660A14E623D3DEC94C6B52A /* ProcessListRowsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6C3AA985880481E4518D640 /* ProcessListRowsView.swift */; };
 		66F5DC11AD905C47CA6FD2B9 /* SMCControlConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D099A27439E793C3ECB63995 /* SMCControlConnection.swift */; };
 		67087007F09610655F68D44C /* Clock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D2CEA18A30B021587C24F0A /* Clock.swift */; };
-		67A8DFD601C94D6AA7025CAD /* SettingsHelperRowLocalizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A88706C0A2C642E5A6F5DC19 /* SettingsHelperRowLocalizationTests.swift */; };
 		6908BD61C6584F0B0EAF637D /* MemoryUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA98B2B1F73BCF4A0B7AC05B /* MemoryUsage.swift */; };
 		6B2F831809B0D8A0F8F0C744 /* SetBatteryHeatProtectionIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B864D357D37A2D1C7EF0F359 /* SetBatteryHeatProtectionIntent.swift */; };
 		6BDFC180CB5F311F17D45B9A /* FanCurve.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E19061EEFC33CF7AA70F56 /* FanCurve.swift */; };
@@ -128,7 +129,6 @@
 		7259649CF33BB401BF958FC6 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 10046C74852A9594332DFE8A /* Localizable.xcstrings */; };
 		730DC777E9D7FB24A4D08FA7 /* ScheduleEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70D945C3A3542F7B047050C1 /* ScheduleEditorSheet.swift */; };
 		73E2133420A33E60F7329D42 /* HistoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 832652672791FAC9750165B6 /* HistoryTests.swift */; };
-		75A0B8D9B03E92005176E515 /* HelperHealthStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F65AC48C60ECCBFFC00A6547 /* HelperHealthStatusTests.swift */; };
 		76E75AD3822C82A31DE207FA /* BatteryControlCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 623052F3C8F3159B89D17C07 /* BatteryControlCoordinator.swift */; };
 		771C21215370277A12B55257 /* FanProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEC258F1D9F66D5F05AF9385 /* FanProvider.swift */; };
 		773880ADE601B2BCDF06339D /* BatteryControlPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA51C3D260F6EFB5508E0F3 /* BatteryControlPolicy.swift */; };
@@ -162,6 +162,7 @@
 		977A2033E508B62A05D73EF1 /* BatteryControlStatusReasonTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C16DF09316B62A231AF32ED /* BatteryControlStatusReasonTests.swift */; };
 		97B31AD579ADE6B91E2EBEBD /* SettingsBatteryDischargeSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D43CCEF18CCB1316C50C98D7 /* SettingsBatteryDischargeSection.swift */; };
 		98FFEDBA03EB593EF689E781 /* AppUninstallerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D987ECF9FA534486FD44FE62 /* AppUninstallerTests.swift */; };
+		994CBF4E89C2A318C4DF9D79 /* HelperHealthCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AD856AB36982288E8C534F /* HelperHealthCoordinatorTests.swift */; };
 		994DF9C6292BD94FD6D281A4 /* PollPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = D85F4FD3A4E6BB168DABACA7 /* PollPolicy.swift */; };
 		9C4329A35497EAEC641093F2 /* PollPolicyBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CB2A49DA4F828109BC87F53 /* PollPolicyBridge.swift */; };
 		9E26AAF77D672AD6ACCD8C89 /* LegacyBatteryDetailTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52ACBBDE46B24829E66C727E /* LegacyBatteryDetailTests.swift */; };
@@ -232,7 +233,6 @@
 		E6C0D1635D71C97F5CD33F38 /* SettingsThresholdSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D36F339C0C638F34767B0B8 /* SettingsThresholdSection.swift */; };
 		E6D4F1BE411CB7202D52B89D /* BatteryPowerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B193EC77CC4F6135B8F3566 /* BatteryPowerTests.swift */; };
 		E71D6FB2DE23A64F7DCB69CD /* SystemPowerEventPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0D7DBD5376ED91F56FDBD9 /* SystemPowerEventPolicyTests.swift */; };
-		E8A1D39B7C12F40E9A5B7211 /* SettingsHelperRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7D2C41E8B903E5F1C6A4892 /* SettingsHelperRow.swift */; };
 		E8F53E1FD0358B62A32785F5 /* BatteryControlProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D241451DA0F58ACE5856526D /* BatteryControlProtocol.swift */; };
 		ECF0D7AB16AF05D3FCE25EFB /* BatteryControlActivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A2D2667DA9A3152F526BFF /* BatteryControlActivityTests.swift */; };
 		EE923953EF8412A0896CD8DC /* SettingsBehaviorSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE120FEF8869E1F4BDD7EF9 /* SettingsBehaviorSection.swift */; };
@@ -245,9 +245,9 @@
 		F44A4D3FC723BB45C7C6802A /* CardExpandRegion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C57CD51031CA86CBEF2930C /* CardExpandRegion.swift */; };
 		F48D587B35C24FE8C443EA53 /* PowerFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74C017939D625E5F4784134A /* PowerFlow.swift */; };
 		F543F2B2FB157D47528C809F /* LocalizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DA72C9411B1C36567589906 /* LocalizationTests.swift */; };
-		F69FC6890D4B4BDE88D169C5 /* HelperHealthCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0947FA53C54A4720AFB62674 /* HelperHealthCoordinator.swift */; };
 		F7076E3A7812D0FB55698E7E /* BatteryDaemonControlServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7747D786E6821A5219A65220 /* BatteryDaemonControlServiceTests.swift */; };
 		F75BBDEA46E53B9724E142FA /* FanControlPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A194EF1DED33C4B8EE27DF65 /* FanControlPolicyTests.swift */; };
+		F7F1AF02B0DD915827D8120B /* HelperHealthStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C479C746F6CFFE3818D88E5 /* HelperHealthStatus.swift */; };
 		F80BC2C8905EECB7EAE8DA5C /* SystemMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F61FA5F6DFF92047EE2B7B8E /* SystemMonitor.swift */; };
 		F8C06B1EF48C88E986B44520 /* ProcessPower.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21242F142598B4648C88DB0C /* ProcessPower.swift */; };
 		FBF99CF1E0F83E6CE911CD34 /* MenuBarGlyphTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 341AB84EA25E71EC8BED209D /* MenuBarGlyphTests.swift */; };
@@ -296,7 +296,6 @@
 		0721DEAA1855EE4C25F48F35 /* Temperature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Temperature.swift; sourceTree = "<group>"; };
 		07C1BF327FACCDB9FAB5213C /* SettingsResetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsResetTests.swift; sourceTree = "<group>"; };
 		090A394ACE94BD151A0F164E /* BatteryLimitConfigEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryLimitConfigEntity.swift; sourceTree = "<group>"; };
-		0947FA53C54A4720AFB62674 /* HelperHealthCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperHealthCoordinator.swift; sourceTree = "<group>"; };
 		09A53C49214CBBFA066B1697 /* Fan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fan.swift; sourceTree = "<group>"; };
 		0B6AC47544D510687A448554 /* SetBatteryLimitIntentsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetBatteryLimitIntentsTests.swift; sourceTree = "<group>"; };
 		0BAE2B03304F1AE1D1749CD9 /* WattlyShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WattlyShortcuts.swift; sourceTree = "<group>"; };
@@ -328,6 +327,7 @@
 		2BDB04EE56730299943D5D51 /* BatteryControlPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryControlPolicyTests.swift; sourceTree = "<group>"; };
 		2CE18CEEC4C10EBF94CFD85F /* MenuBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarItem.swift; sourceTree = "<group>"; };
 		2E3CEC05A8EC12EB24156C91 /* CardReorderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardReorderTests.swift; sourceTree = "<group>"; };
+		2F208D4C56EC3111C9DCE741 /* HelperHealthStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperHealthStatusTests.swift; sourceTree = "<group>"; };
 		2FDBCEE7C543E46F486E93C0 /* ThresholdTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThresholdTests.swift; sourceTree = "<group>"; };
 		30CFB92C90260B259E7D218E /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		32D8574AAFF0BFEF6380060D /* FakeProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeProvider.swift; sourceTree = "<group>"; };
@@ -351,6 +351,7 @@
 		43761373E1878A83B8F6365E /* PopoverHeroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverHeroView.swift; sourceTree = "<group>"; };
 		43D95A247BDE0AECF60E98A4 /* BatteryNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryNotificationManager.swift; sourceTree = "<group>"; };
 		4494CD37C9CAE7B02BBA37CA /* BatteryStateEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryStateEntity.swift; sourceTree = "<group>"; };
+		44AD856AB36982288E8C534F /* HelperHealthCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperHealthCoordinatorTests.swift; sourceTree = "<group>"; };
 		4533B30821882929BD063FA4 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		4889AE37A893CA3BEB6CED49 /* FanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanTests.swift; sourceTree = "<group>"; };
 		4AE63A3412207498B4F2A877 /* MenuBarText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarText.swift; sourceTree = "<group>"; };
@@ -397,6 +398,7 @@
 		7818C9B5500C51EA6F62B3F4 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		7B2DE33D7B63228682966B89 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		7C2C961D969FBDB6F6A72907 /* BatteryDaemonControlService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryDaemonControlService.swift; sourceTree = "<group>"; };
+		7C479C746F6CFFE3818D88E5 /* HelperHealthStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperHealthStatus.swift; sourceTree = "<group>"; };
 		7F4F7AF2CAC7816F6FA756B2 /* MemoryUsageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryUsageTests.swift; sourceTree = "<group>"; };
 		7FF3A85EC269993CF6023AEB /* AutoUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoUpdater.swift; sourceTree = "<group>"; };
 		8019FCE380B79CD2EE2C222F /* BatterySchedulePersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatterySchedulePersistenceTests.swift; sourceTree = "<group>"; };
@@ -431,8 +433,7 @@
 		A52795641AA21F78A0711276 /* FanControlProtocolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanControlProtocolTests.swift; sourceTree = "<group>"; };
 		A61C78982D0A278875AC6792 /* SmoothingOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmoothingOverlay.swift; sourceTree = "<group>"; };
 		A6C3AA985880481E4518D640 /* ProcessListRowsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessListRowsView.swift; sourceTree = "<group>"; };
-		A7D2C41E8B903E5F1C6A4892 /* SettingsHelperRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsHelperRow.swift; sourceTree = "<group>"; };
-		A88706C0A2C642E5A6F5DC19 /* SettingsHelperRowLocalizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsHelperRowLocalizationTests.swift; sourceTree = "<group>"; };
+		A8068843C1FE28538F84F823 /* SettingsHelperRowLocalizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsHelperRowLocalizationTests.swift; sourceTree = "<group>"; };
 		ABB8CAFE2C2774B233386F90 /* BatteryStatusText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryStatusText.swift; sourceTree = "<group>"; };
 		ACDC5AEC1E8EC996DFF101D8 /* HeroSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeroSelectionTests.swift; sourceTree = "<group>"; };
 		ADCD49E78A7446DE396FBE48 /* SmoothingOverlayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmoothingOverlayTests.swift; sourceTree = "<group>"; };
@@ -452,9 +453,9 @@
 		BE75CA2DE8868EF3E590D31B /* SetBatteryTopUpIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetBatteryTopUpIntent.swift; sourceTree = "<group>"; };
 		BF9DA7E3F3309F3C4BB5A489 /* PrivilegedHelperInstallSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivilegedHelperInstallSession.swift; sourceTree = "<group>"; };
 		C07B167FB08E7FB516557461 /* SpecialBatteryIntentsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpecialBatteryIntentsTests.swift; sourceTree = "<group>"; };
+		C0C388705F7073C004821DBF /* HelperHealthCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperHealthCoordinator.swift; sourceTree = "<group>"; };
 		C48EFA903806186E968B2D77 /* WattlyFanDaemon */ = {isa = PBXFileReference; includeInIndex = 0; path = WattlyFanDaemon; sourceTree = BUILT_PRODUCTS_DIR; };
 		C59C21E293258105C63FB142 /* AccessibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityTests.swift; sourceTree = "<group>"; };
-		C5C0BDCF907DFCA909997529 /* HelperHealthStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperHealthStatus.swift; sourceTree = "<group>"; };
 		C7B5E285FF8EA4DDD90B3B03 /* WattlyFont.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WattlyFont.swift; sourceTree = "<group>"; };
 		C8E10685EA79A5A24CF69BD5 /* BatteryScheduleCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryScheduleCoordinatorTests.swift; sourceTree = "<group>"; };
 		C9461EE0905313DCF0554D1A /* GetBatteryIntentsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetBatteryIntentsTests.swift; sourceTree = "<group>"; };
@@ -471,7 +472,6 @@
 		D43CCEF18CCB1316C50C98D7 /* SettingsBatteryDischargeSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsBatteryDischargeSection.swift; sourceTree = "<group>"; };
 		D4E19061EEFC33CF7AA70F56 /* FanCurve.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanCurve.swift; sourceTree = "<group>"; };
 		D53F3C623B3A63980E78B204 /* FanCurvePresetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanCurvePresetTests.swift; sourceTree = "<group>"; };
-		D61E958F20AE4BD1898E2FE2 /* HelperHealthCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperHealthCoordinatorTests.swift; sourceTree = "<group>"; };
 		D620F32C016A23C9A9478E15 /* CPUFrequency.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUFrequency.swift; sourceTree = "<group>"; };
 		D8019EC757BBE28FC570B71D /* PowerEnergyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerEnergyTests.swift; sourceTree = "<group>"; };
 		D85F4FD3A4E6BB168DABACA7 /* PollPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollPolicy.swift; sourceTree = "<group>"; };
@@ -497,6 +497,7 @@
 		EBCFA8BD7953C7F1E6ED403C /* MemoryProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryProvider.swift; sourceTree = "<group>"; };
 		EC8C18034B5461609C27D17F /* BatteryControlClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryControlClientTests.swift; sourceTree = "<group>"; };
 		ED30DA02B6FB8098DC57562A /* BatteryCalibration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryCalibration.swift; sourceTree = "<group>"; };
+		EE2A8F1258C5C6019C93D87B /* SettingsHelperRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsHelperRow.swift; sourceTree = "<group>"; };
 		EE68DC8258B9BDE754435964 /* ProcessPowerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessPowerTests.swift; sourceTree = "<group>"; };
 		EEC258F1D9F66D5F05AF9385 /* FanProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanProvider.swift; sourceTree = "<group>"; };
 		F0BB325E6C8D3C6B7207404B /* BatteryPower.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryPower.swift; sourceTree = "<group>"; };
@@ -505,7 +506,6 @@
 		F47F59935E82A4ADE8A739EE /* GPUUsageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUUsageTests.swift; sourceTree = "<group>"; };
 		F5A2477E9AA6A5A4DB7D3374 /* BatteryCalibrationCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryCalibrationCoordinatorTests.swift; sourceTree = "<group>"; };
 		F61FA5F6DFF92047EE2B7B8E /* SystemMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemMonitor.swift; sourceTree = "<group>"; };
-		F65AC48C60ECCBFFC00A6547 /* HelperHealthStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperHealthStatusTests.swift; sourceTree = "<group>"; };
 		F83934D3000879D7EC333BBA /* AppIdentityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIdentityTests.swift; sourceTree = "<group>"; };
 		F92629386B95781B674D6393 /* SleepAssertion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepAssertion.swift; sourceTree = "<group>"; };
 		F9AB5AA6871BCF1DC1EEBBE7 /* CPUUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUUsage.swift; sourceTree = "<group>"; };
@@ -608,8 +608,8 @@
 				2813B956E72818E8C1E4C66F /* BatteryControlClient.swift */,
 				11BF38B0353D3ED11BCAD6D5 /* FanControlClient.swift */,
 				FBFEAF99D7BA99D508081973 /* FanHelperInstaller.swift */,
-				0947FA53C54A4720AFB62674 /* HelperHealthCoordinator.swift */,
-				C5C0BDCF907DFCA909997529 /* HelperHealthStatus.swift */,
+				C0C388705F7073C004821DBF /* HelperHealthCoordinator.swift */,
+				7C479C746F6CFFE3818D88E5 /* HelperHealthStatus.swift */,
 				BF9DA7E3F3309F3C4BB5A489 /* PrivilegedHelperInstallSession.swift */,
 			);
 			path = Control;
@@ -749,8 +749,8 @@
 				DD98A9BCB03687E506F17880 /* GlyphsRenderingTests.swift */,
 				E17CA2A3537249BE71E29BDA /* GPUProviderTests.swift */,
 				F47F59935E82A4ADE8A739EE /* GPUUsageTests.swift */,
-				D61E958F20AE4BD1898E2FE2 /* HelperHealthCoordinatorTests.swift */,
-				F65AC48C60ECCBFFC00A6547 /* HelperHealthStatusTests.swift */,
+				44AD856AB36982288E8C534F /* HelperHealthCoordinatorTests.swift */,
+				2F208D4C56EC3111C9DCE741 /* HelperHealthStatusTests.swift */,
 				ACDC5AEC1E8EC996DFF101D8 /* HeroSelectionTests.swift */,
 				832652672791FAC9750165B6 /* HistoryTests.swift */,
 				EB98C62D1605495571FB1DDC /* KineticNotchMotionTests.swift */,
@@ -769,7 +769,7 @@
 				EE68DC8258B9BDE754435964 /* ProcessPowerTests.swift */,
 				0B6AC47544D510687A448554 /* SetBatteryLimitIntentsTests.swift */,
 				FABB92198D4D1EBD8F5F9CBF /* SettingsBatterySectionTests.swift */,
-				A88706C0A2C642E5A6F5DC19 /* SettingsHelperRowLocalizationTests.swift */,
+				A8068843C1FE28538F84F823 /* SettingsHelperRowLocalizationTests.swift */,
 				DABD59B5D69709138741DA7F /* SettingsMenuBarIconSectionTests.swift */,
 				5F662276EE8D07C2C383BE24 /* SettingsProgressBarTests.swift */,
 				07C1BF327FACCDB9FAB5213C /* SettingsResetTests.swift */,
@@ -883,7 +883,7 @@
 				4FE120FEF8869E1F4BDD7EF9 /* SettingsBehaviorSection.swift */,
 				7554F42F83C83A8A93CFA4A9 /* SettingsDisplaySection.swift */,
 				B86536ADA399D72C4BCB2C78 /* SettingsFanCurveSection.swift */,
-				A7D2C41E8B903E5F1C6A4892 /* SettingsHelperRow.swift */,
+				EE2A8F1258C5C6019C93D87B /* SettingsHelperRow.swift */,
 				E2C70F6D347796A4C2CB1949 /* SettingsMenuBarSection.swift */,
 				679485EF3E931D456DF31A16 /* SettingsScheduleCard.swift */,
 				1D36F339C0C638F34767B0B8 /* SettingsThresholdSection.swift */,
@@ -1114,8 +1114,8 @@
 				53F104F4F92C876149567B1A /* GPUUsageTests.swift in Sources */,
 				1C869B4AB9D45B967B953622 /* GetBatteryIntentsTests.swift in Sources */,
 				4BC2EA1A342CCFB33F863AF2 /* GlyphsRenderingTests.swift in Sources */,
-				4283CCF2E0DD458F8606F2CE /* HelperHealthCoordinatorTests.swift in Sources */,
-				75A0B8D9B03E92005176E515 /* HelperHealthStatusTests.swift in Sources */,
+				994CBF4E89C2A318C4DF9D79 /* HelperHealthCoordinatorTests.swift in Sources */,
+				312F92E11E384D05F53F2A52 /* HelperHealthStatusTests.swift in Sources */,
 				5AADB450E100B4CB2C611335 /* HeroSelectionTests.swift in Sources */,
 				73E2133420A33E60F7329D42 /* HistoryTests.swift in Sources */,
 				85DEA3CD13BEF82F6D68687F /* KineticNotchMotionTests.swift in Sources */,
@@ -1134,7 +1134,7 @@
 				459C8A0FEDF87980EB44E521 /* ProcessPowerTests.swift in Sources */,
 				D86BE1952B4474661A7B5730 /* SetBatteryLimitIntentsTests.swift in Sources */,
 				5C4E56678AFDAC4C111E0FCB /* SettingsBatterySectionTests.swift in Sources */,
-				67A8DFD601C94D6AA7025CAD /* SettingsHelperRowLocalizationTests.swift in Sources */,
+				1B862C99FA79ACB0D1341910 /* SettingsHelperRowLocalizationTests.swift in Sources */,
 				A69BDDADEECCD817F22E0380 /* SettingsMenuBarIconSectionTests.swift in Sources */,
 				4FC06151A38690676548CC4D /* SettingsProgressBarTests.swift in Sources */,
 				ADD80CA70B5601FAC82CA262 /* SettingsResetTests.swift in Sources */,
@@ -1257,8 +1257,8 @@
 				54B61E05878590650372A7D7 /* GetBatteryStatusIntent.swift in Sources */,
 				24E614EA3299409018DD6491 /* Glyphs.swift in Sources */,
 				509F33FACE47668FBB3B3535 /* HardwareModel.swift in Sources */,
-				F69FC6890D4B4BDE88D169C5 /* HelperHealthCoordinator.swift in Sources */,
-				2B1BF599389F437188E735B3 /* HelperHealthStatus.swift in Sources */,
+				4049DF17FB570D655330719E /* HelperHealthCoordinator.swift in Sources */,
+				F7F1AF02B0DD915827D8120B /* HelperHealthStatus.swift in Sources */,
 				C62950358A727257558A982E /* History.swift in Sources */,
 				4D2FE12ACAD52D739A069CB8 /* KineticNotchMotion.swift in Sources */,
 				2D6C0C7BC3844C99900DCB3E /* LegacyBatteryDetail.swift in Sources */,
@@ -1301,7 +1301,7 @@
 				A292F6D7B2D0DAAC999ECBB7 /* SettingsComponents.swift in Sources */,
 				7BE1FDABEF3CF4CCF2C86E9C /* SettingsDisplaySection.swift in Sources */,
 				13C461FCBF4207B4B3B64FB9 /* SettingsFanCurveSection.swift in Sources */,
-				E8A1D39B7C12F40E9A5B7211 /* SettingsHelperRow.swift in Sources */,
+				4C49B4A67584FC4AE1144348 /* SettingsHelperRow.swift in Sources */,
 				BE6AE1D1E6732C6E0961A9F0 /* SettingsMenuBarSection.swift in Sources */,
 				CBE11652E044DD70C60D7A8D /* SettingsReset.swift in Sources */,
 				88B34E0FED5FED27076FFA8E /* SettingsScheduleCard.swift in Sources */,
@@ -1411,13 +1411,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS = NO;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Wattly;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Created by jjundev";
-				MARKETING_VERSION = 1.0.5;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.jjundev.Wattly;
 				PRODUCT_NAME = Wattly;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1441,13 +1441,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS = NO;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Wattly;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Created by jjundev";
-				MARKETING_VERSION = 1.0.5;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.jjundev.Wattly;
 				PRODUCT_NAME = Wattly;
 				SWIFT_EMIT_LOC_STRINGS = YES;
