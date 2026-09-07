@@ -6,6 +6,7 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         .hardwareGateReadbackV1,
         .systemPowerEventsV1,
         .calibrationV1,
+        .clamshellDischargeV1,
     ]
 
     private let ownerUID: UInt32
@@ -15,6 +16,12 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
     /// Top Up이 100%에 도달한 벽시계 시각. 저장 파일의 값을 그대로 미러링한다 — 이 값은 앱이
     /// 되밀어 주는 `BatteryControlConfiguration`이 아니라 코디네이터가 소유한다.
     private var topUpReachedFullAt: TimeInterval?
+    private let sleepInhibitor: any SystemSleepInhibiting
+    /// Wattly가 시스템 `SleepDisabled`를 켠 시각. 저장 파일의 값을 미러링한다(소유 마커 겸
+    /// 12시간 시계). `nil`이면 우리가 켜지 않았다.
+    private var sleepInhibitedAt: TimeInterval?
+    /// 이번 방전 세션에서 12시간을 다 썼는지. 엔진의 방전이 꺼지는 순간 리셋된다.
+    private var clamshellExpiredForCurrentDischarge = false
 
     public private(set) var latestStatus: BatteryControlServiceStatus
     public private(set) var isSafeToServe = true
@@ -29,12 +36,14 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         ownerUID: UInt32,
         store: any BatteryPolicyStoring,
         engine: BatteryControlEngine,
-        now: @escaping @Sendable () -> TimeInterval
+        now: @escaping @Sendable () -> TimeInterval,
+        sleepInhibitor: any SystemSleepInhibiting = NoopSystemSleepInhibitor()
     ) {
         self.ownerUID = ownerUID
         self.store = store
         self.engine = engine
         self.now = now
+        self.sleepInhibitor = sleepInhibitor
         let reason = BatteryControlStatusReason(kind: .initializing)
         latestStatus = BatteryControlServiceStatus(
             mode: .unavailable,
@@ -61,6 +70,14 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
                 topUpReachedFullAt = nil
             }
             engine.configure(desired)
+            // 크래시·재부팅 뒤 고아로 남은 잠자기 차단을 되돌린다. 옵트인은 저장되지 않으므로
+            // 아래에서 다시 켜질 일은 없다. 소유자가 다른 파일이면 플래그만 끄고 파일은 건드리지
+            // 않는다 — 다음 소유자의 데몬이 같은 마커를 보고 다시(무해하게) 끈다.
+            releaseSleepInhibition(persist: ownershipFailure == nil)
+            // 남의 파일이면 쓰기 성공 여부와 무관하게 미러를 버린다. 남겨 두면 곧이어
+            // `publish`→`sync`의 `.disengage` 재시도가 `persist: true`로 남의 파일에 우리 기본
+            // 설정을 쓴다. 플래그가 실제로 남았더라도 그 소유자의 데몬이 같은 마커로 다시 끈다.
+            if ownershipFailure != nil { sleepInhibitedAt = nil }
             if !desired.isActive {
                 return publishDisabledRestore(
                     currentSoC: currentSoC,
@@ -101,6 +118,14 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         do {
             let (desired, ownershipFailure) = try resolvedStoredPolicy()
             engine.configure(desired)
+            // 크래시·재부팅 뒤 고아로 남은 잠자기 차단을 되돌린다. 옵트인은 저장되지 않으므로
+            // 아래에서 다시 켜질 일은 없다. 소유자가 다른 파일이면 플래그만 끄고 파일은 건드리지
+            // 않는다 — 다음 소유자의 데몬이 같은 마커를 보고 다시(무해하게) 끈다.
+            releaseSleepInhibition(persist: ownershipFailure == nil)
+            // 남의 파일이면 쓰기 성공 여부와 무관하게 미러를 버린다. 남겨 두면 곧이어
+            // `publish`→`sync`의 `.disengage` 재시도가 `persist: true`로 남의 파일에 우리 기본
+            // 설정을 쓴다. 플래그가 실제로 남았더라도 그 소유자의 데몬이 같은 마커로 다시 끈다.
+            if ownershipFailure != nil { sleepInhibitedAt = nil }
             let gate = engine.hydrateHardwareState()
             if !desired.isActive {
                 let verification = engine.releaseVerified()
@@ -288,6 +313,8 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
             temperatureCelsius: temperatureCelsius) {
             return expired
         }
+        syncSleepInhibition()
+        status.isSystemSleepInhibited = sleepInhibitedAt != nil
         status.desiredConfiguration = engine.configuration
         status.lastMaintenance = latestStatus.lastMaintenance
         status.capabilities = Self.capabilities
@@ -354,6 +381,10 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
             }
         }
 
+        // 방전 여부와 무관하게 종료 시에는 무조건 되돌린다. 실패해도 마커는 파일에 남아
+        // 다음 시작의 `restore`가 다시 시도한다.
+        releaseSleepInhibition()
+
         var status = engine.statusForCurrentBelief(
             currentSoC: latestStatus.currentPercentage,
             isPluggedIn: latestStatus.isPowerAdapterConnected)
@@ -371,6 +402,58 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         return verification.isSafeToRemove
     }
 
+    /// 클램쉘 잠자기 억제의 유일한 동기화 지점. 모든 상태 갱신(`publish`·`sample`)이 지난다.
+    ///
+    /// 순서가 안전성이다: 켤 때는 **마커를 먼저 저장하고** 플래그를 켠다 — 그 사이에 데몬이
+    /// 죽어도 재시작이 마커만 보고 되돌린다. 마커 없는 플래그는 재부팅을 넘어 남는 고아다.
+    private func syncSleepInhibition() {
+        let discharging = engine.isDischargingNow
+        if !discharging { clamshellExpiredForCurrentDischarge = false }
+        switch BatteryClamshellSleepPolicy.decide(
+            allowed: engine.configuration.clamshellDischargeAllowed,
+            isDischarging: discharging,
+            inhibitedAt: sleepInhibitedAt,
+            expiredForCurrentDischarge: clamshellExpiredForCurrentDischarge,
+            now: now()
+        ) {
+        case .none:
+            break
+        case .engage:
+            // 사용자가 직접 켜둔 값(또는 읽기 실패)은 소유하지 않는다.
+            guard sleepInhibitor.readSleepDisabled() == false else { return }
+            sleepInhibitedAt = now()
+            do {
+                try persistPolicy(engine.configuration)
+            } catch {
+                sleepInhibitedAt = nil
+                return
+            }
+            guard sleepInhibitor.setSleepDisabled(true) else {
+                sleepInhibitedAt = nil
+                try? persistPolicy(engine.configuration)
+                return
+            }
+        case .restamp(let moment):
+            sleepInhibitedAt = moment
+            try? persistPolicy(engine.configuration)
+        case .disengage:
+            releaseSleepInhibition()
+        case .expire:
+            clamshellExpiredForCurrentDischarge = true
+            releaseSleepInhibition()
+        }
+    }
+
+    /// 마커가 있을 때만 되돌린다. 쓰기가 실패하면 마커를 남겨 다음 샘플·다음 시작이 재시도한다.
+    /// `persist: false`는 소유자가 다른 정책 파일을 읽은 시작 경로 전용 — 플래그는 끄되 남의
+    /// 파일에 우리 설정을 쓰지 않는다.
+    private func releaseSleepInhibition(persist: Bool = true) {
+        guard sleepInhibitedAt != nil else { return }
+        guard sleepInhibitor.setSleepDisabled(false) else { return }
+        sleepInhibitedAt = nil
+        if persist { try? persistPolicy(engine.configuration) }
+    }
+
     /// 정책 저장의 유일한 경로. Top Up이 꺼져 있으면 도달 시각도 함께 지운다 — 남겨 두면 다음
     /// Top Up이 켜지자마자 즉시 만료된다.
     ///
@@ -379,6 +462,9 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
     private func persistPolicy(_ configuration: BatteryControlConfiguration) throws {
         var persisted = configuration
         persisted.manualDischargeActive = false
+        // 클램쉘 옵트인도 저장하지 않는다. 앱이 죽은 채 데몬만 재시작하면 잠자기 차단 없이
+        // 시작하는 것이 안전한 방향이다 — 앱이 살아 있으면 60초 reconcile이 다시 보낸다.
+        persisted.clamshellDischargeAllowed = false
         // `calibrationActive`는 의도적으로 남긴다. 앱이 죽어도 엔진의 하한 가드가 살아 있어야
         // 최악이 "하한 도달 후 홀드"라는 설계된 안전 상태로 끝난다 (결정 #35).
         let stamp = persisted.topUpActive ? topUpReachedFullAt : nil
@@ -386,7 +472,8 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
             ownerUID: ownerUID,
             configuration: persisted,
             updatedAt: now(),
-            topUpReachedFullAt: stamp))
+            topUpReachedFullAt: stamp,
+            sleepInhibitedAt: sleepInhibitedAt))
         topUpReachedFullAt = stamp
     }
 
@@ -461,6 +548,10 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
             result: result,
             occurredAt: now(),
             reason: reason)
+        // `configure`의 persist-실패 분기(`publish(latestStatus, …)`)도 여기를 지난다. 그때
+        // `syncSleepInhibition`은 이전 설정으로 판정하고 자기 persist는 `try?`라 안전하다.
+        syncSleepInhibition()
+        status.isSystemSleepInhibited = sleepInhibitedAt != nil
         status.capabilities = Self.capabilities
         latestStatus = status
         return status
@@ -472,8 +563,12 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
     ) {
         guard let stored = try store.load() else {
             topUpReachedFullAt = nil
+            sleepInhibitedAt = nil
             return (.init(enabled: false), nil)
         }
+        // 잠자기 차단 마커는 소유자와 무관하게 이 Mac의 것이다. 소유자 불일치로 정책을
+        // 버리더라도 마커는 미러링해 `restore`가 되돌릴 수 있게 한다.
+        sleepInhibitedAt = stored.sleepInhibitedAt
         guard stored.ownerUID == ownerUID else {
             topUpReachedFullAt = nil
             return (
@@ -482,6 +577,7 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         }
         var config = stored.configuration
         config.manualDischargeActive = false
+        config.clamshellDischargeAllowed = false
         // 데몬 재시작 뒤에도 12시간 시계가 이어지도록 파일의 값을 미러링한다.
         topUpReachedFullAt = config.topUpActive ? stored.topUpReachedFullAt : nil
         return (config, nil)

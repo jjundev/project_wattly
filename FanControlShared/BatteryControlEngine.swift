@@ -79,6 +79,11 @@ public final class BatteryControlEngine: @unchecked Sendable {
 
     public var configuration: BatteryControlConfiguration { config }
 
+    /// CHIE 방전이 실제로 걸려 있는지. 클램쉘 잠자기 억제의 **유일한** 트리거다 — 수동·자동·
+    /// 캘리브레이션 어느 출처든 이 한 값으로 접히고, 어댑터 분리·발열 보호·15% 하한 가드가
+    /// 이 값을 끄는 순간 잠자기 억제도 따라서 풀린다.
+    public var isDischargingNow: Bool { isCurrentlyDischarging }
+
     func statusForCurrentBelief(
         currentSoC: Int,
         isPluggedIn: Bool,
