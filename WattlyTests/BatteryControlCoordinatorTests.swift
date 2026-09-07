@@ -1705,9 +1705,9 @@ struct BatteryControlCoordinatorTests {
 
         // 목표 도달로 방전이 끝나면 래치가 풀려, 다음 방전은 다시 켤 수 있다.
         _ = coordinator.sample(currentSoC: 50, isPluggedIn: true)
-        // `manualDischargeTarget`은 50~99로 클램프된다(`BatterySectionPresentation
-        // .manualDischargeTargetRange`). 목표를 40으로 요청해도 50으로 잘리므로, 새 방전이
-        // 실제로 걸리려면 SoC가 그 클램프된 목표보다 높아야 한다 — 그래서 55에서 다시 켠다.
+        // `manualDischargeTarget`은 50~100으로 클램프된다(`BatteryControlProtocol
+        // .clampLimit`). 목표를 40으로 요청해도 50으로 잘리므로, 새 방전이 실제로 걸리려면
+        // SoC가 그 클램프된 목표보다 높아야 한다 — 그래서 55에서 다시 켠다.
         _ = coordinator.configure(
             .init(enabled: true, limitPercentage: 80,
                   manualDischargeActive: true, manualDischargeTarget: 40,
@@ -1804,8 +1804,44 @@ struct BatteryControlCoordinatorTests {
         #expect(store.stored?.sleepInhibitedAt == nil)
     }
 
+    /// 마커 저장은 성공했는데 실제 플래그 켜기가 실패하면 마커를 되돌린다 — 그 두 줄이 없으면
+    /// 메모리 미러는 켜진 채로 남아 `BatteryClamshellSleepPolicy.decide`가 이후 12시간 내내
+    /// `.none`만 내고, 실제 시스템 플래그는 꺼진 채로 클램쉘 방전이 죽는다. 그런데도
+    /// `status.isSystemSleepInhibited`는 계속 `true`를 보고한다.
+    @Test func rollsBackTheMarkerWhenEngagingTheFlagFails() {
+        let clock = MutableClock(1_000)
+        let store = PolicyStoreSpy()
+        let inhibitor = SleepInhibitorSpy()
+        inhibitor.setShouldFail = true
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, store: store, inhibitor: inhibitor)
+
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80,
+                  manualDischargeActive: true, manualDischargeTarget: 70,
+                  clamshellDischargeAllowed: true),
+            trigger: .clientConfiguration, currentSoC: 85, isPluggedIn: true)
+
+        #expect(inhibitor.writes == [true])
+        #expect(inhibitor.current == false)
+        #expect(store.stored?.sleepInhibitedAt == nil)
+
+        // 실패가 풀리면 다음 샘플이 재시도해서 이번에는 성사된다.
+        inhibitor.setShouldFail = false
+        _ = coordinator.sample(currentSoC: 85, isPluggedIn: true)
+        #expect(inhibitor.writes == [true, true])
+        #expect(inhibitor.current == true)
+        #expect(store.stored?.sleepInhibitedAt == 1_000)
+    }
+
     /// 크래시·재부팅 복구: 파일에 마커가 남아 있으면 시작 시 무조건 되돌린다. 옵트인은 저장되지
     /// 않으므로 다시 켜지지도 않는다.
+    ///
+    /// 해제(`releaseSleepInhibition`)는 `persistPolicy(engine.configuration)`으로 쓰기 때문에,
+    /// `restore`에서 `engine.configure(desired)`보다 먼저 실행되면 엔진의 *기본* 설정이 사용자의
+    /// 저장된 정책(`enabled: true, limitPercentage: 80`) 위에 덮어써진다 — 계획 단계에서 실제로
+    /// 한 번 저지른 실수다. 아래 두 값 검증은 그 위험한 순서에서는 깨지고(엔진 기본값
+    /// `enabled: false`가 남는다), 올바른 순서에서는 사용자 정책이 그대로 다시 저장되어 통과한다.
     @Test func restoreClearsAnOrphanedSleepInhibition() {
         let clock = MutableClock(5_000)
         let store = PolicyStoreSpy()
@@ -1825,6 +1861,10 @@ struct BatteryControlCoordinatorTests {
         #expect(inhibitor.current == false)
         #expect(store.stored?.sleepInhibitedAt == nil)
         #expect(status.isSystemSleepInhibited == false)
+        // 해제가 사용자의 저장된 정책을 엔진 기본값으로 덮어쓰지 않았는지 확인한다 — 순서가
+        // 뒤집히면(해제가 `engine.configure(desired)`보다 먼저 실행되면) 깨진다.
+        #expect(store.stored?.configuration.enabled == true)
+        #expect(store.stored?.configuration.limitPercentage == 80)
     }
 
     @Test func restoreWithoutPowerReadingAlsoClearsAnOrphanedSleepInhibition() {
@@ -1863,6 +1903,61 @@ struct BatteryControlCoordinatorTests {
 
         #expect(inhibitor.writes.isEmpty)
         #expect(inhibitor.current == true)
+    }
+
+    /// 마커가 다른 사용자 소유 정책 파일에 걸려 있어도(`ownerUID` 불일치) 그 파일은 절대
+    /// 덮어쓰지 않는다 — finding 2와 같은 사고 클래스다. 플래그만 끄고 물러난다.
+    @Test func restoreDoesNotRewriteAForeignOwnersPolicyFile() {
+        let clock = MutableClock(5_000)
+        let store = PolicyStoreSpy()
+        let seeded = PersistedBatteryPolicy(
+            ownerUID: 999,
+            configuration: .init(enabled: true, limitPercentage: 80),
+            updatedAt: 1_000,
+            sleepInhibitedAt: 1_000)
+        store.stored = seeded
+        let inhibitor = SleepInhibitorSpy()
+        inhibitor.current = true
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, store: store, inhibitor: inhibitor)
+
+        let status = coordinator.restore(currentSoC: 60, isPluggedIn: true)
+
+        #expect(inhibitor.writes == [false])
+        #expect(inhibitor.current == false)
+        #expect(store.stored == seeded)
+        #expect(store.events == ["load"])
+        #expect(status.isSystemSleepInhibited == false)
+    }
+
+    /// 소유자 불일치 파일의 마커를 되돌리려는 쓰기 자체가 실패해도 미러(`sleepInhibitedAt`)는
+    /// 포기한다. `releaseSleepInhibition`은 쓰기가 실패하면 자기 마커를 그대로 남겨 다음
+    /// 시도가 재시도하게 하지만, 그건 "우리 파일"일 때만 안전한 이야기다 — 남의 파일이면
+    /// 재시도 자체가 다음 `.disengage`를 `persist: true` 기본값으로 쏘아 남의 파일에 우리
+    /// 기본 설정을 쓸 길을 연다. 그래서 소유자 불일치 시에는 쓰기 성공 여부와 무관하게 미러를
+    /// 버려야 한다 — 아래 검증은 그 되돌리기 자체가 실패하는 경로를 겨눈다.
+    @Test func restoreAbandonsTheMirrorEvenWhenReleasingAForeignOwnersFlagFails() {
+        let clock = MutableClock(5_000)
+        let store = PolicyStoreSpy()
+        let seeded = PersistedBatteryPolicy(
+            ownerUID: 999,
+            configuration: .init(enabled: true, limitPercentage: 80),
+            updatedAt: 1_000,
+            sleepInhibitedAt: 1_000)
+        store.stored = seeded
+        let inhibitor = SleepInhibitorSpy()
+        inhibitor.current = true
+        inhibitor.setShouldFail = true
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, store: store, inhibitor: inhibitor)
+
+        let status = coordinator.restore(currentSoC: 60, isPluggedIn: true)
+
+        // 미러를 포기하지 않았다면 `isSystemSleepInhibited`가 거짓으로 "여전히 켜져 있다"고
+        // 보고하고, 뒤이은 `.disengage` 재시도가 남의 파일을 향해 계속 쓰기를 시도한다.
+        #expect(status.isSystemSleepInhibited == false)
+        #expect(store.stored == seeded)
+        #expect(store.events == ["load"])
     }
 
     @Test func terminationReleasesSleepInhibition() {
