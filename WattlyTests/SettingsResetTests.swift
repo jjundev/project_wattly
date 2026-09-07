@@ -208,11 +208,13 @@ struct SettingsResetTests {
     @Test func batterySectionResetIncludesDischargeSettings() {
         let d = makeDefaults(#function)
         d.set(false, forKey: StorageKey.batteryAutoDischargeEnabled)
+        d.set(true, forKey: StorageKey.batteryClamshellDischargeEnabled)
         d.set(65, forKey: StorageKey.batteryManualDischargeTarget)
 
         SettingsReset.applyDefaults(into: d)
 
         #expect(d.bool(forKey: StorageKey.batteryAutoDischargeEnabled) == Defaults.batteryAutoDischargeEnabled)
+        #expect(d.bool(forKey: StorageKey.batteryClamshellDischargeEnabled) == Defaults.batteryClamshellDischargeEnabled)
         #expect(d.integer(forKey: StorageKey.batteryManualDischargeTarget) == Defaults.batteryManualDischargeTarget)
     }
 
