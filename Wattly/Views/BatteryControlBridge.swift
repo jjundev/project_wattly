@@ -20,6 +20,11 @@ struct BatteryControlBridge: View {
     @AppStorage(StorageKey.batteryHeatProtectionThreshold) private var heatProtectionThreshold = Defaults.batteryHeatProtectionThreshold
     @AppStorage(StorageKey.batteryAutoDischargeEnabled) private var autoDischargeEnabled = Defaults.batteryAutoDischargeEnabled
     @AppStorage(StorageKey.batteryManualDischargeTarget) private var manualDischargeTarget = Defaults.batteryManualDischargeTarget
+    @AppStorage(StorageKey.batteryClamshellDischargeEnabled) private var clamshellDischargeEnabled = Defaults.batteryClamshellDischargeEnabled
+    /// 외장 디스플레이 존재 여부의 마지막 관측값. `handleInitialTask`가 첫 값을 읽고, 그 뒤로는
+    /// 화면 구성 변경 알림에서만 갱신한다. 프로퍼티 초기값에서 읽지 않는 이유: `NSScreen`은
+    /// `@MainActor`이고 SwiftUI View의 저장 프로퍼티 초기화는 nonisolated라 Swift 6가 거부한다.
+    @State private var hasExternalDisplay = false
 
     @State private var topUpDetector = BatteryTopUpTransitionDetector()
     @State private var topUpExpiryDetector = BatteryTopUpExpiryDetector()
@@ -51,7 +56,8 @@ struct BatteryControlBridge: View {
         heatProtectionEnabled: Bool,
         heatProtectionThresholdCelsius: Int,
         autoDischargeEnabled: Bool,
-        manualDischargeTarget: Int
+        manualDischargeTarget: Int,
+        clamshellDischargeAllowed: Bool
     ) -> BatteryControlConfiguration {
         BatteryControlConfiguration(
             enabled: enabled,
@@ -62,7 +68,8 @@ struct BatteryControlBridge: View {
             heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
             autoDischargeEnabled: autoDischargeEnabled,
             manualDischargeTarget: BatterySectionPresentation
-                .clampedManualDischargeTarget(manualDischargeTarget))
+                .clampedManualDischargeTarget(manualDischargeTarget),
+            clamshellDischargeAllowed: clamshellDischargeAllowed)
     }
 
     /// Folds the daemon's transient activity into a configuration built from stored preferences.
@@ -113,9 +120,16 @@ struct BatteryControlBridge: View {
         heatProtectionEnabled: Bool,
         heatProtectionThresholdCelsius: Int,
         autoDischargeEnabled: Bool,
-        manualDischargeTarget: Int
+        manualDischargeTarget: Int,
+        clamshellDischargeAllowed: Bool
     ) -> String {
-        "\(enabled)-\(limitPercentage)-\(sailingEnabled)-\(sailingDelta)-\(heatProtectionEnabled)-\(heatProtectionThresholdCelsius)-\(autoDischargeEnabled)-\(manualDischargeTarget)"
+        "\(enabled)-\(limitPercentage)-\(sailingEnabled)-\(sailingDelta)-\(heatProtectionEnabled)-\(heatProtectionThresholdCelsius)-\(autoDischargeEnabled)-\(manualDischargeTarget)-\(clamshellDischargeAllowed)"
+    }
+
+    /// 브리지가 데몬에 보내는 허용값. 클라이언트의 길목이 같은 출처로 다시 계산하지만, 여기서도
+    /// 넣어야 `shouldReapply`의 비교 대상이 데몬 값과 일치해 매분 재적용이 나지 않는다.
+    private var clamshellDischargeAllowed: Bool {
+        clamshellDischargeEnabled && hasExternalDisplay
     }
 
     private var configuration: BatteryControlConfiguration {
@@ -127,7 +141,8 @@ struct BatteryControlBridge: View {
             heatProtectionEnabled: heatProtectionEnabled,
             heatProtectionThresholdCelsius: heatProtectionThreshold,
             autoDischargeEnabled: autoDischargeEnabled,
-            manualDischargeTarget: manualDischargeTarget)
+            manualDischargeTarget: manualDischargeTarget,
+            clamshellDischargeAllowed: clamshellDischargeAllowed)
     }
 
     private func syncMonitorTarget() {
@@ -190,7 +205,8 @@ struct BatteryControlBridge: View {
                     heatProtectionEnabled: heatProtectionEnabled,
                     heatProtectionThresholdCelsius: heatProtectionThreshold,
                     autoDischargeEnabled: autoDischargeEnabled,
-                    manualDischargeTarget: manualDischargeTarget)
+                    manualDischargeTarget: manualDischargeTarget,
+                    clamshellDischargeAllowed: clamshellDischargeAllowed)
                 Task {
                     await handleConfigChange(requested, reason: "enabled-change")
                 }
@@ -205,7 +221,8 @@ struct BatteryControlBridge: View {
                     heatProtectionEnabled: heatProtectionEnabled,
                     heatProtectionThresholdCelsius: heatProtectionThreshold,
                     autoDischargeEnabled: autoDischargeEnabled,
-                    manualDischargeTarget: manualDischargeTarget)
+                    manualDischargeTarget: manualDischargeTarget,
+                    clamshellDischargeAllowed: clamshellDischargeAllowed)
                 Task {
                     await handleConfigChange(requested, reason: "limit-change")
                 }
@@ -219,7 +236,8 @@ struct BatteryControlBridge: View {
                     heatProtectionEnabled: heatProtectionEnabled,
                     heatProtectionThresholdCelsius: heatProtectionThreshold,
                     autoDischargeEnabled: autoDischargeEnabled,
-                    manualDischargeTarget: manualDischargeTarget)
+                    manualDischargeTarget: manualDischargeTarget,
+                    clamshellDischargeAllowed: clamshellDischargeAllowed)
                 Task {
                     await handleConfigChange(requested, reason: "sailing-enabled-change")
                 }
@@ -234,7 +252,8 @@ struct BatteryControlBridge: View {
                     heatProtectionEnabled: heatProtectionEnabled,
                     heatProtectionThresholdCelsius: heatProtectionThreshold,
                     autoDischargeEnabled: autoDischargeEnabled,
-                    manualDischargeTarget: manualDischargeTarget)
+                    manualDischargeTarget: manualDischargeTarget,
+                    clamshellDischargeAllowed: clamshellDischargeAllowed)
                 Task {
                     await handleConfigChange(requested, reason: "sailing-delta-change")
                 }
@@ -248,7 +267,8 @@ struct BatteryControlBridge: View {
                     heatProtectionEnabled: isHeatEnabled,
                     heatProtectionThresholdCelsius: heatProtectionThreshold,
                     autoDischargeEnabled: autoDischargeEnabled,
-                    manualDischargeTarget: manualDischargeTarget)
+                    manualDischargeTarget: manualDischargeTarget,
+                    clamshellDischargeAllowed: clamshellDischargeAllowed)
                 Task {
                     await handleConfigChange(requested, reason: "heat-protection-enabled-change")
                 }
@@ -262,7 +282,8 @@ struct BatteryControlBridge: View {
                     heatProtectionEnabled: heatProtectionEnabled,
                     heatProtectionThresholdCelsius: threshold,
                     autoDischargeEnabled: autoDischargeEnabled,
-                    manualDischargeTarget: manualDischargeTarget)
+                    manualDischargeTarget: manualDischargeTarget,
+                    clamshellDischargeAllowed: clamshellDischargeAllowed)
                 Task {
                     await handleConfigChange(requested, reason: "heat-protection-threshold-change")
                 }
@@ -295,9 +316,52 @@ struct BatteryControlBridge: View {
                     heatProtectionEnabled: heatProtectionEnabled,
                     heatProtectionThresholdCelsius: heatProtectionThreshold,
                     autoDischargeEnabled: isAutoDischarge,
-                    manualDischargeTarget: manualDischargeTarget)
+                    manualDischargeTarget: manualDischargeTarget,
+                    clamshellDischargeAllowed: clamshellDischargeAllowed)
                 Task {
                     await applyRequested(requested, reason: "auto-discharge-toggle")
+                }
+            }
+            // 클램쉘 옵트인은 `applyRequested`로 **직접** 간다 — `handleConfigChange`→`push`는
+            // `enabled`와 열 보호가 둘 다 꺼져 있으면 `disableRequested`로 빠지는데, 수동 방전은
+            // 충전 한도가 꺼진 채로도 돌 수 있어 그 경로가 `manualDischargeActive=false`를 실어
+            // 방전 자체를 취소한다. `applyRequested`는 `preservingActivity`로 진행 중 활동을
+            // 되살리므로 방전은 그대로 두고 잠자기 차단만 바뀐다(자동 방전 토글과 같은 선례).
+            .onChange(of: clamshellDischargeEnabled) { _, isAllowed in
+                let requested = Self.makeConfiguration(
+                    enabled: enabled,
+                    limitPercentage: limit,
+                    sailingEnabled: sailingEnabled,
+                    sailingDelta: sailingDelta,
+                    heatProtectionEnabled: heatProtectionEnabled,
+                    heatProtectionThresholdCelsius: heatProtectionThreshold,
+                    autoDischargeEnabled: autoDischargeEnabled,
+                    manualDischargeTarget: manualDischargeTarget,
+                    clamshellDischargeAllowed: isAllowed && hasExternalDisplay)
+                Task {
+                    await applyRequested(requested, reason: "clamshell-discharge-toggle")
+                }
+            }
+            // 뚜껑을 닫은 채 외장 모니터를 뽑으면 화면이 하나도 남지 않는다. 그 순간 false를
+            // 내려보내야 데몬이 잠자기 차단을 풀고 Mac이 정상적으로 잠든다. 60초 reconcile을
+            // 기다리지 않는다. 위와 같은 이유로 `applyRequested`를 직접 부른다.
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) { _ in
+                let detected = ExternalDisplayDetector.hasExternalDisplay()
+                guard detected != hasExternalDisplay else { return }
+                hasExternalDisplay = detected
+                guard clamshellDischargeEnabled else { return }
+                let requested = Self.makeConfiguration(
+                    enabled: enabled,
+                    limitPercentage: limit,
+                    sailingEnabled: sailingEnabled,
+                    sailingDelta: sailingDelta,
+                    heatProtectionEnabled: heatProtectionEnabled,
+                    heatProtectionThresholdCelsius: heatProtectionThreshold,
+                    autoDischargeEnabled: autoDischargeEnabled,
+                    manualDischargeTarget: manualDischargeTarget,
+                    clamshellDischargeAllowed: detected)
+                Task {
+                    await applyRequested(requested, reason: "display-change")
                 }
             }
             .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)) { _ in
@@ -336,7 +400,8 @@ struct BatteryControlBridge: View {
                 heatProtectionEnabled: heatProtectionEnabled,
                 heatProtectionThresholdCelsius: heatProtectionThreshold,
                 autoDischargeEnabled: autoDischargeEnabled,
-                manualDischargeTarget: manualDischargeTarget)) {
+                manualDischargeTarget: manualDischargeTarget,
+                clamshellDischargeAllowed: clamshellDischargeAllowed)) {
                 await handleReconcileLoop()
             }
             .onChange(of: client.status) { _, newStatus in
@@ -364,6 +429,7 @@ struct BatteryControlBridge: View {
     }
 
     private func handleInitialTask() async {
+        hasExternalDisplay = ExternalDisplayDetector.hasExternalDisplay()
         syncMonitorTarget()
         await client.refreshStatus()
         syncMonitorTarget()
