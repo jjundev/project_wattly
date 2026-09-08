@@ -2122,5 +2122,22 @@ struct BatteryControlCoordinatorTests {
         #expect(inhibitor.writes == [true, false, true])
         #expect(inhibitor.current == true)
     }
+
+    @Test func terminationReleasesSleepUntilLimitInhibition() {
+        let clock = MutableClock(1_000)
+        let store = PolicyStoreSpy()
+        let inhibitor = SleepInhibitorSpy()
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, store: store, inhibitor: inhibitor)
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, sleepUntilLimitAllowed: true),
+            trigger: .clientConfiguration, currentSoC: 70, isPluggedIn: true)
+        #expect(inhibitor.current == true)
+
+        _ = coordinator.releaseForTermination()
+
+        #expect(inhibitor.current == false)
+        #expect(store.stored?.sleepInhibitedAt == nil)
+    }
 }
 

@@ -618,9 +618,12 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
             reason: reason)
         // `configure`의 persist-실패 분기(`publish(latestStatus, …)`)도 여기를 지난다. 그때
         // `syncSleepInhibition`은 이전 설정으로 판정하고 자기 persist는 `try?`라 안전하다.
-        syncSleepInhibition(
-            currentSoC: engineStatus.currentPercentage,
-            isPluggedIn: engineStatus.isPowerAdapterConnected)
+        // 단, `.termination`은 방전 여부와 무관하게 `releaseSleepInhibition()`으로 끈 직후이므로 재진입하지 않는다.
+        if trigger != .termination {
+            syncSleepInhibition(
+                currentSoC: engineStatus.currentPercentage,
+                isPluggedIn: engineStatus.isPowerAdapterConnected)
+        }
         status.isSystemSleepInhibited = sleepInhibitedAt != nil
         status.capabilities = Self.capabilities
         latestStatus = status
