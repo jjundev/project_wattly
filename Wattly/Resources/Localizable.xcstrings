@@ -121916,6 +121916,1116 @@
           }
         }
       }
+    },
+    "업데이트 서명 키가 구성되지 않았습니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명 키가 구성되지 않았습니다."
+          }
+        }
+      }
+    },
+    "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 릴리스에는 서명 파일이 없습니다. 릴리스 페이지에서 직접 받아 주세요."
+          }
+        }
+      }
+    },
+    "허용되지 않은 다운로드 주소입니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "허용되지 않은 다운로드 주소입니다."
+          }
+        }
+      }
+    },
+    "서명 파일을 받지 못했습니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서명 파일을 받지 못했습니다."
+          }
+        }
+      }
+    },
+    "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 서명이 맞지 않습니다. 설치를 중단했습니다."
+          }
+        }
+      }
+    },
+    "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받은 번들이 Wattly의 새 버전이 아닙니다. 설치를 중단했습니다."
+          }
+        }
+      }
     }
   }
 }

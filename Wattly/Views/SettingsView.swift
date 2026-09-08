@@ -143,7 +143,7 @@ struct SettingsView: View {
                                 Text("\(Int(WattlyProgressBar.clampedFraction(fraction) * 100))%")
                                     .font(WattlyFont.at(11, weight: .medium))
                                     .foregroundStyle(t.text)
-                            case .extracting, .readyToRelaunch:
+                            case .verifying, .extracting, .readyToRelaunch:
                                 ProgressView()
                                     .scaleEffect(0.5)
                                     .frame(width: 10, height: 10)
