@@ -17,6 +17,7 @@ enum Accessibility {
     static func cardLabel(
         _ card: CardKind,
         _ state: MetricState,
+        dischargeOwner: BatterySectionPresentation.DischargeOwner = .idle,
         locale: Locale = Locale(identifier: "ko"),
         processorName: String = currentProcessorName()
     ) -> String {
@@ -31,7 +32,7 @@ enum Accessibility {
             // Fold the sub-line in. For the power card the CPU/GPU/NPU breakdown lives ONLY
             // in the sub-line (the power expand shows the per-app Top-3, not the engine
             // split), so dropping it would lose the breakdown for VO.
-            if let sub = CardPresentation.subText(state, locale: locale, processorName: processorName), !sub.isEmpty {
+            if let sub = CardPresentation.subText(state, dischargeOwner: dischargeOwner, locale: locale, processorName: processorName), !sub.isEmpty {
                 label += ", \(sub)"
             }
             return label
