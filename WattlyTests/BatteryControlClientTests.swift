@@ -232,7 +232,7 @@ struct BatteryControlClientTests {
 
         let script = FanHelperInstaller.makeInstallScript(
             daemonPath: "/tmp/WattlyFanDaemon",
-            plistPath: "/tmp/Wattly.plist",
+            expectedSHA256: String(repeating: "a", count: 64),
             currentUID: 501,
             transferringOwnership: false)
         let elevatedRecheck = try #require(script.range(of: "installed_uid=$("))
@@ -243,20 +243,20 @@ struct BatteryControlClientTests {
         #expect(rejectChangedOwner.lowerBound < bootout.lowerBound)
         #expect(script.contains("allow_ownership_transfer=false"))
         #expect(script.contains("[ \"$installed_uid\" -ne \"$expected_owner_uid\" ]"))
-        #expect(script.contains("validate_installed_owner\n'/tmp/WattlyFanDaemon' --verify-battery-release"))
-        #expect(script.contains("'/tmp/WattlyFanDaemon' --verify-battery-release\nvalidate_installed_owner\nwas_running=false"))
+        #expect(script.contains("validate_installed_owner\n\"$staged_daemon\" --verify-battery-release"))
+        #expect(script.contains("\"$staged_daemon\" --verify-battery-release\nvalidate_installed_owner\nwas_running=false"))
     }
 
     @Test func replacementTransactionLocksOwnershipAfterTheFinalValidation() throws {
         // A second installer can otherwise replace the plist between the last owner check and
         // bootout. The lock must begin before the final check and remain through kickstart.
         let script = FanHelperInstaller.makeInstallScript(
-            daemonPath: "/tmp/WattlyFanDaemon", plistPath: "/tmp/Wattly.plist", currentUID: 501)
+            daemonPath: "/tmp/WattlyFanDaemon", expectedSHA256: String(repeating: "a", count: 64), currentUID: 501)
         let acquire = try #require(script.range(of: "/usr/bin/shlock -f \"$ownership_lock\" -p \"$$\""))
-        let finalCheck = try #require(script.range(of: "validate_installed_owner\n'/tmp/WattlyFanDaemon' --verify-battery-release"))
+        let finalCheck = try #require(script.range(of: "validate_installed_owner\n\"$staged_daemon\" --verify-battery-release"))
         let bootout = try #require(script.range(of: "launchctl bootout system/\(FanHelperInstaller.label)"))
         let kickstart = try #require(script.range(of: "launchctl kickstart -k system/\(FanHelperInstaller.label)"))
-        let releaseTrap = try #require(script.range(of: "trap cleanup_ownership_lock EXIT"))
+        let releaseTrap = try #require(script.range(of: "trap cleanup EXIT"))
 
         #expect(acquire.lowerBound < finalCheck.lowerBound)
         #expect(finalCheck.lowerBound < bootout.lowerBound)
@@ -268,7 +268,7 @@ struct BatteryControlClientTests {
     @Test func elevatedReplacementAcceptsChangedOwnerOnlyWithExplicitTransfer() {
         let script = FanHelperInstaller.makeInstallScript(
             daemonPath: "/tmp/WattlyFanDaemon",
-            plistPath: "/tmp/Wattly.plist",
+            expectedSHA256: String(repeating: "a", count: 64),
             currentUID: 501,
             transferringOwnership: true)
 

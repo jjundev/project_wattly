@@ -108,32 +108,39 @@ enum FanHelperInstaller {
         guard FileManager.default.isExecutableFile(atPath: daemon.path) else {
             throw InstallError.daemonMissing
         }
-        let plist = plistTemplate.replacingOccurrences(of: "__WATTLY_ALLOWED_UID__", with: "\(currentUID)")
-        let plistPath = FileManager.default.temporaryDirectory.appendingPathComponent("\(label).plist")
+        // 이 시점의 바이트가 root가 설치할 바이트다. 이후 번들이 바뀌면 스크립트가 76으로 거부한다.
+        let expectedSHA256: String
         do {
-            try plist.write(to: plistPath, atomically: true, encoding: .utf8)
+            expectedSHA256 = try sha256Hex(ofFileAt: daemon)
         } catch {
-            throw InstallError.scriptWriteFailed
+            throw InstallError.daemonMissing
         }
         try await (privilegedRunner ?? runPrivileged)(makeInstallScript(
             daemonPath: daemon.path,
-            plistPath: plistPath.path,
+            expectedSHA256: expectedSHA256,
             currentUID: currentUID,
             transferringOwnership: transferringOwnership))
     }
 
     static func makeInstallScript(
         daemonPath: String,
-        plistPath: String,
+        expectedSHA256: String,
         currentUID: UInt32 = UInt32(getuid()),
         transferringOwnership: Bool = false
     ) -> String {
         let transferAuthorization = transferringOwnership ? "true" : "false"
+        let plist = plistTemplate.replacingOccurrences(of: "__WATTLY_ALLOWED_UID__", with: "\(currentUID)")
         return """
         set -eu
+        daemon_src=\(shellQuoted(daemonPath))
+        expected_sha256=\(shellQuoted(expectedSHA256))
         allow_ownership_transfer=\(transferAuthorization)
         expected_owner_uid=\(currentUID)
         installed_plist='/Library/LaunchDaemons/\(label).plist'
+        helper_path='/Library/PrivilegedHelperTools/\(label)'
+        policy_dir='/Library/Application Support/Wattly'
+        staging_dir='/var/run/Wattly/staging'
+        staged_daemon="$staging_dir/WattlyFanDaemon"
         ownership_lock='/var/run/Wattly/wattly-helper-install.lock'
         install -d -o root -g wheel -m 755 /var/run/Wattly
         if ! /usr/bin/shlock -f "$ownership_lock" -p "$$"; then
@@ -141,9 +148,21 @@ enum FanHelperInstaller {
           exit 75
         fi
         chmod 644 "$ownership_lock"
-        cleanup_ownership_lock() { rm -f "$ownership_lock"; }
-        trap cleanup_ownership_lock EXIT
+        cleanup() { rm -f "$ownership_lock"; rm -rf "$staging_dir"; }
+        trap cleanup EXIT
         trap 'exit 75' HUP INT TERM
+        # 번들 안의 바이너리는 사용자 소유다. root 전용 스테이징에 복사한 뒤 그 사본만 검사하고 실행한다 —
+        # 인증 대화상자가 떠 있는 동안 번들이 바뀌어도 사본은 앱이 계산한 해시와 대조된다.
+        rm -rf "$staging_dir"
+        install -d -o root -g wheel -m 700 "$staging_dir"
+        cp "$daemon_src" "$staged_daemon"
+        chown root:wheel "$staged_daemon"
+        chmod 755 "$staged_daemon"
+        actual_sha256=$(/usr/bin/shasum -a 256 "$staged_daemon" | /usr/bin/cut -d ' ' -f 1)
+        if [ "$actual_sha256" != "$expected_sha256" ]; then
+          echo 'Bundled helper changed after the install started; aborting.' >&2
+          exit 76
+        fi
         # The app's preflight can become stale while the authentication panel is open. Re-read the
         # installed LaunchDaemon as root before the safety preflight, then again immediately before
         # bootout. Only the explicit transfer flag may authorize changed or invalid metadata.
@@ -167,22 +186,33 @@ enum FanHelperInstaller {
           fi
         }
         validate_installed_owner
-        '\(daemonPath)' --verify-battery-release
+        "$staged_daemon" --verify-battery-release
         validate_installed_owner
         was_running=false
         if launchctl print system/\(label) >/dev/null 2>&1; then
           was_running=true
           launchctl bootout system/\(label)
         fi
-        if ! '\(daemonPath)' --verify-battery-release; then
+        if ! "$staged_daemon" --verify-battery-release; then
           if $was_running; then
             launchctl bootstrap system "$installed_plist"
           fi
           exit 74
         fi
         install -d -o root -g wheel -m 755 /Library/PrivilegedHelperTools /Library/LaunchDaemons
-        install -o root -g wheel -m 755 '\(daemonPath)' '/Library/PrivilegedHelperTools/\(label)'
-        install -o root -g wheel -m 644 '\(plistPath)' "$installed_plist"
+        # 정책 파일 디렉터리는 데몬이 아니라 여기서, root 소유로 만든다. 심볼릭 링크나 남이 만든
+        # 디렉터리가 있으면 치우고 다시 만든다 — 데몬은 root 소유가 아닌 경로를 신뢰하지 않는다(5단계).
+        if [ -L "$policy_dir" ]; then rm -f "$policy_dir"; fi
+        install -d -o root -g wheel -m 755 "$policy_dir"
+        chown root:wheel "$policy_dir"
+        chmod 755 "$policy_dir"
+        install -o root -g wheel -m 755 "$staged_daemon" "$helper_path"
+        umask 022
+        cat > "$installed_plist" <<'WATTLY_PLIST'
+        \(plist)
+        WATTLY_PLIST
+        chown root:wheel "$installed_plist"
+        chmod 644 "$installed_plist"
         launchctl bootstrap system "$installed_plist"
         launchctl kickstart -k system/\(label)
         """
