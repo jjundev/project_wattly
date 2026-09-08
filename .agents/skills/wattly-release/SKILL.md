@@ -308,7 +308,7 @@ When operating inside an Antigravity isolated git worktree:
 | **Step 2 (Bump)** | `xcodegen` failure | Revert `project.yml` and project files:<br>`git checkout -- project.yml Wattly.xcodeproj` |
 | **Step 3 (Packaging)** | `make-dmg.sh` or `build_release.sh` error | Clean build artifacts: `rm -rf build/ .build/`. Investigate compile error. |
 | **Step 4 (Verification)** | `WattlyFanDaemon` missing or size abnormal | Verify `project.yml` copy-files phase for `WattlyFanDaemon`. Rebuild. |
-| **Step 6 (Gate)** | User cancels release | Revert bump commit if desired:<br>`git reset --soft HEAD~1 && git checkout -- project.yml Wattly.xcodeproj` |
+| **Step 6 (Gate)** | User cancels release | Revert bump commit if desired:<br>`git reset --mixed HEAD~1 && git checkout -- project.yml Wattly.xcodeproj` |
 | **Step 7 (Publish)** | `gh release create` timeout or network error | Idempotent retry (no rebuild needed):<br>`gh release create vX.Y.Z build/Wattly-X.Y.Z.dmg build/Wattly-X.Y.Z.zip --title "Wattly vX.Y.Z" --notes-file /tmp/wattly_release_notes.md` |
 | **Step 7 (Tag)** | Tag created locally but push fails | Delete local tag if needed:<br>`git tag -d vX.Y.Z` |
 

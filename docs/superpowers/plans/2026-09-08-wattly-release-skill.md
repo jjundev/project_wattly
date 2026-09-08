@@ -29,7 +29,7 @@
 - Consumes: Design spec [docs/superpowers/specs/2026-09-08-wattly-release-design.md](file:///Users/hyunjun_macbook_pro/.gemini/antigravity/worktrees/project_wattly/bright_sol_phases_00h42/docs/superpowers/specs/2026-09-08-wattly-release-design.md)
 - Produces: Complete, executable skill runbook `.agents/skills/wattly-release/SKILL.md`
 
-- [ ] **Step 1: Write `.agents/skills/wattly-release/SKILL.md`**
+- [x] **Step 1: Write `.agents/skills/wattly-release/SKILL.md`**
   - Create directory `.agents/skills/wattly-release/`.
   - Write `SKILL.md` containing:
     1. YAML frontmatter (`name: wattly-release`, SDO description).
@@ -46,7 +46,7 @@
     5. Error handling and rollback cheat-sheet.
     6. Quick reference summary table.
 
-- [ ] **Step 2: Commit `.agents/skills/wattly-release/SKILL.md`**
+- [x] **Step 2: Commit `.agents/skills/wattly-release/SKILL.md`**
   ```bash
   git add .agents/skills/wattly-release/SKILL.md
   git commit -m "feat(skills): add wattly-release custom skill"
@@ -64,15 +64,15 @@
 - Consumes: `.agents/skills/wattly-release/SKILL.md`
 - Produces: Validated, committed release skill and tracked plan.
 
-- [ ] **Step 1: Verify Skill YAML Frontmatter and Markdown Rendering**
+- [x] **Step 1: Verify Skill YAML Frontmatter and Markdown Rendering**
   - Run python one-liner to parse YAML frontmatter and ensure `name` and `description` are valid.
   - Verify all internal references to scripts (`scripts/make-dmg.sh`, `scripts/build_release.sh`) point to existing executable files.
 
-- [ ] **Step 2: Dry-run Verification of Referenced Tools**
+- [x] **Step 2: Dry-run Verification of Referenced Tools**
   - Verify `scripts/make-dmg.sh` and `scripts/build_release.sh` exist and have execute permissions.
   - Verify `xcodegen` and `gh` availability.
 
-- [ ] **Step 3: Commit Implementation Plan**
+- [x] **Step 3: Commit Implementation Plan**
   ```bash
   git add docs/superpowers/plans/2026-09-08-wattly-release-skill.md
   git commit -m "docs: add wattly-release skill implementation plan"
