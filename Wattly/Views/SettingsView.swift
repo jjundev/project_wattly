@@ -433,20 +433,8 @@ struct SettingsView: View {
 
     @MainActor
     private func reapplyAllSettingsAfterHelperReinstall() async {
-        let snapshot = calibrationCoordinator.currentSnapshot()
-        let delta = snapshot.sailingEnabled ? snapshot.sailingDelta : 2
-        let manualTarget = BatterySectionPresentation.clampedManualDischargeTarget(snapshot.manualDischargeTarget)
-
         await batteryControl.apply(
-            enabled: snapshot.limitEnabled,
-            limitPercentage: snapshot.limitPercentage,
-            lowerHysteresisDelta: delta,
-            heatProtectionEnabled: snapshot.heatProtectionEnabled,
-            heatProtectionThresholdCelsius: snapshot.heatProtectionThresholdCelsius,
-            autoDischargeEnabled: snapshot.autoDischargeEnabled,
-            manualDischargeTarget: manualTarget
-        )
-
+            BatteryPreferences(defaults: .standard).configuration(clamshellDischargeAllowed: false))
         if fanControlEnabled {
             await fanControl.apply(enabled: true, curve: fanCurve)
         }

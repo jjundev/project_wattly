@@ -503,35 +503,9 @@ struct SettingsBatteryCalibrationSection: View {
 
     private func updateHelper() {
         let window = NSApp.keyWindow
-        let defaults = UserDefaults.standard
-        func int(_ key: String, _ fallback: Int) -> Int {
-            defaults.object(forKey: key) != nil ? defaults.integer(forKey: key) : fallback
-        }
         Task {
-            // 기존 재설치 경로를 그대로 재사용한다. 설치된 헬퍼를 덮어쓰는 것이 정상 동작이며
-            // 사용자에게 인증을 다시 묻는다.
-            // `installAndApply`의 `autoDischargeEnabled` 및 `lowerHysteresisDelta` 기본값은
-            // `true`/`2`다. 생략하면 도우미 업데이트가 사용자의 자동 방전 설정과 Sailing 델타를
-            // 몰래 바꿔 버린다 — 반드시 저장값을 넘긴다.
-            let sailingEnabled = defaults.bool(forKey: StorageKey.batterySailingEnabled)
-            let sailingDelta = int(StorageKey.batterySailingDelta, Defaults.batterySailingDelta)
-            let effectiveDelta = sailingEnabled ? sailingDelta : 2
-            if let failure = await batteryControl.installAndApply(
-                enabled: defaults.bool(forKey: StorageKey.batteryLimitEnabled),
-                limitPercentage: int(StorageKey.batteryLimitPercentage,
-                                     Defaults.batteryLimitPercentage),
-                lowerHysteresisDelta: effectiveDelta,
-                heatProtectionEnabled: defaults.bool(
-                    forKey: StorageKey.batteryHeatProtectionEnabled),
-                heatProtectionThresholdCelsius: int(
-                    StorageKey.batteryHeatProtectionThreshold,
-                    Defaults.batteryHeatProtectionThreshold),
-                autoDischargeEnabled: defaults.bool(
-                    forKey: StorageKey.batteryAutoDischargeEnabled),
-                manualDischargeTarget: int(StorageKey.batteryManualDischargeTarget,
-                                           Defaults.batteryManualDischargeTarget),
-                transferringOwnership: false,
-                window: window) {
+            let configuration = BatteryPreferences(defaults: .standard).configuration(clamshellDischargeAllowed: false)
+            if let failure = await batteryControl.installAndApply(configuration, window: window) {
                 installErrorMessage = SettingsBatterySection.message(for: failure, locale: locale)
                 isInstallFailedAlertPresented = true
             }

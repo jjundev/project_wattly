@@ -170,38 +170,6 @@ struct SettingsBatteryDischargeSection: View {
                 }
             }
         }
-        .onChange(of: autoDischargeEnabled) { _, isAutoDischarge in
-            Task {
-                await batteryControl.setAutoDischarge(
-                    enabled: isAutoDischarge,
-                    limitPercentage: batteryLimitPercentage,
-                    lowerHysteresisDelta: effectiveDelta,
-                    heatProtectionEnabled: batteryHeatProtectionEnabled,
-                    heatProtectionThresholdCelsius: heatProtectionThreshold,
-                    limitEnabled: batteryLimitEnabled,
-                    manualDischargeTarget: dischargeTarget
-                )
-            }
-        }
-        // 트리거는 저장값 자체를 관찰해야 하므로 원값 그대로 둔다 — `newTarget`은 쓰지 않고
-        // 대신 데몬으로 보내는 값만 한 곳(`dischargeTarget`)에서 다시 읽는다.
-        .onChange(of: manualDischargeTarget) { _, _ in
-            guard batteryLimitEnabled || batteryHeatProtectionEnabled
-                || batteryControl.status.desiredConfiguration?.manualDischargeActive == true
-            else { return }
-            Task {
-                await batteryControl.reconcile(
-                    enabled: batteryLimitEnabled,
-                    limitPercentage: batteryLimitPercentage,
-                    lowerHysteresisDelta: effectiveDelta,
-                    heatProtectionEnabled: batteryHeatProtectionEnabled,
-                    heatProtectionThresholdCelsius: heatProtectionThreshold,
-                    autoDischargeEnabled: autoDischargeEnabled,
-                    manualDischargeActive: batteryControl.status.desiredConfiguration?.manualDischargeActive == true,
-                    manualDischargeTarget: dischargeTarget
-                )
-            }
-        }
     }
 
     @ViewBuilder
