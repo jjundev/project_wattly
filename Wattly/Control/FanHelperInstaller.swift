@@ -129,6 +129,10 @@ enum FanHelperInstaller {
         let plist = plistTemplate.replacingOccurrences(of: "__WATTLY_ALLOWED_UID__", with: "\(currentUID)")
         return """
         set -eu
+        # `do shell script`는 호출한 프로세스의 환경을 물려받는다. 오염된 PATH로 root 코드 실행이
+        # 되지 않도록, bare로 부르는 명령(install/cp/chown/chmod/rm/cat/rmdir/launchctl 등)을
+        # 시스템 경로에만 묶는다.
+        PATH=/usr/bin:/bin:/usr/sbin:/sbin; export PATH
         daemon_src=\(shellQuoted(daemonPath))
         expected_sha256=\(shellQuoted(expectedSHA256))
         allow_ownership_transfer=\(transferAuthorization)
@@ -152,6 +156,12 @@ enum FanHelperInstaller {
         # 인증 대화상자가 떠 있는 동안 번들이 바뀌어도 사본은 앱이 계산한 해시와 대조된다.
         rm -rf "$staging_dir"
         install -d -o root -g wheel -m 700 "$staging_dir"
+        # 번들 경로에 심어둔 FIFO는 cp를 영원히 막고(설치 락을 쥔 채로), 심볼릭 링크는 엉뚱한 바이트를
+        # 복사하게 만든다. 일반 파일이 아니면 여기서 끊는다.
+        if [ ! -f "$daemon_src" ] || [ -L "$daemon_src" ]; then
+          echo 'Bundled helper is not a regular file; aborting.' >&2
+          exit 76
+        fi
         cp "$daemon_src" "$staged_daemon"
         chown root:wheel "$staged_daemon"
         chmod 755 "$staged_daemon"
@@ -192,7 +202,8 @@ enum FanHelperInstaller {
         fi
         if ! "$staged_daemon" --verify-battery-release; then
           if $was_running; then
-            launchctl bootstrap system "$installed_plist"
+            # 롤백 실패가 set -e로 74를 덮어써서는 안 된다.
+            launchctl bootstrap system "$installed_plist" || true
           fi
           exit 74
         fi
@@ -216,18 +227,30 @@ enum FanHelperInstaller {
     }
 
     /// Boots out and removes the daemon + LaunchDaemon (one auth prompt).
-    static func uninstall() async throws {
-        let verifier = bundledDaemonURL
-        guard FileManager.default.isExecutableFile(atPath: verifier.path) else {
+    ///
+    /// 스크립트는 root 소유 설치본을 검증기로 우선하고 번들 사본은 폴백일 뿐이므로, 둘 중 하나만
+    /// 실행 가능해도 제거를 진행한다. (번들에서 도우미가 빠진 앱으로도 설치된 root 데몬을 지울 수 있어야 한다.)
+    static func uninstall(
+        bundledVerifierURL: URL = bundledDaemonURL,
+        installedHelperURL: URL = URL(fileURLWithPath: "/Library/PrivilegedHelperTools/\(label)"),
+        privilegedRunner: PrivilegedRunner? = nil
+    ) async throws {
+        let manager = FileManager.default
+        let bundleUsable = manager.isExecutableFile(atPath: bundledVerifierURL.path)
+        let installedUsable = manager.isExecutableFile(atPath: installedHelperURL.path)
+        guard bundleUsable || installedUsable else {
             throw InstallError.daemonMissing
         }
-        try await runPrivileged(makeUninstallScript(fallbackVerifierPath: verifier.path))
+        try await (privilegedRunner ?? runPrivileged)(
+            makeUninstallScript(fallbackVerifierPath: bundledVerifierURL.path))
     }
 
     /// 검증기는 root 소유의 설치본을 우선한다. 번들 사본은 설치본이 없을 때(설치가 반쯤 지워진 경우)만 쓴다.
     static func makeUninstallScript(fallbackVerifierPath: String) -> String {
         """
         set -eu
+        # 설치 스크립트와 같은 이유로 PATH를 시스템 경로에 묶는다(launchctl/rm/rmdir가 bare다).
+        PATH=/usr/bin:/bin:/usr/sbin:/sbin; export PATH
         verifier='/Library/PrivilegedHelperTools/\(label)'
         fallback_verifier=\(shellQuoted(fallbackVerifierPath))
         if [ ! -x "$verifier" ]; then verifier="$fallback_verifier"; fi
@@ -239,7 +262,8 @@ enum FanHelperInstaller {
         fi
         if ! "$verifier" --verify-battery-release; then
           if $was_running; then
-            launchctl bootstrap system '/Library/LaunchDaemons/\(label).plist'
+            # 롤백 실패가 set -e로 74를 덮어써서는 안 된다.
+            launchctl bootstrap system '/Library/LaunchDaemons/\(label).plist' || true
           fi
           exit 74
         fi

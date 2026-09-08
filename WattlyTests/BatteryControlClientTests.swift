@@ -257,6 +257,9 @@ struct BatteryControlClientTests {
         let bootout = try #require(script.range(of: "launchctl bootout system/\(FanHelperInstaller.label)"))
         let kickstart = try #require(script.range(of: "launchctl kickstart -k system/\(FanHelperInstaller.label)"))
         let releaseTrap = try #require(script.range(of: "trap cleanup EXIT"))
+        // `cleanup`은 이름만으로는 무엇을 치우는지 말해주지 않는다. 본문이 락 해제와 스테이징 삭제를
+        // 실제로 하는지 여기서 못 박는다.
+        #expect(script.contains("cleanup() { rm -f \"$ownership_lock\"; rm -rf \"$staging_dir\"; }"))
 
         #expect(acquire.lowerBound < finalCheck.lowerBound)
         #expect(finalCheck.lowerBound < bootout.lowerBound)
