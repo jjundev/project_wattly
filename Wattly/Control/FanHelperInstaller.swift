@@ -37,7 +37,6 @@ enum FanHelperInstaller {
 
     enum InstallError: LocalizedError, Equatable {
         case daemonMissing
-        case scriptWriteFailed
         case authFailedOrCancelled(String)
         case userCancelled
 
@@ -55,7 +54,6 @@ enum FanHelperInstaller {
         var errorDescription: String? {
             switch self {
             case .daemonMissing: String(localized: "앱 번들에서 도우미 실행 파일을 찾을 수 없습니다.")
-            case .scriptWriteFailed: String(localized: "설치 스크립트를 임시 폴더에 쓰지 못했습니다.")
             case .userCancelled: String(localized: "관리자 인증이 취소되었거나 실패했습니다.")
             case .authFailedOrCancelled(let detail): detail
             }
@@ -63,8 +61,7 @@ enum FanHelperInstaller {
     }
 
     /// Installs the daemon + LaunchDaemon and kickstarts it. Runs off the main actor (the auth
-    /// prompt blocks). Throws on a missing bundled daemon, a temp-write failure, or a
-    /// cancelled/failed authorization.
+    /// prompt blocks). Throws on a missing bundled daemon or a cancelled/failed authorization.
     static func installedOwnership(
         plistURL: URL = URL(fileURLWithPath: "/Library/LaunchDaemons/\(label).plist")
     ) -> InstalledOwnership {
@@ -290,27 +287,15 @@ enum FanHelperInstaller {
         Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/WattlyFanDaemon")
     }
 
-    /// Writes `script` to a temp file and executes it as root via one `osascript` auth prompt.
-    /// The AppleScript command is just `/bin/sh <path>` (no spaces in the temp path), so the
-    /// multi-line script needs no AppleScript-level escaping.
+    /// 스크립트 전체를 AppleScript 문자열로 넘긴다. 파일이 없으므로 인증 대기 중 바꿔칠 대상이 없다.
+    /// `do shell script`는 문자열을 `/bin/sh -c`로 실행한다.
     private static func runPrivileged(_ script: String) async throws {
-        let scriptPath = FileManager.default.temporaryDirectory
-            .appendingPathComponent("wattly-helper-\(UUID().uuidString).sh")
-        do {
-            try script.write(to: scriptPath, atomically: true, encoding: .utf8)
-        } catch {
-            throw InstallError.scriptWriteFailed
-        }
-
+        let command = "do shell script \(appleScriptLiteral(script)) with administrator privileges"
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             DispatchQueue.global(qos: .userInitiated).async {
-                defer { try? FileManager.default.removeItem(at: scriptPath) }
                 let proc = Process()
                 proc.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-                proc.arguments = [
-                    "-e",
-                    "do shell script \"/bin/sh \(scriptPath.path)\" with administrator privileges",
-                ]
+                proc.arguments = ["-e", command]
                 let errPipe = Pipe()
                 proc.standardError = errPipe
                 do {
@@ -324,7 +309,6 @@ enum FanHelperInstaller {
                 if proc.terminationStatus == 0 {
                     cont.resume(returning: ())
                 } else {
-                    // osascript exits non-zero on a cancelled prompt (-128) or a failed script.
                     let msg = String(data: errData, encoding: .utf8)?
                         .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     if msg.contains("-128") || msg.localizedCaseInsensitiveContains("canceled") || msg.localizedCaseInsensitiveContains("cancelled") {
