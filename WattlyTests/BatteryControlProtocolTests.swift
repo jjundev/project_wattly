@@ -554,4 +554,34 @@ struct BatteryControlProtocolTests {
             PersistedBatteryPolicy.self, from: JSONEncoder().encode(policy))
         #expect(round.sleepInhibitedAt == 42)
     }
+
+    // MARK: - 충전 한도 도달까지 잠자기 억제 (Sleep Until Limit)
+
+    @Test func sleepUntilLimitFieldDefaultsOffAndDecodesLeniently() throws {
+        let legacy = #"{"enabled":true,"limitPercentage":80,"lowerHysteresisDelta":2}"#
+        let decoded = try BatteryControlCodec.decode(
+            BatteryControlConfiguration.self, from: Data(legacy.utf8))
+        #expect(decoded.sleepUntilLimitAllowed == false)
+    }
+
+    @Test func sleepUntilLimitFieldRoundTrips() throws {
+        let config = BatteryControlConfiguration(enabled: true, sleepUntilLimitAllowed: true)
+        let data = try BatteryControlCodec.encode(config)
+        let decoded = try BatteryControlCodec.decode(BatteryControlConfiguration.self, from: data)
+        #expect(decoded.sleepUntilLimitAllowed == true)
+        #expect(decoded.normalized.sleepUntilLimitAllowed == true)
+    }
+
+    @Test func sleepUntilLimitDoesNotCountAsActivePolicy() {
+        #expect(BatteryControlConfiguration(sleepUntilLimitAllowed: true).isActive == false)
+    }
+
+    @Test func sleepUntilLimitCapabilityRoundTrips() throws {
+        let data = try BatteryControlCodec.encode([BatteryControlCapability.sleepUntilLimitV1])
+        #expect(String(decoding: data, as: UTF8.self) == #"["sleep-until-limit-v1"]"#)
+        let decoded = try BatteryControlCodec.decode([BatteryControlCapability].self, from: data)
+        #expect(decoded == [.sleepUntilLimitV1])
+        #expect(BatteryControlCapability.sleepUntilLimitV1.rawValue == "sleep-until-limit-v1")
+    }
 }
+
