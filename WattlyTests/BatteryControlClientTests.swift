@@ -139,10 +139,12 @@ struct BatteryControlClientTests {
             detail: "OK", updatedAt: 1, desiredConfiguration: requested,
             actualGate: .allowed)
         let receiver = RequestReceiver()
-        let client = BatteryControlClient(requestHandler: { request in
-            await receiver.set(request)
-            return (try? BatteryControlCodec.encode(status), nil)
-        })
+        let client = BatteryControlClient(
+            requestHandler: { request in
+                await receiver.set(request)
+                return (try? BatteryControlCodec.encode(status), nil)
+            },
+            clamshellAllowance: { false })
 
         #expect(await client.disableAndConfirm(
             limitPercentage: 85, lowerHysteresisDelta: 5) == nil)
@@ -1062,6 +1064,81 @@ struct BatteryControlClientTests {
         // idle은 절차가 아예 꺼진 상태 — restore와 마찬가지로 스냅샷의 실제 선호값을 되살린다.
         _ = await client.applyCalibration(primitive: .idle, snapshot: snapshot)
         #expect(await recorder.value == "cal=false top=false auto=true target=20")
+    }
+
+    // MARK: - 클램쉘 방전 허용값
+
+    /// 어떤 호출부도 이 값을 인자로 넘기지 않는다. 길목(`revivedConfiguration`)이 계산해 실어
+    /// 보내므로 Shortcuts·스케줄·설정 12곳이 기본값 false로 클램쉘 Mac을 재우는 일이 없다.
+    @MainActor @Test func applyCarriesTheClamshellAllowanceFromTheInjectedSource() async throws {
+        let receiver = RequestReceiver()
+        let client = BatteryControlClient(
+            requestHandler: { request in
+                await receiver.set(request)
+                let status = BatteryControlServiceStatus(
+                    mode: .charging, currentPercentage: 80, isPowerAdapterConnected: true,
+                    detail: "OK", updatedAt: 1)
+                return (try? BatteryControlCodec.encode(status), nil)
+            },
+            clamshellAllowance: { true })
+
+        await client.apply(enabled: true, limitPercentage: 85)
+
+        guard case .configure(let data) = await receiver.request else {
+            Issue.record("Expected configure request"); return
+        }
+        let req = try BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data)
+        #expect(req.configuration.clamshellDischargeAllowed == true)
+    }
+
+    @MainActor @Test func applyOmitsTheClamshellAllowanceWhenTheSourceSaysNo() async throws {
+        let receiver = RequestReceiver()
+        let client = BatteryControlClient(
+            requestHandler: { request in
+                await receiver.set(request)
+                let status = BatteryControlServiceStatus(
+                    mode: .charging, currentPercentage: 80, isPowerAdapterConnected: true,
+                    detail: "OK", updatedAt: 1)
+                return (try? BatteryControlCodec.encode(status), nil)
+            },
+            clamshellAllowance: { false })
+
+        // `startManualDischarge`는 알림 권한을 요청하므로 테스트에서는 같은 길목을 지나는 `apply`를 쓴다.
+        await client.apply(
+            enabled: true, limitPercentage: 80,
+            manualDischargeActive: true, manualDischargeTarget: 70)
+
+        guard case .configure(let data) = await receiver.request else {
+            Issue.record("Expected configure request"); return
+        }
+        let req = try BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data)
+        #expect(req.configuration.manualDischargeActive == true)
+        #expect(req.configuration.clamshellDischargeAllowed == false)
+    }
+
+    /// reconcile의 비교 대상(`targetConfig`)도 같은 값을 들어야 한다. 아니면 데몬이 true를 들고
+    /// 있는 동안 매분 "다르다"고 판정해 재적용(파일 쓰기 + SMC 판독)이 60초마다 난다.
+    @MainActor @Test func reconcileDoesNotReapplyWhenOnlyTheClamshellAllowanceWouldDiffer() async throws {
+        final class Counter: @unchecked Sendable { var configures = 0 }
+        let counter = Counter()
+        let daemon = BatteryControlConfiguration(
+            enabled: true, limitPercentage: 85, lowerHysteresisDelta: 2,
+            clamshellDischargeAllowed: true)
+        let status = BatteryControlServiceStatus(
+            mode: .inhibited, currentPercentage: 90, isPowerAdapterConnected: true,
+            detail: "OK", updatedAt: 1,
+            desiredConfiguration: daemon,
+            capabilities: [.persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1])
+        let client = BatteryControlClient(
+            requestHandler: { request in
+                if case .configure = request { counter.configures += 1 }
+                return (try? BatteryControlCodec.encode(status), nil)
+            },
+            clamshellAllowance: { true })
+
+        await client.reconcile(enabled: true, limitPercentage: 85)
+
+        #expect(counter.configures == 0)
     }
 }
 

@@ -52,6 +52,26 @@ final class PolicyStoreSpy: BatteryPolicyStoring, @unchecked Sendable {
 
 typealias MockBatteryPolicyStore = PolicyStoreSpy
 
+final class SleepInhibitorSpy: SystemSleepInhibiting, @unchecked Sendable {
+    /// 시스템의 현재 `SleepDisabled`. 테스트가 "사용자가 미리 켜둠"을 흉내낼 때 직접 세운다.
+    var current = false
+    var readFails = false
+    var setShouldFail = false
+    /// 모든 쓰기 시도. 중복 쓰기도 보여야 하므로 성공/실패 무관하게 기록한다.
+    var writes: [Bool] = []
+
+    func readSleepDisabled() -> Bool? {
+        readFails ? nil : current
+    }
+
+    func setSleepDisabled(_ disabled: Bool) -> Bool {
+        writes.append(disabled)
+        if setShouldFail { return false }
+        current = disabled
+        return true
+    }
+}
+
 struct BatteryControlCoordinatorTests {
     @Test func configurePersistsBeforeTheFirstHardwareWrite() {
         final class OrderedEvents: @unchecked Sendable {
@@ -1495,6 +1515,470 @@ struct BatteryControlCoordinatorTests {
         let status = coordinator.sample(currentSoC: 100, isPluggedIn: true)
         #expect(status.desiredConfiguration?.topUpActive == true)
         #expect(status.lastMaintenance?.trigger != .topUpExpired)
+    }
+
+    // MARK: - 클램쉘 방전 잠자기 억제
+
+    private func makeClamshellCoordinator(
+        clock: MutableClock,
+        hardware: MockBatteryHardware = MockBatteryHardware(),
+        store: PolicyStoreSpy = PolicyStoreSpy(),
+        inhibitor: SleepInhibitorSpy = SleepInhibitorSpy()
+    ) -> BatteryControlCoordinator {
+        BatteryControlCoordinator(
+            ownerUID: 501, store: store,
+            engine: BatteryControlEngine(hardware: hardware),
+            now: { clock.now },
+            sleepInhibitor: inhibitor)
+    }
+
+    @Test func capabilitiesAdvertiseClamshellDischarge() {
+        #expect(BatteryControlCoordinator.capabilities.contains(.clamshellDischargeV1))
+    }
+
+    /// 켜는 조건 세 개: allowed && CHIE 걸림. 마커가 플래그보다 먼저 저장된다.
+    @Test func engagesSleepInhibitionWhenAllowedAndDischarging() {
+        let clock = MutableClock(1_000)
+        let hardware = MockBatteryHardware()
+        let store = PolicyStoreSpy()
+        let inhibitor = SleepInhibitorSpy()
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, hardware: hardware, store: store, inhibitor: inhibitor)
+
+        let status = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80,
+                  manualDischargeActive: true, manualDischargeTarget: 70,
+                  clamshellDischargeAllowed: true),
+            trigger: .clientConfiguration, currentSoC: 85, isPluggedIn: true)
+
+        #expect(hardware.isDischargeActive == true)
+        #expect(inhibitor.writes == [true])
+        #expect(inhibitor.current == true)
+        #expect(status.isSystemSleepInhibited == true)
+        #expect(store.stored?.sleepInhibitedAt == 1_000)
+        // 옵트인 자체는 저장하지 않는다.
+        #expect(store.stored?.configuration.clamshellDischargeAllowed == false)
+    }
+
+    @Test func doesNotEngageWithoutAllowanceEvenWhileDischarging() {
+        let clock = MutableClock(1_000)
+        let inhibitor = SleepInhibitorSpy()
+        let coordinator = makeClamshellCoordinator(clock: clock, inhibitor: inhibitor)
+
+        let status = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80,
+                  manualDischargeActive: true, manualDischargeTarget: 70),
+            trigger: .clientConfiguration, currentSoC: 85, isPluggedIn: true)
+
+        #expect(inhibitor.writes.isEmpty)
+        #expect(status.isSystemSleepInhibited == false)
+    }
+
+    /// 자동 방전(sailing)도 CHIE를 걸므로 같은 규칙을 탄다(결정 #20).
+    @Test func engagesForAutomaticDischargeToo() {
+        let clock = MutableClock(1_000)
+        let hardware = MockBatteryHardware()
+        let inhibitor = SleepInhibitorSpy()
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, hardware: hardware, inhibitor: inhibitor)
+
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, autoDischargeEnabled: true,
+                  clamshellDischargeAllowed: true),
+            trigger: .clientConfiguration, currentSoC: 95, isPluggedIn: true)
+
+        #expect(hardware.isDischargeActive == true)
+        #expect(inhibitor.current == true)
+    }
+
+    /// 목표 도달 → 엔진이 CHIE를 끔 → 같은 샘플에서 잠자기 차단도 풀린다.
+    @Test func disengagesWhenDischargeReachesItsTarget() {
+        let clock = MutableClock(1_000)
+        let hardware = MockBatteryHardware()
+        let store = PolicyStoreSpy()
+        let inhibitor = SleepInhibitorSpy()
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, hardware: hardware, store: store, inhibitor: inhibitor)
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80,
+                  manualDischargeActive: true, manualDischargeTarget: 70,
+                  clamshellDischargeAllowed: true),
+            trigger: .clientConfiguration, currentSoC: 85, isPluggedIn: true)
+        #expect(inhibitor.current == true)
+
+        let status = coordinator.sample(currentSoC: 70, isPluggedIn: true)
+
+        #expect(hardware.isDischargeActive == false)
+        #expect(inhibitor.writes == [true, false])
+        #expect(status.isSystemSleepInhibited == false)
+        #expect(store.stored?.sleepInhibitedAt == nil)
+    }
+
+    /// 가방 시나리오: 어댑터를 뽑으면 데몬이 수동 방전을 끄고, 잠자기 차단도 함께 풀린다.
+    @Test func disengagesWhenTheAdapterIsUnplugged() {
+        let clock = MutableClock(1_000)
+        let inhibitor = SleepInhibitorSpy()
+        let coordinator = makeClamshellCoordinator(clock: clock, inhibitor: inhibitor)
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80,
+                  manualDischargeActive: true, manualDischargeTarget: 70,
+                  clamshellDischargeAllowed: true),
+            trigger: .clientConfiguration, currentSoC: 85, isPluggedIn: true)
+
+        _ = coordinator.sample(currentSoC: 84, isPluggedIn: false)
+
+        #expect(inhibitor.current == false)
+        #expect(inhibitor.writes == [true, false])
+    }
+
+    /// 앱이 allowed=false를 보내면(옵트인 해제 또는 외장 디스플레이 분리) 방전은 계속되지만
+    /// 잠자기 차단만 풀린다.
+    @Test func disengagesWhenTheAppWithdrawsAllowanceWhileStillDischarging() {
+        let clock = MutableClock(1_000)
+        let hardware = MockBatteryHardware()
+        let inhibitor = SleepInhibitorSpy()
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, hardware: hardware, inhibitor: inhibitor)
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80,
+                  manualDischargeActive: true, manualDischargeTarget: 70,
+                  clamshellDischargeAllowed: true),
+            trigger: .clientConfiguration, currentSoC: 85, isPluggedIn: true)
+
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80,
+                  manualDischargeActive: true, manualDischargeTarget: 70,
+                  clamshellDischargeAllowed: false),
+            trigger: .clientConfiguration, currentSoC: 84, isPluggedIn: true)
+
+        #expect(hardware.isDischargeActive == true)
+        #expect(inhibitor.current == false)
+    }
+
+    /// 발열 보호는 엔진이 CHIE를 끄므로 별도 배선 없이 상속된다.
+    @Test func disengagesUnderHeatProtection() {
+        let clock = MutableClock(1_000)
+        let hardware = MockBatteryHardware()
+        let inhibitor = SleepInhibitorSpy()
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, hardware: hardware, inhibitor: inhibitor)
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80,
+                  heatProtectionEnabled: true, heatProtectionThresholdCelsius: 35,
+                  manualDischargeActive: true, manualDischargeTarget: 70,
+                  clamshellDischargeAllowed: true),
+            trigger: .clientConfiguration, currentSoC: 85, isPluggedIn: true,
+            temperatureCelsius: 30)
+        #expect(inhibitor.current == true)
+
+        _ = coordinator.sample(currentSoC: 84, isPluggedIn: true, temperatureCelsius: 36)
+
+        #expect(hardware.isDischargeActive == false)
+        #expect(inhibitor.current == false)
+    }
+
+    /// 12시간이 지나면 방전은 계속되지만 잠자기 차단은 풀리고, 앱이 allowed=true를 매분
+    /// 되밀어도 같은 방전 세션에서는 다시 켜지지 않는다. 방전이 끝나면 래치가 풀린다.
+    @Test func expiresAfterTwelveHoursAndDoesNotReengageUntilDischargeEnds() {
+        let clock = MutableClock(1_000)
+        let hardware = MockBatteryHardware()
+        let inhibitor = SleepInhibitorSpy()
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, hardware: hardware, inhibitor: inhibitor)
+        let running = BatteryControlConfiguration(
+            enabled: true, limitPercentage: 80,
+            manualDischargeActive: true, manualDischargeTarget: 50,
+            clamshellDischargeAllowed: true)
+        _ = coordinator.configure(
+            running, trigger: .clientConfiguration, currentSoC: 95, isPluggedIn: true)
+
+        clock.advance(by: BatteryClamshellSleepPolicy.duration)
+        let expired = coordinator.sample(currentSoC: 60, isPluggedIn: true)
+        #expect(hardware.isDischargeActive == true)
+        #expect(inhibitor.current == false)
+        #expect(expired.isSystemSleepInhibited == false)
+
+        // 앱 reconcile이 다시 보내도 켜지지 않는다.
+        _ = coordinator.configure(
+            running, trigger: .clientConfiguration, currentSoC: 59, isPluggedIn: true)
+        #expect(inhibitor.writes == [true, false])
+
+        // 목표 도달로 방전이 끝나면 래치가 풀려, 다음 방전은 다시 켤 수 있다.
+        _ = coordinator.sample(currentSoC: 50, isPluggedIn: true)
+        // `manualDischargeTarget`은 50~100으로 클램프된다(`BatteryControlProtocol
+        // .clampLimit`). 목표를 40으로 요청해도 50으로 잘리므로, 새 방전이 실제로 걸리려면
+        // SoC가 그 클램프된 목표보다 높아야 한다 — 그래서 55에서 다시 켠다.
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80,
+                  manualDischargeActive: true, manualDischargeTarget: 40,
+                  clamshellDischargeAllowed: true),
+            trigger: .clientConfiguration, currentSoC: 55, isPluggedIn: true)
+        #expect(inhibitor.writes == [true, false, true])
+    }
+
+    /// 사용자가 직접 `pmset disablesleep 1`을 해 둔 Mac에서는 소유하지 않는다 — 켜지도, 방전이
+    /// 끝났다고 끄지도 않는다.
+    @Test func doesNotTakeOwnershipOfAUserSetSleepDisabled() {
+        let clock = MutableClock(1_000)
+        let store = PolicyStoreSpy()
+        let inhibitor = SleepInhibitorSpy()
+        inhibitor.current = true
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, store: store, inhibitor: inhibitor)
+
+        let status = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80,
+                  manualDischargeActive: true, manualDischargeTarget: 70,
+                  clamshellDischargeAllowed: true),
+            trigger: .clientConfiguration, currentSoC: 85, isPluggedIn: true)
+        _ = coordinator.sample(currentSoC: 70, isPluggedIn: true)
+
+        #expect(inhibitor.writes.isEmpty)
+        #expect(inhibitor.current == true)
+        #expect(status.isSystemSleepInhibited == false)
+        #expect(store.stored?.sleepInhibitedAt == nil)
+    }
+
+    /// 읽기 실패는 "꺼져 있음"이 아니다. 모르면 켜지 않는다.
+    @Test func doesNotEngageWhenTheCurrentValueCannotBeRead() {
+        let clock = MutableClock(1_000)
+        let inhibitor = SleepInhibitorSpy()
+        inhibitor.readFails = true
+        let coordinator = makeClamshellCoordinator(clock: clock, inhibitor: inhibitor)
+
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80,
+                  manualDischargeActive: true, manualDischargeTarget: 70,
+                  clamshellDischargeAllowed: true),
+            trigger: .clientConfiguration, currentSoC: 85, isPluggedIn: true)
+
+        #expect(inhibitor.writes.isEmpty)
+    }
+
+    /// 마커 저장이 실패하면 플래그를 켜지 않는다 — 마커 없는 플래그는 크래시 후 고아가 된다.
+    @Test func doesNotEngageWhenTheMarkerCannotBePersisted() {
+        let clock = MutableClock(1_000)
+        let store = PolicyStoreSpy()
+        let inhibitor = SleepInhibitorSpy()
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, store: store, inhibitor: inhibitor)
+        // configure의 첫 persist는 성공시키고, 그 뒤 마커 저장만 실패시킨다.
+        var saveCount = 0
+        store.onSave = {
+            saveCount += 1
+            if saveCount >= 2 { store.saveError = BatteryPolicyStoreError.fileOperation(errno: 1) }
+        }
+
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80,
+                  manualDischargeActive: true, manualDischargeTarget: 70,
+                  clamshellDischargeAllowed: true),
+            trigger: .clientConfiguration, currentSoC: 85, isPluggedIn: true)
+
+        #expect(inhibitor.writes.isEmpty)
+        #expect(store.stored?.sleepInhibitedAt == nil)
+    }
+
+    /// 해제 쓰기가 실패하면 마커를 남겨 다음 샘플이 재시도한다.
+    @Test func retriesDisengageUntilTheWriteLands() {
+        let clock = MutableClock(1_000)
+        let store = PolicyStoreSpy()
+        let inhibitor = SleepInhibitorSpy()
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, store: store, inhibitor: inhibitor)
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80,
+                  manualDischargeActive: true, manualDischargeTarget: 70,
+                  clamshellDischargeAllowed: true),
+            trigger: .clientConfiguration, currentSoC: 85, isPluggedIn: true)
+
+        inhibitor.setShouldFail = true
+        _ = coordinator.sample(currentSoC: 70, isPluggedIn: true)
+        #expect(inhibitor.current == true)
+        #expect(store.stored?.sleepInhibitedAt == 1_000)
+
+        inhibitor.setShouldFail = false
+        clock.advance(by: 5)
+        _ = coordinator.sample(currentSoC: 70, isPluggedIn: true)
+        #expect(inhibitor.current == false)
+        #expect(store.stored?.sleepInhibitedAt == nil)
+    }
+
+    /// 마커 저장은 성공했는데 실제 플래그 켜기가 실패하면 마커를 되돌린다 — 그 두 줄이 없으면
+    /// 메모리 미러는 켜진 채로 남아 `BatteryClamshellSleepPolicy.decide`가 이후 12시간 내내
+    /// `.none`만 내고, 실제 시스템 플래그는 꺼진 채로 클램쉘 방전이 죽는다. 그런데도
+    /// `status.isSystemSleepInhibited`는 계속 `true`를 보고한다.
+    @Test func rollsBackTheMarkerWhenEngagingTheFlagFails() {
+        let clock = MutableClock(1_000)
+        let store = PolicyStoreSpy()
+        let inhibitor = SleepInhibitorSpy()
+        inhibitor.setShouldFail = true
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, store: store, inhibitor: inhibitor)
+
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80,
+                  manualDischargeActive: true, manualDischargeTarget: 70,
+                  clamshellDischargeAllowed: true),
+            trigger: .clientConfiguration, currentSoC: 85, isPluggedIn: true)
+
+        #expect(inhibitor.writes == [true])
+        #expect(inhibitor.current == false)
+        #expect(store.stored?.sleepInhibitedAt == nil)
+
+        // 실패가 풀리면 다음 샘플이 재시도해서 이번에는 성사된다.
+        inhibitor.setShouldFail = false
+        _ = coordinator.sample(currentSoC: 85, isPluggedIn: true)
+        #expect(inhibitor.writes == [true, true])
+        #expect(inhibitor.current == true)
+        #expect(store.stored?.sleepInhibitedAt == 1_000)
+    }
+
+    /// 크래시·재부팅 복구: 파일에 마커가 남아 있으면 시작 시 무조건 되돌린다. 옵트인은 저장되지
+    /// 않으므로 다시 켜지지도 않는다.
+    ///
+    /// 해제(`releaseSleepInhibition`)는 `persistPolicy(engine.configuration)`으로 쓰기 때문에,
+    /// `restore`에서 `engine.configure(desired)`보다 먼저 실행되면 엔진의 *기본* 설정이 사용자의
+    /// 저장된 정책(`enabled: true, limitPercentage: 80`) 위에 덮어써진다 — 계획 단계에서 실제로
+    /// 한 번 저지른 실수다. 아래 두 값 검증은 그 위험한 순서에서는 깨지고(엔진 기본값
+    /// `enabled: false`가 남는다), 올바른 순서에서는 사용자 정책이 그대로 다시 저장되어 통과한다.
+    @Test func restoreClearsAnOrphanedSleepInhibition() {
+        let clock = MutableClock(5_000)
+        let store = PolicyStoreSpy()
+        // 70은 `BatteryControlConfiguration()`의 기본 `limitPercentage`(80)와 달라야 한다 —
+        // 안 그러면 아래 마지막 검증이 순서 버그(해제가 `engine.configure(desired)`보다 먼저
+        // 실행돼 사용자 정책이 엔진 기본값으로 덮어써지는 사고)를 통과시켜 버린다.
+        store.stored = PersistedBatteryPolicy(
+            ownerUID: 501,
+            configuration: .init(enabled: true, limitPercentage: 70),
+            updatedAt: 1_000,
+            sleepInhibitedAt: 1_000)
+        let inhibitor = SleepInhibitorSpy()
+        inhibitor.current = true
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, store: store, inhibitor: inhibitor)
+
+        let status = coordinator.restore(currentSoC: 60, isPluggedIn: true)
+
+        #expect(inhibitor.writes == [false])
+        #expect(inhibitor.current == false)
+        #expect(store.stored?.sleepInhibitedAt == nil)
+        #expect(status.isSystemSleepInhibited == false)
+        // 해제가 사용자의 저장된 정책을 엔진 기본값으로 덮어쓰지 않았는지 확인한다 — 순서가
+        // 뒤집히면(해제가 `engine.configure(desired)`보다 먼저 실행되면) 깨진다.
+        #expect(store.stored?.configuration.enabled == true)
+        #expect(store.stored?.configuration.limitPercentage == 70)
+    }
+
+    @Test func restoreWithoutPowerReadingAlsoClearsAnOrphanedSleepInhibition() {
+        let clock = MutableClock(5_000)
+        let store = PolicyStoreSpy()
+        store.stored = PersistedBatteryPolicy(
+            ownerUID: 501,
+            configuration: .init(enabled: true, limitPercentage: 80),
+            updatedAt: 1_000,
+            sleepInhibitedAt: 1_000)
+        let inhibitor = SleepInhibitorSpy()
+        inhibitor.current = true
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, store: store, inhibitor: inhibitor)
+
+        _ = coordinator.restoreWithoutPowerReading()
+
+        #expect(inhibitor.writes == [false])
+        #expect(store.stored?.sleepInhibitedAt == nil)
+    }
+
+    /// 마커가 없으면 시작 시 아무것도 쓰지 않는다 — 사용자의 `disablesleep 1`을 건드리면 안 된다.
+    @Test func restoreLeavesAForeignSleepDisabledAlone() {
+        let clock = MutableClock(5_000)
+        let store = PolicyStoreSpy()
+        store.stored = PersistedBatteryPolicy(
+            ownerUID: 501,
+            configuration: .init(enabled: true, limitPercentage: 80),
+            updatedAt: 1_000)
+        let inhibitor = SleepInhibitorSpy()
+        inhibitor.current = true
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, store: store, inhibitor: inhibitor)
+
+        _ = coordinator.restore(currentSoC: 60, isPluggedIn: true)
+
+        #expect(inhibitor.writes.isEmpty)
+        #expect(inhibitor.current == true)
+    }
+
+    /// 마커가 다른 사용자 소유 정책 파일에 걸려 있어도(`ownerUID` 불일치) 그 파일은 절대
+    /// 덮어쓰지 않는다 — finding 2와 같은 사고 클래스다. 플래그만 끄고 물러난다.
+    @Test func restoreDoesNotRewriteAForeignOwnersPolicyFile() {
+        let clock = MutableClock(5_000)
+        let store = PolicyStoreSpy()
+        let seeded = PersistedBatteryPolicy(
+            ownerUID: 999,
+            configuration: .init(enabled: true, limitPercentage: 80),
+            updatedAt: 1_000,
+            sleepInhibitedAt: 1_000)
+        store.stored = seeded
+        let inhibitor = SleepInhibitorSpy()
+        inhibitor.current = true
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, store: store, inhibitor: inhibitor)
+
+        let status = coordinator.restore(currentSoC: 60, isPluggedIn: true)
+
+        #expect(inhibitor.writes == [false])
+        #expect(inhibitor.current == false)
+        #expect(store.stored == seeded)
+        #expect(store.events == ["load"])
+        #expect(status.isSystemSleepInhibited == false)
+    }
+
+    /// 소유자 불일치 파일의 마커를 되돌리려는 쓰기 자체가 실패해도 미러(`sleepInhibitedAt`)는
+    /// 포기한다. `releaseSleepInhibition`은 쓰기가 실패하면 자기 마커를 그대로 남겨 다음
+    /// 시도가 재시도하게 하지만, 그건 "우리 파일"일 때만 안전한 이야기다 — 남의 파일이면
+    /// 재시도 자체가 다음 `.disengage`를 `persist: true` 기본값으로 쏘아 남의 파일에 우리
+    /// 기본 설정을 쓸 길을 연다. 그래서 소유자 불일치 시에는 쓰기 성공 여부와 무관하게 미러를
+    /// 버려야 한다 — 아래 검증은 그 되돌리기 자체가 실패하는 경로를 겨눈다.
+    @Test func restoreAbandonsTheMirrorEvenWhenReleasingAForeignOwnersFlagFails() {
+        let clock = MutableClock(5_000)
+        let store = PolicyStoreSpy()
+        let seeded = PersistedBatteryPolicy(
+            ownerUID: 999,
+            configuration: .init(enabled: true, limitPercentage: 80),
+            updatedAt: 1_000,
+            sleepInhibitedAt: 1_000)
+        store.stored = seeded
+        let inhibitor = SleepInhibitorSpy()
+        inhibitor.current = true
+        inhibitor.setShouldFail = true
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, store: store, inhibitor: inhibitor)
+
+        let status = coordinator.restore(currentSoC: 60, isPluggedIn: true)
+
+        // 미러를 포기하지 않았다면 `isSystemSleepInhibited`가 거짓으로 "여전히 켜져 있다"고
+        // 보고하고, 뒤이은 `.disengage` 재시도가 남의 파일을 향해 계속 쓰기를 시도한다.
+        #expect(status.isSystemSleepInhibited == false)
+        #expect(store.stored == seeded)
+        #expect(store.events == ["load"])
+    }
+
+    @Test func terminationReleasesSleepInhibition() {
+        let clock = MutableClock(1_000)
+        let store = PolicyStoreSpy()
+        let inhibitor = SleepInhibitorSpy()
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, store: store, inhibitor: inhibitor)
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80,
+                  manualDischargeActive: true, manualDischargeTarget: 70,
+                  clamshellDischargeAllowed: true),
+            trigger: .clientConfiguration, currentSoC: 85, isPluggedIn: true)
+
+        _ = coordinator.releaseForTermination()
+
+        #expect(inhibitor.current == false)
+        #expect(store.stored?.sleepInhibitedAt == nil)
     }
 }
 

@@ -18,7 +18,8 @@ import Foundation
             heatProtectionEnabled: true,
             heatProtectionThresholdCelsius: 38,
             autoDischargeEnabled: true,
-            manualDischargeTarget: 70)
+            manualDischargeTarget: 70,
+            clamshellDischargeAllowed: false)
 
         #expect(config.enabled == true)
         #expect(config.limitPercentage == 85)
@@ -46,7 +47,8 @@ import Foundation
             heatProtectionEnabled: false,
             heatProtectionThresholdCelsius: 35,
             autoDischargeEnabled: false,
-            manualDischargeTarget: 80)
+            manualDischargeTarget: 80,
+            clamshellDischargeAllowed: false)
         #expect(config.lowerHysteresisDelta == 2)
     }
 
@@ -83,14 +85,16 @@ import Foundation
             enabled: true, limitPercentage: 85,
             sailingEnabled: false, sailingDelta: 5,
             heatProtectionEnabled: false, heatProtectionThresholdCelsius: 35,
-            autoDischargeEnabled: false, manualDischargeTarget: 80)
+            autoDischargeEnabled: false, manualDischargeTarget: 80,
+            clamshellDischargeAllowed: false)
         #expect(BatteryControlPolicy.shouldReapply(configuration: unwired, status: status) == true)
 
         let wired = BatteryControlBridge.makeConfiguration(
             enabled: true, limitPercentage: 85,
             sailingEnabled: false, sailingDelta: 5,
             heatProtectionEnabled: false, heatProtectionThresholdCelsius: 35,
-            autoDischargeEnabled: true, manualDischargeTarget: 80)
+            autoDischargeEnabled: true, manualDischargeTarget: 80,
+            clamshellDischargeAllowed: false)
         #expect(BatteryControlPolicy.shouldReapply(configuration: wired, status: status) == false)
     }
 
@@ -143,7 +147,7 @@ import Foundation
     /// Guards a second copy of the same regression: `makeConfiguration` can carry every stored
     /// preference and still leave the bug in place if `.task(id:)` doesn't restart on all of them,
     /// since the loop body reads `self` at task-start and otherwise reconciles a stale value
-    /// forever. Each of the eight inputs is varied one at a time from a fixed baseline; a
+    /// forever. Each of the nine inputs is varied one at a time from a fixed baseline; a
     /// preference dropped from `reconcileTaskID` would leave that one variant equal to the
     /// baseline and fail here the moment it's added below.
     @Test func reconcileTaskIDChangesWithEveryStoredPreference() {
@@ -155,47 +159,62 @@ import Foundation
             heatProtectionEnabled: true,
             heatProtectionThresholdCelsius: 38,
             autoDischargeEnabled: true,
-            manualDischargeTarget: 70)
+            manualDischargeTarget: 70,
+            clamshellDischargeAllowed: false)
 
         #expect(BatteryControlBridge.reconcileTaskID(
             enabled: false, limitPercentage: 85, sailingEnabled: true, sailingDelta: 5,
             heatProtectionEnabled: true, heatProtectionThresholdCelsius: 38,
-            autoDischargeEnabled: true, manualDischargeTarget: 70) != baseline)
+            autoDischargeEnabled: true, manualDischargeTarget: 70,
+            clamshellDischargeAllowed: false) != baseline)
 
         #expect(BatteryControlBridge.reconcileTaskID(
             enabled: true, limitPercentage: 86, sailingEnabled: true, sailingDelta: 5,
             heatProtectionEnabled: true, heatProtectionThresholdCelsius: 38,
-            autoDischargeEnabled: true, manualDischargeTarget: 70) != baseline)
+            autoDischargeEnabled: true, manualDischargeTarget: 70,
+            clamshellDischargeAllowed: false) != baseline)
 
         #expect(BatteryControlBridge.reconcileTaskID(
             enabled: true, limitPercentage: 85, sailingEnabled: false, sailingDelta: 5,
             heatProtectionEnabled: true, heatProtectionThresholdCelsius: 38,
-            autoDischargeEnabled: true, manualDischargeTarget: 70) != baseline)
+            autoDischargeEnabled: true, manualDischargeTarget: 70,
+            clamshellDischargeAllowed: false) != baseline)
 
         #expect(BatteryControlBridge.reconcileTaskID(
             enabled: true, limitPercentage: 85, sailingEnabled: true, sailingDelta: 6,
             heatProtectionEnabled: true, heatProtectionThresholdCelsius: 38,
-            autoDischargeEnabled: true, manualDischargeTarget: 70) != baseline)
+            autoDischargeEnabled: true, manualDischargeTarget: 70,
+            clamshellDischargeAllowed: false) != baseline)
 
         #expect(BatteryControlBridge.reconcileTaskID(
             enabled: true, limitPercentage: 85, sailingEnabled: true, sailingDelta: 5,
             heatProtectionEnabled: false, heatProtectionThresholdCelsius: 38,
-            autoDischargeEnabled: true, manualDischargeTarget: 70) != baseline)
+            autoDischargeEnabled: true, manualDischargeTarget: 70,
+            clamshellDischargeAllowed: false) != baseline)
 
         #expect(BatteryControlBridge.reconcileTaskID(
             enabled: true, limitPercentage: 85, sailingEnabled: true, sailingDelta: 5,
             heatProtectionEnabled: true, heatProtectionThresholdCelsius: 39,
-            autoDischargeEnabled: true, manualDischargeTarget: 70) != baseline)
+            autoDischargeEnabled: true, manualDischargeTarget: 70,
+            clamshellDischargeAllowed: false) != baseline)
 
         #expect(BatteryControlBridge.reconcileTaskID(
             enabled: true, limitPercentage: 85, sailingEnabled: true, sailingDelta: 5,
             heatProtectionEnabled: true, heatProtectionThresholdCelsius: 38,
-            autoDischargeEnabled: false, manualDischargeTarget: 70) != baseline)
+            autoDischargeEnabled: false, manualDischargeTarget: 70,
+            clamshellDischargeAllowed: false) != baseline)
 
         #expect(BatteryControlBridge.reconcileTaskID(
             enabled: true, limitPercentage: 85, sailingEnabled: true, sailingDelta: 5,
             heatProtectionEnabled: true, heatProtectionThresholdCelsius: 38,
-            autoDischargeEnabled: true, manualDischargeTarget: 71) != baseline)
+            autoDischargeEnabled: true, manualDischargeTarget: 71,
+            clamshellDischargeAllowed: false) != baseline)
+
+        #expect(BatteryControlBridge.reconcileTaskID(
+            enabled: true, limitPercentage: 85, sailingEnabled: true, sailingDelta: 5,
+            heatProtectionEnabled: true, heatProtectionThresholdCelsius: 38,
+            autoDischargeEnabled: true, manualDischargeTarget: 70,
+            clamshellDischargeAllowed: true) != baseline)
     }
 
     // MARK: - 토글 푸시가 보존하는 것
@@ -209,7 +228,8 @@ import Foundation
             enabled: true, limitPercentage: 80,
             sailingEnabled: true, sailingDelta: 5,
             heatProtectionEnabled: true, heatProtectionThresholdCelsius: 35,
-            autoDischargeEnabled: true, manualDischargeTarget: 80)
+            autoDischargeEnabled: true, manualDischargeTarget: 80,
+            clamshellDischargeAllowed: false)
         let daemon = BatteryControlConfiguration(
             enabled: true,
             limitPercentage: 80,
@@ -240,7 +260,8 @@ import Foundation
             enabled: true, limitPercentage: 85,
             sailingEnabled: false, sailingDelta: 5,
             heatProtectionEnabled: false, heatProtectionThresholdCelsius: 35,
-            autoDischargeEnabled: true, manualDischargeTarget: 70)
+            autoDischargeEnabled: true, manualDischargeTarget: 70,
+            clamshellDischargeAllowed: false)
         let idle = BatteryControlConfiguration(
             enabled: true, limitPercentage: 85, lowerHysteresisDelta: 2,
             topUpActive: false, autoDischargeEnabled: false,
@@ -355,6 +376,60 @@ import Foundation
         #expect(BatteryControlBridge.shouldAnnounceTopUpExpiry(
             didExpire: true,
             daemon: nil) == true)
+    }
+
+    // MARK: - 클램쉘 방전
+
+    @Test func makeConfigurationForwardsTheClamshellAllowance() {
+        let config = BatteryControlBridge.makeConfiguration(
+            enabled: true, limitPercentage: 80,
+            sailingEnabled: false, sailingDelta: 5,
+            heatProtectionEnabled: false, heatProtectionThresholdCelsius: 35,
+            autoDischargeEnabled: false, manualDischargeTarget: 80,
+            clamshellDischargeAllowed: true)
+        #expect(config.clamshellDischargeAllowed == true)
+    }
+
+    /// 데몬이 true를 들고 있고 브리지도 true를 만들면 재적용이 없다. 브리지가 이 값을 빠뜨리면
+    /// 매분 재적용이 나서 파일 쓰기와 SMC 판독이 60초마다 반복된다.
+    @Test func clamshellAllowanceMismatchIsWhatWouldTriggerAReapply() {
+        let daemonConfig = BatteryControlConfiguration(
+            enabled: true, limitPercentage: 85, lowerHysteresisDelta: 2,
+            clamshellDischargeAllowed: true)
+        let status = BatteryControlServiceStatus(
+            mode: .inhibited, currentPercentage: 100, isPowerAdapterConnected: true,
+            detail: "충전 제한 85% 도달", updatedAt: 100.0,
+            desiredConfiguration: daemonConfig,
+            capabilities: [.persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1])
+
+        let unwired = BatteryControlBridge.makeConfiguration(
+            enabled: true, limitPercentage: 85,
+            sailingEnabled: false, sailingDelta: 5,
+            heatProtectionEnabled: false, heatProtectionThresholdCelsius: 35,
+            autoDischargeEnabled: false, manualDischargeTarget: 80,
+            clamshellDischargeAllowed: false)
+        #expect(BatteryControlPolicy.shouldReapply(configuration: unwired, status: status) == true)
+
+        let wired = BatteryControlBridge.makeConfiguration(
+            enabled: true, limitPercentage: 85,
+            sailingEnabled: false, sailingDelta: 5,
+            heatProtectionEnabled: false, heatProtectionThresholdCelsius: 35,
+            autoDischargeEnabled: false, manualDischargeTarget: 80,
+            clamshellDischargeAllowed: true)
+        #expect(BatteryControlPolicy.shouldReapply(configuration: wired, status: status) == false)
+    }
+
+    /// 활동 보존은 허용값을 덮어쓰지 않는다 — 허용값은 데몬 활동이 아니라 앱이 계산한 사실이다.
+    @Test func preservingActivityKeepsTheRequestedClamshellAllowance() {
+        let requested = BatteryControlConfiguration(
+            enabled: true, limitPercentage: 80, clamshellDischargeAllowed: true)
+        let daemon = BatteryControlConfiguration(
+            enabled: true, limitPercentage: 80,
+            manualDischargeActive: true, manualDischargeTarget: 70,
+            clamshellDischargeAllowed: false)
+        let merged = BatteryControlBridge.preservingActivity(requested, daemon: daemon)
+        #expect(merged.manualDischargeActive == true)
+        #expect(merged.clamshellDischargeAllowed == true)
     }
 }
 

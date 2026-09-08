@@ -14,6 +14,14 @@ import AppKit
         NSWindow?, Bool, @escaping @MainActor () async -> Void
     ) async -> Error?
 
+    /// 클램쉘 방전 허용값의 출처 — "사용자 옵트인 && 외장 디스플레이 존재". 주입받는 이유는
+    /// 테스트다. 기본값은 실제 `UserDefaults`와 `NSScreen`을 읽는다.
+    public typealias ClamshellAllowance = @MainActor () -> Bool
+    public static let defaultClamshellAllowance: ClamshellAllowance = {
+        UserDefaults.standard.bool(forKey: StorageKey.batteryClamshellDischargeEnabled)
+            && ExternalDisplayDetector.hasExternalDisplay()
+    }
+
     /// Why enabling the limit did not take. Kept structured rather than pre-rendered: the message
     /// embeds the helper's status, and only the view knows what language to build it in.
     public enum InstallFailure: Error {
@@ -32,6 +40,7 @@ import AppKit
 
     private let requestHandler: RequestHandler
     private let installHandler: InstallHandler
+    private let clamshellAllowance: ClamshellAllowance
     public private(set) var status = BatteryControlServiceStatus(
         mode: .unavailable,
         currentPercentage: 0,
@@ -42,11 +51,19 @@ import AppKit
     public private(set) var isInstallingHelper = false
     private var commandGeneration = UInt64(Date().timeIntervalSince1970 * 1_000_000)
 
-    public convenience init(requestHandler: RequestHandler? = nil) {
-        self.init(requestHandler: requestHandler, installHandler: nil)
+    public convenience init(
+        requestHandler: RequestHandler? = nil,
+        clamshellAllowance: @escaping ClamshellAllowance = BatteryControlClient.defaultClamshellAllowance
+    ) {
+        self.init(requestHandler: requestHandler, installHandler: nil, clamshellAllowance: clamshellAllowance)
     }
 
-    init(requestHandler: RequestHandler?, installHandler: InstallHandler?) {
+    init(
+        requestHandler: RequestHandler?,
+        installHandler: InstallHandler?,
+        clamshellAllowance: @escaping ClamshellAllowance = BatteryControlClient.defaultClamshellAllowance
+    ) {
+        self.clamshellAllowance = clamshellAllowance
         self.requestHandler = requestHandler ?? { req in
             switch req {
             case .configure(let data):
@@ -148,6 +165,10 @@ import AppKit
             config.enabled = true
             config.manualDischargeActive = false
         }
+        // 클램쉘 허용값은 호출자가 아니라 여기서 정한다. 이 함수가 데몬으로 나가는 유일한
+        // 길목이라, 여기서 정해야 Shortcuts·스케줄·캘리브레이션·도우미 업데이트 재적용 등
+        // 호출부 12곳이 기본값 false를 실어 보내 클램쉘 Mac을 재우는 일이 없다.
+        config.clamshellDischargeAllowed = clamshellAllowance()
         // 마지막에 한 번 정규화한다. 전송값과 `shouldReapply`/`accepted`의 비교값이 같은 규칙을
         // 쓰게 만드는 것이 목적이다 — 특히 `normalized`의 수동/자동 방전 상호배제는 여기를
         // 지나야 실제로 데몬에 도달한다. 나머지 클램프는 데몬이 수신 시 어차피 적용하는 것과
@@ -385,7 +406,8 @@ import AppKit
             manualDischargeActive: isManualDischarge,
             manualDischargeTarget: dischargeTarget,
             calibrationActive: isCalibrating,
-            calibrationTargetPercentage: calibrationTarget
+            calibrationTargetPercentage: calibrationTarget,
+            clamshellDischargeAllowed: clamshellAllowance()
         )
         let willReapply = BatteryControlPolicy.shouldReapply(
             configuration: targetConfig, status: status)

@@ -438,6 +438,9 @@ enum Defaults {
     static let batteryHeatProtectionThreshold = 35
     static let batteryAutoDischargeEnabled = false
     static let batteryManualDischargeTarget = 80
+    /// 옵트인 전용. 켜면 강제 방전 중에 데몬이 시스템 잠자기를 억제한다(재부팅을 넘어 남는
+    /// 시스템 설정을 만지므로 기본은 반드시 꺼짐).
+    static let batteryClamshellDischargeEnabled = false
     static let batteryChargingSchedules = ""
     static let batteryScheduleHistory = ""
     static let batteryScheduleNotificationsEnabled = true
@@ -484,6 +487,7 @@ enum StorageKey {
     static let batteryHeatProtectionThreshold = "batteryHeatProtectionThreshold"
     static let batteryAutoDischargeEnabled = "batteryAutoDischargeEnabled"
     static let batteryManualDischargeTarget = "batteryManualDischargeTarget"
+    static let batteryClamshellDischargeEnabled = "batteryClamshellDischargeEnabled"
     static let batteryChargingSchedules = "batteryChargingSchedules"
     static let batteryScheduleHistory = "batteryScheduleHistory"
     static let batteryScheduleNotificationsEnabled = "batteryScheduleNotificationsEnabled"
