@@ -2,42 +2,7 @@ import Testing
 import Foundation
 @testable import Wattly
 
-private final class MockURLProtocol: URLProtocol, @unchecked Sendable {
-    nonisolated(unsafe) static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
-
-    override class func canInit(with request: URLRequest) -> Bool {
-        return true
-    }
-
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
-        return request
-    }
-
-    override func startLoading() {
-        guard let handler = MockURLProtocol.requestHandler else {
-            client?.urlProtocol(self, didFailWithError: URLError(.badURL))
-            return
-        }
-
-        do {
-            let (response, data) = try handler(request)
-            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-            client?.urlProtocol(self, didLoad: data)
-            client?.urlProtocolDidFinishLoading(self)
-        } catch {
-            client?.urlProtocol(self, didFailWithError: error)
-        }
-    }
-
-    override func stopLoading() {}
-}
-
 @Suite struct UpdateCheckerTests {
-    private func createMockSession() -> URLSession {
-        let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [MockURLProtocol.self]
-        return URLSession(configuration: config)
-    }
 
     @Test func versionComparisonHandlesSemVer() {
         #expect(UpdateChecker.isNewer(latest: "1.0.1", than: "1.0.0") == true)
@@ -129,7 +94,7 @@ private final class MockURLProtocol: URLProtocol, @unchecked Sendable {
     }
 
     @Test @MainActor func checkForUpdatesAvailableWhenNewerVersionPublished() async {
-        let session = createMockSession()
+        let session = MockURLProtocol.makeSession()
         let releaseJson = """
         {
             "tag_name": "v99.0.0",
@@ -174,7 +139,7 @@ private final class MockURLProtocol: URLProtocol, @unchecked Sendable {
     }
 
     @Test @MainActor func checkForUpdatesUpToDateWhenCurrentIsSameOrNewer() async {
-        let session = createMockSession()
+        let session = MockURLProtocol.makeSession()
         let releaseJson = """
         {
             "tag_name": "v0.1.0",
@@ -201,7 +166,7 @@ private final class MockURLProtocol: URLProtocol, @unchecked Sendable {
     }
 
     @Test @MainActor func checkForUpdates404YieldsUpToDate() async {
-        let session = createMockSession()
+        let session = MockURLProtocol.makeSession()
         MockURLProtocol.requestHandler = { request in
             let response = HTTPURLResponse(
                 url: request.url!,
@@ -219,7 +184,7 @@ private final class MockURLProtocol: URLProtocol, @unchecked Sendable {
     }
 
     @Test @MainActor func checkForUpdatesHttpErrorYieldsFailed() async {
-        let session = createMockSession()
+        let session = MockURLProtocol.makeSession()
         MockURLProtocol.requestHandler = { request in
             let response = HTTPURLResponse(
                 url: request.url!,
@@ -241,7 +206,7 @@ private final class MockURLProtocol: URLProtocol, @unchecked Sendable {
     }
 
     @Test @MainActor func checkForUpdatesNetworkFailureYieldsFailed() async {
-        let session = createMockSession()
+        let session = MockURLProtocol.makeSession()
         MockURLProtocol.requestHandler = { _ in
             throw URLError(.timedOut)
         }
