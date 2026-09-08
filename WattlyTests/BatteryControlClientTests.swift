@@ -277,10 +277,10 @@ struct BatteryControlClientTests {
     }
 
     @Test func uninstallScriptVerifiesReleaseBeforeRemovingTheHelper() {
-        let script = FanHelperInstaller.makeUninstallScript(verifierPath: "/tmp/WattlyFanDaemon")
-        let preflight = try! #require(script.range(of: "'/tmp/WattlyFanDaemon' --verify-battery-release"))
+        let script = FanHelperInstaller.makeUninstallScript(fallbackVerifierPath: "/tmp/WattlyFanDaemon")
+        let preflight = try! #require(script.range(of: "\"$verifier\" --verify-battery-release"))
         let bootout = try! #require(script.range(of: "launchctl bootout system/\(FanHelperInstaller.label)"))
-        let postflight = try! #require(script.range(of: "if ! '/tmp/WattlyFanDaemon' --verify-battery-release"))
+        let postflight = try! #require(script.range(of: "if ! \"$verifier\" --verify-battery-release"))
         let removal = try! #require(script.range(of: "rm -f '/Library/PrivilegedHelperTools/\(FanHelperInstaller.label)'"))
 
         #expect(script.contains("set -eu"))
@@ -288,6 +288,8 @@ struct BatteryControlClientTests {
         #expect(bootout.lowerBound < postflight.lowerBound)
         #expect(postflight.lowerBound < removal.lowerBound)
         #expect(script.contains("launchctl bootstrap system '/Library/LaunchDaemons/\(FanHelperInstaller.label).plist'"))
+        // 폴백(번들 사본) 경로도 인용된 형태로 등장한다 — 인용 수정 커버.
+        #expect(script.contains("fallback_verifier='/tmp/WattlyFanDaemon'"))
     }
 
     @MainActor @Test func legacyHelperIsPreparedForVerifiedRemoval() async throws {

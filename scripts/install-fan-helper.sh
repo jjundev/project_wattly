@@ -109,6 +109,7 @@ if ! "$daemon_path" --verify-battery-release; then
   exit 74
 fi
 install -d -o root -g wheel -m 755 /Library/PrivilegedHelperTools /Library/LaunchDaemons
+install -d -o root -g wheel -m 755 '/Library/Application Support/Wattly'
 install -o root -g wheel -m 755 "$daemon_path" "$helper_path"
 install -o root -g wheel -m 644 "$replacement_plist" "$installed_plist"
 launchctl bootstrap system "$installed_plist"

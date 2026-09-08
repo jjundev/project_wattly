@@ -87,4 +87,13 @@ import Foundation
         let verify = script.range(of: "--verify-battery-release")!.lowerBound
         #expect(mismatch < verify)
     }
+
+    @Test func uninstallScriptPrefersTheInstalledRootOwnedHelperAsVerifier() {
+        let script = FanHelperInstaller.makeUninstallScript(fallbackVerifierPath: "/Apps/It's.app/Contents/Helpers/WattlyFanDaemon")
+        #expect(script.contains("verifier='/Library/PrivilegedHelperTools/dev.jjundev.WattlyFanDaemon'"))
+        #expect(script.contains("fallback_verifier='/Apps/It'\\''s.app/Contents/Helpers/WattlyFanDaemon'"))
+        #expect(script.contains("if [ ! -x \"$verifier\" ]; then verifier=\"$fallback_verifier\"; fi"))
+        #expect(!script.contains("'/Apps/It's"))
+        #expect(script.contains("rm -f '/Library/PrivilegedHelperTools/dev.jjundev.WattlyFanDaemon'"))
+    }
 }

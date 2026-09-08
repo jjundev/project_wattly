@@ -224,19 +224,23 @@ enum FanHelperInstaller {
         guard FileManager.default.isExecutableFile(atPath: verifier.path) else {
             throw InstallError.daemonMissing
         }
-        try await runPrivileged(makeUninstallScript(verifierPath: verifier.path))
+        try await runPrivileged(makeUninstallScript(fallbackVerifierPath: verifier.path))
     }
 
-    static func makeUninstallScript(verifierPath: String) -> String {
+    /// 검증기는 root 소유의 설치본을 우선한다. 번들 사본은 설치본이 없을 때(설치가 반쯤 지워진 경우)만 쓴다.
+    static func makeUninstallScript(fallbackVerifierPath: String) -> String {
         """
         set -eu
-        '\(verifierPath)' --verify-battery-release
+        verifier='/Library/PrivilegedHelperTools/\(label)'
+        fallback_verifier=\(shellQuoted(fallbackVerifierPath))
+        if [ ! -x "$verifier" ]; then verifier="$fallback_verifier"; fi
+        "$verifier" --verify-battery-release
         was_running=false
         if launchctl print system/\(label) >/dev/null 2>&1; then
           was_running=true
           launchctl bootout system/\(label)
         fi
-        if ! '\(verifierPath)' --verify-battery-release; then
+        if ! "$verifier" --verify-battery-release; then
           if $was_running; then
             launchctl bootstrap system '/Library/LaunchDaemons/\(label).plist'
           fi
