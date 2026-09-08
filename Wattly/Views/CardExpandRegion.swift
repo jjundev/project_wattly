@@ -13,11 +13,6 @@ struct CardExpandRegion: View {
     @AppStorage(StorageKey.showBatteryEfficiency) private var showBatteryEfficiency = Defaults.showBatteryEfficiency
     @AppStorage(StorageKey.showBatteryTopUp) private var showBatteryTopUp = Defaults.showBatteryTopUp
     @AppStorage(StorageKey.showBatteryManualDischarge) private var showBatteryManualDischarge = Defaults.showBatteryManualDischarge
-    @AppStorage(StorageKey.batteryLimitPercentage) private var batteryLimitPercentage = Defaults.batteryLimitPercentage
-    @AppStorage(StorageKey.batterySailingEnabled) private var batterySailingEnabled = Defaults.batterySailingEnabled
-    @AppStorage(StorageKey.batterySailingDelta) private var batterySailingDelta = Defaults.batterySailingDelta
-    @AppStorage(StorageKey.batteryHeatProtectionEnabled) private var batteryHeatProtectionEnabled = Defaults.batteryHeatProtectionEnabled
-    @AppStorage(StorageKey.batteryHeatProtectionThreshold) private var batteryHeatProtectionThreshold = Defaults.batteryHeatProtectionThreshold
     @AppStorage(StorageKey.batteryAutoDischargeEnabled) private var batteryAutoDischargeEnabled = Defaults.batteryAutoDischargeEnabled
     @AppStorage(StorageKey.batteryManualDischargeTarget) private var manualDischargeTarget = Defaults.batteryManualDischargeTarget
     let card: CardKind
