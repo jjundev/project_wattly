@@ -143,3 +143,11 @@ func smcDouble(_ bytes: [UInt8], type: String) -> Double {
     }
     return Double(v)
 }
+
+/// `Int(Double)`은 NaN·inf·범위 밖에서 트랩한다. SMC 바이트는 손상된 `keyInfo`나 `flt ` 키에서 그 셋을 전부
+/// 만들 수 있으므로 옵셔널로 거른다. `Fan.swift`의 `fanCount(fromRawFNum:)`이 같은 이유로 가드한다.
+func smcInt(_ bytes: [UInt8], type: String) -> Int? {
+    let value = smcDouble(bytes, type: type).rounded()
+    guard value.isFinite, value >= -9.0e18, value <= 9.0e18 else { return nil }
+    return Int(value)
+}

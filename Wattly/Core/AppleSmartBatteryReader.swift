@@ -69,8 +69,8 @@ actor AppleSmartBatteryReader {
         }
 
         if !smcAttempted { smcAttempted = true; smc = SMCConnection() }
-        if let smc, let power = smc.read("B0AP") {
-            let milliwatts = Int(smcDouble(power.bytes, type: power.type).rounded())
+        if let smc, let power = smc.read("B0AP"),
+           let milliwatts = smcInt(power.bytes, type: power.type) {
             reading.netWatts = netWatts(batteryMilliwatts: milliwatts)
         }
         return reading

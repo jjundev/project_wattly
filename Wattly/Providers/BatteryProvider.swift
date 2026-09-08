@@ -52,11 +52,11 @@ actor BatteryProvider: MetricProvider {
     private func smcSample(registry: AppleSmartBatterySnapshot?) -> BatterySample? {
         guard let smc,
               let power = smc.read("B0AP"),
-              let voltage = smc.read("B0AV") else { return nil }
-        let milliwatts = Int(smcDouble(power.bytes, type: power.type).rounded())
+              let voltage = smc.read("B0AV"),
+              let milliwatts = smcInt(power.bytes, type: power.type) else { return nil }
         let volts = smcDouble(voltage.bytes, type: voltage.type) / 1000.0
         let netW = netWatts(batteryMilliwatts: milliwatts)
-        let mA = smc.read("B0AC").map { Int(smcDouble($0.bytes, type: $0.type).rounded()) }
+        let mA = smc.read("B0AC").flatMap { smcInt($0.bytes, type: $0.type) }
             ?? batteryMilliamps(batteryMilliwatts: milliwatts, volts: volts)
         let adapterW = smc.read("PDTR").map { smcDouble($0.bytes, type: $0.type) } ?? registry?.systemPowerInWatts ?? 0.0
         let measuredSystemW = smc.read("PSTR").map { smcDouble($0.bytes, type: $0.type) } ?? registry?.systemLoadWatts
