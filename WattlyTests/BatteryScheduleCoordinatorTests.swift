@@ -8,6 +8,7 @@ private actor MockBatteryState {
     var percentage: Int = 75
     var isPowerAdapterConnected: Bool = true
     var shouldFail: Bool = false
+    var applyCount = 0
 
     func setAdapterConnected(_ connected: Bool) {
         self.isPowerAdapterConnected = connected
@@ -19,6 +20,7 @@ private actor MockBatteryState {
 
     func applyConfig(_ config: BatteryControlConfiguration) -> BatteryControlServiceStatus? {
         if shouldFail { return nil }
+        applyCount += 1
         self.lastAppliedConfig = config
         return BatteryControlServiceStatus(
             mode: mode,
@@ -405,6 +407,33 @@ private func makeIsolatedDefaults() -> UserDefaults {
         let applied = await state.lastAppliedConfig
         #expect(applied?.autoDischargeEnabled == true)
         #expect(applied?.manualDischargeTarget == 70)
+    }
+
+    @Test @MainActor func matchingScheduleFiresOnceEvenIfEvaluatedTwiceInTheSameMinute() async {
+        let state = MockBatteryState()
+        let defaults = makeIsolatedDefaults()
+        let coordinator = BatteryScheduleCoordinator(batteryControl: makeMockClient(state: state), defaults: defaults)
+        coordinator.addSchedule(BatteryChargingSchedule(
+            name: "8시 80%", time: ScheduleTime(hour: 8, minute: 0),
+            repeatRule: .daily, action: .setLimit(percentage: 80)))
+        var comps = DateComponents(); comps.year = 2026; comps.month = 9; comps.day = 8; comps.hour = 8; comps.minute = 0
+        let eight = Calendar.current.date(from: comps)!
+        await coordinator.evaluateSchedules(at: eight, isWake: false)
+        await coordinator.evaluateSchedules(at: eight.addingTimeInterval(20), isWake: false)
+        #expect(await state.applyCount == 1)
+    }
+
+    /// 감사 버그: sailing on + delta 키 없음 → 0 → 데몬 클램프 1. 이제는 기본값 5가 실린다.
+    @Test @MainActor func scheduleSendsTheDefaultSailingDeltaWhenTheKeyIsAbsent() async {
+        let state = MockBatteryState()
+        let defaults = makeIsolatedDefaults()
+        defaults.set(true, forKey: StorageKey.batterySailingEnabled)
+        let coordinator = BatteryScheduleCoordinator(batteryControl: makeMockClient(state: state), defaults: defaults)
+        coordinator.addSchedule(BatteryChargingSchedule(
+            name: "x", time: ScheduleTime(hour: 9, minute: 30), action: .setLimit(percentage: 90)))
+        var comps = DateComponents(); comps.year = 2026; comps.month = 9; comps.day = 8; comps.hour = 9; comps.minute = 30
+        await coordinator.evaluateSchedules(at: Calendar.current.date(from: comps)!, isWake: false)
+        #expect(await state.lastAppliedConfig?.lowerHysteresisDelta == Defaults.batterySailingDelta)
     }
 
     @Test @MainActor func clearHistoryRemovesAllEntries() {
