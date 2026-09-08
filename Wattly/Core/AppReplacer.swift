@@ -8,7 +8,7 @@ public enum AppReplacer: Sendable {
     /// quarantine 제거는 6단계(Developer ID + 공증)에서 사라진다; 지금은 `UpdateVerifier`의 서명 검증이 근거다.
     nonisolated public static let replaceScript = """
     set -eu
-    current="$1"; new="$2"; pid="$3"
+    current="${1%/}"; new="${2%/}"; pid="$3"
     while kill -0 "$pid" 2>/dev/null; do sleep 0.2; done
     backup="$current.wattly-previous"
     rm -rf "$backup"

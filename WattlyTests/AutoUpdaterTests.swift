@@ -130,4 +130,17 @@ import CryptoKit
         #expect(AutoUpdater().state == .idle)
         #expect(AutoUpdater().progress == 0.0)
     }
+
+    @Test @MainActor func startUpdateReentryInvalidatesPriorSession() {
+        let updater = AutoUpdater(sessionConfiguration: MockURLProtocol.makeConfiguration(),
+                                  publicKey: Curve25519.Signing.PrivateKey().publicKey,
+                                  expectedBundleIdentifier: "dev.jjundev.Wattly", currentVersion: "1.1.0",
+                                  replacer: { _ in })
+        updater.startUpdate(release: Self.release())
+        #expect(updater.state == .downloading(progress: 0.0))
+        updater.startUpdate(release: Self.release())
+        #expect(updater.state == .downloading(progress: 0.0))
+        updater.cancel()
+        #expect(updater.state == .idle)
+    }
 }

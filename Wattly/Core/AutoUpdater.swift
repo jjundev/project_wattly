@@ -52,7 +52,7 @@ public final class AutoUpdater: NSObject, Sendable, URLSessionDownloadDelegate {
     }
 
     public func startUpdate(release: GitHubRelease) {
-        guard let publicKey else {
+        guard publicKey != nil else {
             state = .failed(reason: String(localized: "업데이트 서명 키가 구성되지 않았습니다."))
             return
         }
@@ -68,6 +68,8 @@ public final class AutoUpdater: NSObject, Sendable, URLSessionDownloadDelegate {
             return
         }
 
+        urlSession?.invalidateAndCancel()
+
         let id = UUID()
         runID = id
         signatureBase64 = nil
@@ -76,21 +78,21 @@ public final class AutoUpdater: NSObject, Sendable, URLSessionDownloadDelegate {
         urlSession = session
 
         Task { [weak self] in
+            guard let self, self.runID == id else { return }
             do {
                 let (data, response) = try await session.data(for: Self.request(sig.browserDownloadURL))
                 guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
                     throw UpdateVerifier.Failure.invalidSignature
                 }
-                guard let self, self.runID == id else { return }
+                guard self.runID == id else { return }
                 self.signatureBase64 = String(decoding: data, as: UTF8.self)
                 let task = session.downloadTask(with: Self.request(zip.browserDownloadURL))
                 self.downloadTask = task
                 task.resume()
             } catch {
-                guard let self, self.runID == id else { return }
+                guard self.runID == id else { return }
                 self.state = .failed(reason: String(localized: "서명 파일을 받지 못했습니다."))
             }
-            _ = publicKey
         }
     }
 
@@ -139,6 +141,7 @@ public final class AutoUpdater: NSObject, Sendable, URLSessionDownloadDelegate {
             try FileManager.default.moveItem(at: location, to: stagedZip)
         } catch {
             Task { @MainActor in
+                guard self.runID != nil else { return }
                 self.state = .failed(reason: String(format: String(localized: "임시 파일 저장 실패: %@"), error.localizedDescription))
             }
             return
@@ -166,6 +169,7 @@ public final class AutoUpdater: NSObject, Sendable, URLSessionDownloadDelegate {
         let expectedBundleIdentifier = self.expectedBundleIdentifier
         let currentVersion = self.currentVersion
         Task.detached(priority: .userInitiated) { [weak self] in
+            defer { try? FileManager.default.removeItem(at: stagingDir) }
             func fail(_ reason: String) async {
                 await MainActor.run { [weak self] in
                     guard let self, self.runID == id else { return }

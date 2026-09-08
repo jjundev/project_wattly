@@ -51,6 +51,34 @@ import Foundation
         #expect(!fm.fileExists(atPath: current.path + ".wattly-previous"))
     }
 
+    /// 경로 끝에 슬래시가 붙어 있어도(URL path or argv) 백업 디렉토리가 앱 내부가 아닌 옆에 생긴다.
+    @Test func replaceScriptHandlesTrailingSlashes() throws {
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fm.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: root) }
+        let current = root.appendingPathComponent("Wattly.app", isDirectory: true)
+        let newApp = root.appendingPathComponent("New.app", isDirectory: true)
+        try fm.createDirectory(at: current, withIntermediateDirectories: true)
+        try "old".write(to: current.appendingPathComponent("marker"), atomically: true, encoding: .utf8)
+        try fm.createDirectory(at: newApp, withIntermediateDirectories: true)
+        try "new".write(to: newApp.appendingPathComponent("marker"), atomically: true, encoding: .utf8)
+
+        let probe = Process()
+        probe.executableURL = URL(fileURLWithPath: "/usr/bin/true")
+        try probe.run(); probe.waitUntilExit()
+        let deadPID = probe.processIdentifier
+
+        // 끝에 슬래시가 붙은 경로로 전달
+        let currentWithSlash = current.path + "/"
+        let newWithSlash = newApp.path + "/"
+        let args = ["-c", AppReplacer.replaceScript, "wattly-relaunch", currentWithSlash, newWithSlash, String(deadPID)]
+        try Self.runSh(args)
+        #expect(try String(contentsOf: current.appendingPathComponent("marker"), encoding: .utf8) == "new")
+        #expect(!fm.fileExists(atPath: current.path + ".wattly-previous"))
+        #expect(!fm.fileExists(atPath: current.appendingPathComponent(".wattly-previous").path))
+    }
+
     private static func runSh(_ arguments: [String]) throws {
         let sh = Process()
         sh.executableURL = URL(fileURLWithPath: "/bin/sh")
