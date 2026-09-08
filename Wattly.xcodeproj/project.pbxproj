@@ -77,6 +77,7 @@
 		3B88FC69C5E47ED84C95CAB3 /* SystemMonitorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE8B45929FB77AE51839080D /* SystemMonitorTests.swift */; };
 		3BD1982FD6CD538B49E62046 /* BatteryControlActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCD99ABF37248BDC9F8C75D8 /* BatteryControlActivity.swift */; };
 		3CF3548EB56366E28230925C /* IOPMSystemSleepInhibitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7E43213947C74AE2C9DFE6A /* IOPMSystemSleepInhibitor.swift */; };
+		3D201635C8AB6CDD23A1403A /* UpdateVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = E09E81371625F95842A71669 /* UpdateVerifier.swift */; };
 		3FBFEC2F4475DCB65D4DB34C /* GPUUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B90A4620183939CBA21A31BD /* GPUUsage.swift */; };
 		4008F7B4281DBE89FA852633 /* GPUProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A603117030042BF767DFF5 /* GPUProvider.swift */; };
 		4049DF17FB570D655330719E /* HelperHealthCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C388705F7073C004821DBF /* HelperHealthCoordinator.swift */; };
@@ -210,6 +211,7 @@
 		C13C8F7F201C37985BDDD7BD /* AppleSmartBatteryReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A8FA4EAC6A5C3AD4F52DAFD /* AppleSmartBatteryReaderTests.swift */; };
 		C1C941C245940A942552E3B6 /* Temperature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0721DEAA1855EE4C25F48F35 /* Temperature.swift */; };
 		C62950358A727257558A982E /* History.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8ACAEB9B7EE979F55ECF5CC3 /* History.swift */; };
+		C76C9FAA0A025152DE479886 /* UpdateVerifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6716CAC563956A71792AEF0 /* UpdateVerifierTests.swift */; };
 		C92331E86977F35E32A93DCD /* HardwareModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F29DD358CE8F3D499D04E593 /* HardwareModel.swift */; };
 		C9E719E7D0D0152859146746 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B2DE33D7B63228682966B89 /* SettingsView.swift */; };
 		CB779576E890F03DA64A3430 /* FanControlPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = E81B47E3252A5121772114A7 /* FanControlPolicy.swift */; };
@@ -495,12 +497,14 @@
 		DD98A9BCB03687E506F17880 /* GlyphsRenderingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlyphsRenderingTests.swift; sourceTree = "<group>"; };
 		DECFD3734A1569FA8CFE4AF5 /* OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = OFL.txt; sourceTree = "<group>"; };
 		DF1EBF296BE952176C65626F /* BatteryCalibrationStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryCalibrationStateTests.swift; sourceTree = "<group>"; };
+		E09E81371625F95842A71669 /* UpdateVerifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateVerifier.swift; sourceTree = "<group>"; };
 		E0AD4C82FC1A9EA5F33B69B3 /* CardPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardPresentationTests.swift; sourceTree = "<group>"; };
 		E16EB2DF75F2A90917F1881D /* Sparkline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sparkline.swift; sourceTree = "<group>"; };
 		E17CA2A3537249BE71E29BDA /* GPUProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUProviderTests.swift; sourceTree = "<group>"; };
 		E1C1124BDE244795DBE13E28 /* BatteryPolicyPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryPolicyPersistence.swift; sourceTree = "<group>"; };
 		E25AC062F073C6CEBAC02F32 /* BatteryScheduleLogEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryScheduleLogEntry.swift; sourceTree = "<group>"; };
 		E2C70F6D347796A4C2CB1949 /* SettingsMenuBarSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsMenuBarSection.swift; sourceTree = "<group>"; };
+		E6716CAC563956A71792AEF0 /* UpdateVerifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateVerifierTests.swift; sourceTree = "<group>"; };
 		E81B47E3252A5121772114A7 /* FanControlPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanControlPolicy.swift; sourceTree = "<group>"; };
 		E87414F4D015C32CA17E84AD /* ExternalDisplayDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalDisplayDetector.swift; sourceTree = "<group>"; };
 		E92DBEAC072A56D8DCF1D665 /* FanControlEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanControlEngine.swift; sourceTree = "<group>"; };
@@ -625,6 +629,7 @@
 				F61FA5F6DFF92047EE2B7B8E /* SystemMonitor.swift */,
 				0721DEAA1855EE4C25F48F35 /* Temperature.swift */,
 				53C2CCC20EA0CA992A5A74DE /* UpdateChecker.swift */,
+				E09E81371625F95842A71669 /* UpdateVerifier.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -814,6 +819,7 @@
 				4EC101CF7C8E5F2E38102F96 /* ThemeResolverTests.swift */,
 				2FDBCEE7C543E46F486E93C0 /* ThresholdTests.swift */,
 				8896357D6507566E84BBF9BC /* UpdateCheckerTests.swift */,
+				E6716CAC563956A71792AEF0 /* UpdateVerifierTests.swift */,
 				71E8C60B0FE562DAC7557B02 /* WattlyShortcutsTests.swift */,
 			);
 			path = WattlyTests;
@@ -1183,6 +1189,7 @@
 				709CA63AA1B889F23AB4AE04 /* ThemeResolverTests.swift in Sources */,
 				868EB1B64A4B157A046511F4 /* ThresholdTests.swift in Sources */,
 				AED454D25A296D75DF5210A3 /* UpdateCheckerTests.swift in Sources */,
+				C76C9FAA0A025152DE479886 /* UpdateVerifierTests.swift in Sources */,
 				143B009685DBF44E0F7DD073 /* WattlyShortcutsTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1358,6 +1365,7 @@
 				351A26180194AB3D3EF7C3F2 /* Theme.swift in Sources */,
 				0CFE1F2EDC6A20038D493BDA /* Tokens.swift in Sources */,
 				AA814551648BF22576D849A0 /* UpdateChecker.swift in Sources */,
+				3D201635C8AB6CDD23A1403A /* UpdateVerifier.swift in Sources */,
 				8F347308BCDA9518F07E0BFD /* VisibilitySettings.swift in Sources */,
 				FE58DF7DBC6DA12ECB9CDB7B /* WattlyApp.swift in Sources */,
 				AB501C8FD423C41AF297476F /* WattlyFont.swift in Sources */,
