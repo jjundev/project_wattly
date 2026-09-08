@@ -83,18 +83,18 @@ public final class BatteryIntentBridge: @unchecked Sendable {
 
     @discardableResult
     public func applyLimit(enabled: Bool? = nil, limitPercentage: Int? = nil) async throws -> BatteryControlServiceStatus {
-        var prefs = BatteryPreferences(defaults: userDefaults)
-        if let enabled { prefs.limitEnabled = enabled }
-        if let limitPercentage { prefs.limitPercentage = limitPercentage }
-        return try await push(prefs)
+        try await push { prefs in
+            if let enabled { prefs.limitEnabled = enabled }
+            if let limitPercentage { prefs.limitPercentage = limitPercentage }
+        }
     }
 
     @discardableResult
     public func applySailing(enabled: Bool, delta: Int? = nil) async throws -> BatteryControlServiceStatus {
-        var prefs = BatteryPreferences(defaults: userDefaults)
-        prefs.sailingEnabled = enabled
-        if let delta { prefs.sailingDelta = delta }
-        return try await push(prefs)
+        try await push { prefs in
+            prefs.sailingEnabled = enabled
+            if let delta { prefs.sailingDelta = delta }
+        }
     }
 
     @discardableResult
@@ -109,18 +109,31 @@ public final class BatteryIntentBridge: @unchecked Sendable {
 
     @discardableResult
     public func applyHeatProtection(enabled: Bool, thresholdCelsius: Int? = nil) async throws -> BatteryControlServiceStatus {
-        var prefs = BatteryPreferences(defaults: userDefaults)
-        prefs.heatProtectionEnabled = enabled
-        if let thresholdCelsius { prefs.heatProtectionThresholdCelsius = thresholdCelsius }
-        return try await push(prefs)
+        try await push { prefs in
+            prefs.heatProtectionEnabled = enabled
+            if let thresholdCelsius { prefs.heatProtectionThresholdCelsius = thresholdCelsius }
+        }
     }
 
     /// 설정 → 데몬 → 저장. 데몬이 거부하면 저장하지 않는다(예전 동작과 같다). 저장은 브리지를 깨워
     /// 같은 설정을 한 번 더 밀게 하지만, 데몬 `configure`는 멱등이고 인텐트는 분 단위 이벤트라 받아들인다.
-    private func push(_ prefs: BatteryPreferences) async throws -> BatteryControlServiceStatus {
+    ///
+    /// 값이 아니라 **변경 함수**를 받는다. XPC 왕복은 사용자가 슬라이더를 움직일 수 있는 시간이고,
+    /// `write(to:)`는 넘겨받은 값 전체를 저장소와 대조해 다른 키를 전부 덮어쓴다. 왕복 전에 읽은
+    /// 스냅샷을 그대로 쓰면 그 사이 사용자가 바꾼 한도가 옛 값으로 되돌아간다(`@AppStorage`가
+    /// 관찰하므로 슬라이더가 눈앞에서 튕긴다). 그래서 저장 직전에 저장소를 **다시 읽고** 같은
+    /// 변경만 다시 얹는다 — 인텐트가 실제로 건드린 필드만 남고 나머지는 사용자 값을 유지한다.
+    /// 그러려면 변경 함수가 순수해야 한다(두 번 실행된다).
+    private func push(
+        _ mutate: (inout BatteryPreferences) -> Void
+    ) async throws -> BatteryControlServiceStatus {
+        var outgoing = BatteryPreferences(defaults: userDefaults)
+        mutate(&outgoing)
         let client = await clientProvider()
-        let status = try Self.checked(await client.apply(prefs.configuration(clamshellDischargeAllowed: false)))
-        prefs.write(to: userDefaults)
+        let status = try Self.checked(await client.apply(outgoing.configuration(clamshellDischargeAllowed: false)))
+        var persisted = BatteryPreferences(defaults: userDefaults)
+        mutate(&persisted)
+        persisted.write(to: userDefaults)
         return status
     }
 

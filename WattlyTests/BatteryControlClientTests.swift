@@ -1142,7 +1142,7 @@ struct BatteryControlClientTests {
     }
 
     @MainActor @Test func applyWithConfigurationSendsItThroughTheSameChokepoint() async throws {
-        let receiver = RequestReceiver()   // 파일 안에 이미 있는 리시버 액터를 쓴다; 없으면 아래 정의를 추가한다.
+        let receiver = RequestReceiver()
         let client = BatteryControlClient(requestHandler: { request in
             await receiver.set(request)
             let status = BatteryControlServiceStatus(mode: .charging, currentPercentage: 50,
@@ -1167,7 +1167,7 @@ struct BatteryControlClientTests {
             let status = BatteryControlServiceStatus(mode: .charging, currentPercentage: 50,
                                                      isPowerAdapterConnected: true, detail: "OK", updatedAt: 1)
             return (try? BatteryControlCodec.encode(status), nil)
-        })
+        }, clamshellAllowance: { false })
         var prefs = BatteryPreferences.standard
         prefs.sailingEnabled = true; prefs.sailingDelta = 4
         _ = await client.startTopUp(preferences: prefs)

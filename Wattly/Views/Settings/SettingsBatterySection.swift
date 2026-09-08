@@ -32,18 +32,15 @@ struct SettingsBatterySection: View {
     private let presetLimits = [80, 85, 90, 95]
     private let sailingPresets = BatterySectionPresentation.sailingDeltaPresets
 
-    private var effectiveDelta: Int {
-        batterySailingEnabled ? batterySailingDelta : 2
-    }
-
     /// 저장된 목표 방전 잔량을 UI가 실제로 쓸 수 있는 범위로 접는다. 상한이 100이던 시절에
-    /// 저장된 값은 `currentSoC > target`을 영원히 만족시키지 못해 방전 버튼을 죽여 놓는다
+    /// 저장된 값은 `currentSoC > target`을 영원히 만족시키지 못한다
     /// (`BatterySectionPresentation.manualDischargeTargetRange` 참고).
     ///
-    /// 이 화면은 목표 슬라이더를 그리지 않는다(방전 카드는 `SettingsBatteryDischargeSection`에
-    /// 있다). 그런데도 클램프가 필요한 이유는, 충전 한도·세일링·발열 보호를 바꿀 때마다 이
-    /// 화면이 저장된 방전 목표를 **그대로 데몬에 함께 실어 보내기** 때문이다. 두 화면이 서로
-    /// 다른 값을 밀면 `BatteryControlPolicy.shouldReapply`가 둘을 영원히 화해시키려 든다.
+    /// 이 화면은 목표 슬라이더를 그리지 않고(방전 카드는 `SettingsBatteryDischargeSection`에 있다)
+    /// 이 값을 데몬으로 보내지도 않는다 — 전송은 전부 `BatteryPreferences.configuration(...)`을
+    /// 지나며 거기서 같은 클램프가 걸린다. 남은 유일한 소비자는 아래 상태 폴링 `.task(id:)`다.
+    /// 원시 저장값을 id에 넣으면 클램프 뒤에 같은 값이 되는 변경(예: 99→100)에도 폴링 태스크가
+    /// 헛되이 재시작하므로, 데몬이 실제로 보게 될 값과 같은 숫자를 id에 싣는다.
     private var dischargeTarget: Int {
         BatterySectionPresentation.clampedManualDischargeTarget(manualDischargeTarget)
     }
@@ -359,22 +356,11 @@ struct SettingsBatterySection: View {
             ) {
                 Button {
                     let window = NSApp.keyWindow
-                    let limit = batteryLimitPercentage
-                    let delta = effectiveDelta
-                    let heatEnabled = batteryHeatProtectionEnabled
-                    let heatThreshold = heatProtectionThreshold
-                    let autoDischarge = autoDischargeEnabled
-                    let manualTarget = dischargeTarget
+                    let configuration = BatteryPreferences(defaults: .standard)
+                        .configuration(clamshellDischargeAllowed: false)
                     Task {
                         if let failure = await batteryControl.installAndApply(
-                            enabled: batteryLimitEnabled,
-                            limitPercentage: limit,
-                            lowerHysteresisDelta: delta,
-                            heatProtectionEnabled: heatEnabled,
-                            heatProtectionThresholdCelsius: heatThreshold,
-                            autoDischargeEnabled: autoDischarge,
-                            manualDischargeTarget: manualTarget,
-                            window: window) {
+                            configuration, window: window) {
                             installErrorMessage = Self.message(for: failure, locale: locale)
                             isInstallFailedAlertPresented = true
                         }
@@ -583,29 +569,12 @@ struct SettingsBatterySection: View {
         Binding(
             get: { isTopUpActive },
             set: { want in
-                let limit = batteryLimitPercentage
-                let delta = effectiveDelta
-                let heatEnabled = batteryHeatProtectionEnabled
-                let heatThreshold = heatProtectionThreshold
-                let autoDischarge = autoDischargeEnabled
-                let manualTarget = dischargeTarget
+                let preferences = BatteryPreferences(defaults: .standard)
                 Task {
                     if want {
-                        await batteryControl.startTopUp(
-                            limitPercentage: limit,
-                            lowerHysteresisDelta: delta,
-                            heatProtectionEnabled: heatEnabled,
-                            heatProtectionThresholdCelsius: heatThreshold,
-                            autoDischargeEnabled: autoDischarge,
-                            manualDischargeTarget: manualTarget)
+                        await batteryControl.startTopUp(preferences: preferences)
                     } else {
-                        await batteryControl.cancelTopUp(
-                            limitPercentage: limit,
-                            lowerHysteresisDelta: delta,
-                            heatProtectionEnabled: heatEnabled,
-                            heatProtectionThresholdCelsius: heatThreshold,
-                            autoDischargeEnabled: autoDischarge,
-                            manualDischargeTarget: manualTarget)
+                        await batteryControl.cancelTopUp(preferences: preferences)
                     }
                 }
             }

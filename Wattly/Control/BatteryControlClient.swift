@@ -501,6 +501,16 @@ import AppKit
         }) {
             return .install(failure)
         }
+        // Installing is only half of it — the configure push is what actually engages the limit.
+        // Reporting success here would leave the toggle ON over a helper that is doing nothing.
+        //
+        // The `apply(...)` call above ran through the calibration chokepoint (`isCalibrationWrite:
+        // false`), so if the daemon was mid-calibration, what actually went out had
+        // `calibrationActive`/`enabled`/`topUpActive` revived from the daemon rather than the raw
+        // configuration this function received. The acceptance check has to compare against that
+        // same revived shape — reusing `revivedConfiguration` rather than rebuilding the raw one —
+        // or a calibration in progress makes every reinstall look rejected even though both halves
+        // actually succeeded.
         let revived = await revivedConfiguration(configuration, isCalibrationWrite: false)
         guard BatteryControlPolicy.accepted(configuration: revived, by: status) else {
             return .configureRejected(reason: status.detailReason, detail: status.detail)

@@ -50,9 +50,12 @@ import Foundation
         var prefs = BatteryPreferences.standard
         prefs.limitEnabled = true; prefs.limitPercentage = 85
         prefs.sailingEnabled = false; prefs.sailingDelta = 5
+        prefs.heatProtectionEnabled = true; prefs.heatProtectionThresholdCelsius = 38
         prefs.manualDischargeTarget = 100
         let off = prefs.configuration(clamshellDischargeAllowed: true)
         #expect(off.lowerHysteresisDelta == 2)
+        #expect(off.heatProtectionEnabled == true)
+        #expect(off.heatProtectionThresholdCelsius == 38)
         #expect(off.manualDischargeTarget == BatterySectionPresentation.manualDischargeTargetRange.upperBound)
         #expect(off.clamshellDischargeAllowed == true)
         #expect(off.topUpActive == false && off.manualDischargeActive == false && off.calibrationActive == false)

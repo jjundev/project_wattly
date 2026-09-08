@@ -88,6 +88,9 @@ struct BatteryPreferences: Equatable, Sendable {
             heatProtectionEnabled: heatProtectionEnabled,
             heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
             autoDischargeEnabled: autoDischargeEnabled,
+            // 클램프하는 이유(저장값 100이 죽은 방전 목표가 되는 문제)의 전문은
+            // `BatteryControlClient.revivedConfiguration` 주석에 있다. 여기와 거기 두 곳 모두
+            // 클램프하며, 클램프는 멱등이라 겹쳐도 값이 달라지지 않는다.
             manualDischargeTarget: BatterySectionPresentation.clampedManualDischargeTarget(manualDischargeTarget),
             clamshellDischargeAllowed: clamshellDischargeAllowed)
     }

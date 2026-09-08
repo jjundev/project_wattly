@@ -433,6 +433,9 @@ struct SettingsView: View {
 
     @MainActor
     private func reapplyAllSettingsAfterHelperReinstall() async {
+        // 형제인 `reapplyCurrentConfiguration`과 달리 `BatteryControlBridge.preservingActivity`를
+        // 거치지 않는다. 여기는 도우미를 방금 새로 설치한 직후라 데몬이 들고 있을 진행 중 활동
+        // (Top Up·수동 방전)이 아예 없다 — 보존할 것이 없다.
         await batteryControl.apply(
             BatteryPreferences(defaults: .standard).configuration(clamshellDischargeAllowed: false))
         if fanControlEnabled {
