@@ -375,23 +375,9 @@ import Observation
 
     // MARK: - 지속 저장
 
-    /// 시작 시점의 사용자 설정. `defaults.integer(forKey:)`가 없는 키에 `0`을 돌려주므로
-    /// 존재 여부를 먼저 확인한다 — `BatteryScheduleCoordinator`와 같은 이유다.
+    /// 시작 시점의 사용자 설정. 존재 가드·기본값은 `BatteryPreferences`가 책임진다.
     public func currentSnapshot() -> CalibrationSnapshot {
-        func int(_ key: String, _ fallback: Int) -> Int {
-            defaults.object(forKey: key) != nil ? defaults.integer(forKey: key) : fallback
-        }
-        return CalibrationSnapshot(
-            limitEnabled: defaults.bool(forKey: StorageKey.batteryLimitEnabled),
-            limitPercentage: int(StorageKey.batteryLimitPercentage, Defaults.batteryLimitPercentage),
-            sailingEnabled: defaults.bool(forKey: StorageKey.batterySailingEnabled),
-            sailingDelta: int(StorageKey.batterySailingDelta, Defaults.batterySailingDelta),
-            heatProtectionEnabled: defaults.bool(forKey: StorageKey.batteryHeatProtectionEnabled),
-            heatProtectionThresholdCelsius: int(
-                StorageKey.batteryHeatProtectionThreshold, Defaults.batteryHeatProtectionThreshold),
-            autoDischargeEnabled: defaults.bool(forKey: StorageKey.batteryAutoDischargeEnabled),
-            manualDischargeTarget: int(
-                StorageKey.batteryManualDischargeTarget, Defaults.batteryManualDischargeTarget))
+        BatteryPreferences(defaults: defaults).calibrationSnapshot
     }
 
     public func loadState() {
