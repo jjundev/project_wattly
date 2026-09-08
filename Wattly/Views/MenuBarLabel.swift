@@ -65,7 +65,7 @@ struct MenuBarLabel: View {
                 let delay = MenuBarIconMotion.interFrameDelay(
                     rps: currentRPS,
                     speed: kineticNotchSpeed,
-                    isACConnected: isACConnected,
+                    isACConnected: monitor.isACConnected,
                     isLowPowerMode: isLowPowerMode,
                     isForeground: monitor.isPanelVisible,
                     frameCount: iconStyle.frameCount,
@@ -93,10 +93,6 @@ struct MenuBarLabel: View {
         let kinds = Set(items.map(\.requiredCard))
         return Dictionary(uniqueKeysWithValues:
             kinds.map { ($0, monitor.cardState($0, smoothed: powerSmoothed)) })
-    }
-
-    private var isACConnected: Bool {
-        HardwarePowerSource.isACConnected()
     }
 
     private var isLowPowerMode: Bool {

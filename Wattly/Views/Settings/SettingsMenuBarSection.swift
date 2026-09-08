@@ -30,7 +30,6 @@ struct SettingsMenuBarSection: View {
 
     @State private var isAdvancedMenuMetricsExpanded = false
     @State private var displayedPreviewFrame: Int = 0
-    @State private var liveACConnected: Bool = HardwarePowerSource.isACConnected()
 
     private var hasActiveAdvancedMetrics: Bool {
         menuSClock || menuPClock || menuEClock || menuMemPressure || menuBatteryTemp
@@ -188,15 +187,10 @@ struct SettingsMenuBarSection: View {
                         displayedPreviewFrame = newFrame
                     }
 
-                    let ac = HardwarePowerSource.isACConnected()
-                    if ac != liveACConnected {
-                        liveACConnected = ac
-                    }
-
                     let delay = MenuBarIconMotion.interFrameDelay(
                         rps: currentRPS,
                         speed: kineticNotchSpeed,
-                        isACConnected: liveACConnected,
+                        isACConnected: monitor.isACConnected,
                         isLowPowerMode: isLowPowerMode,
                         isForeground: true,
                         frameCount: iconStyle.frameCount,
@@ -267,7 +261,7 @@ struct SettingsMenuBarSection: View {
     }
 
     private var isACConnected: Bool {
-        liveACConnected
+        monitor.isACConnected
     }
 
     private var isLowPowerMode: Bool {
