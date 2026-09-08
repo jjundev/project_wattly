@@ -19,6 +19,12 @@ import CryptoKit
         }
     }
 
+    /// 빈 키로 출하하면 `AutoUpdater`가 모든 업데이트를 거부한다. 키를 붙여 넣기 전까지 이 테스트가 빨갛다.
+    @Test func updateSigningKeyIsConfigured() {
+        #expect(UpdateSigningKey.publicKey != nil)
+        #expect(Data(base64Encoded: UpdateSigningKey.publicKeyBase64)?.count == 32)
+    }
+
     @Test func verifiesEd25519SignatureOverArchiveBytes() throws {
         let key = Curve25519.Signing.PrivateKey()
         let archive = Data("zip bytes".utf8)
