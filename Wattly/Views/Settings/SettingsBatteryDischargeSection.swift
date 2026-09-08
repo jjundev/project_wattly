@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 설정 › 배터리의 방전 카드 두 장 — 자동 방전과 수동 방전.
+/// 설정 › 배터리의 방전 카드 두 장 — 방전 제어와 덮개 방전.
 ///
 /// 충전 제한 카드에서 떼어낸 이유는 두 가지다. `SettingsBatterySection`이 970줄까지 자라
 /// 한 화면에 들고 읽기 어려워졌고, 방전은 충전 제한과 다른 하드웨어 축(CHIE,
@@ -153,8 +153,8 @@ struct SettingsBatteryDischargeSection: View {
         Group {
             if showsConfigurationControls {
                 SettingsSection("방전 제어") {
-                    autoDischargeCard
-                    manualDischargeCard
+                    dischargeControlCard
+                    clamshellDischargeCard
                 }
                 .task {
                     // 설정 창이 열려 있는 동안만 배터리를 2초로 깨운다. 팝오버가 닫힌 기본 상태에서
@@ -205,11 +205,11 @@ struct SettingsBatteryDischargeSection: View {
     }
 
     @ViewBuilder
-    private var autoDischargeCard: some View {
+    private var dischargeControlCard: some View {
         SettingsCard {
             SettingsToggleRow(
                 isOn: $autoDischargeEnabled,
-                divider: false,
+                divider: true,
                 // 게이트 두 축은 `BatterySectionPresentation`이 정의한다. 충전 한도가 꺼져
                 // 있으면 데몬이 자동 방전을 돌리지 않아 아무 일도 하지 않는 스위치가 되고,
                 // 수동 방전 세션 중에는 자동 방전이 그것을 이어받아 버리므로 잠근다.
@@ -248,12 +248,7 @@ struct SettingsBatteryDischargeSection: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-        }
-    }
 
-    @ViewBuilder
-    private var manualDischargeCard: some View {
-        SettingsCard {
             VStack(alignment: .leading, spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
                     SettingsRowTitle("수동 방전")
@@ -262,7 +257,7 @@ struct SettingsBatteryDischargeSection: View {
                         .foregroundStyle(t.faint)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(EdgeInsets(top: 14, leading: 14, bottom: 0, trailing: 14))
+                .padding(EdgeInsets(top: 12, leading: 14, bottom: 0, trailing: 14))
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
@@ -484,26 +479,29 @@ struct SettingsBatteryDischargeSection: View {
                     }
                     .padding(EdgeInsets(top: 0, leading: 14, bottom: 14, trailing: 14))
                 }
+            }
+        }
+    }
 
-                Rectangle().fill(t.line).frame(height: 1)
-
-                SettingsToggleRow(
-                    isOn: $clamshellDischargeEnabled,
-                    divider: false,
-                    isEnabled: isClamshellToggleEnabled,
-                    disabledReason: BatterySectionPresentation.clamshellDischargeToggleDisabledReason(
-                        helperMode: batteryControl.status.mode,
-                        capabilities: batteryControl.status.capabilities,
-                        isDischargeHardwareSupported: batteryControl.status.isDischargeHardwareSupported,
-                        locale: locale)
-                ) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        SettingsRowTitle("덮개를 닫아도 방전 계속")
-                        Text("외장 디스플레이가 연결된 동안 방전 중에는 Mac이 잠들지 않습니다. Apple 메뉴의 잠자기도 동작하지 않습니다.")
-                            .font(WattlyFont.at(10.5, weight: .regular))
-                            .foregroundStyle(t.faint)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+    @ViewBuilder
+    private var clamshellDischargeCard: some View {
+        SettingsCard {
+            SettingsToggleRow(
+                isOn: $clamshellDischargeEnabled,
+                divider: false,
+                isEnabled: isClamshellToggleEnabled,
+                disabledReason: BatterySectionPresentation.clamshellDischargeToggleDisabledReason(
+                    helperMode: batteryControl.status.mode,
+                    capabilities: batteryControl.status.capabilities,
+                    isDischargeHardwareSupported: batteryControl.status.isDischargeHardwareSupported,
+                    locale: locale)
+            ) {
+                VStack(alignment: .leading, spacing: 2) {
+                    SettingsRowTitle("덮개를 닫아도 방전 계속")
+                    Text("외장 디스플레이가 연결된 동안 방전 중에는 Mac이 잠들지 않습니다. Apple 메뉴의 잠자기도 동작하지 않습니다.")
+                        .font(WattlyFont.at(10.5, weight: .regular))
+                        .foregroundStyle(t.faint)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
