@@ -348,6 +348,34 @@ struct LocalizationTests {
         #expect(String(localized: "유지보수: 완충 자동 해제", locale: ko) == "유지보수: 완충 자동 해제")
     }
 
+    @Test func sleepUntilLimitTranslationsAcrossLocales() {
+        let en = Locale(identifier: "en")
+        let ja = Locale(identifier: "ja")
+        let de = Locale(identifier: "de")
+        let ko = Locale(identifier: "ko")
+
+        #expect(String(localized: "충전 한도 도달 시까지 잠자기 방지", locale: en)
+                == "Prevent sleep until charge limit")
+        #expect(String(localized: "충전 한도 도달 시까지 잠자기 방지", locale: ja)
+                == "充電上限に達するまでスリープを防止")
+        #expect(String(localized: "충전 한도 도달 시까지 잠자기 방지", locale: de)
+                == "Ruhezustand bis zum Ladelimit verhindern")
+        #expect(String(localized: "충전 한도 도달 시까지 잠자기 방지", locale: ko)
+                == "충전 한도 도달 시까지 잠자기 방지")
+
+        #expect(String(localized: "잠자기 차단 중 (충전 완료 후 자동으로 잠듭니다)", locale: en)
+                == "Sleep blocked (sleeps automatically after charging)")
+        #expect(String(localized: "잠자기 차단 중 (충전 완료 후 자동으로 잠듭니다)", locale: ja)
+                == "スリープ抑制中（充電完了後に自動でスリープします）")
+
+        #expect(String(localized: "충전 한도 도달 시까지 잠자기 방지를 사용하려면 도우미 업데이트가 필요합니다.", locale: en)
+                == "Update the helper to keep Mac awake until charge limit.")
+
+        #expect(String(localized: "충전 중 덮개를 닫아도 목표 한도에 도달할 때까지 잠들지 않고 충전을 마칩니다. 도달 시 자동으로 잠자기에 들어갑니다.", locale: en)
+                == "Even if the lid is closed while charging, the Mac stays awake until it reaches the limit. Once reached, it goes to sleep automatically.")
+    }
+
+
     @Test func dynamicChargeTimeTranslations() {
         let sample85 = BatterySample(
             netW: -20.0,
@@ -580,6 +608,22 @@ struct LocalizationTests {
             "ar", "cs", "da", "de", "el", "en", "es", "fi", "fr", "he", "hi", "hu", "id", "it", "ja", "ko", "nb", "nl", "pl", "pt-BR", "pt-PT", "ro", "ru", "sv", "th", "tr", "uk", "vi", "zh-Hans", "zh-Hant"
         ]
 
+        if let resourceURL = Bundle.main.resourceURL {
+            let enURL = resourceURL.appendingPathComponent("en.lproj").appendingPathComponent("Localizable.strings")
+            if let enDict = NSDictionary(contentsOf: enURL) as? [String: String] {
+                #expect(enDict.count >= 670)
+                for locale in supportedLocales {
+                    let localeURL = resourceURL.appendingPathComponent("\(locale).lproj").appendingPathComponent("Localizable.strings")
+                    guard let dict = NSDictionary(contentsOf: localeURL) as? [String: String] else {
+                        Issue.record("Missing Localizable.strings for locale '\(locale)'")
+                        continue
+                    }
+                    #expect(dict.count == enDict.count, "Locale '\(locale)' has \(dict.count) keys, expected \(enDict.count)")
+                }
+                return
+            }
+        }
+
         // Try to load from #filePath first (relative to this test file)
         let fileURL: URL?
         if let currentFile = URL(string: "file://\(#filePath)") {
@@ -610,18 +654,19 @@ struct LocalizationTests {
             return
         }
 
+        var missingEntries: [String] = []
         for (key, value) in strings {
             guard let localizations = value["localizations"] as? [String: Any] else {
                 continue
             }
 
             for locale in supportedLocales {
-                #expect(
-                    localizations[locale] != nil,
-                    "Key '\(key)' missing locale '\(locale)'"
-                )
+                if localizations[locale] == nil {
+                    missingEntries.append("Key '\(key)' missing locale '\(locale)'")
+                }
             }
         }
+        #expect(missingEntries.isEmpty, "\(missingEntries.count) localizations missing: \(missingEntries.prefix(5))")
     }
 }
 
