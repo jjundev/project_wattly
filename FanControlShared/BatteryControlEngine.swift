@@ -84,6 +84,12 @@ public final class BatteryControlEngine: @unchecked Sendable {
     /// 이 값을 끄는 순간 잠자기 억제도 따라서 풀린다.
     public var isDischargingNow: Bool { isCurrentlyDischarging }
 
+    /// 현재 충전이 차단(inhibit)되어 있는지 여부.
+    public var isChargingInhibited: Bool { isCurrentlyInhibited }
+
+    /// 현재 배터리 발열 보호(>= 35°C 등)가 발동 중인지 여부.
+    public var isHeatProtectionActive: Bool { isInHeatProtection }
+
     func statusForCurrentBelief(
         currentSoC: Int,
         isPluggedIn: Bool,
