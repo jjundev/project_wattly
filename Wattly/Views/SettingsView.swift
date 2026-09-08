@@ -143,7 +143,7 @@ struct SettingsView: View {
                                 Text("\(Int(WattlyProgressBar.clampedFraction(fraction) * 100))%")
                                     .font(WattlyFont.at(11, weight: .medium))
                                     .foregroundStyle(t.text)
-                            case .extracting, .readyToRelaunch:
+                            case .verifying, .extracting, .readyToRelaunch:
                                 ProgressView()
                                     .scaleEffect(0.5)
                                     .frame(width: 10, height: 10)
@@ -268,9 +268,9 @@ struct SettingsView: View {
     @ViewBuilder
     private var updateActionButton: some View {
         if case .available(let release) = updateChecker.status, case .idle = autoUpdater.state {
-            if let asset = release.zipAsset {
+            if release.zipAsset != nil, release.signatureAsset != nil {
                 Button {
-                    autoUpdater.startUpdate(asset: asset)
+                    autoUpdater.startUpdate(release: release)
                 } label: {
                     Text("지금 업데이트")
                         .font(WattlyFont.at(12, weight: .medium))

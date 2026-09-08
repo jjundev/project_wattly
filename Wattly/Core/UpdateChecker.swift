@@ -46,6 +46,13 @@ public struct GitHubRelease: Decodable, Sendable, Equatable {
     public var zipAsset: GitHubReleaseAsset? {
         assets.first(where: { $0.name.lowercased().hasSuffix(".zip") })
     }
+
+    /// zip 옆에 올라오는 `<zip 이름>.sig`. 없으면 자동 업데이트 대신 릴리스 페이지로 안내한다.
+    public var signatureAsset: GitHubReleaseAsset? {
+        guard let zip = zipAsset else { return nil }
+        let expected = zip.name.lowercased() + ".sig"
+        return assets.first(where: { $0.name.lowercased() == expected })
+    }
 }
 
 @MainActor

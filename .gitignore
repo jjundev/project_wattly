@@ -67,6 +67,7 @@ playground.xcworkspace
 *.p12
 *.mobileprovision
 AuthKey_*.p8
+*.key
 
 # Editor
 .idea/

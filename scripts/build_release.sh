@@ -31,4 +31,13 @@ echo "==> Creating $ZIP_PATH..."
 rm -f "$ZIP_PATH"
 (cd "$(dirname "$APP_PATH")" && zip -r -y "$ROOT_DIR/$ZIP_PATH" "$(basename "$APP_PATH")")
 
+KEY_FILE="${WATTLY_UPDATE_KEY_FILE:-$HOME/.wattly/update-signing.key}"
+if [ ! -f "$KEY_FILE" ]; then
+  echo "Error: update signing key not found at $KEY_FILE (run scripts/generate-update-key.swift)" >&2
+  exit 1
+fi
+echo "==> Signing $ZIP_PATH..."
+swift scripts/sign-release.swift "$ZIP_PATH" "$KEY_FILE"
+echo "==> Upload BOTH $ZIP_PATH and $ZIP_PATH.sig as release assets."
+
 echo "==> Success! Release asset created at $ZIP_PATH"
