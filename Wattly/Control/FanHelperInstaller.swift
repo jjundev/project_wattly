@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 /// Installs (or removes) the privileged fan-control helper using a single macOS
 /// administrator-authentication prompt. The daemon binary ships inside the app bundle at
@@ -216,6 +217,35 @@ enum FanHelperInstaller {
           '/Library/Application Support/Wattly/battery-control-v1.json'
         rmdir '/Library/Application Support/Wattly' 2>/dev/null || true
         """
+    }
+
+    // MARK: - 인용·해시 (순수)
+
+    /// POSIX sh 단일 인용. 안에 든 `'`는 `'\''`(닫고, 이스케이프한 따옴표, 다시 열기)로 바꾼다.
+    static func shellQuoted(_ value: String) -> String {
+        "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+
+    /// AppleScript 문자열 리터럴. `do shell script`에 여러 줄 스크립트를 파일 없이 넘기기 위한 것 —
+    /// 파일로 넘기면 인증 대화상자가 떠 있는 동안 같은 UID의 프로세스가 내용을 바꿔칠 수 있다.
+    static func appleScriptLiteral(_ value: String) -> String {
+        var out = "\""
+        for scalar in value.unicodeScalars {
+            switch scalar {
+            case "\\": out += "\\\\"
+            case "\"": out += "\\\""
+            case "\n": out += "\\n"
+            case "\r": out += "\\r"
+            case "\t": out += "\\t"
+            default: out.unicodeScalars.append(scalar)
+            }
+        }
+        return out + "\""
+    }
+
+    static func sha256Hex(ofFileAt url: URL) throws -> String {
+        let data = try Data(contentsOf: url)
+        return SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }
 
     // MARK: - Internals
