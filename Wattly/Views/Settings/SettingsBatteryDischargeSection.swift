@@ -345,7 +345,7 @@ struct SettingsBatteryDischargeSection: View {
                                 Circle()
                                     .fill(Tokens.statusOrange)
                                     .frame(width: 7, height: 7)
-                                Text(LocalizedStringKey("수동 방전 진행 중"))
+                                Text(BatterySectionPresentation.dischargeDescription(owner: .manual, target: target, locale: locale))
                                     .font(WattlyFont.at(11.5, weight: .semibold))
                                     .foregroundStyle(Tokens.statusOrange)
                             }

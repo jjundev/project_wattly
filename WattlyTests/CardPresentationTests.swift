@@ -763,9 +763,11 @@ struct CardPresentationTests {
         )
         let state = MetricState.value(.battery(dischargeSample))
         #expect(CardPresentation.thresholdLevel(.battery, state, Defaults.thresholds) == .warn)
-        #expect(CardPresentation.subText(state) == "수동 방전 진행 중")
-        #expect(CardPresentation.subText(state, dischargeOwner: .automatic) == "자동 방전 진행 중")
-        #expect(CardPresentation.display(.battery, state, dischargeOwner: .automatic).subText == "자동 방전 진행 중")
+        #expect(CardPresentation.subText(state) == "70%까지 수동 방전 중")
+        #expect(CardPresentation.subText(state, dischargeOwner: .automatic) == "70%까지 자동 방전 중")
+        #expect(CardPresentation.display(.battery, state, dischargeOwner: .automatic).subText == "70%까지 자동 방전 중")
+        #expect(Accessibility.cardLabel(.battery, state, dischargeOwner: .automatic) == "배터리, 방전 18.4 W, 70%까지 자동 방전 중")
+        #expect(Accessibility.cardLabel(.battery, state) == "배터리, 방전 18.4 W, 70%까지 수동 방전 중")
         #expect(dischargeSample.percentage == 85)
     }
 

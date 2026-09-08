@@ -520,6 +520,12 @@ struct LocalizationTests {
         #expect(String(localized: "목표치(%d%%)까지 방전 중", locale: en) == "Discharging to target (%d%%)")
         #expect(String(localized: "목표치(%d%%)까지 방전 중", locale: ko) == "목표치(%d%%)까지 방전 중")
 
+        #expect(String(localized: "%lld%%까지 수동 방전 중", locale: en) == "Manual discharge to %lld%%")
+        #expect(String(localized: "%lld%%까지 수동 방전 중", locale: ko) == "%lld%%까지 수동 방전 중")
+
+        #expect(String(localized: "%lld%%까지 자동 방전 중", locale: en) == "Auto discharge to %lld%%")
+        #expect(String(localized: "%lld%%까지 자동 방전 중", locale: ko) == "%lld%%까지 자동 방전 중")
+
         #expect(String(localized: "배터리 (수동 방전 중)", locale: en) == "Battery (Manual Discharge)")
         #expect(String(localized: "배터리 (수동 방전 중)", locale: ko) == "배터리 (수동 방전 중)")
 
