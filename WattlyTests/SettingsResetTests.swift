@@ -218,6 +218,16 @@ struct SettingsResetTests {
         #expect(d.integer(forKey: StorageKey.batteryManualDischargeTarget) == Defaults.batteryManualDischargeTarget)
     }
 
+    @Test func batterySectionResetIncludesSleepUntilLimitSetting() {
+        let d = makeDefaults(#function)
+        d.set(true, forKey: StorageKey.batterySleepUntilLimitEnabled)
+
+        SettingsReset.applyDefaults(into: d)
+
+        #expect(d.bool(forKey: StorageKey.batterySleepUntilLimitEnabled) == Defaults.batterySleepUntilLimitEnabled)
+        #expect(Defaults.batterySleepUntilLimitEnabled == false)
+    }
+
     @Test func resetHidesBatteryEfficiency() {
         let defaults = makeDefaults(#function)
         defaults.set(true, forKey: StorageKey.showBatteryEfficiency)

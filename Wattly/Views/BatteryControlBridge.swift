@@ -30,6 +30,7 @@ struct BatteryControlBridge: View {
     @AppStorage(StorageKey.batteryAutoDischargeEnabled) private var autoDischargeEnabled = Defaults.batteryAutoDischargeEnabled
     @AppStorage(StorageKey.batteryManualDischargeTarget) private var manualDischargeTarget = Defaults.batteryManualDischargeTarget
     @AppStorage(StorageKey.batteryClamshellDischargeEnabled) private var clamshellDischargeEnabled = Defaults.batteryClamshellDischargeEnabled
+    @AppStorage(StorageKey.batterySleepUntilLimitEnabled) private var sleepUntilLimitEnabled = Defaults.batterySleepUntilLimitEnabled
     /// 외장 디스플레이 존재 여부의 마지막 관측값. `handleInitialTask`가 첫 값을 읽고, 그 뒤로는
     /// 화면 구성 변경 알림에서만 갱신한다. 프로퍼티 초기값에서 읽지 않는 이유: `NSScreen`은
     /// `@MainActor`이고 SwiftUI View의 저장 프로퍼티 초기화는 nonisolated라 Swift 6가 거부한다.
@@ -43,14 +44,15 @@ struct BatteryControlBridge: View {
     @State private var topUpExpiryDetector = BatteryTopUpExpiryDetector()
     @State private var dischargeDetector = BatteryDischargeTransitionDetector()
 
-    /// 아홉 개 `@AppStorage`를 하나의 값으로. `.onChange(of:)`와 `.task(id:)`가 이 값 하나만 본다.
+    /// 열 개 `@AppStorage`를 하나의 값으로. `.onChange(of:)`와 `.task(id:)`가 이 값 하나만 본다.
     private var preferences: BatteryPreferences {
         BatteryPreferences(
             limitEnabled: enabled, limitPercentage: limit,
             sailingEnabled: sailingEnabled, sailingDelta: sailingDelta,
             heatProtectionEnabled: heatProtectionEnabled, heatProtectionThresholdCelsius: heatProtectionThreshold,
             autoDischargeEnabled: autoDischargeEnabled, manualDischargeTarget: manualDischargeTarget,
-            clamshellDischargeEnabled: clamshellDischargeEnabled)
+            clamshellDischargeEnabled: clamshellDischargeEnabled,
+            sleepUntilLimitEnabled: sleepUntilLimitEnabled)
     }
 
     /// 브리지가 데몬에 보내는 허용값. 클라이언트의 길목이 같은 출처로 다시 계산하지만, 여기서도
@@ -206,6 +208,12 @@ struct BatteryControlBridge: View {
             .onChange(of: preferences) { old, _ in
                 syncMonitorTarget()
                 schedulePush(windowOpenedAt: old)
+            }
+            .onChange(of: sleepUntilLimitEnabled) { _, _ in
+                let requested = configuration
+                Task {
+                    await applyRequested(requested, reason: "sleep-until-limit")
+                }
             }
             // 뚜껑을 닫은 채 외장 모니터를 뽑으면 화면이 하나도 남지 않는다. 그 순간 false를
             // 내려보내야 데몬이 잠자기 차단을 풀고 Mac이 정상적으로 잠든다. 60초 reconcile을
@@ -382,7 +390,8 @@ struct BatteryControlBridge: View {
                 heatProtectionEnabled: requested.heatProtectionEnabled,
                 heatProtectionThresholdCelsius: requested.heatProtectionThresholdCelsius,
                 autoDischargeEnabled: requested.autoDischargeEnabled,
-                manualDischargeTarget: requested.manualDischargeTarget)
+                manualDischargeTarget: requested.manualDischargeTarget,
+                sleepUntilLimitAllowed: requested.sleepUntilLimitAllowed)
             // `isHardwareSupported == false` also feeds the backoff counter below: a daemon that
             // relaunches with a transiently failing SMC probe must not kill this loop for the
             // process lifetime — that leaves a divergence (e.g. the user's auto-discharge opt-in)
@@ -450,7 +459,8 @@ struct BatteryControlBridge: View {
             manualDischargeActive: merged.manualDischargeActive,
             manualDischargeTarget: merged.manualDischargeTarget,
             calibrationActive: merged.calibrationActive,
-            calibrationTargetPercentage: merged.calibrationTargetPercentage)
+            calibrationTargetPercentage: merged.calibrationTargetPercentage,
+            sleepUntilLimitAllowed: merged.sleepUntilLimitAllowed)
         BatteryControlLog.battery.notice(
             "applyRequested result: reason=\(reason, privacy: .public) accepted=\(result != nil)")
     }
