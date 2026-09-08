@@ -94,6 +94,19 @@ struct BatteryPowerTests {
         #expect(smcDouble([0x88, 0x13], type: "si16") == 5000)                 // +5000 (charging current)
     }
 
+    // MARK: smcInt — Int() 트랩 가드
+
+    @Test func smcIntRoundsFiniteValuesAndRejectsTheRest() {
+        #expect(smcInt([0x7f, 0xb6, 0xff, 0xff], type: "si32") == -18817)
+        #expect(smcInt([0xb6, 0x30], type: "ui16") == 12470)
+        #expect(smcInt([0x95, 0x8a, 0x96, 0x41], type: "flt ") == 19)          // 18.818 → 19
+        // NaN·inf 비트 패턴의 flt
+        #expect(smcInt([0x00, 0x00, 0xc0, 0x7f], type: "flt ") == nil)          // NaN
+        #expect(smcInt([0x00, 0x00, 0x80, 0x7f], type: "flt ") == nil)          // +inf
+        // ui64 최대값은 Int 범위를 넘는다
+        #expect(smcInt(Array(repeating: 0xff, count: 8), type: "ui64") == nil)
+    }
+
     // MARK: Remaining battery energy/time — AppleSmartBattery raw capacity + estimate
 
     @Test func remainingWattHoursUsesNominalVoltageDefault() {

@@ -711,6 +711,18 @@ struct SystemMonitorTests {
         monitor.setBatteryLiveDemand(false)
         #expect(monitor.isBatteryLiveDemanded == false)
     }
+
+    @Test func isACConnectedMirrorsTheLatestBatterySample() async {
+        let plugged = BatterySample(netW: -20, milliamps: 1500, volts: 12, charging: true, externalConnected: true)
+        let unplugged = BatterySample(netW: 15, milliamps: 1200, volts: 12, charging: false, externalConnected: false)
+        let provider = ScriptedProvider(kind: .battery, [.value(.battery(unplugged)), .value(.battery(plugged))])
+        let monitor = SystemMonitor(providers: [provider], clock: ManualClock())
+        #expect(monitor.isACConnected == true)
+        await monitor.pollOnce()
+        #expect(monitor.isACConnected == false)
+        await monitor.pollOnce()
+        #expect(monitor.isACConnected == true)
+    }
 }
 
 

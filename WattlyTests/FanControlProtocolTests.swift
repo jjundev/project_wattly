@@ -121,7 +121,7 @@ struct FanControlProtocolTests {
         let source = try daemonSource(named: "SMCControlConnection.swift")
         let methodStart = try #require(source.range(of: "func batteryKeyProbe(_ key: String)"))
         let methodEnd = try #require(source.range(
-            of: "func read(_ key: String)",
+            of: "func write(_ key: String",
             range: methodStart.upperBound..<source.endIndex))
         let method = source[methodStart.lowerBound..<methodEnd.lowerBound]
 

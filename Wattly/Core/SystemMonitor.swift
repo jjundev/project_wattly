@@ -99,7 +99,9 @@ final class SystemMonitor {
     private var activeProviderKinds = Set(ProviderKind.allCases)
     /// Last value pushed to `tempGater.setEnabled`, to detect an off→on transition.
     private var tempEnabled = true
-    private var isACConnected = false
+    /// 마지막 배터리 샘플의 어댑터 연결 여부. 메뉴바 애니메이션의 프레임 간격이 이 값을 읽는다 —
+    /// 프레임마다 `IOPSCopyPowerSourcesInfo`(powerd XPC 왕복)를 부르던 자리다.
+    private(set) var isACConnected = true
     private var heroCard: CardKind?
     /// 설정 › 배터리 방전 섹션이 화면에 있는 동안만 켜지는 수요. 팝오버 가시성과 별개다 —
     /// 설정 창은 팝오버가 닫힌 채로 열리기 때문이다. 배터리 하나만 끌어올리므로 CPU/GPU/온도를

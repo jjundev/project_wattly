@@ -30,7 +30,7 @@ struct SettingsMenuBarSection: View {
 
     @State private var isAdvancedMenuMetricsExpanded = false
     @State private var displayedPreviewFrame: Int = 0
-    @State private var liveACConnected: Bool = HardwarePowerSource.isACConnected()
+    @State private var liveACConnected = true
 
     private var hasActiveAdvancedMetrics: Bool {
         menuSClock || menuPClock || menuEClock || menuMemPressure || menuBatteryTemp
@@ -168,6 +168,9 @@ struct SettingsMenuBarSection: View {
                 var lastInstant = CACurrentMediaTime()
 
                 while !Task.isCancelled {
+                    if liveACConnected != monitor.isACConnected {
+                        liveACConnected = monitor.isACConnected
+                    }
                     let load = previewLoad ?? 0.0
                     let targetRPS = MenuBarIconMotion.revolutionsPerSecond(load: load, style: iconStyle)
 
@@ -186,11 +189,6 @@ struct SettingsMenuBarSection: View {
                     )
                     if newFrame != displayedPreviewFrame {
                         displayedPreviewFrame = newFrame
-                    }
-
-                    let ac = HardwarePowerSource.isACConnected()
-                    if ac != liveACConnected {
-                        liveACConnected = ac
                     }
 
                     let delay = MenuBarIconMotion.interFrameDelay(
