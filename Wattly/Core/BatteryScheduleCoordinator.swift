@@ -96,6 +96,18 @@ import AppKit
 
     // MARK: - Evaluation & Execution
 
+    /// wake 직후에는 분 타이머·`handleWake`·시계 변경 알림 셋이 같은 분에 겹쳐 온다. 같은 분에 이미 실행한
+    /// 스케줄은 두 번째 호출에서 건너뛴다. wake 경로의 `shouldCatchUp`은 자기 검사를 따로 한다.
+    ///
+    /// **후보가 아니라 승자에게 건다.** 후보 단계에서 걸러내면 같은 분의 두 번째 패스에서 후보 집합
+    /// 자체가 달라져 우선순위 결과가 뒤집힌다 — 1패스에서 진 낮은 우선순위 스케줄이 2패스에서
+    /// 유일한 후보가 되어 실행돼 버린다. 그래서 `resolveConflict` **뒤에** 한 번만 검사해, 그 분의
+    /// 평가 전체를 통째로 중단시킨다.
+    static func alreadyTriggered(_ schedule: BatteryChargingSchedule, at date: Date, calendar: Calendar) -> Bool {
+        guard let last = schedule.lastTriggeredAt else { return false }
+        return calendar.isDate(last, equalTo: date, toGranularity: .minute)
+    }
+
     public func evaluateSchedules(at date: Date = Date(), isWake: Bool = false, calendar: Calendar = .current) async {
         let active = schedules.filter { $0.isEnabled }
         guard !active.isEmpty else { return }
@@ -119,13 +131,17 @@ import AppKit
             let minute = calendar.component(.minute, from: date)
 
             for schedule in active {
-                if schedule.time.hour == hour && schedule.time.minute == minute && schedule.repeatRule.matches(date: date, calendar: calendar) {
+                if schedule.time.hour == hour && schedule.time.minute == minute
+                    && schedule.repeatRule.matches(date: date, calendar: calendar) {
                     matching.append(schedule)
                 }
             }
         }
 
         guard let winning = Self.resolveConflict(among: matching) else { return }
+        // 같은 분 재실행 방지는 승자에게만 건다(`alreadyTriggered` 주석 참고). 아래
+        // `.overriddenByHigherPriority` 로깅보다 앞이라 두 번째 패스는 이력도 남기지 않는다.
+        guard !Self.alreadyTriggered(winning, at: date, calendar: calendar) else { return }
 
         // 캘리브레이션 중에는 발화하지 않는다. `execute`가 `defaults.set`으로 사용자 설정
         // 자체를 덮어쓰기 때문에, 절차 시작 시점 스냅샷과 저장값이 갈라지고 원복이 잘못된
@@ -180,123 +196,77 @@ import AppKit
             Int64(pauseChargingLimitPercentage))
     }
 
-    /// `defaults.integer(forKey:)` returns `0` for an absent key, but `Defaults.batteryManualDischargeTarget`
-    /// is `80` — a bare read would send `0`, which the daemon clamps to 50 and silently overwrites a
-    /// user-configured target. Guard on presence instead, the same way `BatteryIntentBridge` does.
-    private var effectiveManualDischargeTarget: Int {
-        defaults.object(forKey: StorageKey.batteryManualDischargeTarget) != nil
-            ? defaults.integer(forKey: StorageKey.batteryManualDischargeTarget)
-            : Defaults.batteryManualDischargeTarget
-    }
-
-    /// `defaults.integer(forKey:)` returns `0` for an absent key. `batteryHeatProtectionThreshold`
-    /// has no control in the battery settings UI — only `SettingsReset` and an App Intent that
-    /// supplies a threshold ever write it — so on most Macs the key is absent and a bare read would
-    /// send `0`, which the daemon clamps to 30 instead of the intended
-    /// `Defaults.batteryHeatProtectionThreshold` (35), inhibiting charging 5°C early. Guard on
-    /// presence instead, the same way `effectiveManualDischargeTarget` above does.
-    private var effectiveHeatProtectionThreshold: Int {
-        defaults.object(forKey: StorageKey.batteryHeatProtectionThreshold) != nil
-            ? defaults.integer(forKey: StorageKey.batteryHeatProtectionThreshold)
-            : Defaults.batteryHeatProtectionThreshold
-    }
-
-    /// `defaults.integer(forKey:)` returns `0` for an absent key, but `Defaults.batteryLimitPercentage`
-    /// is not `0` — if this coordinator ever runs before the user has touched the limit slider (the
-    /// key absent), a bare read would send `0` to the daemon instead of the intended default. Guard
-    /// on presence instead, the same way `effectiveManualDischargeTarget` above does.
-    private var effectiveLimitPercentage: Int {
-        defaults.object(forKey: StorageKey.batteryLimitPercentage) != nil
-            ? defaults.integer(forKey: StorageKey.batteryLimitPercentage)
-            : Defaults.batteryLimitPercentage
+    /// 스케줄 실행 알림을 띄울지. `BatteryNotificationManager`가 static이라 실행 경로를 직접
+    /// 테스트할 수 없어서, 결정 자체를 이 순수 함수로 빼 테스트가 붙을 자리를 만든다.
+    ///
+    /// 기본값이 true인 키다 — `bool(forKey:)`로 읽으면 키가 없는 새 설치에서 false가 나와
+    /// 알림이 영원히 오지 않는다. 반드시 `wattlyBool`로 읽어야 한다.
+    static func shouldNotify(_ defaults: UserDefaults) -> Bool {
+        defaults.wattlyBool(StorageKey.batteryScheduleNotificationsEnabled,
+                            default: Defaults.batteryScheduleNotificationsEnabled)
     }
 
     private func execute(schedule: BatteryChargingSchedule, at date: Date) async {
         let isPluggedIn = batteryControl.status.isPowerAdapterConnected
+        var prefs = BatteryPreferences(defaults: defaults)
 
         switch schedule.action {
         case .setLimit(let pct):
-            defaults.set(true, forKey: StorageKey.batteryLimitEnabled)
-            defaults.set(pct, forKey: StorageKey.batteryLimitPercentage)
-            let status = await batteryControl.apply(
-                enabled: true,
-                limitPercentage: pct,
-                lowerHysteresisDelta: defaults.bool(forKey: StorageKey.batterySailingEnabled)
-                    ? defaults.integer(forKey: StorageKey.batterySailingDelta) : 2,
-                heatProtectionEnabled: defaults.bool(forKey: StorageKey.batteryHeatProtectionEnabled),
-                heatProtectionThresholdCelsius: effectiveHeatProtectionThreshold,
-                autoDischargeEnabled: defaults.bool(forKey: StorageKey.batteryAutoDischargeEnabled),
-                manualDischargeTarget: effectiveManualDischargeTarget
-            )
-            if status != nil && status?.mode != .unavailable {
-                recordLog(schedule: schedule, status: .success, timestamp: date)
-            } else {
-                recordLog(schedule: schedule, status: .failed(reason: String(localized: "도우미 연결 실패")), timestamp: date)
-            }
+            prefs.limitEnabled = true
+            prefs.limitPercentage = pct
+            prefs.write(to: defaults)
+            let status = await batteryControl.apply(prefs.configuration(clamshellDischargeAllowed: false))
+            recordOutcome(schedule: schedule, status: status, at: date)
 
         case .startTopUp:
             if !isPluggedIn {
                 recordLog(schedule: schedule, status: .skipped(reason: .adapterDisconnected), timestamp: date)
             } else {
-                let status = await batteryControl.startTopUp(
-                    limitPercentage: effectiveLimitPercentage,
-                    lowerHysteresisDelta: defaults.bool(forKey: StorageKey.batterySailingEnabled)
-                        ? defaults.integer(forKey: StorageKey.batterySailingDelta) : 2,
-                    heatProtectionEnabled: defaults.bool(forKey: StorageKey.batteryHeatProtectionEnabled),
-                    heatProtectionThresholdCelsius: effectiveHeatProtectionThreshold,
-                    autoDischargeEnabled: defaults.bool(forKey: StorageKey.batteryAutoDischargeEnabled),
-                    manualDischargeTarget: effectiveManualDischargeTarget
-                )
-                if status != nil && status?.mode != .unavailable {
-                    recordLog(schedule: schedule, status: .success, timestamp: date)
-                } else {
-                    recordLog(schedule: schedule, status: .failed(reason: String(localized: "도우미 연결 실패")), timestamp: date)
-                }
+                let status = await batteryControl.startTopUp(preferences: prefs)
+                recordOutcome(schedule: schedule, status: status, at: date)
             }
 
         case .pauseCharging:
-            defaults.set(true, forKey: StorageKey.batteryLimitEnabled)
-            defaults.set(Self.pauseChargingLimitPercentage, forKey: StorageKey.batteryLimitPercentage)
-            let status = await batteryControl.apply(
-                enabled: true,
-                limitPercentage: Self.pauseChargingLimitPercentage,
-                lowerHysteresisDelta: 2,
-                heatProtectionEnabled: defaults.bool(forKey: StorageKey.batteryHeatProtectionEnabled),
-                heatProtectionThresholdCelsius: effectiveHeatProtectionThreshold,
-                autoDischargeEnabled: defaults.bool(forKey: StorageKey.batteryAutoDischargeEnabled),
-                manualDischargeTarget: effectiveManualDischargeTarget
-            )
-            if status != nil && status?.mode != .unavailable {
-                recordLog(schedule: schedule, status: .success, timestamp: date)
-            } else {
-                recordLog(schedule: schedule, status: .failed(reason: String(localized: "도우미 연결 실패")), timestamp: date)
-            }
+            prefs.limitEnabled = true
+            prefs.limitPercentage = Self.pauseChargingLimitPercentage
+            prefs.write(to: defaults)
+            var config = prefs.configuration(clamshellDischargeAllowed: false)
+            // 이 delta 2 강제는 **이 한 번의 전송에만** 살아 있다. 두 줄 위 `prefs.write(to:)`가
+            // `BatteryControlBridge`를 깨우고, 브리지의 250 ms 디바운스 후속 push가 세일링 폭으로
+            // 다시 덮어쓴다(세일링 5면 45%가 아니라 48%에서 재개). 계획이 delta 2 강제를 그대로
+            // 보존하기로 했고 "충전 일시 정지"의 의미를 바꾸는 건 범위 밖이라 동작은 두되,
+            // 겹침 사실만 여기 남긴다.
+            config.lowerHysteresisDelta = 2
+            let status = await batteryControl.apply(config)
+            recordOutcome(schedule: schedule, status: status, at: date)
         }
 
-        // Disable one-shot schedules
         if case .once = schedule.repeatRule {
             toggleSchedule(id: schedule.id, isEnabled: false)
         }
-
-        // Update lastTriggeredAt
         if let idx = schedules.firstIndex(where: { $0.id == schedule.id }) {
             schedules[idx].lastTriggeredAt = date
             saveSchedules()
         }
 
-        // Send notification if enabled
-        if defaults.bool(forKey: StorageKey.batteryScheduleNotificationsEnabled) {
+        if Self.shouldNotify(defaults) {
             let locale = activeLocale
             BatteryNotificationManager.postScheduleTriggeredNotification(
                 scheduleName: schedule.name,
                 actionSummary: schedule.action.summary(locale: locale),
                 locale: locale,
-                // 편집기 경고를 못 보고 저장한 스케줄도 있을 수 있으므로 실행 시점에 한 번 더 알린다.
                 note: Self.autoDischargeWarning(
                     action: schedule.action,
-                    isAutoDischargeEnabled: defaults.bool(forKey: StorageKey.batteryAutoDischargeEnabled),
-                    locale: locale)
-            )
+                    isAutoDischargeEnabled: prefs.autoDischargeEnabled,
+                    locale: locale))
+        }
+    }
+
+    private func recordOutcome(schedule: BatteryChargingSchedule, status: BatteryControlServiceStatus?, at date: Date) {
+        if let status, status.mode != .unavailable {
+            recordLog(schedule: schedule, status: .success, timestamp: date)
+        } else {
+            recordLog(schedule: schedule, status: .failed(reason: String(localized: "도우미 연결 실패")), timestamp: date)
         }
     }
 

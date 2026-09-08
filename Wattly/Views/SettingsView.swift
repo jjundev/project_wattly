@@ -433,20 +433,11 @@ struct SettingsView: View {
 
     @MainActor
     private func reapplyAllSettingsAfterHelperReinstall() async {
-        let snapshot = calibrationCoordinator.currentSnapshot()
-        let delta = snapshot.sailingEnabled ? snapshot.sailingDelta : 2
-        let manualTarget = BatterySectionPresentation.clampedManualDischargeTarget(snapshot.manualDischargeTarget)
-
+        // 형제인 `reapplyCurrentConfiguration`과 달리 `BatteryControlBridge.preservingActivity`를
+        // 거치지 않는다. 여기는 도우미를 방금 새로 설치한 직후라 데몬이 들고 있을 진행 중 활동
+        // (Top Up·수동 방전)이 아예 없다 — 보존할 것이 없다.
         await batteryControl.apply(
-            enabled: snapshot.limitEnabled,
-            limitPercentage: snapshot.limitPercentage,
-            lowerHysteresisDelta: delta,
-            heatProtectionEnabled: snapshot.heatProtectionEnabled,
-            heatProtectionThresholdCelsius: snapshot.heatProtectionThresholdCelsius,
-            autoDischargeEnabled: snapshot.autoDischargeEnabled,
-            manualDischargeTarget: manualTarget
-        )
-
+            BatteryPreferences(defaults: .standard).configuration(clamshellDischargeAllowed: false))
         if fanControlEnabled {
             await fanControl.apply(enabled: true, curve: fanCurve)
         }

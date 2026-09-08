@@ -101,8 +101,7 @@ import AppKit
         calibrationTargetPercentage: Int = BatteryCalibration.floorPercentage,
         isCalibrationWrite: Bool = false
     ) async -> BatteryControlServiceStatus? {
-        commandGeneration &+= 1
-        let config = await revivedConfiguration(
+        await apply(
             BatteryControlConfiguration(
                 enabled: enabled,
                 limitPercentage: limitPercentage,
@@ -114,9 +113,18 @@ import AppKit
                 manualDischargeActive: manualDischargeActive,
                 manualDischargeTarget: manualDischargeTarget,
                 calibrationActive: calibrationActive,
-                calibrationTargetPercentage: calibrationTargetPercentage
-            ),
+                calibrationTargetPercentage: calibrationTargetPercentage),
             isCalibrationWrite: isCalibrationWrite)
+    }
+
+    /// 설정 값 타입을 그대로 받는 진입점. 위 파라미터 버전은 이리로 전달한다.
+    @discardableResult
+    public func apply(
+        _ configuration: BatteryControlConfiguration,
+        isCalibrationWrite: Bool = false
+    ) async -> BatteryControlServiceStatus? {
+        commandGeneration &+= 1
+        let config = await revivedConfiguration(configuration, isCalibrationWrite: isCalibrationWrite)
         let request = BatteryControlConfigurationRequest(configuration: config, generation: commandGeneration)
         guard let data = try? BatteryControlCodec.encode(request) else {
             updateUnavailable("충전 제한 설정을 인코딩할 수 없음")
@@ -291,6 +299,42 @@ import AppKit
         )
     }
 
+    // MARK: - BatteryPreferences 진입점
+
+    @discardableResult
+    func startTopUp(preferences p: BatteryPreferences) async -> BatteryControlServiceStatus? {
+        BatteryNotificationManager.requestAuthorization()
+        var config = p.configuration(clamshellDischargeAllowed: false)
+        config.enabled = true
+        config.topUpActive = true
+        return await apply(config)
+    }
+
+    @discardableResult
+    func cancelTopUp(preferences p: BatteryPreferences) async -> BatteryControlServiceStatus? {
+        var config = p.configuration(clamshellDischargeAllowed: false)
+        config.enabled = true
+        config.topUpActive = false
+        return await apply(config)
+    }
+
+    @discardableResult
+    func startManualDischarge(preferences p: BatteryPreferences) async -> BatteryControlServiceStatus? {
+        BatteryNotificationManager.requestAuthorization()
+        var config = p.configuration(clamshellDischargeAllowed: false)
+        config.enabled = true
+        config.manualDischargeActive = true
+        return await apply(config)
+    }
+
+    @discardableResult
+    func stopManualDischarge(preferences p: BatteryPreferences) async -> BatteryControlServiceStatus? {
+        var config = p.configuration(clamshellDischargeAllowed: false)
+        config.enabled = true
+        config.manualDischargeActive = false
+        return await apply(config)
+    }
+
     @discardableResult
     public func setAutoDischarge(
         enabled: Bool,
@@ -444,6 +488,36 @@ import AppKit
         }
     }
 
+    /// 설정 값 타입을 받는 설치 경로. 설치 → 밀어 넣기 → 수락 확인까지 한 번에.
+    public func installAndApply(
+        _ configuration: BatteryControlConfiguration,
+        transferringOwnership: Bool = false,
+        window: NSWindow?
+    ) async -> InstallFailure? {
+        isInstallingHelper = true
+        defer { isInstallingHelper = false }
+        if let failure = await installHandler(window, transferringOwnership, {
+            await self.apply(configuration)
+        }) {
+            return .install(failure)
+        }
+        // Installing is only half of it — the configure push is what actually engages the limit.
+        // Reporting success here would leave the toggle ON over a helper that is doing nothing.
+        //
+        // The `apply(...)` call above ran through the calibration chokepoint (`isCalibrationWrite:
+        // false`), so if the daemon was mid-calibration, what actually went out had
+        // `calibrationActive`/`enabled`/`topUpActive` revived from the daemon rather than the raw
+        // configuration this function received. The acceptance check has to compare against that
+        // same revived shape — reusing `revivedConfiguration` rather than rebuilding the raw one —
+        // or a calibration in progress makes every reinstall look rejected even though both halves
+        // actually succeeded.
+        let revived = await revivedConfiguration(configuration, isCalibrationWrite: false)
+        guard BatteryControlPolicy.accepted(configuration: revived, by: status) else {
+            return .configureRejected(reason: status.detailReason, detail: status.detail)
+        }
+        return nil
+    }
+
     /// Installs the privileged helper with one admin-auth prompt and immediately pushes the user's
     /// configuration — without this the helper would sit at its disabled default while the toggle
     /// reads ON. `enabled` is the caller's real opt-in rather than an assumption, so installing from
@@ -461,33 +535,7 @@ import AppKit
         transferringOwnership: Bool = false,
         window: NSWindow?
     ) async -> InstallFailure? {
-        isInstallingHelper = true
-        defer { isInstallingHelper = false }
-        if let failure = await installHandler(window, transferringOwnership, {
-            await self.apply(
-                enabled: enabled,
-                limitPercentage: limitPercentage,
-                lowerHysteresisDelta: lowerHysteresisDelta,
-                heatProtectionEnabled: heatProtectionEnabled,
-                heatProtectionThresholdCelsius: heatProtectionThresholdCelsius,
-                topUpActive: false,
-                autoDischargeEnabled: autoDischargeEnabled,
-                manualDischargeActive: manualDischargeActive,
-                manualDischargeTarget: manualDischargeTarget)
-        }) {
-            return .install(failure)
-        }
-        // Installing is only half of it — the configure push is what actually engages the limit.
-        // Reporting success here would leave the toggle ON over a helper that is doing nothing.
-        //
-        // The `apply(...)` call above ran through the calibration chokepoint (`isCalibrationWrite:
-        // false`), so if the daemon was mid-calibration, what actually went out had
-        // `calibrationActive`/`enabled`/`topUpActive` revived from the daemon rather than the raw
-        // arguments this function received. The acceptance check has to compare against that same
-        // revived shape — reusing `revivedConfiguration` rather than rebuilding the raw one — or a
-        // calibration in progress makes every reinstall look rejected even though both halves
-        // actually succeeded.
-        let configuration = await revivedConfiguration(
+        await installAndApply(
             BatteryControlConfiguration(
                 enabled: enabled,
                 limitPercentage: limitPercentage,
@@ -498,11 +546,8 @@ import AppKit
                 autoDischargeEnabled: autoDischargeEnabled,
                 manualDischargeActive: manualDischargeActive,
                 manualDischargeTarget: manualDischargeTarget),
-            isCalibrationWrite: false)
-        guard BatteryControlPolicy.accepted(configuration: configuration, by: status) else {
-            return .configureRejected(reason: status.detailReason, detail: status.detail)
-        }
-        return nil
+            transferringOwnership: transferringOwnership,
+            window: window)
     }
 
     @discardableResult

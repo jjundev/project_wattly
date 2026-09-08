@@ -19,19 +19,10 @@ struct SettingsBatteryDischargeSection: View {
     // `SettingsBatterySection`과 같은 키를 읽는다. `@AppStorage`는 같은 저장소를 보므로
     // 두 뷰가 같은 값을 들고 있어도 어긋나지 않는다.
     @AppStorage(StorageKey.batteryLimitEnabled) private var batteryLimitEnabled = Defaults.batteryLimitEnabled
-    @AppStorage(StorageKey.batteryLimitPercentage) private var batteryLimitPercentage = Defaults.batteryLimitPercentage
-    @AppStorage(StorageKey.batterySailingEnabled) private var batterySailingEnabled = Defaults.batterySailingEnabled
-    @AppStorage(StorageKey.batterySailingDelta) private var batterySailingDelta = Defaults.batterySailingDelta
     @AppStorage(StorageKey.batteryHeatProtectionEnabled) private var batteryHeatProtectionEnabled = Defaults.batteryHeatProtectionEnabled
     @AppStorage(StorageKey.batteryAutoDischargeEnabled) private var autoDischargeEnabled = Defaults.batteryAutoDischargeEnabled
     @AppStorage(StorageKey.batteryManualDischargeTarget) private var manualDischargeTarget = Defaults.batteryManualDischargeTarget
-    /// `SettingsBatterySection`과 같은 이유로 상수가 아니라 저장 키를 읽는다.
-    @AppStorage(StorageKey.batteryHeatProtectionThreshold) private var heatProtectionThreshold = Defaults.batteryHeatProtectionThreshold
     @AppStorage(StorageKey.batteryClamshellDischargeEnabled) private var clamshellDischargeEnabled = Defaults.batteryClamshellDischargeEnabled
-
-    private var effectiveDelta: Int {
-        batterySailingEnabled ? batterySailingDelta : 2
-    }
 
     /// 저장된 값이 새 상한(95)을 넘을 수 있다 — 상한을 내리기 전에 100을 저장한 사용자가 있다.
     /// 화면·판정·전송이 서로 다른 숫자를 보면 "100%인데 시작 버튼이 영원히 꺼져 있다"가 되므로
@@ -146,60 +137,22 @@ struct SettingsBatteryDischargeSection: View {
     }
 
     var body: some View {
-        // 두 `.onChange`는 `showsConfigurationControls`와 무관하게 항상 매달려 있어야 한다.
-        // 분리 전에는 늘 존재하는 카드에 체인되어 있었고, 한도·세일링·발열 보호의 형제
-        // 핸들러도 같은 이유로 무조건 배선된다 — 하드웨어 미지원으로 확인된 뒤에도 이미
-        // 설정된 값은 데몬과 계속 맞춰져야 하기 때문이다.
-        Group {
-            if showsConfigurationControls {
-                SettingsSection("방전 제어") {
-                    dischargeControlCard
-                    clamshellDischargeCard
-                }
-                .task {
-                    // 설정 창이 열려 있는 동안만 배터리를 2초로 깨운다. 팝오버가 닫힌 기본 상태에서
-                    // 배터리 provider는 아예 읽히지 않으므로, 이게 없으면 위 실측값이 묵은 표본이 된다.
-                    monitor.setBatteryLiveDemand(true)
-                    // 창을 여는 순간 이미 방전 중이면 EMA는 방금 원시값으로 재시드된 상태다 —
-                    // 워밍업을 기다릴 이유가 없으므로 게이트를 통과시킨다.
-                    dischargeStartedAt = isManualDischargeActive ? .distantPast : nil
-                }
-                .onDisappear { monitor.setBatteryLiveDemand(false) }
-                .onChange(of: isManualDischargeActive) { _, active in
-                    dischargeStartedAt = active ? Date() : nil
-                }
+        if showsConfigurationControls {
+            SettingsSection("방전 제어") {
+                dischargeControlCard
+                clamshellDischargeCard
             }
-        }
-        .onChange(of: autoDischargeEnabled) { _, isAutoDischarge in
-            Task {
-                await batteryControl.setAutoDischarge(
-                    enabled: isAutoDischarge,
-                    limitPercentage: batteryLimitPercentage,
-                    lowerHysteresisDelta: effectiveDelta,
-                    heatProtectionEnabled: batteryHeatProtectionEnabled,
-                    heatProtectionThresholdCelsius: heatProtectionThreshold,
-                    limitEnabled: batteryLimitEnabled,
-                    manualDischargeTarget: dischargeTarget
-                )
+            .task {
+                // 설정 창이 열려 있는 동안만 배터리를 2초로 깨운다. 팝오버가 닫힌 기본 상태에서
+                // 배터리 provider는 아예 읽히지 않으므로, 이게 없으면 위 실측값이 묵은 표본이 된다.
+                monitor.setBatteryLiveDemand(true)
+                // 창을 여는 순간 이미 방전 중이면 EMA는 방금 원시값으로 재시드된 상태다 —
+                // 워밍업을 기다릴 이유가 없으므로 게이트를 통과시킨다.
+                dischargeStartedAt = isManualDischargeActive ? .distantPast : nil
             }
-        }
-        // 트리거는 저장값 자체를 관찰해야 하므로 원값 그대로 둔다 — `newTarget`은 쓰지 않고
-        // 대신 데몬으로 보내는 값만 한 곳(`dischargeTarget`)에서 다시 읽는다.
-        .onChange(of: manualDischargeTarget) { _, _ in
-            guard batteryLimitEnabled || batteryHeatProtectionEnabled
-                || batteryControl.status.desiredConfiguration?.manualDischargeActive == true
-            else { return }
-            Task {
-                await batteryControl.reconcile(
-                    enabled: batteryLimitEnabled,
-                    limitPercentage: batteryLimitPercentage,
-                    lowerHysteresisDelta: effectiveDelta,
-                    heatProtectionEnabled: batteryHeatProtectionEnabled,
-                    heatProtectionThresholdCelsius: heatProtectionThreshold,
-                    autoDischargeEnabled: autoDischargeEnabled,
-                    manualDischargeActive: batteryControl.status.desiredConfiguration?.manualDischargeActive == true,
-                    manualDischargeTarget: dischargeTarget
-                )
+            .onDisappear { monitor.setBatteryLiveDemand(false) }
+            .onChange(of: isManualDischargeActive) { _, active in
+                dischargeStartedAt = active ? Date() : nil
             }
         }
     }
@@ -351,15 +304,9 @@ struct SettingsBatteryDischargeSection: View {
                             }
                             Spacer()
                             Button {
+                                let preferences = BatteryPreferences(defaults: .standard)
                                 Task {
-                                    await batteryControl.stopManualDischarge(
-                                        limitPercentage: batteryLimitPercentage,
-                                        lowerHysteresisDelta: effectiveDelta,
-                                        heatProtectionEnabled: batteryHeatProtectionEnabled,
-                                        heatProtectionThresholdCelsius: heatProtectionThreshold,
-                                        autoDischargeEnabled: autoDischargeEnabled,
-                                        manualDischargeTarget: dischargeTarget
-                                    )
+                                    await batteryControl.stopManualDischarge(preferences: preferences)
                                 }
                             } label: {
                                 Text("방전 중지")
@@ -435,15 +382,9 @@ struct SettingsBatteryDischargeSection: View {
                             }
                             Spacer()
                             Button {
+                                let preferences = BatteryPreferences(defaults: .standard)
                                 Task {
-                                    await batteryControl.startManualDischarge(
-                                        target: dischargeTarget,
-                                        limitPercentage: batteryLimitPercentage,
-                                        lowerHysteresisDelta: effectiveDelta,
-                                        heatProtectionEnabled: batteryHeatProtectionEnabled,
-                                        heatProtectionThresholdCelsius: heatProtectionThreshold,
-                                        autoDischargeEnabled: autoDischargeEnabled
-                                    )
+                                    await batteryControl.startManualDischarge(preferences: preferences)
                                 }
                             } label: {
                                 Text(verbatim: BatterySectionPresentation.startDischargeButtonText(

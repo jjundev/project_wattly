@@ -8,6 +8,7 @@ private actor MockBatteryState {
     var percentage: Int = 75
     var isPowerAdapterConnected: Bool = true
     var shouldFail: Bool = false
+    var applyCount = 0
 
     func setAdapterConnected(_ connected: Bool) {
         self.isPowerAdapterConnected = connected
@@ -19,6 +20,7 @@ private actor MockBatteryState {
 
     func applyConfig(_ config: BatteryControlConfiguration) -> BatteryControlServiceStatus? {
         if shouldFail { return nil }
+        applyCount += 1
         self.lastAppliedConfig = config
         return BatteryControlServiceStatus(
             mode: mode,
@@ -407,6 +409,67 @@ private func makeIsolatedDefaults() -> UserDefaults {
         #expect(applied?.manualDischargeTarget == 70)
     }
 
+    @Test @MainActor func matchingScheduleFiresOnceEvenIfEvaluatedTwiceInTheSameMinute() async {
+        let state = MockBatteryState()
+        let defaults = makeIsolatedDefaults()
+        let coordinator = BatteryScheduleCoordinator(batteryControl: makeMockClient(state: state), defaults: defaults)
+        coordinator.addSchedule(BatteryChargingSchedule(
+            name: "8시 80%", time: ScheduleTime(hour: 8, minute: 0),
+            repeatRule: .daily, action: .setLimit(percentage: 80)))
+        var comps = DateComponents(); comps.year = 2026; comps.month = 9; comps.day = 8; comps.hour = 8; comps.minute = 0
+        let eight = Calendar.current.date(from: comps)!
+        await coordinator.evaluateSchedules(at: eight, isWake: false)
+        await coordinator.evaluateSchedules(at: eight.addingTimeInterval(20), isWake: false)
+        #expect(await state.applyCount == 1)
+    }
+
+    /// 같은 분 재실행 방지는 **승자**에게 걸려야 한다. 후보 단계에서 걸러내면 두 번째 패스에서
+    /// 후보 집합이 달라져(이긴 쪽이 빠져) 1패스에 "우선순위에 밀림"으로 기록됐던 낮은 우선순위
+    /// 동작이 유일한 후보가 되어 실행돼 버린다 — 두 번 실행보다 나쁜, 틀린 동작 실행이다.
+    @Test @MainActor func lowerPriorityScheduleNeverFiresOnASecondPassInTheSameMinute() async {
+        let state = MockBatteryState()
+        let defaults = makeIsolatedDefaults()
+        let coordinator = BatteryScheduleCoordinator(batteryControl: makeMockClient(state: state), defaults: defaults)
+        coordinator.addSchedule(BatteryChargingSchedule(
+            name: "한도 80%", time: ScheduleTime(hour: 8, minute: 0),
+            repeatRule: .daily, action: .setLimit(percentage: 80)))
+        coordinator.addSchedule(BatteryChargingSchedule(
+            name: "충전 일시 정지", time: ScheduleTime(hour: 8, minute: 0),
+            repeatRule: .daily, action: .pauseCharging))
+
+        var comps = DateComponents()
+        comps.year = 2026; comps.month = 9; comps.day = 8; comps.hour = 8; comps.minute = 0
+        let eight = Calendar.current.date(from: comps)!
+        await coordinator.evaluateSchedules(at: eight, isWake: false)
+        await coordinator.evaluateSchedules(at: eight.addingTimeInterval(20), isWake: false)
+
+        // 우선순위 3인 `pauseCharging`이 정확히 한 번. `setLimit(80)`은 한 번도 나가지 않는다.
+        #expect(await state.applyCount == 1)
+        let applied = await state.lastAppliedConfig
+        #expect(applied?.limitPercentage == BatteryScheduleCoordinator.pauseChargingLimitPercentage)
+        #expect(applied?.limitPercentage != 80)
+        // 두 번째 패스는 "우선순위에 밀림" 이력도 다시 남기지 않는다.
+        let overridden = coordinator.history.filter {
+            if case .skipped(let reason) = $0.status { return reason == .overriddenByHigherPriority }
+            return false
+        }
+        #expect(overridden.count == 1)
+        #expect(overridden.first?.scheduleName == "한도 80%")
+    }
+
+    /// 감사 버그: sailing on + delta 키 없음 → 0 → 데몬 클램프 1. 이제는 기본값 5가 실린다.
+    @Test @MainActor func scheduleSendsTheDefaultSailingDeltaWhenTheKeyIsAbsent() async {
+        let state = MockBatteryState()
+        let defaults = makeIsolatedDefaults()
+        defaults.set(true, forKey: StorageKey.batterySailingEnabled)
+        let coordinator = BatteryScheduleCoordinator(batteryControl: makeMockClient(state: state), defaults: defaults)
+        coordinator.addSchedule(BatteryChargingSchedule(
+            name: "x", time: ScheduleTime(hour: 9, minute: 30), action: .setLimit(percentage: 90)))
+        var comps = DateComponents(); comps.year = 2026; comps.month = 9; comps.day = 8; comps.hour = 9; comps.minute = 30
+        await coordinator.evaluateSchedules(at: Calendar.current.date(from: comps)!, isWake: false)
+        #expect(await state.lastAppliedConfig?.lowerHysteresisDelta == Defaults.batterySailingDelta)
+    }
+
     @Test @MainActor func clearHistoryRemovesAllEntries() {
         let defaults = makeIsolatedDefaults()
         let state = MockBatteryState()
@@ -593,6 +656,20 @@ private func makeIsolatedDefaults() -> UserDefaults {
 
     @Test func pauseChargingLimitIsTheOneTheWarningQuotes() {
         #expect(BatteryScheduleCoordinator.pauseChargingLimitPercentage == 50)
+    }
+
+    /// 감사 버그(High): 기본값이 true인 키를 `bool(forKey:)`로 읽으면 키를 한 번도 쓴 적 없는
+    /// 새 설치에서 false가 나와 스케줄 알림이 영원히 오지 않는다. `BatteryNotificationManager`가
+    /// static이라 실행 경로에는 붙일 수 없어서, 결정 함수를 직접 못 박는다.
+    @Test @MainActor func scheduleNotificationsDefaultToOnWhenTheKeyWasNeverWritten() {
+        let fresh = makeIsolatedDefaults()
+        #expect(BatteryScheduleCoordinator.shouldNotify(fresh) == true)
+
+        fresh.set(false, forKey: StorageKey.batteryScheduleNotificationsEnabled)
+        #expect(BatteryScheduleCoordinator.shouldNotify(fresh) == false)
+
+        fresh.set(true, forKey: StorageKey.batteryScheduleNotificationsEnabled)
+        #expect(BatteryScheduleCoordinator.shouldNotify(fresh) == true)
     }
 }
 

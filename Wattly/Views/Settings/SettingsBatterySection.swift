@@ -32,18 +32,15 @@ struct SettingsBatterySection: View {
     private let presetLimits = [80, 85, 90, 95]
     private let sailingPresets = BatterySectionPresentation.sailingDeltaPresets
 
-    private var effectiveDelta: Int {
-        batterySailingEnabled ? batterySailingDelta : 2
-    }
-
     /// 저장된 목표 방전 잔량을 UI가 실제로 쓸 수 있는 범위로 접는다. 상한이 100이던 시절에
-    /// 저장된 값은 `currentSoC > target`을 영원히 만족시키지 못해 방전 버튼을 죽여 놓는다
+    /// 저장된 값은 `currentSoC > target`을 영원히 만족시키지 못한다
     /// (`BatterySectionPresentation.manualDischargeTargetRange` 참고).
     ///
-    /// 이 화면은 목표 슬라이더를 그리지 않는다(방전 카드는 `SettingsBatteryDischargeSection`에
-    /// 있다). 그런데도 클램프가 필요한 이유는, 충전 한도·세일링·발열 보호를 바꿀 때마다 이
-    /// 화면이 저장된 방전 목표를 **그대로 데몬에 함께 실어 보내기** 때문이다. 두 화면이 서로
-    /// 다른 값을 밀면 `BatteryControlPolicy.shouldReapply`가 둘을 영원히 화해시키려 든다.
+    /// 이 화면은 목표 슬라이더를 그리지 않고(방전 카드는 `SettingsBatteryDischargeSection`에 있다)
+    /// 이 값을 데몬으로 보내지도 않는다 — 전송은 전부 `BatteryPreferences.configuration(...)`을
+    /// 지나며 거기서 같은 클램프가 걸린다. 남은 유일한 소비자는 아래 상태 폴링 `.task(id:)`다.
+    /// 원시 저장값을 id에 넣으면 클램프 뒤에 같은 값이 되는 변경(예: 99→100)에도 폴링 태스크가
+    /// 헛되이 재시작하므로, 데몬이 실제로 보게 될 값과 같은 숫자를 id에 싣는다.
     private var dischargeTarget: Int {
         BatterySectionPresentation.clampedManualDischargeTarget(manualDischargeTarget)
     }
@@ -245,161 +242,14 @@ struct SettingsBatterySection: View {
                     await batteryControl.refreshStatus()
                 }
             }
-            // Turning the opt-in on installs the helper if it is missing (one macOS admin-auth
-            // prompt) and pushes the limit either way, so the helper never sits at its disabled
-            // default while this toggle reads ON. If the user cancels the prompt, revert the toggle
-            // so it reflects reality.
+            // 밀어 넣기는 BatteryControlBridge 한 곳이 한다. 여기 남은 일은 도우미가 없을 때 설치를 띄우는 것뿐이다.
             .onChange(of: batteryLimitEnabled) { _, isEnabled in
-                guard isEnabled, !batteryControl.isInstallingHelper else {
-                    Task {
-                        await batteryControl.apply(
-                            enabled: isEnabled,
-                            limitPercentage: batteryLimitPercentage,
-                            lowerHysteresisDelta: effectiveDelta,
-                            heatProtectionEnabled: batteryHeatProtectionEnabled,
-                            heatProtectionThresholdCelsius: heatProtectionThreshold,
-                            autoDischargeEnabled: autoDischargeEnabled,
-                            manualDischargeTarget: dischargeTarget)
-                    }
-                    return
-                }
-                let window = NSApp.keyWindow
-                let limit = batteryLimitPercentage
-                let delta = effectiveDelta
-                let heatEnabled = batteryHeatProtectionEnabled
-                let heatThreshold = heatProtectionThreshold
-                let autoDischarge = autoDischargeEnabled
-                let manualTarget = dischargeTarget
-                Task {
-                    let mode = batteryControl.status.mode
-                    if BatteryControlPolicy.shouldRunInstaller(mode: mode) {
-                        let refreshedMode = await batteryControl.refreshStatus()?.mode ?? .unavailable
-                        if BatteryControlPolicy.shouldRunInstaller(mode: refreshedMode) {
-                            if let failure = await batteryControl.installAndApply(
-                                enabled: true,
-                                limitPercentage: limit,
-                                lowerHysteresisDelta: delta,
-                                heatProtectionEnabled: heatEnabled,
-                                heatProtectionThresholdCelsius: heatThreshold,
-                                autoDischargeEnabled: autoDischarge,
-                                manualDischargeTarget: manualTarget,
-                                window: window) {
-                                installErrorMessage = Self.message(for: failure, locale: locale)
-                                isInstallFailedAlertPresented = true
-                                batteryLimitEnabled = false
-                            }
-                            return
-                        }
-                    }
-                    // The helper already answers — reuse it, no second admin prompt.
-                    await batteryControl.apply(
-                        enabled: true,
-                        limitPercentage: limit,
-                        lowerHysteresisDelta: delta,
-                        heatProtectionEnabled: heatEnabled,
-                        heatProtectionThresholdCelsius: heatThreshold,
-                        autoDischargeEnabled: autoDischarge,
-                        manualDischargeTarget: manualTarget)
-                    // The helper has now answered. If it says this Mac has no charge register, undo
-                    // the opt-in the user just made — otherwise the row disables itself in the ON
-                    // position with nothing left to switch it back. This clears only a value set in
-                    // this session and just proven impossible; a `true` carried in from a supported
-                    // Mac is never touched, because that path never reaches this handler.
-                    if batteryControl.status.isHardwareSupported == false {
-                        batteryLimitEnabled = false
-                    }
-                }
-            }
-            .onChange(of: batteryLimitPercentage) { _, newLimit in
-                guard batteryLimitEnabled || batteryHeatProtectionEnabled else { return }
-                Task {
-                    await batteryControl.apply(
-                        enabled: batteryLimitEnabled,
-                        limitPercentage: newLimit,
-                        lowerHysteresisDelta: effectiveDelta,
-                        heatProtectionEnabled: batteryHeatProtectionEnabled,
-                        heatProtectionThresholdCelsius: heatProtectionThreshold,
-                        autoDischargeEnabled: autoDischargeEnabled,
-                        manualDischargeTarget: dischargeTarget)
-                }
-            }
-            .onChange(of: batterySailingEnabled) { _, isSailing in
-                guard batteryLimitEnabled || batteryHeatProtectionEnabled else { return }
-                let delta = isSailing ? batterySailingDelta : 2
-                Task {
-                    await batteryControl.apply(
-                        enabled: batteryLimitEnabled,
-                        limitPercentage: batteryLimitPercentage,
-                        lowerHysteresisDelta: delta,
-                        heatProtectionEnabled: batteryHeatProtectionEnabled,
-                        heatProtectionThresholdCelsius: heatProtectionThreshold,
-                        autoDischargeEnabled: autoDischargeEnabled,
-                        manualDischargeTarget: dischargeTarget)
-                }
-            }
-            .onChange(of: batterySailingDelta) { _, newDelta in
-                guard batteryLimitEnabled, batterySailingEnabled else { return }
-                Task {
-                    await batteryControl.apply(
-                        enabled: batteryLimitEnabled,
-                        limitPercentage: batteryLimitPercentage,
-                        lowerHysteresisDelta: newDelta,
-                        heatProtectionEnabled: batteryHeatProtectionEnabled,
-                        heatProtectionThresholdCelsius: heatProtectionThreshold,
-                        autoDischargeEnabled: autoDischargeEnabled,
-                        manualDischargeTarget: dischargeTarget)
-                }
+                guard isEnabled, !batteryControl.isInstallingHelper else { return }
+                installHelperIfMissing(revertOnFailure: { batteryLimitEnabled = false })
             }
             .onChange(of: batteryHeatProtectionEnabled) { _, isEnabled in
-                guard isEnabled, !batteryControl.isInstallingHelper else {
-                    Task {
-                        await batteryControl.apply(
-                            enabled: batteryLimitEnabled,
-                            limitPercentage: batteryLimitPercentage,
-                            lowerHysteresisDelta: effectiveDelta,
-                            heatProtectionEnabled: isEnabled,
-                            heatProtectionThresholdCelsius: heatProtectionThreshold,
-                            autoDischargeEnabled: autoDischargeEnabled,
-                            manualDischargeTarget: dischargeTarget)
-                    }
-                    return
-                }
-                let window = NSApp.keyWindow
-                let autoDischarge = autoDischargeEnabled
-                let manualTarget = dischargeTarget
-                Task {
-                    let mode = batteryControl.status.mode
-                    if BatteryControlPolicy.shouldRunInstaller(mode: mode) {
-                        let refreshedMode = await batteryControl.refreshStatus()?.mode ?? .unavailable
-                        if BatteryControlPolicy.shouldRunInstaller(mode: refreshedMode) {
-                            if let failure = await batteryControl.installAndApply(
-                                enabled: batteryLimitEnabled,
-                                limitPercentage: batteryLimitPercentage,
-                                lowerHysteresisDelta: effectiveDelta,
-                                heatProtectionEnabled: true,
-                                heatProtectionThresholdCelsius: heatProtectionThreshold,
-                                autoDischargeEnabled: autoDischarge,
-                                manualDischargeTarget: manualTarget,
-                                window: window) {
-                                installErrorMessage = Self.message(for: failure, locale: locale)
-                                isInstallFailedAlertPresented = true
-                                batteryHeatProtectionEnabled = false
-                            }
-                            return
-                        }
-                    }
-                    await batteryControl.apply(
-                        enabled: batteryLimitEnabled,
-                        limitPercentage: batteryLimitPercentage,
-                        lowerHysteresisDelta: effectiveDelta,
-                        heatProtectionEnabled: true,
-                        heatProtectionThresholdCelsius: heatProtectionThreshold,
-                        autoDischargeEnabled: autoDischarge,
-                        manualDischargeTarget: manualTarget)
-                    if batteryControl.status.isHardwareSupported == false {
-                        batteryHeatProtectionEnabled = false
-                    }
-                }
+                guard isEnabled, !batteryControl.isInstallingHelper else { return }
+                installHelperIfMissing(revertOnFailure: { batteryHeatProtectionEnabled = false })
             }
 
             if showsConfigurationControls, let scheduleCoordinator {
@@ -422,6 +272,22 @@ struct SettingsBatterySection: View {
             Button("취소", role: .cancel) {}
         } message: {
             Text("유지보수: 다른 사용자의 충전 정책을 해제하고 이 사용자로 소유권을 이전합니다.")
+        }
+    }
+
+    /// 도우미가 없을 때만 관리자 인증 → 설치 → 현재 설정 밀어 넣기. 도우미가 있으면 브리지가 이미 밀어 넣었다.
+    private func installHelperIfMissing(revertOnFailure: @escaping @MainActor () -> Void) {
+        let window = NSApp.keyWindow
+        Task {
+            guard BatteryControlPolicy.shouldRunInstaller(mode: batteryControl.status.mode) else { return }
+            let refreshedMode = await batteryControl.refreshStatus()?.mode ?? .unavailable
+            guard BatteryControlPolicy.shouldRunInstaller(mode: refreshedMode) else { return }
+            let configuration = BatteryPreferences(defaults: .standard).configuration(clamshellDischargeAllowed: false)
+            if let failure = await batteryControl.installAndApply(configuration, window: window) {
+                installErrorMessage = Self.message(for: failure, locale: locale)
+                isInstallFailedAlertPresented = true
+                revertOnFailure()
+            }
         }
     }
 
@@ -490,22 +356,11 @@ struct SettingsBatterySection: View {
             ) {
                 Button {
                     let window = NSApp.keyWindow
-                    let limit = batteryLimitPercentage
-                    let delta = effectiveDelta
-                    let heatEnabled = batteryHeatProtectionEnabled
-                    let heatThreshold = heatProtectionThreshold
-                    let autoDischarge = autoDischargeEnabled
-                    let manualTarget = dischargeTarget
+                    let configuration = BatteryPreferences(defaults: .standard)
+                        .configuration(clamshellDischargeAllowed: false)
                     Task {
                         if let failure = await batteryControl.installAndApply(
-                            enabled: batteryLimitEnabled,
-                            limitPercentage: limit,
-                            lowerHysteresisDelta: delta,
-                            heatProtectionEnabled: heatEnabled,
-                            heatProtectionThresholdCelsius: heatThreshold,
-                            autoDischargeEnabled: autoDischarge,
-                            manualDischargeTarget: manualTarget,
-                            window: window) {
+                            configuration, window: window) {
                             installErrorMessage = Self.message(for: failure, locale: locale)
                             isInstallFailedAlertPresented = true
                         }
@@ -577,37 +432,28 @@ struct SettingsBatterySection: View {
         }
     }
 
+    /// 재시도 버튼 전용 직접 `apply`. 도우미 설치 분기가 아니므로 브리지를 거치지 않지만,
+    /// 브리지의 `applyRequested`와 같은 규율을 따른다: 상태를 먼저 새로 읽고, 데몬이 들고
+    /// 있는 진행 중 활동(Top Up·수동 방전과 그 목표)을 `preservingActivity`로 살려서 보낸다.
+    /// 예전처럼 일곱 개 `@AppStorage`를 직접 조립해 파라미터 버전 `apply`로 보내면 이 되살리기가
+    /// 빠져 `topUpActive`/`manualDischargeActive`가 기본값 `false`로 나가고, 재시도를 누른
+    /// 순간 진행 중이던 Top Up이나 수동 방전이 취소된다.
     private func reapplyCurrentConfiguration() {
-        let limit = batteryLimitPercentage
-        let delta = effectiveDelta
-        let autoDischarge = autoDischargeEnabled
-        let manualTarget = dischargeTarget
         Task {
-            await batteryControl.apply(enabled: batteryLimitEnabled,
-                                       limitPercentage: limit,
-                                       lowerHysteresisDelta: delta,
-                                       heatProtectionEnabled: batteryHeatProtectionEnabled,
-                                       heatProtectionThresholdCelsius: heatProtectionThreshold,
-                                       autoDischargeEnabled: autoDischarge,
-                                       manualDischargeTarget: manualTarget)
+            await batteryControl.refreshStatus()
+            let requested = BatteryPreferences(defaults: .standard)
+                .configuration(clamshellDischargeAllowed: false)
+            let merged = BatteryControlBridge.preservingActivity(
+                requested, daemon: batteryControl.status.desiredConfiguration)
+            await batteryControl.apply(merged)
         }
     }
 
     private func installCurrentConfiguration(transferringOwnership: Bool) {
         let window = NSApp.keyWindow
-        let limit = batteryLimitPercentage
-        let delta = effectiveDelta
-        let autoDischarge = autoDischargeEnabled
-        let manualTarget = dischargeTarget
         Task {
             if let failure = await batteryControl.installAndApply(
-                enabled: batteryLimitEnabled,
-                limitPercentage: limit,
-                lowerHysteresisDelta: delta,
-                heatProtectionEnabled: batteryHeatProtectionEnabled,
-                heatProtectionThresholdCelsius: heatProtectionThreshold,
-                autoDischargeEnabled: autoDischarge,
-                manualDischargeTarget: manualTarget,
+                BatteryPreferences(defaults: .standard).configuration(clamshellDischargeAllowed: false),
                 transferringOwnership: transferringOwnership,
                 window: window) {
                 installErrorMessage = Self.message(for: failure, locale: locale)
@@ -723,29 +569,12 @@ struct SettingsBatterySection: View {
         Binding(
             get: { isTopUpActive },
             set: { want in
-                let limit = batteryLimitPercentage
-                let delta = effectiveDelta
-                let heatEnabled = batteryHeatProtectionEnabled
-                let heatThreshold = heatProtectionThreshold
-                let autoDischarge = autoDischargeEnabled
-                let manualTarget = dischargeTarget
+                let preferences = BatteryPreferences(defaults: .standard)
                 Task {
                     if want {
-                        await batteryControl.startTopUp(
-                            limitPercentage: limit,
-                            lowerHysteresisDelta: delta,
-                            heatProtectionEnabled: heatEnabled,
-                            heatProtectionThresholdCelsius: heatThreshold,
-                            autoDischargeEnabled: autoDischarge,
-                            manualDischargeTarget: manualTarget)
+                        await batteryControl.startTopUp(preferences: preferences)
                     } else {
-                        await batteryControl.cancelTopUp(
-                            limitPercentage: limit,
-                            lowerHysteresisDelta: delta,
-                            heatProtectionEnabled: heatEnabled,
-                            heatProtectionThresholdCelsius: heatThreshold,
-                            autoDischargeEnabled: autoDischarge,
-                            manualDischargeTarget: manualTarget)
+                        await batteryControl.cancelTopUp(preferences: preferences)
                     }
                 }
             }

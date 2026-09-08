@@ -13,11 +13,6 @@ struct CardExpandRegion: View {
     @AppStorage(StorageKey.showBatteryEfficiency) private var showBatteryEfficiency = Defaults.showBatteryEfficiency
     @AppStorage(StorageKey.showBatteryTopUp) private var showBatteryTopUp = Defaults.showBatteryTopUp
     @AppStorage(StorageKey.showBatteryManualDischarge) private var showBatteryManualDischarge = Defaults.showBatteryManualDischarge
-    @AppStorage(StorageKey.batteryLimitPercentage) private var batteryLimitPercentage = Defaults.batteryLimitPercentage
-    @AppStorage(StorageKey.batterySailingEnabled) private var batterySailingEnabled = Defaults.batterySailingEnabled
-    @AppStorage(StorageKey.batterySailingDelta) private var batterySailingDelta = Defaults.batterySailingDelta
-    @AppStorage(StorageKey.batteryHeatProtectionEnabled) private var batteryHeatProtectionEnabled = Defaults.batteryHeatProtectionEnabled
-    @AppStorage(StorageKey.batteryHeatProtectionThreshold) private var batteryHeatProtectionThreshold = Defaults.batteryHeatProtectionThreshold
     @AppStorage(StorageKey.batteryAutoDischargeEnabled) private var batteryAutoDischargeEnabled = Defaults.batteryAutoDischargeEnabled
     @AppStorage(StorageKey.batteryManualDischargeTarget) private var manualDischargeTarget = Defaults.batteryManualDischargeTarget
     let card: CardKind
@@ -426,29 +421,12 @@ struct CardExpandRegion: View {
             }
             Spacer()
             Button {
-                let limit = batteryLimitPercentage
-                let delta = batterySailingEnabled ? batterySailingDelta : 2
-                let heatEnabled = batteryHeatProtectionEnabled
-                let heatThreshold = batteryHeatProtectionThreshold
-                let autoDischarge = batteryAutoDischargeEnabled
-                let target = dischargeTarget
+                let prefs = BatteryPreferences(defaults: .standard)
                 Task {
                     if isTopUp {
-                        await batteryControl.cancelTopUp(
-                            limitPercentage: limit,
-                            lowerHysteresisDelta: delta,
-                            heatProtectionEnabled: heatEnabled,
-                            heatProtectionThresholdCelsius: heatThreshold,
-                            autoDischargeEnabled: autoDischarge,
-                            manualDischargeTarget: target)
+                        await batteryControl.cancelTopUp(preferences: prefs)
                     } else {
-                        await batteryControl.startTopUp(
-                            limitPercentage: limit,
-                            lowerHysteresisDelta: delta,
-                            heatProtectionEnabled: heatEnabled,
-                            heatProtectionThresholdCelsius: heatThreshold,
-                            autoDischargeEnabled: autoDischarge,
-                            manualDischargeTarget: target)
+                        await batteryControl.startTopUp(preferences: prefs)
                     }
                 }
             } label: {
@@ -509,31 +487,12 @@ struct CardExpandRegion: View {
                 }
                 Spacer()
                 Button {
-                    let limit = batteryLimitPercentage
-                    let delta = batterySailingEnabled ? batterySailingDelta : 2
-                    let heatEnabled = batteryHeatProtectionEnabled
-                    let heatThreshold = batteryHeatProtectionThreshold
-                    let autoDischarge = batteryAutoDischargeEnabled
-                    let target = dischargeTarget
+                    let prefs = BatteryPreferences(defaults: .standard)
                     Task {
                         if isDischarging {
-                            await batteryControl.stopManualDischarge(
-                                limitPercentage: limit,
-                                lowerHysteresisDelta: delta,
-                                heatProtectionEnabled: heatEnabled,
-                                heatProtectionThresholdCelsius: heatThreshold,
-                                autoDischargeEnabled: autoDischarge,
-                                manualDischargeTarget: target
-                            )
+                            await batteryControl.stopManualDischarge(preferences: prefs)
                         } else {
-                            await batteryControl.startManualDischarge(
-                                target: target,
-                                limitPercentage: limit,
-                                lowerHysteresisDelta: delta,
-                                heatProtectionEnabled: heatEnabled,
-                                heatProtectionThresholdCelsius: heatThreshold,
-                                autoDischargeEnabled: autoDischarge
-                            )
+                            await batteryControl.startManualDischarge(preferences: prefs)
                         }
                     }
                 } label: {
