@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 /// Installs (or removes) the privileged fan-control helper using a single macOS
 /// administrator-authentication prompt. The daemon binary ships inside the app bundle at
@@ -36,7 +37,6 @@ enum FanHelperInstaller {
 
     enum InstallError: LocalizedError, Equatable {
         case daemonMissing
-        case scriptWriteFailed
         case authFailedOrCancelled(String)
         case userCancelled
 
@@ -54,7 +54,6 @@ enum FanHelperInstaller {
         var errorDescription: String? {
             switch self {
             case .daemonMissing: String(localized: "앱 번들에서 도우미 실행 파일을 찾을 수 없습니다.")
-            case .scriptWriteFailed: String(localized: "설치 스크립트를 임시 폴더에 쓰지 못했습니다.")
             case .userCancelled: String(localized: "관리자 인증이 취소되었거나 실패했습니다.")
             case .authFailedOrCancelled(let detail): detail
             }
@@ -62,8 +61,7 @@ enum FanHelperInstaller {
     }
 
     /// Installs the daemon + LaunchDaemon and kickstarts it. Runs off the main actor (the auth
-    /// prompt blocks). Throws on a missing bundled daemon, a temp-write failure, or a
-    /// cancelled/failed authorization.
+    /// prompt blocks). Throws on a missing bundled daemon or a cancelled/failed authorization.
     static func installedOwnership(
         plistURL: URL = URL(fileURLWithPath: "/Library/LaunchDaemons/\(label).plist")
     ) -> InstalledOwnership {
@@ -107,32 +105,43 @@ enum FanHelperInstaller {
         guard FileManager.default.isExecutableFile(atPath: daemon.path) else {
             throw InstallError.daemonMissing
         }
-        let plist = plistTemplate.replacingOccurrences(of: "__WATTLY_ALLOWED_UID__", with: "\(currentUID)")
-        let plistPath = FileManager.default.temporaryDirectory.appendingPathComponent("\(label).plist")
+        // 이 시점의 바이트가 root가 설치할 바이트다. 이후 번들이 바뀌면 스크립트가 76으로 거부한다.
+        let expectedSHA256: String
         do {
-            try plist.write(to: plistPath, atomically: true, encoding: .utf8)
+            expectedSHA256 = try sha256Hex(ofFileAt: daemon)
         } catch {
-            throw InstallError.scriptWriteFailed
+            throw InstallError.daemonMissing
         }
         try await (privilegedRunner ?? runPrivileged)(makeInstallScript(
             daemonPath: daemon.path,
-            plistPath: plistPath.path,
+            expectedSHA256: expectedSHA256,
             currentUID: currentUID,
             transferringOwnership: transferringOwnership))
     }
 
     static func makeInstallScript(
         daemonPath: String,
-        plistPath: String,
+        expectedSHA256: String,
         currentUID: UInt32 = UInt32(getuid()),
         transferringOwnership: Bool = false
     ) -> String {
         let transferAuthorization = transferringOwnership ? "true" : "false"
+        let plist = plistTemplate.replacingOccurrences(of: "__WATTLY_ALLOWED_UID__", with: "\(currentUID)")
         return """
         set -eu
+        # `do shell script`는 호출한 프로세스의 환경을 물려받는다. 오염된 PATH로 root 코드 실행이
+        # 되지 않도록, bare로 부르는 명령(install/cp/chown/chmod/rm/cat/rmdir/launchctl 등)을
+        # 시스템 경로에만 묶는다.
+        PATH=/usr/bin:/bin:/usr/sbin:/sbin; export PATH
+        daemon_src=\(shellQuoted(daemonPath))
+        expected_sha256=\(shellQuoted(expectedSHA256))
         allow_ownership_transfer=\(transferAuthorization)
         expected_owner_uid=\(currentUID)
         installed_plist='/Library/LaunchDaemons/\(label).plist'
+        helper_path='/Library/PrivilegedHelperTools/\(label)'
+        policy_dir='/Library/Application Support/Wattly'
+        staging_dir='/var/run/Wattly/staging'
+        staged_daemon="$staging_dir/WattlyFanDaemon"
         ownership_lock='/var/run/Wattly/wattly-helper-install.lock'
         install -d -o root -g wheel -m 755 /var/run/Wattly
         if ! /usr/bin/shlock -f "$ownership_lock" -p "$$"; then
@@ -140,9 +149,27 @@ enum FanHelperInstaller {
           exit 75
         fi
         chmod 644 "$ownership_lock"
-        cleanup_ownership_lock() { rm -f "$ownership_lock"; }
-        trap cleanup_ownership_lock EXIT
+        cleanup() { rm -f "$ownership_lock"; rm -rf "$staging_dir"; }
+        trap cleanup EXIT
         trap 'exit 75' HUP INT TERM
+        # 번들 안의 바이너리는 사용자 소유다. root 전용 스테이징에 복사한 뒤 그 사본만 검사하고 실행한다 —
+        # 인증 대화상자가 떠 있는 동안 번들이 바뀌어도 사본은 앱이 계산한 해시와 대조된다.
+        rm -rf "$staging_dir"
+        install -d -o root -g wheel -m 700 "$staging_dir"
+        # 번들 경로에 심어둔 FIFO는 cp를 영원히 막고(설치 락을 쥔 채로), 심볼릭 링크는 엉뚱한 바이트를
+        # 복사하게 만든다. 일반 파일이 아니면 여기서 끊는다.
+        if [ ! -f "$daemon_src" ] || [ -L "$daemon_src" ]; then
+          echo 'Bundled helper is not a regular file; aborting.' >&2
+          exit 76
+        fi
+        cp "$daemon_src" "$staged_daemon"
+        chown root:wheel "$staged_daemon"
+        chmod 755 "$staged_daemon"
+        actual_sha256=$(/usr/bin/shasum -a 256 "$staged_daemon" | /usr/bin/cut -d ' ' -f 1)
+        if [ "$actual_sha256" != "$expected_sha256" ]; then
+          echo 'Bundled helper changed after the install started; aborting.' >&2
+          exit 76
+        fi
         # The app's preflight can become stale while the authentication panel is open. Re-read the
         # installed LaunchDaemon as root before the safety preflight, then again immediately before
         # bootout. Only the explicit transfer flag may authorize changed or invalid metadata.
@@ -166,48 +193,77 @@ enum FanHelperInstaller {
           fi
         }
         validate_installed_owner
-        '\(daemonPath)' --verify-battery-release
+        "$staged_daemon" --verify-battery-release
         validate_installed_owner
         was_running=false
         if launchctl print system/\(label) >/dev/null 2>&1; then
           was_running=true
           launchctl bootout system/\(label)
         fi
-        if ! '\(daemonPath)' --verify-battery-release; then
+        if ! "$staged_daemon" --verify-battery-release; then
           if $was_running; then
-            launchctl bootstrap system "$installed_plist"
+            # 롤백 실패가 set -e로 74를 덮어써서는 안 된다.
+            launchctl bootstrap system "$installed_plist" || true
           fi
           exit 74
         fi
         install -d -o root -g wheel -m 755 /Library/PrivilegedHelperTools /Library/LaunchDaemons
-        install -o root -g wheel -m 755 '\(daemonPath)' '/Library/PrivilegedHelperTools/\(label)'
-        install -o root -g wheel -m 644 '\(plistPath)' "$installed_plist"
+        # 정책 파일 디렉터리는 데몬이 아니라 여기서, root 소유로 만든다. 심볼릭 링크나 남이 만든
+        # 디렉터리가 있으면 치우고 다시 만든다 — 데몬은 root 소유가 아닌 경로를 신뢰하지 않는다(5단계).
+        if [ -L "$policy_dir" ]; then rm -f "$policy_dir"; fi
+        install -d -o root -g wheel -m 755 "$policy_dir"
+        chown root:wheel "$policy_dir"
+        chmod 755 "$policy_dir"
+        install -o root -g wheel -m 755 "$staged_daemon" "$helper_path"
+        umask 022
+        cat > "$installed_plist" <<'WATTLY_PLIST'
+        \(plist)
+        WATTLY_PLIST
+        chown root:wheel "$installed_plist"
+        chmod 644 "$installed_plist"
         launchctl bootstrap system "$installed_plist"
         launchctl kickstart -k system/\(label)
         """
     }
 
     /// Boots out and removes the daemon + LaunchDaemon (one auth prompt).
-    static func uninstall() async throws {
-        let verifier = bundledDaemonURL
-        guard FileManager.default.isExecutableFile(atPath: verifier.path) else {
+    ///
+    /// 스크립트는 root 소유 설치본을 검증기로 우선하고 번들 사본은 폴백일 뿐이므로, 둘 중 하나만
+    /// 실행 가능해도 제거를 진행한다. (번들에서 도우미가 빠진 앱으로도 설치된 root 데몬을 지울 수 있어야 한다.)
+    static func uninstall(
+        bundledVerifierURL: URL = bundledDaemonURL,
+        installedHelperURL: URL = URL(fileURLWithPath: "/Library/PrivilegedHelperTools/\(label)"),
+        privilegedRunner: PrivilegedRunner? = nil
+    ) async throws {
+        let manager = FileManager.default
+        let bundleUsable = manager.isExecutableFile(atPath: bundledVerifierURL.path)
+        let installedUsable = manager.isExecutableFile(atPath: installedHelperURL.path)
+        guard bundleUsable || installedUsable else {
             throw InstallError.daemonMissing
         }
-        try await runPrivileged(makeUninstallScript(verifierPath: verifier.path))
+        try await (privilegedRunner ?? runPrivileged)(
+            makeUninstallScript(fallbackVerifierPath: bundledVerifierURL.path))
     }
 
-    static func makeUninstallScript(verifierPath: String) -> String {
+    /// 검증기는 root 소유의 설치본을 우선한다. 번들 사본은 설치본이 없을 때(설치가 반쯤 지워진 경우)만 쓴다.
+    static func makeUninstallScript(fallbackVerifierPath: String) -> String {
         """
         set -eu
-        '\(verifierPath)' --verify-battery-release
+        # 설치 스크립트와 같은 이유로 PATH를 시스템 경로에 묶는다(launchctl/rm/rmdir가 bare다).
+        PATH=/usr/bin:/bin:/usr/sbin:/sbin; export PATH
+        verifier='/Library/PrivilegedHelperTools/\(label)'
+        fallback_verifier=\(shellQuoted(fallbackVerifierPath))
+        if [ ! -x "$verifier" ]; then verifier="$fallback_verifier"; fi
+        "$verifier" --verify-battery-release
         was_running=false
         if launchctl print system/\(label) >/dev/null 2>&1; then
           was_running=true
           launchctl bootout system/\(label)
         fi
-        if ! '\(verifierPath)' --verify-battery-release; then
+        if ! "$verifier" --verify-battery-release; then
           if $was_running; then
-            launchctl bootstrap system '/Library/LaunchDaemons/\(label).plist'
+            # 롤백 실패가 set -e로 74를 덮어써서는 안 된다.
+            launchctl bootstrap system '/Library/LaunchDaemons/\(label).plist' || true
           fi
           exit 74
         fi
@@ -218,6 +274,35 @@ enum FanHelperInstaller {
         """
     }
 
+    // MARK: - 인용·해시 (순수)
+
+    /// POSIX sh 단일 인용. 안에 든 `'`는 `'\''`(닫고, 이스케이프한 따옴표, 다시 열기)로 바꾼다.
+    static func shellQuoted(_ value: String) -> String {
+        "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+
+    /// AppleScript 문자열 리터럴. `do shell script`에 여러 줄 스크립트를 파일 없이 넘기기 위한 것 —
+    /// 파일로 넘기면 인증 대화상자가 떠 있는 동안 같은 UID의 프로세스가 내용을 바꿔칠 수 있다.
+    static func appleScriptLiteral(_ value: String) -> String {
+        var out = "\""
+        for scalar in value.unicodeScalars {
+            switch scalar {
+            case "\\": out += "\\\\"
+            case "\"": out += "\\\""
+            case "\n": out += "\\n"
+            case "\r": out += "\\r"
+            case "\t": out += "\\t"
+            default: out.unicodeScalars.append(scalar)
+            }
+        }
+        return out + "\""
+    }
+
+    static func sha256Hex(ofFileAt url: URL) throws -> String {
+        let data = try Data(contentsOf: url)
+        return SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    }
+
     // MARK: - Internals
 
     /// The embedded daemon is named after the build product (`WattlyFanDaemon`), NOT the launchd
@@ -226,27 +311,15 @@ enum FanHelperInstaller {
         Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/WattlyFanDaemon")
     }
 
-    /// Writes `script` to a temp file and executes it as root via one `osascript` auth prompt.
-    /// The AppleScript command is just `/bin/sh <path>` (no spaces in the temp path), so the
-    /// multi-line script needs no AppleScript-level escaping.
+    /// 스크립트 전체를 AppleScript 문자열로 넘긴다. 파일이 없으므로 인증 대기 중 바꿔칠 대상이 없다.
+    /// `do shell script`는 문자열을 `/bin/sh -c`로 실행한다.
     private static func runPrivileged(_ script: String) async throws {
-        let scriptPath = FileManager.default.temporaryDirectory
-            .appendingPathComponent("wattly-helper-\(UUID().uuidString).sh")
-        do {
-            try script.write(to: scriptPath, atomically: true, encoding: .utf8)
-        } catch {
-            throw InstallError.scriptWriteFailed
-        }
-
+        let command = "do shell script \(appleScriptLiteral(script)) with administrator privileges"
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             DispatchQueue.global(qos: .userInitiated).async {
-                defer { try? FileManager.default.removeItem(at: scriptPath) }
                 let proc = Process()
                 proc.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-                proc.arguments = [
-                    "-e",
-                    "do shell script \"/bin/sh \(scriptPath.path)\" with administrator privileges",
-                ]
+                proc.arguments = ["-e", command]
                 let errPipe = Pipe()
                 proc.standardError = errPipe
                 do {
@@ -260,7 +333,6 @@ enum FanHelperInstaller {
                 if proc.terminationStatus == 0 {
                     cont.resume(returning: ())
                 } else {
-                    // osascript exits non-zero on a cancelled prompt (-128) or a failed script.
                     let msg = String(data: errData, encoding: .utf8)?
                         .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     if msg.contains("-128") || msg.localizedCaseInsensitiveContains("canceled") || msg.localizedCaseInsensitiveContains("cancelled") {

@@ -49,6 +49,18 @@ On MacBook Pro `Mac17,2` (Apple M5, macOS 26.6.1), a root-only bounded probe beg
 
 The daemon authorizes callers by the UID written during installation and by the audit-token process executable basename `Wattly`. This is intentionally weak authorization: an executable owned by that local user can potentially use the same basename. It is accepted only for this machine's personal local-owner setup, and is not suitable for shared machines or distribution. There is no code-signature authorization in this ad-hoc build.
 
+### Install-time integrity (what the in-app installer does and does not close)
+
+The privileged script copies the bundled daemon to a root-owned staging directory, compares its
+SHA-256 against the value the app computed when the user pressed Install, and only then runs or
+installs it. The script itself and the LaunchDaemon plist are passed inline, never through files in
+`$TMPDIR`. This closes the window between "user authenticates" and "root executes".
+
+It does NOT close the window before the user presses Install: a same-user process that replaces
+`Contents/Helpers/WattlyFanDaemon` earlier will have its hash computed and installed. Only a real
+code-signing identity (`codesign --verify` against a Developer ID requirement) closes that — see
+plan 06.
+
 ## Recovery and uninstall
 
 If the smoke test fails, fan behavior is unexpected, or you need to return immediately to macOS control, disable the in-app toggle and run:
