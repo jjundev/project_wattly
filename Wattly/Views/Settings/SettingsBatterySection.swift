@@ -446,19 +446,20 @@ struct SettingsBatterySection: View {
         }
     }
 
+    /// 재시도 버튼 전용 직접 `apply`. 도우미 설치 분기가 아니므로 브리지를 거치지 않지만,
+    /// 브리지의 `applyRequested`와 같은 규율을 따른다: 상태를 먼저 새로 읽고, 데몬이 들고
+    /// 있는 진행 중 활동(Top Up·수동 방전과 그 목표)을 `preservingActivity`로 살려서 보낸다.
+    /// 예전처럼 일곱 개 `@AppStorage`를 직접 조립해 파라미터 버전 `apply`로 보내면 이 되살리기가
+    /// 빠져 `topUpActive`/`manualDischargeActive`가 기본값 `false`로 나가고, 재시도를 누른
+    /// 순간 진행 중이던 Top Up이나 수동 방전이 취소된다.
     private func reapplyCurrentConfiguration() {
-        let limit = batteryLimitPercentage
-        let delta = effectiveDelta
-        let autoDischarge = autoDischargeEnabled
-        let manualTarget = dischargeTarget
         Task {
-            await batteryControl.apply(enabled: batteryLimitEnabled,
-                                       limitPercentage: limit,
-                                       lowerHysteresisDelta: delta,
-                                       heatProtectionEnabled: batteryHeatProtectionEnabled,
-                                       heatProtectionThresholdCelsius: heatProtectionThreshold,
-                                       autoDischargeEnabled: autoDischarge,
-                                       manualDischargeTarget: manualTarget)
+            await batteryControl.refreshStatus()
+            let requested = BatteryPreferences(defaults: .standard)
+                .configuration(clamshellDischargeAllowed: false)
+            let merged = BatteryControlBridge.preservingActivity(
+                requested, daemon: batteryControl.status.desiredConfiguration)
+            await batteryControl.apply(merged)
         }
     }
 
