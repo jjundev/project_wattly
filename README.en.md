@@ -311,7 +311,7 @@ brew install --cask wattly
 
 ### Option 2: Direct Download
 
-Download the latest signed `.dmg` installer directly from the [GitHub Releases](https://github.com/jjundev/project_wattly/releases) page. Drag `Wattly.app` to your `Applications` folder and launch.
+Download the latest `.dmg` installer (currently ad-hoc signed, so Gatekeeper will show a warning on first launch; automatic updates are verified via release signatures) directly from the [GitHub Releases](https://github.com/jjundev/project_wattly/releases) page. Drag `Wattly.app` to your `Applications` folder and launch.
 
 ### Option 3: Build from Source
 

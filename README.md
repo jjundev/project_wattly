@@ -311,7 +311,7 @@ brew install --cask wattly
 
 ### 옵션 2: 직접 다운로드
 
-[GitHub Releases](https://github.com/jjundev/project_wattly/releases) 페이지에서 서명된 최신 `.dmg` 설치 파일을 직접 다운로드할 수 있습니다. `Wattly.app`을 `Applications` (응용 프로그램) 폴더로 드래그한 후 실행하세요.
+[GitHub Releases](https://github.com/jjundev/project_wattly/releases) 페이지에서 최신 `.dmg`(현재는 ad-hoc 서명이라 처음 열 때 Gatekeeper 경고가 뜹니다; 자동 업데이트는 릴리스 서명으로 검증됩니다) 설치 파일을 직접 다운로드할 수 있습니다. `Wattly.app`을 `Applications` (응용 프로그램) 폴더로 드래그한 후 실행하세요.
 
 ### 옵션 3: 소스 코드 빌드
 
