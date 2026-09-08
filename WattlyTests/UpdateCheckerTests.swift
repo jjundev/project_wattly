@@ -41,6 +41,11 @@ import Foundation
                     "name": "Wattly.zip",
                     "browser_download_url": "https://github.com/jjundev/Wattly/releases/download/v1.2.0/Wattly.zip",
                     "size": 654321
+                },
+                {
+                    "name": "Wattly.zip.sig",
+                    "browser_download_url": "https://github.com/jjundev/Wattly/releases/download/v1.2.0/Wattly.zip.sig",
+                    "size": 89
                 }
             ]
         }
@@ -49,9 +54,10 @@ import Foundation
         let release = try UpdateChecker.decodeRelease(from: sampleJson)
         #expect(release.version == "1.2.0")
         #expect(release.body == "Release notes here")
-        #expect(release.assets.count == 2)
+        #expect(release.assets.count == 3)
         #expect(release.zipAsset?.browserDownloadURL.absoluteString == "https://github.com/jjundev/Wattly/releases/download/v1.2.0/Wattly.zip")
         #expect(release.zipAsset?.size == 654321)
+        #expect(release.signatureAsset?.name == "Wattly.zip.sig")
         #expect(release.htmlURL.absoluteString == "https://github.com/jjundev/Wattly/releases/tag/v1.2.0")
     }
 
@@ -68,6 +74,7 @@ import Foundation
         let release = try UpdateChecker.decodeRelease(from: sampleJson)
         #expect(release.version == "1.0.5")
         #expect(release.zipAsset == nil)
+        #expect(release.signatureAsset == nil)
     }
 
     @Test func handlesNullBodyInReleaseJson() throws {
