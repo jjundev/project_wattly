@@ -188,7 +188,7 @@ private struct HeroCard: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Accessibility.cardLabel(card, state, locale: locale))
+        .accessibilityLabel(Accessibility.cardLabel(card, state, dischargeOwner: dischargeOwner, locale: locale))
         .accessibilityValue(Accessibility.stateWord(card, state, thresholds) ?? "")
 
         if hasChevron {
@@ -228,7 +228,12 @@ private struct HeroCard: View {
     @ViewBuilder
     private func subTextView(_ fallbackSubText: String?) -> some View {
         if isDischarging, case .value(.battery(let s)) = state {
-            let target = batteryControl?.status.desiredConfiguration?.manualDischargeTarget ?? s.targetPercentage
+            let target: Int = {
+                if let config = batteryControl?.status.desiredConfiguration {
+                    return dischargeOwner == .automatic ? config.limitPercentage : config.manualDischargeTarget
+                }
+                return s.targetPercentage
+            }()
             let currentPct = s.percentage ?? (batteryControl?.status.currentPercentage ?? 0)
             let watts = s.netW > 0 ? -s.netW : s.netW
             let desc = BatterySectionPresentation.dischargeDescription(owner: dischargeOwner, target: target, currentSoC: currentPct, watts: watts, locale: locale)
