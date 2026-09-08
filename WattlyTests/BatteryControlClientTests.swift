@@ -1140,5 +1140,40 @@ struct BatteryControlClientTests {
 
         #expect(counter.configures == 0)
     }
+
+    @MainActor @Test func applyWithConfigurationSendsItThroughTheSameChokepoint() async throws {
+        let receiver = RequestReceiver()   // 파일 안에 이미 있는 리시버 액터를 쓴다; 없으면 아래 정의를 추가한다.
+        let client = BatteryControlClient(requestHandler: { request in
+            await receiver.set(request)
+            let status = BatteryControlServiceStatus(mode: .charging, currentPercentage: 50,
+                                                     isPowerAdapterConnected: true, detail: "OK", updatedAt: 1)
+            return (try? BatteryControlCodec.encode(status), nil)
+        }, clamshellAllowance: { true })
+        var prefs = BatteryPreferences.standard
+        prefs.limitEnabled = true; prefs.limitPercentage = 85; prefs.manualDischargeTarget = 100
+        _ = await client.apply(prefs.configuration(clamshellDischargeAllowed: false))
+        guard case .configure(let data) = await receiver.request else { Issue.record("expected configure"); return }
+        let sent = try BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data).configuration
+        #expect(sent.limitPercentage == 85)
+        #expect(sent.manualDischargeTarget == BatterySectionPresentation.manualDischargeTargetRange.upperBound)
+        // 클램쉘 허용값은 호출자가 아니라 길목이 정한다.
+        #expect(sent.clamshellDischargeAllowed == true)
+    }
+
+    @MainActor @Test func startTopUpFromPreferencesSetsTopUpActive() async throws {
+        let receiver = RequestReceiver()
+        let client = BatteryControlClient(requestHandler: { request in
+            await receiver.set(request)
+            let status = BatteryControlServiceStatus(mode: .charging, currentPercentage: 50,
+                                                     isPowerAdapterConnected: true, detail: "OK", updatedAt: 1)
+            return (try? BatteryControlCodec.encode(status), nil)
+        })
+        var prefs = BatteryPreferences.standard
+        prefs.sailingEnabled = true; prefs.sailingDelta = 4
+        _ = await client.startTopUp(preferences: prefs)
+        guard case .configure(let data) = await receiver.request else { Issue.record("expected configure"); return }
+        let sent = try BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data).configuration
+        #expect(sent.topUpActive == true && sent.enabled == true && sent.lowerHysteresisDelta == 4)
+    }
 }
 
