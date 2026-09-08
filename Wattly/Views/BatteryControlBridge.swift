@@ -35,6 +35,9 @@ struct BatteryControlBridge: View {
     /// `@MainActor`이고 SwiftUI View의 저장 프로퍼티 초기화는 nonisolated라 Swift 6가 거부한다.
     @State private var hasExternalDisplay = false
     @State private var pushTask: Task<Void, Never>?
+    /// 지금 열려 있는 디바운스 창이 시작될 때의 선호값. 창이 닫힐 때의 결정은 이 값과 그때의
+    /// 선호값 **한 쌍**에서만 나온다. `nil`이면 열린 창이 없다는 뜻이다.
+    @State private var pushBaseline: BatteryPreferences?
 
     @State private var topUpDetector = BatteryTopUpTransitionDetector()
     @State private var topUpExpiryDetector = BatteryTopUpExpiryDetector()
@@ -78,6 +81,35 @@ struct BatteryControlBridge: View {
         dischargeSideOnly.clamshellDischargeEnabled = new.clamshellDischargeEnabled
         dischargeSideOnly.manualDischargeTarget = new.manualDischargeTarget
         return dischargeSideOnly == new ? .apply : .disable
+    }
+
+    /// 디바운스 창 하나가 만들어 내는 쓰기 전부.
+    struct WindowPush: Equatable {
+        var action: PushAction
+        /// 이 창 **안에서 새로 켜진** 옵트인인지. 하드웨어에 충전 레지스터가 없다고 판명됐을 때
+        /// 되돌려도 되는 것은 이것뿐이다.
+        var limitOptInStarted: Bool
+        var heatOptInStarted: Bool
+    }
+
+    /// 디바운스 창이 닫힐 때의 결정. 창의 **기준점**(창이 열릴 때의 값)과 창이 닫히는 시점의 값,
+    /// 두 개만 본다.
+    ///
+    /// 창 안에서 값이 두 번 바뀌었을 때 마지막 `old→new` 쌍으로 결정하면 안 된다: 열 보호를
+    /// 250 ms 안에 껐다 켜면(A→B→A) 마지막 쌍만 보고 `.disable`이 나가 돌고 있던 수동 방전이
+    /// 취소된다. 실제로 바뀐 것이 없으므로 답은 `.none`이어야 하고, 기준점에서 재면 그렇게 된다.
+    ///
+    /// `limitOptInStarted`/`heatOptInStarted`도 같은 이유로 **전이**다. 하드웨어 미지원 되돌림은
+    /// 이번에 켠 옵트인만 건드려야 한다 — 지원되는 Mac에서 이미 켜져 있던 한도를, SMC 프로브가
+    /// 일시적으로 실패한 순간에 슬라이더를 만졌다는 이유로 꺼 버리면 스위치가 스스로 OFF가 되고
+    /// reconcile 루프는 (저장된 선호값 쪽으로 맞추므로) 그것을 되돌리지 못한다.
+    static func windowPush(
+        from baseline: BatteryPreferences, to current: BatteryPreferences, hasExternalDisplay: Bool
+    ) -> WindowPush {
+        WindowPush(
+            action: pushAction(from: baseline, to: current, hasExternalDisplay: hasExternalDisplay),
+            limitOptInStarted: current.limitEnabled && !baseline.limitEnabled,
+            heatOptInStarted: current.heatProtectionEnabled && !baseline.heatProtectionEnabled)
     }
 
     /// Folds the daemon's transient activity into a configuration built from stored preferences.
@@ -171,9 +203,9 @@ struct BatteryControlBridge: View {
             // 드래그 한 번을 XPC 쓰기 수십 번으로 만들었다. Settings 화면의 경쟁 쓰기도 함께
             // 없앴으므로(이 브리지가 단일 쓰기자), 토글 하나에 두 개의 순서 없는 쓰기가 얽히는 일도
             // 더는 없다.
-            .onChange(of: preferences) { old, new in
+            .onChange(of: preferences) { old, _ in
                 syncMonitorTarget()
-                schedulePush(from: old, to: new)
+                schedulePush(windowOpenedAt: old)
             }
             // 뚜껑을 닫은 채 외장 모니터를 뽑으면 화면이 하나도 남지 않는다. 그 순간 false를
             // 내려보내야 데몬이 잠자기 차단을 풀고 Mac이 정상적으로 잠든다. 60초 reconcile을
@@ -251,22 +283,39 @@ struct BatteryControlBridge: View {
     }
 
     /// 디바운스된 단일 쓰기 경로. 마지막 변경 시점의 `configuration`을 다시 읽어 보내므로 드래그 도중 값은 버려진다.
-    private func schedulePush(from old: BatteryPreferences, to new: BatteryPreferences) {
-        let action = Self.pushAction(from: old, to: new, hasExternalDisplay: hasExternalDisplay)
-        guard action != .none else { return }
+    ///
+    /// 결정(`windowPush`)과 실을 값(`configuration`)을 **둘 다** 잠에서 깬 뒤에 읽는다. 결정만
+    /// 변경 시점에 굳혀 두면 창 안에서 값이 또 바뀌었을 때 서로 다른 두 상태에서 뽑은 결정과
+    /// 페이로드가 짝지어진다.
+    ///
+    /// 이 경로는 `client.reconcile`을 **일부러** 쓰지 않는다: 그쪽은 `BatteryControlPolicy.shouldReapply`가
+    /// 동의할 때만 쓰는데, "데몬이 이미 같다"고 판단하는 수리용 술어는 배경 패스에는 맞고 사용자가
+    /// 누른 버튼에는 틀리다 — 누름이 아무 표시도 없이 사라진다. 쓰기 경로가 하나로 합쳐진 지금
+    /// "중복 쓰기를 줄이자"며 여기를 `reconcile`로 돌리고 싶어지겠지만, 그게 바로 이 문단이 막는 변경이다.
+    private func schedulePush(windowOpenedAt old: BatteryPreferences) {
+        // 살아 있는 창이 없을 때만 기준점을 새로 잡는다. 250 ms 안에 두 번째 변경이 오면 그 창의
+        // 기준점은 여전히 첫 번째 `old`다 — 그래야 A→B→A가 `.none`으로 상쇄된다.
+        if pushTask == nil { pushBaseline = old }
+        let baseline = pushBaseline ?? old
         pushTask?.cancel()
         pushTask = Task {
             try? await Task.sleep(for: .milliseconds(Self.pushDebounceMilliseconds))
             guard !Task.isCancelled else { return }
+            // 창은 여기서 닫힌다. 이 뒤에 오는 변경은 새 기준점으로 새 창을 연다.
+            pushTask = nil
+            pushBaseline = nil
+            let decision = Self.windowPush(
+                from: baseline, to: preferences, hasExternalDisplay: hasExternalDisplay)
             let requested = configuration
-            switch action {
+            switch decision.action {
             case .apply:
                 await applyRequested(requested, reason: "preference-change")
-                // 이 Mac에 충전 레지스터가 없다고 도우미가 답했으면 방금 켠 옵트인을 되돌린다 —
+                // 이 Mac에 충전 레지스터가 없다고 도우미가 답했으면 이번에 켠 옵트인을 되돌린다 —
                 // 아니면 스위치가 ON인 채로 스스로 비활성화돼 되돌릴 길이 없다(예전 SettingsBatterySection의 규칙).
+                // 되돌리는 것은 이 창에서 켠 값뿐이다: 지원되는 Mac에서 넘어온 `true`는 건드리지 않는다.
                 if client.status.isHardwareSupported == false {
-                    if enabled { enabled = false }
-                    if heatProtectionEnabled { heatProtectionEnabled = false }
+                    if decision.limitOptInStarted { enabled = false }
+                    if decision.heatOptInStarted { heatProtectionEnabled = false }
                 }
             case .disable:
                 await disableRequested(requested, reason: "preference-change")

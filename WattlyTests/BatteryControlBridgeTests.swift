@@ -41,6 +41,51 @@ import Foundation
         #expect(BatteryControlBridge.pushAction(from: .standard, to: t, hasExternalDisplay: false) == .apply)
     }
 
+    // MARK: - windowPush (디바운스 창)
+
+    /// 250 ms 창 안에서 열 보호를 껐다 켰다(A→B→A) 하면 순변화가 없다. 창의 기준점에서 재면
+    /// `.none`이 나온다 — 마지막 `old→new` 쌍으로 재던 예전 방식은 여기서 `.disable`을 내보내
+    /// 돌고 있던 수동 방전을 취소했다(`disableAndConfirm`은 `manualDischargeActive: false`를 박아 넣는다).
+    @Test func bouncedToggleWithinOneWindowNetsToNothing() {
+        var baseline = BatteryPreferences.standard
+        baseline.manualDischargeTarget = 70            // 한도는 꺼진 채 수동 방전이 돌고 있는 상태
+        var heatOn = baseline; heatOn.heatProtectionEnabled = true   // 창 안 첫 변경: 켰다
+        let settled = baseline                                       // 창 안 둘째 변경: 도로 껐다
+
+        // 창의 마지막 `old→new` 쌍만 보면 `.disable`이 나간다 — 그게 고친 결함이다.
+        #expect(BatteryControlBridge.pushAction(
+            from: heatOn, to: settled, hasExternalDisplay: false) == .disable)
+
+        let decision = BatteryControlBridge.windowPush(
+            from: baseline, to: settled, hasExternalDisplay: false)
+        #expect(decision.action == .none)
+        #expect(decision.limitOptInStarted == false)
+        #expect(decision.heatOptInStarted == false)
+    }
+
+    /// 하드웨어 미지원 되돌림은 **전이**에만 걸린다. 이미 켜져 있던 한도를 그대로 둔 채 퍼센트만
+    /// 바꾼 창은 `.apply`지만 되돌릴 옵트인은 없다 — SMC 프로브가 일시적으로 실패한 순간에
+    /// 스위치가 스스로 OFF가 되면 reconcile 루프(저장된 선호값 쪽으로 맞춘다)도 되살리지 못한다.
+    @Test func unsupportedRevertOnlyTargetsOptInsStartedInThisWindow() {
+        var edited = on; edited.limitPercentage = 85
+        let sliderDrag = BatteryControlBridge.windowPush(
+            from: on, to: edited, hasExternalDisplay: false)
+        #expect(sliderDrag.action == .apply)
+        #expect(sliderDrag.limitOptInStarted == false)
+
+        let turnedOn = BatteryControlBridge.windowPush(
+            from: .standard, to: on, hasExternalDisplay: false)
+        #expect(turnedOn.action == .apply)
+        #expect(turnedOn.limitOptInStarted == true)
+        #expect(turnedOn.heatOptInStarted == false)
+
+        var heatOn = BatteryPreferences.standard; heatOn.heatProtectionEnabled = true
+        let heatTurnedOn = BatteryControlBridge.windowPush(
+            from: .standard, to: heatOn, hasExternalDisplay: false)
+        #expect(heatTurnedOn.heatOptInStarted == true)
+        #expect(heatTurnedOn.limitOptInStarted == false)
+    }
+
     // MARK: - 저장된 방전 기본값
 
     /// The stored defaults the bridge starts from, pinned so a Defaults edit cannot quietly
