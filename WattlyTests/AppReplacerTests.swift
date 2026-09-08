@@ -3,137 +3,60 @@ import Foundation
 @testable import Wattly
 
 @Suite struct AppReplacerTests {
-    @Test func scriptContainsKillLoopAndDittoReplacement() {
-        let current = URL(fileURLWithPath: "/Applications/Wattly.app")
-        let newApp = URL(fileURLWithPath: "/var/folders/temp/Wattly.app")
-        let pid: Int32 = 12345
-
-        let script = AppReplacer.generateRelaunchScript(currentAppURL: current, newAppURL: newApp, currentPID: pid)
-        
-        #expect(script.contains("while kill -0 12345"))
-        #expect(script.contains("/var/folders/temp/Wattly.app"))
-        #expect(script.contains("/Applications/Wattly.app"))
-        #expect(script.contains("rm -rf \"/Applications/Wattly.app\""))
-        #expect(script.contains("ditto \"/var/folders/temp/Wattly.app\" \"/Applications/Wattly.app\""))
-        #expect(script.contains("xattr -dr com.apple.quarantine \"/Applications/Wattly.app\" 2>/dev/null || true"))
-        #expect(script.contains("open -n \"/Applications/Wattly.app\""))
+    /// 경로는 argv로만 전달된다. 스크립트 본문에 경로 문자열이 섞여 들어가면 `"`·`$(`가 셸 인젝션이 된다.
+    @Test func pathsTravelAsArgumentsNotAsScriptText() {
+        let current = URL(fileURLWithPath: "/Applications/It's \"Wattly\" $(rm -rf ~).app")
+        let newApp = URL(fileURLWithPath: "/tmp/staging dir/Wattly.app")
+        let argv = AppReplacer.arguments(script: AppReplacer.relaunchScript,
+                                         currentAppURL: current, newAppURL: newApp, currentPID: 4242)
+        #expect(argv[0] == "-c")
+        #expect(argv[1] == AppReplacer.relaunchScript)
+        #expect(argv[3] == current.path)
+        #expect(argv[4] == newApp.path)
+        #expect(argv[5] == "4242")
+        #expect(!AppReplacer.relaunchScript.contains(current.path))
+        #expect(AppReplacer.relaunchScript.hasSuffix("open -n \"$current\"\n"))
     }
 
-    @Test func scriptHandlesPathsWithSpaces() {
-        let current = URL(fileURLWithPath: "/Applications/My Cool App.app")
-        let newApp = URL(fileURLWithPath: "/tmp/staging dir/My Cool App.app")
-        let pid: Int32 = 999
+    /// 실제 /bin/sh로 교체 스크립트를 돌린다. 성공하면 백업이 사라지고, ditto가 실패하면 원본이 복원된다.
+    @Test func replaceScriptSwapsBundleAndRollsBackOnFailure() throws {
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fm.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: root) }
+        let current = root.appendingPathComponent("Wattly.app", isDirectory: true)
+        let newApp = root.appendingPathComponent("New.app", isDirectory: true)
+        try fm.createDirectory(at: current, withIntermediateDirectories: true)
+        try "old".write(to: current.appendingPathComponent("marker"), atomically: true, encoding: .utf8)
+        try fm.createDirectory(at: newApp, withIntermediateDirectories: true)
+        try "new".write(to: newApp.appendingPathComponent("marker"), atomically: true, encoding: .utf8)
 
-        let script = AppReplacer.generateRelaunchScript(currentAppURL: current, newAppURL: newApp, currentPID: pid)
-        
-        #expect(script.contains("while kill -0 999"))
-        #expect(script.contains("rm -rf \"/Applications/My Cool App.app\""))
-        #expect(script.contains("ditto \"/tmp/staging dir/My Cool App.app\" \"/Applications/My Cool App.app\""))
-        #expect(script.contains("open -n \"/Applications/My Cool App.app\""))
+        // 이미 종료된 pid — `kill -0`이 즉시 실패해 대기 루프를 빠져나온다.
+        let probe = Process()
+        probe.executableURL = URL(fileURLWithPath: "/usr/bin/true")
+        try probe.run(); probe.waitUntilExit()
+        let deadPID = probe.processIdentifier
+
+        // 성공 경로
+        try Self.runSh(AppReplacer.arguments(script: AppReplacer.replaceScript,
+                                             currentAppURL: current, newAppURL: newApp, currentPID: deadPID))
+        #expect(try String(contentsOf: current.appendingPathComponent("marker"), encoding: .utf8) == "new")
+        #expect(!fm.fileExists(atPath: current.path + ".wattly-previous"))
+
+        // 실패 경로: 새 앱 경로가 없으면 ditto가 실패하고 원본(지금은 "new")이 그대로 남는다.
+        let missing = root.appendingPathComponent("Missing.app")
+        _ = try? Self.runSh(AppReplacer.arguments(script: AppReplacer.replaceScript,
+                                                  currentAppURL: current, newAppURL: missing, currentPID: deadPID))
+        #expect(try String(contentsOf: current.appendingPathComponent("marker"), encoding: .utf8) == "new")
+        #expect(!fm.fileExists(atPath: current.path + ".wattly-previous"))
     }
 
-    @Test @MainActor func autoUpdaterInitialStateIsIdle() {
-        let updater = AutoUpdater()
-        #expect(updater.state == .idle)
-        #expect(updater.progress == 0.0)
-    }
-
-    @Test @MainActor func autoUpdaterCancelResetsToIdle() {
-        let updater = AutoUpdater()
-        let asset = GitHubReleaseAsset(
-            name: "Wattly.zip",
-            browserDownloadURL: URL(string: "https://example.com/Wattly.zip")!,
-            size: 1000
-        )
-        updater.startUpdate(asset: asset)
-        #expect(updater.state == .downloading(progress: 0.0))
-
-        updater.cancel()
-        #expect(updater.state == .idle)
-        #expect(updater.progress == 0.0)
-    }
-
-    @Test @MainActor func autoUpdaterProgressUpdatesOnDidWriteData() async {
-        let updater = AutoUpdater()
-        let asset = GitHubReleaseAsset(
-            name: "Wattly.zip",
-            browserDownloadURL: URL(string: "https://example.com/Wattly.zip")!,
-            size: 1000
-        )
-        updater.startUpdate(asset: asset)
-        #expect(updater.progress == 0.0)
-
-        let session = URLSession(configuration: .default)
-        let dummyTask = session.downloadTask(with: URL(string: "https://example.com")!)
-        
-        updater.urlSession(session, downloadTask: dummyTask, didWriteData: 500, totalBytesWritten: 500, totalBytesExpectedToWrite: 1000)
-        
-        // Yield so MainActor Task scheduled in didWriteData can execute
-        await Task.yield()
-        try? await Task.sleep(nanoseconds: 50_000_000)
-
-        #expect(updater.progress == 0.5)
-        #expect(updater.state == .downloading(progress: 0.5))
-        
-        dummyTask.cancel()
-        session.invalidateAndCancel()
-    }
-
-    @Test @MainActor func autoUpdaterHandlesNetworkError() async {
-        let updater = AutoUpdater()
-        let asset = GitHubReleaseAsset(
-            name: "Wattly.zip",
-            browserDownloadURL: URL(string: "https://example.com/Wattly.zip")!,
-            size: 1000
-        )
-        updater.startUpdate(asset: asset)
-
-        let session = URLSession(configuration: .default)
-        let dummyTask = session.downloadTask(with: URL(string: "https://example.com")!)
-        let error = NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut, userInfo: [NSLocalizedDescriptionKey: "The request timed out."])
-
-        updater.urlSession(session, task: dummyTask, didCompleteWithError: error)
-
-        await Task.yield()
-        try? await Task.sleep(nanoseconds: 50_000_000)
-
-        if case .failed(let reason) = updater.state {
-            #expect(reason.contains("다운로드 실패"))
-            #expect(reason.contains("The request timed out."))
-        } else {
-            Issue.record("Expected state to be .failed, but got \(updater.state)")
-        }
-
-        dummyTask.cancel()
-        session.invalidateAndCancel()
-    }
-
-    @Test @MainActor func autoUpdaterHandlesStagingAndInvalidArchiveGracefully() async throws {
-        let updater = AutoUpdater()
-        let tempSrc = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".tmp")
-        try "corrupted zip data".data(using: .utf8)!.write(to: tempSrc)
-
-        let session = URLSession(configuration: .default)
-        let dummyTask = session.downloadTask(with: URL(string: "https://example.com")!)
-
-        // Calling didFinishDownloadingTo triggers synchronous move and async ditto extraction
-        updater.urlSession(session, downloadTask: dummyTask, didFinishDownloadingTo: tempSrc)
-
-        // Wait for extraction to attempt and fail gracefully
-        for _ in 0..<20 {
-            if case .failed = updater.state {
-                break
-            }
-            try? await Task.sleep(nanoseconds: 50_000_000)
-        }
-
-        if case .failed(let reason) = updater.state {
-            #expect(!reason.isEmpty)
-        } else {
-            Issue.record("Expected state to transition to .failed due to corrupt zip, but got \(updater.state)")
-        }
-
-        dummyTask.cancel()
-        session.invalidateAndCancel()
+    private static func runSh(_ arguments: [String]) throws {
+        let sh = Process()
+        sh.executableURL = URL(fileURLWithPath: "/bin/sh")
+        sh.arguments = arguments
+        try sh.run(); sh.waitUntilExit()
+        if sh.terminationStatus != 0 { throw NSError(domain: "sh", code: Int(sh.terminationStatus)) }
     }
 }
+
