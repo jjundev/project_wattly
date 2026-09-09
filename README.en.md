@@ -68,8 +68,8 @@ Each telemetry domain in Wattly expands into a dedicated diagnostic card with re
   <img src="docs/assets/en/expand-power.png" alt="Processor Power Telemetry" width="640" />
 </p>
 
-- **Real-Time Engine Power (W) & Chipset Identification**: Runtime chipset model identification via `machdep.cpu.brand_string` query displays the processor name and per-engine power in the card subline (e.g., `Apple M3 Max · CPU 1.2W · GPU 0.8W · ANE 0.0W`). Continuous power tracking for CPU, GPU, and Apple Neural Engine (ANE) is performed via private `IOReport` Energy Model channels at milliwatt precision.
-- **Compact Unit Formatting**: Implements space-efficient compact unit formatting (`CPU 1.2W`) to maximize UI information density and deliver an at-a-glance engine power profile.
+- **Real-Time Engine Power (W) & Chipset Identification**: Runtime chipset model identification via `machdep.cpu.brand_string` query displays the processor name and per-engine power in the card subline (e.g., `Apple M3 Max · CPU 1.2 W · GPU 0.8 W · ANE 0.0 W`). Continuous power tracking for CPU, GPU, and Apple Neural Engine (ANE) is performed via private `IOReport` Energy Model channels at milliwatt precision.
+- **Per-Engine Power Formatting**: Implements standard unit formatting (`CPU 1.2 W`) to deliver a clear, at-a-glance engine power profile.
 - **Top Power Consumers**: Real-time process ranking via `BundleMetadataCache` memoization, tracking foreground and background apps without unnecessary disk I/O.
 - **EMA Filtered Trends**: 4-second time-constant exponential moving average (EMA) filters eliminate sensor jitter while maintaining rapid transient response.
 

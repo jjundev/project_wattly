@@ -68,8 +68,8 @@ Wattly의 각 텔레메트리 도메인은 실시간 지표, 기록 추세, 프�
   <img src="docs/assets/expand-power.png" alt="프로세서 전력 텔레메트리" width="640" />
 </p>
 
-- **실시간 엔진 전력(W) & 칩셋 식별**: `machdep.cpu.brand_string` 쿼리로 런타임에 칩셋 모델을 식별하여 카드 서브라인에 프로세서 명칭과 엔진별 전력을 표시합니다 (예: `Apple M3 Max · CPU 1.2W · GPU 0.8W · ANE 0.0W`). 비공개 `IOReport` Energy Model 채널을 통해 CPU, GPU, Apple Neural Engine (ANE)의 전력 소비를 밀리와트 단위로 연속 추적합니다.
-- **컴팩트 단위 표기**: UI 정보 밀도를 극대화하기 위해 공백을 줄인 컴팩트 단위 포맷(`CPU 1.2W`)을 적용하여 한눈에 명확한 엔진별 전력 프로파일을 제공합니다.
+- **실시간 엔진 전력(W) & 칩셋 식별**: `machdep.cpu.brand_string` 쿼리로 런타임에 칩셋 모델을 식별하여 카드 서브라인에 프로세서 명칭과 엔진별 전력을 표시합니다 (예: `Apple M3 Max · CPU 1.2 W · GPU 0.8 W · ANE 0.0 W`). 비공개 `IOReport` Energy Model 채널을 통해 CPU, GPU, Apple Neural Engine (ANE)의 전력 소비를 밀리와트 단위로 연속 추적합니다.
+- **엔진별 전력 단위 표기**: 일관된 가독성을 위해 표준 단위 포맷(`CPU 1.2 W`)을 적용하여 한눈에 명확한 엔진별 전력 프로파일을 제공합니다.
 - **상위 전력 소모 프로세스**: `BundleMetadataCache` 메모이제이션을 통해 불필요한 디스크 I/O 없이 백그라운드/포그라운드 애플리케이션의 실시간 전력 랭킹 집계.
 - **EMA 필터링 추세**: 4초 시상수 지수 이동 평균(EMA) 필터를 적용하여 센서 노이즈를 제거하면서도 즉각적인 반응성 유지.
 
