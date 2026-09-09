@@ -11,6 +11,7 @@ struct SettingsBatterySection: View {
 
     @AppStorage(StorageKey.batteryLimitEnabled) private var batteryLimitEnabled = Defaults.batteryLimitEnabled
     @AppStorage(StorageKey.batteryLimitPercentage) private var batteryLimitPercentage = Defaults.batteryLimitPercentage
+    @AppStorage(StorageKey.batterySleepUntilLimitEnabled) private var batterySleepUntilLimitEnabled = Defaults.batterySleepUntilLimitEnabled
     @AppStorage(StorageKey.batterySailingEnabled) private var batterySailingEnabled = Defaults.batterySailingEnabled
     @AppStorage(StorageKey.batterySailingDelta) private var batterySailingDelta = Defaults.batterySailingDelta
     @AppStorage(StorageKey.batteryHeatProtectionEnabled) private var batteryHeatProtectionEnabled = Defaults.batteryHeatProtectionEnabled
@@ -115,6 +116,24 @@ struct SettingsBatterySection: View {
                 .padding(EdgeInsets(top: 0, leading: 14, bottom: 14, trailing: 14))
 
                 if showsConfigurationControls {
+                    Rectangle().fill(t.line).frame(height: 1)
+
+                    SettingsToggleRow(isOn: $batterySleepUntilLimitEnabled,
+                                      divider: false,
+                                      isEnabled: isSleepUntilLimitToggleEnabled,
+                                      disabledReason: BatterySectionPresentation.sleepUntilLimitToggleDisabledReason(
+                                          limitEnabled: batteryLimitEnabled,
+                                          capabilities: batteryControl.status.capabilities,
+                                          locale: locale)) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            SettingsRowTitle("충전 한도 도달 시까지 잠자기 방지")
+                            Text("충전 중 덮개를 닫아도 목표 한도에 도달할 때까지 잠들지 않고 충전을 마칩니다. 도달 시 자동으로 잠자기에 들어갑니다.")
+                                .font(WattlyFont.at(10.5, weight: .regular))
+                                .foregroundStyle(t.faint)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+
                     Rectangle().fill(t.line).frame(height: 1)
 
                     SettingsToggleRow(isOn: $batterySailingEnabled,
@@ -601,6 +620,12 @@ struct SettingsBatterySection: View {
 
     private var isLimitPickerEnabled: Bool {
         BatterySectionPresentation.isLimitPickerEnabled(isLimitOn: batteryLimitEnabled)
+    }
+
+    private var isSleepUntilLimitToggleEnabled: Bool {
+        BatterySectionPresentation.isSleepUntilLimitToggleEnabled(
+            limitEnabled: batteryLimitEnabled,
+            capabilities: batteryControl.status.capabilities)
     }
 
     private func resolvedStatus(at date: Date) -> BatterySectionPresentation.Status {

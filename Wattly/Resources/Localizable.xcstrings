@@ -123396,6 +123396,746 @@
           }
         }
       }
+    },
+    "충전 한도 도달 시까지 잠자기 방지": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "충전 한도 도달 시까지 잠자기 방지"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prevent sleep until charge limit"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "充電上限に達するまでスリープを防止"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "充至电量上限前阻止睡眠"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "充至電量上限前阻止睡眠"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ruhezustand bis zum Ladelimit verhindern"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empêcher la veille jusqu’à la limite de charge"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impedir el reposo hasta el límite de carga"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impedisci lo stop fino al limite di carica"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impedir repouso até atingir o limite de carga"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impedir pausa até atingir o limite de carga"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запрещать сон до достижения лимита заряда"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sluimerstand voorkomen tot oplaadlimiet is bereikt"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zapobiegaj uśpieniu do osiągnięcia limitu ładowania"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Şarj sınırına ulaşana kadar uykuyu engelle"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Förhindra vila tills laddningsgränsen nås"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forhindr vågeblus indtil opladningsgrænsen er nået"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forhindre dvale til ladegrensen er nådd"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estä lepotila latausrajaan saakka"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zabránit uspání do dosažení limitu nabíjení"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Altatás megakadályozása a töltési korlát eléréséig"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previne repausul până la atingerea limitei de încărcare"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Αποτροπή ύπνωσης μέχρι το όριο φόρτισης"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запобігати сну до досягнення ліміту заряду"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "מנע שינה עד להגעה למגבלת הטעינה"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "منع السكون حتى الوصول إلى حد الشحن"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "चार्ज सीमा तक पहुंचने तक स्लीप रोकें"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ป้องกันการพักเครื่องจนกว่าจะถึงขีดจำกัดการชาร์จ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ngăn ngủ cho đến khi đạt giới hạn sạc"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cegah tidur hingga batas pengisian daya tercapai"
+          }
+        }
+      }
+    },
+    "충전 중 덮개를 닫아도 목표 한도에 도달할 때까지 잠들지 않고 충전을 마칩니다. 도달 시 자동으로 잠자기에 들어갑니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "충전 중 덮개를 닫아도 목표 한도에 도달할 때까지 잠들지 않고 충전을 마칩니다. 도달 시 자동으로 잠자기에 들어갑니다."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Even if the lid is closed while charging, the Mac stays awake until it reaches the limit. Once reached, it goes to sleep automatically."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "充電中にふたを閉じても、目標の上限に達するまでスリープせずに充電を続けます。到達すると自動的にスリープします。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "充电时合上盖子也会保持唤醒直到充至目标上限。到达上限后将自动进入睡眠。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "充電時闔上上蓋也會保持喚醒直到充至目標上限。到達上限後將自動進入睡眠。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auch wenn der Deckel beim Laden geschlossen wird, bleibt der Mac wach, bis das Limit erreicht ist. Danach wechselt er automatisch in den Ruhezustand."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Même si le capot est fermé pendant la charge, le Mac reste éveillé jusqu’à la limite. Une fois atteinte, il se met automatiquement en veille."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aunque cierres la tapa durante la carga, el Mac no entrará en reposo hasta alcanzar el límite. Al llegar, entrará en reposo automáticamente."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anche chiudendo il coperchio durante la carica, il Mac resta attivo fino al limite. Raggiunto il limite, entrerà automaticamente in stop."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mesmo se a tampa for fechada durante o carregamento, o Mac fica acordado até atingir o limite. Ao atingir, entra em repouso automaticamente."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mesmo que a tampa seja fechada durante o carregamento, o Mac mantém-se ativo até atingir o limite. Ao atingir, entra em pausa automaticamente."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Даже если закрыть крышку во время зарядки, Mac не уснёт до достижения лимита. После этого он автоматически перейдёт в режим сна."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zelfs als het deksel tijdens het opladen gesloten is, blijft de Mac wakker tot de limiet is bereikt. Daarna gaat hij automatisch in de sluimerstand."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nawet jeśli pokrywa zostanie zamknięta podczas ładowania, Mac nie uśnie do osiągnięcia limitu. Po jego osiągnięciu automatycznie przejdzie w stan uśpienia."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Şarj olurken kapak kapatılsa bile Mac sınıra ulaşana kadar uyanık kalır. Sınıra ulaşıldığında otomatik olarak uyku moduna geçer."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Även om locket stängs under laddning hålls datorn vaken tills gränsen nås. Därefter går den automatiskt i vila."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selv om låget lukkes under opladning, forbliver Mac’en vågen, indtil grænsen er nået. Derefter går den automatisk på vågeblus."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selv om lokket lukkes under lading, forblir Mac-en våken til grensen er nådd. Deretter går den automatisk i dvale."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaikka kansi suljetaan latauksen aikana, Mac pysyy hereillä rajan saavuttamiseen asti. Sen jälkeen se siirtyy lepotilaan automaattisesti."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I když při nabíjení zavřete víko, Mac neusne, dokud nedosáhne limitu. Po jeho dosažení automaticky přejde do spánku."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ha lecsukja a fedelet töltés közben, a Mac ébren marad a korlát eléréséig. Az elérésekor automatikusan elalszik."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiar dacă închizi capacul în timpul încărcării, Mac-ul rămâne treaz până la atingerea limitei. Apoi intră automat în repaus."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ακόμα κι αν κλείσετε το καπάκι κατά τη φόρτιση, το Mac παραμένει ξύπνιο μέχρι το όριο. Μόλις το φτάσει, μπαίνει αυτόματα σε ύπνο."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Навіть якщо закрити кришку під час заряджання, Mac не спатиме до досягнення ліміту. Після цього він автоматично перейде в режим сну."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "גם אם המכסה נסגר במהלך הטעינה, ה‑Mac יישאר ער עד להגעה למגבלה. לאחר ההגעה, הוא יעבור אוטומטית לשינה."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حتى إذا أُغلق الغطاء أثناء الشحن، يظل Mac نشطًا حتى بلوغ الحد. وبعد الوصول إليه، يدخل في وضع السكون تلقائيًا."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "चार्जिंग के दौरान ढक्कन बंद होने पर भी सीमा तक पहुंचने तक Mac सक्रिय रहेगा। सीमा पर पहुंचते ही अपने आप स्लीप में चला जाएगा।"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "แม้จะปิดฝาขณะชาร์จ Mac จะยังคงทำงานจนกว่าจะถึงขีดจำกัด เมื่อถึงแล้วจะเข้าสู่โหมดพักเครื่องโดยอัตโนมัติ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dù đóng nắp trong khi sạc, máy Mac vẫn thức cho đến khi đạt giới hạn. Khi đạt mức, máy sẽ tự động ngủ."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bahkan jika penutup ditutup saat mengisi daya, Mac akan tetap menyala hingga batas tercapai. Setelah tercapai, Mac akan tidur otomatis."
+          }
+        }
+      }
+    },
+    "잠자기 차단 중 (충전 완료 후 자동으로 잠듭니다)": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "잠자기 차단 중 (충전 완료 후 자동으로 잠듭니다)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sleep blocked (sleeps automatically after charging)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スリープ抑制中（充電完了後に自動でスリープします）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已阻止睡眠（充电完成后将自动睡眠）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已阻止睡眠（充電完成後將自動睡眠）"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ruhezustand blockiert (wechselt nach Ladeende automatisch in den Ruhezustand)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veille bloquée (mise en veille automatique après la charge)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reposo bloqueado (entrará en reposo automáticamente al terminar la carga)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop bloccato (entrerà automaticamente in stop a carica completata)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repouso bloqueado (entrará em repouso automaticamente após o carregamento)"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausa bloqueada (entrará em pausa automaticamente após o carregamento)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сон заблокирован (автоматически уснёт после завершения зарядки)"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sluimerstand geblokkeerd (gaat na het opladen automatisch in de sluimerstand)"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uśpienie zablokowane (automatycznie uśnie po naładowaniu)"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uyku engellendi (şarj tamamlandığında otomatik olarak uyur)"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vila blockerad (går automatiskt i vila när laddningen är klar)"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vågeblus blokeret (går automatisk på vågeblus efter opladning)"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dvale blokkert (går automatisk i dvale etter lading)"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lepotila estetty (siirtyy lepotilaan automaattisesti latauksen jälkeen)"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uspání blokováno (po dokončení nabíjení automaticky usne)"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Altatás letiltva (a töltés befejezése után automatikusan elalszik)"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repaus blocat (intră automat în repaus după finalizarea încărcării)"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ύπνωση αποκλεισμένη (αυτόματος ύπνος μετά τη φόρτιση)"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сон заблоковано (автоматично засне після завершення заряджання)"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "שינה חסומה (יעבור אוטומטית לשינה בסיום הטעינה)"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "السكون محظور (يدخل في السكون تلقائيًا بعد اكتمال الشحن)"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स्लीप अवरुद्ध (चार्जिंग पूरी होने के बाद अपने आप स्लीप में जाएगा)"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "บล็อกการพักเครื่อง (เข้าสู่โหมดพักเครื่องอัตโนมัติหลังชาร์จเสร็จ)"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã chặn ngủ (tự động ngủ sau khi sạc xong)"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tidur diblokir (tidur otomatis setelah pengisian daya selesai)"
+          }
+        }
+      }
+    },
+    "충전 한도 도달 시까지 잠자기 방지를 사용하려면 도우미 업데이트가 필요합니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "충전 한도 도달 시까지 잠자기 방지를 사용하려면 도우미 업데이트가 필요합니다."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update the helper to keep Mac awake until charge limit."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "充電上限到達までスリープを防ぐにはヘルパーの更新が必要です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要更新辅助程序才能在充至上限前阻止睡眠。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要更新輔助程式才能在充至上限前阻止睡眠。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für das Verhindern des Ruhezustands bis zum Ladelimit muss der Helfer aktualisiert werden."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mettez à jour l’assistant pour empêcher la veille jusqu’à la limite de charge."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualiza el asistente para impedir el reposo hasta el límite de carga."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiorna l’helper per impedire lo stop fino al limite di carica."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualize o auxiliar para impedir o repouso até o limite de carga."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualize o auxiliar para impedir a pausa até ao limite de carga."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновите помощник, чтобы запрещать сон до достижения лимита заряда."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Werk de helper bij om sluimerstand tot de oplaadlimiet te voorkomen."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zaktualizuj pomocnika, aby zapobiegać uśpieniu do osiągnięcia limitu ładowania."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Şarj sınırına kadar uykuyu engellemek için yardımcıyı güncelleyin."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppdatera hjälparen för att förhindra vila tills laddningsgränsen nås."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opdater hjælperen for at forhindre vågeblus indtil opladningsgrænsen."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oppdater hjelperen for å forhindre dvale til ladegrensen."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Päivitä apuohjelma estääksesi lepotilan latausrajaan saakka."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro zabránění uspání do limitu nabíjení aktualizujte pomocníka."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frissítse a segédprogramot az altatás megakadályozásához a töltési korlátig."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualizează asistentul pentru a preveni repausul până la limita de încărcare."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ενημερώστε τον βοηθό για αποτροπή ύπνωσης μέχρι το όριο φόρτισης."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оновіть помічник, щоб запобігати сну до досягнення ліміту заряду."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "יש לעדכן את העוזר כדי למנוע שינה עד להגעה למגבלת הטעינה."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حدّث المساعد لمنع السكون حتى الوصول إلى حد الشحن."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "चार्ज सीमा तक स्लीप रोकने के लिए हेल्퍼 अपडेट करें।"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "อัปเดตตัวช่วยเพื่อป้องกันการพักเครื่องจนกว่าจะถึงขีดจำกัดการชาร์จ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cập nhật trình trợ giúp để ngăn ngủ cho đến khi đạt giới hạn sạc."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perbarui pembantu untuk mencegah tidur hingga batas pengisian daya."
+          }
+        }
+      }
     }
   }
 }

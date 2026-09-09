@@ -14,6 +14,7 @@ struct BatteryPreferences: Equatable, Sendable {
     var autoDischargeEnabled: Bool
     var manualDischargeTarget: Int
     var clamshellDischargeEnabled: Bool
+    var sleepUntilLimitEnabled: Bool
 
     static let standard = BatteryPreferences(
         limitEnabled: Defaults.batteryLimitEnabled,
@@ -24,14 +25,16 @@ struct BatteryPreferences: Equatable, Sendable {
         heatProtectionThresholdCelsius: Defaults.batteryHeatProtectionThreshold,
         autoDischargeEnabled: Defaults.batteryAutoDischargeEnabled,
         manualDischargeTarget: Defaults.batteryManualDischargeTarget,
-        clamshellDischargeEnabled: Defaults.batteryClamshellDischargeEnabled)
+        clamshellDischargeEnabled: Defaults.batteryClamshellDischargeEnabled,
+        sleepUntilLimitEnabled: Defaults.batterySleepUntilLimitEnabled)
 
     init(
         limitEnabled: Bool, limitPercentage: Int,
         sailingEnabled: Bool, sailingDelta: Int,
         heatProtectionEnabled: Bool, heatProtectionThresholdCelsius: Int,
         autoDischargeEnabled: Bool, manualDischargeTarget: Int,
-        clamshellDischargeEnabled: Bool
+        clamshellDischargeEnabled: Bool,
+        sleepUntilLimitEnabled: Bool = Defaults.batterySleepUntilLimitEnabled
     ) {
         self.limitEnabled = limitEnabled
         self.limitPercentage = limitPercentage
@@ -42,6 +45,7 @@ struct BatteryPreferences: Equatable, Sendable {
         self.autoDischargeEnabled = autoDischargeEnabled
         self.manualDischargeTarget = manualDischargeTarget
         self.clamshellDischargeEnabled = clamshellDischargeEnabled
+        self.sleepUntilLimitEnabled = sleepUntilLimitEnabled
     }
 
     /// `@AppStorage`는 기본값을 저장하지 않으므로 없는 키는 `Defaults`로 읽는다.
@@ -56,6 +60,7 @@ struct BatteryPreferences: Equatable, Sendable {
         autoDischargeEnabled = defaults.wattlyBool(StorageKey.batteryAutoDischargeEnabled, default: d.autoDischargeEnabled)
         manualDischargeTarget = defaults.wattlyInt(StorageKey.batteryManualDischargeTarget, default: d.manualDischargeTarget)
         clamshellDischargeEnabled = defaults.wattlyBool(StorageKey.batteryClamshellDischargeEnabled, default: d.clamshellDischargeEnabled)
+        sleepUntilLimitEnabled = defaults.wattlyBool(StorageKey.batterySleepUntilLimitEnabled, default: d.sleepUntilLimitEnabled)
     }
 
     /// 바뀐 키만 쓴다. 안 바뀐 키까지 쓰면 `@AppStorage` 관찰자들이 헛되이 깨어난다.
@@ -73,6 +78,7 @@ struct BatteryPreferences: Equatable, Sendable {
         put(autoDischargeEnabled, current.autoDischargeEnabled, StorageKey.batteryAutoDischargeEnabled)
         put(manualDischargeTarget, current.manualDischargeTarget, StorageKey.batteryManualDischargeTarget)
         put(clamshellDischargeEnabled, current.clamshellDischargeEnabled, StorageKey.batteryClamshellDischargeEnabled)
+        put(sleepUntilLimitEnabled, current.sleepUntilLimitEnabled, StorageKey.batterySleepUntilLimitEnabled)
     }
 
     /// Sailing이 꺼져 있으면 데몬 기본 2포인트 히스테리시스.
@@ -92,7 +98,8 @@ struct BatteryPreferences: Equatable, Sendable {
             // `BatteryControlClient.revivedConfiguration` 주석에 있다. 여기와 거기 두 곳 모두
             // 클램프하며, 클램프는 멱등이라 겹쳐도 값이 달라지지 않는다.
             manualDischargeTarget: BatterySectionPresentation.clampedManualDischargeTarget(manualDischargeTarget),
-            clamshellDischargeAllowed: clamshellDischargeAllowed)
+            clamshellDischargeAllowed: clamshellDischargeAllowed,
+            sleepUntilLimitAllowed: sleepUntilLimitEnabled)
     }
 
     /// 캘리브레이션 원복용 원값. 클램프하지 않는다.

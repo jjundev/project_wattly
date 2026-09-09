@@ -1980,5 +1980,164 @@ struct BatteryControlCoordinatorTests {
         #expect(inhibitor.current == false)
         #expect(store.stored?.sleepInhibitedAt == nil)
     }
+
+    // MARK: - 충전 한도 대기 잠자기 억제 (Sleep Until Limit)
+
+    @Test func capabilitiesAdvertiseSleepUntilLimit() {
+        #expect(BatteryControlCoordinator.capabilities.contains(.sleepUntilLimitV1))
+    }
+
+    @Test func engagesSleepInhibitionWhenChargingBelowLimitWithAllowance() {
+        let clock = MutableClock(1_000)
+        let hardware = MockBatteryHardware()
+        let store = PolicyStoreSpy()
+        let inhibitor = SleepInhibitorSpy()
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, hardware: hardware, store: store, inhibitor: inhibitor)
+
+        let status = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, sleepUntilLimitAllowed: true),
+            trigger: .clientConfiguration, currentSoC: 70, isPluggedIn: true)
+
+        #expect(inhibitor.writes == [true])
+        #expect(inhibitor.current == true)
+        #expect(status.isSystemSleepInhibited == true)
+        #expect(store.stored?.sleepInhibitedAt == 1_000)
+        #expect(store.stored?.configuration.sleepUntilLimitAllowed == false)
+    }
+
+    @Test func doesNotEngageSleepInhibitionWithoutAllowance() {
+        let clock = MutableClock(1_000)
+        let inhibitor = SleepInhibitorSpy()
+        let coordinator = makeClamshellCoordinator(clock: clock, inhibitor: inhibitor)
+
+        let status = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, sleepUntilLimitAllowed: false),
+            trigger: .clientConfiguration, currentSoC: 70, isPluggedIn: true)
+
+        #expect(inhibitor.writes.isEmpty)
+        #expect(status.isSystemSleepInhibited == false)
+    }
+
+    @Test func doesNotEngageSleepInhibitionWhenAlreadyAtOrAboveLimit() {
+        let clock = MutableClock(1_000)
+        let inhibitor = SleepInhibitorSpy()
+        let coordinator = makeClamshellCoordinator(clock: clock, inhibitor: inhibitor)
+
+        let status = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, sleepUntilLimitAllowed: true),
+            trigger: .clientConfiguration, currentSoC: 80, isPluggedIn: true)
+
+        #expect(inhibitor.writes.isEmpty)
+        #expect(status.isSystemSleepInhibited == false)
+    }
+
+    @Test func disengagesSleepInhibitionWhenLimitReached() {
+        let clock = MutableClock(1_000)
+        let hardware = MockBatteryHardware()
+        let store = PolicyStoreSpy()
+        let inhibitor = SleepInhibitorSpy()
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, hardware: hardware, store: store, inhibitor: inhibitor)
+
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, sleepUntilLimitAllowed: true),
+            trigger: .clientConfiguration, currentSoC: 70, isPluggedIn: true)
+        #expect(inhibitor.current == true)
+
+        let status = coordinator.sample(currentSoC: 80, isPluggedIn: true)
+
+        #expect(inhibitor.writes == [true, false])
+        #expect(inhibitor.current == false)
+        #expect(status.isSystemSleepInhibited == false)
+        #expect(store.stored?.sleepInhibitedAt == nil)
+    }
+
+    @Test func disengagesSleepInhibitionWhenAdapterUnplugged() {
+        let clock = MutableClock(1_000)
+        let inhibitor = SleepInhibitorSpy()
+        let coordinator = makeClamshellCoordinator(clock: clock, inhibitor: inhibitor)
+
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, sleepUntilLimitAllowed: true),
+            trigger: .clientConfiguration, currentSoC: 70, isPluggedIn: true)
+        #expect(inhibitor.current == true)
+
+        let status = coordinator.sample(currentSoC: 70, isPluggedIn: false)
+
+        #expect(inhibitor.writes == [true, false])
+        #expect(inhibitor.current == false)
+        #expect(status.isSystemSleepInhibited == false)
+    }
+
+    @Test func disengagesSleepInhibitionUnderHeatProtection() {
+        let clock = MutableClock(1_000)
+        let inhibitor = SleepInhibitorSpy()
+        let coordinator = makeClamshellCoordinator(clock: clock, inhibitor: inhibitor)
+
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80,
+                  heatProtectionEnabled: true, heatProtectionThresholdCelsius: 35,
+                  sleepUntilLimitAllowed: true),
+            trigger: .clientConfiguration, currentSoC: 70, isPluggedIn: true,
+            temperatureCelsius: 30)
+        #expect(inhibitor.current == true)
+
+        let status = coordinator.sample(currentSoC: 70, isPluggedIn: true, temperatureCelsius: 36)
+
+        #expect(inhibitor.writes == [true, false])
+        #expect(inhibitor.current == false)
+        #expect(status.isSystemSleepInhibited == false)
+    }
+
+    @Test func expiresAfterFourHoursAndDoesNotReengageUntilHoldSessionEnds() {
+        let clock = MutableClock(1_000)
+        let inhibitor = SleepInhibitorSpy()
+        let coordinator = makeClamshellCoordinator(clock: clock, inhibitor: inhibitor)
+        let running = BatteryControlConfiguration(
+            enabled: true, limitPercentage: 80,
+            sleepUntilLimitAllowed: true)
+
+        _ = coordinator.configure(
+            running, trigger: .clientConfiguration, currentSoC: 70, isPluggedIn: true)
+        #expect(inhibitor.current == true)
+
+        clock.advance(by: BatteryHoldSleepPolicy.duration)
+        let expired = coordinator.sample(currentSoC: 75, isPluggedIn: true)
+
+        #expect(inhibitor.current == false)
+        #expect(expired.isSystemSleepInhibited == false)
+        #expect(inhibitor.writes == [true, false])
+
+        // 앱 reconcile이나 configure가 다시 와도 같은 세션에서는 재진입하지 않는다.
+        _ = coordinator.configure(
+            running, trigger: .clientConfiguration, currentSoC: 75, isPluggedIn: true)
+        #expect(inhibitor.writes == [true, false])
+
+        // 목표치 도달로 세션이 끝나면 래치가 풀린다.
+        _ = coordinator.sample(currentSoC: 80, isPluggedIn: true)
+
+        // 다음 충전 세션(배터리 소모 후 다시 70% 충전 시작)에서는 다시 켤 수 있다.
+        _ = coordinator.sample(currentSoC: 70, isPluggedIn: true)
+        #expect(inhibitor.writes == [true, false, true])
+        #expect(inhibitor.current == true)
+    }
+
+    @Test func terminationReleasesSleepUntilLimitInhibition() {
+        let clock = MutableClock(1_000)
+        let store = PolicyStoreSpy()
+        let inhibitor = SleepInhibitorSpy()
+        let coordinator = makeClamshellCoordinator(
+            clock: clock, store: store, inhibitor: inhibitor)
+        _ = coordinator.configure(
+            .init(enabled: true, limitPercentage: 80, sleepUntilLimitAllowed: true),
+            trigger: .clientConfiguration, currentSoC: 70, isPluggedIn: true)
+        #expect(inhibitor.current == true)
+
+        _ = coordinator.releaseForTermination()
+
+        #expect(inhibitor.current == false)
+        #expect(store.stored?.sleepInhibitedAt == nil)
+    }
 }
 

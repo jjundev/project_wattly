@@ -18,6 +18,7 @@ import Foundation
         #expect(prefs.sailingDelta == 5)
         #expect(prefs.manualDischargeTarget == 80)
         #expect(prefs.heatProtectionThresholdCelsius == 35)
+        #expect(prefs.sleepUntilLimitEnabled == false)
         #expect(freshDefaults().wattlyBool(StorageKey.batteryScheduleNotificationsEnabled,
                                            default: Defaults.batteryScheduleNotificationsEnabled) == true)
     }
@@ -30,6 +31,7 @@ import Foundation
         prefs.heatProtectionEnabled = true; prefs.heatProtectionThresholdCelsius = 38
         prefs.autoDischargeEnabled = true; prefs.manualDischargeTarget = 70
         prefs.clamshellDischargeEnabled = true
+        prefs.sleepUntilLimitEnabled = true
         prefs.write(to: d)
         #expect(BatteryPreferences(defaults: d) == prefs)
     }
@@ -58,10 +60,14 @@ import Foundation
         #expect(off.heatProtectionThresholdCelsius == 38)
         #expect(off.manualDischargeTarget == BatterySectionPresentation.manualDischargeTargetRange.upperBound)
         #expect(off.clamshellDischargeAllowed == true)
+        #expect(off.sleepUntilLimitAllowed == false)
         #expect(off.topUpActive == false && off.manualDischargeActive == false && off.calibrationActive == false)
 
         prefs.sailingEnabled = true
-        #expect(prefs.configuration(clamshellDischargeAllowed: false).lowerHysteresisDelta == 5)
+        prefs.sleepUntilLimitEnabled = true
+        let on = prefs.configuration(clamshellDischargeAllowed: false)
+        #expect(on.lowerHysteresisDelta == 5)
+        #expect(on.sleepUntilLimitAllowed == true)
     }
 
     @Test func calibrationSnapshotCarriesTheRawStoredValues() {
@@ -86,7 +92,8 @@ import Foundation
         v = base; v.autoDischargeEnabled.toggle(); variants.append(v)
         v = base; v.manualDischargeTarget += 1; variants.append(v)
         v = base; v.clamshellDischargeEnabled.toggle(); variants.append(v)
-        #expect(variants.count == 9)
+        v = base; v.sleepUntilLimitEnabled.toggle(); variants.append(v)
+        #expect(variants.count == 10)
         for variant in variants { #expect(variant != base) }
     }
 }

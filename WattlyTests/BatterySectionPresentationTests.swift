@@ -1469,4 +1469,46 @@ import AppKit
             == "클램쉘 방전이 켜져 있어 외장 디스플레이가 연결된 동안은 뚜껑을 닫아도 됩니다.")
     }
 
+    // MARK: - 충전 한도 도달 시까지 잠자기 방지
+
+    @Test func sleepUntilLimitToggleGating() {
+        #expect(BatterySectionPresentation.isSleepUntilLimitToggleEnabled(
+            limitEnabled: true,
+            capabilities: [.sleepUntilLimitV1]))
+        #expect(BatterySectionPresentation.isSleepUntilLimitToggleEnabled(
+            limitEnabled: false,
+            capabilities: [.sleepUntilLimitV1]) == false)
+        #expect(BatterySectionPresentation.isSleepUntilLimitToggleEnabled(
+            limitEnabled: true,
+            capabilities: [.persistedPolicyV1]) == false)
+        #expect(BatterySectionPresentation.isSleepUntilLimitToggleEnabled(
+            limitEnabled: true,
+            capabilities: nil) == false)
+    }
+
+    @Test func sleepUntilLimitToggleDisabledReasonNamesTheBlocker() {
+        let ko = Locale(identifier: "ko")
+        #expect(BatterySectionPresentation.sleepUntilLimitToggleDisabledReason(
+            limitEnabled: true,
+            capabilities: [.sleepUntilLimitV1],
+            locale: ko) == nil)
+        #expect(BatterySectionPresentation.sleepUntilLimitToggleDisabledReason(
+            limitEnabled: false,
+            capabilities: [.sleepUntilLimitV1],
+            locale: ko) == "충전 제한을 켜면 한도를 조절할 수 있습니다.")
+        #expect(BatterySectionPresentation.sleepUntilLimitToggleDisabledReason(
+            limitEnabled: true,
+            capabilities: [.persistedPolicyV1],
+            locale: ko) == "충전 한도 도달 시까지 잠자기 방지를 사용하려면 도우미 업데이트가 필요합니다.")
+        #expect(BatterySectionPresentation.sleepUntilLimitToggleDisabledReason(
+            limitEnabled: true,
+            capabilities: nil,
+            locale: ko) == "충전 한도 도달 시까지 잠자기 방지를 사용하려면 도우미 업데이트가 필요합니다.")
+    }
+
+    @Test func sleepUntilLimitHoldingTextUsesTheCatalogKey() {
+        #expect(BatterySectionPresentation.sleepUntilLimitHoldingText(locale: Locale(identifier: "ko"))
+            == "잠자기 차단 중 (충전 완료 후 자동으로 잠듭니다)")
+    }
 }
+

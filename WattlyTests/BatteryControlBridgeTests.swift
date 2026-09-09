@@ -97,6 +97,11 @@ import Foundation
         #expect(StorageKey.batteryManualDischargeTarget == "batteryManualDischargeTarget")
     }
 
+    @Test func bridgeSleepUntilLimitDefaultsMatchStoredDefaults() {
+        #expect(Defaults.batterySleepUntilLimitEnabled == false)
+        #expect(StorageKey.batterySleepUntilLimitEnabled == "batterySleepUntilLimitEnabled")
+    }
+
     // MARK: - 데몬 왕복 회귀
 
     /// The mechanism of the reported bug, pinned. A daemon that holds auto-discharge ON and a
@@ -382,6 +387,47 @@ import Foundation
         let merged = BatteryControlBridge.preservingActivity(requested, daemon: daemon)
         #expect(merged.manualDischargeActive == true)
         #expect(merged.clamshellDischargeAllowed == true)
+    }
+
+    /// 활동 보존은 충전 대기 허용값을 덮어쓰지 않는다 — 허용값은 데몬 활동이 아니라 앱이 계산한 사실이다.
+    @Test func preservingActivityKeepsTheRequestedSleepUntilLimitAllowance() {
+        let requested = BatteryControlConfiguration(
+            enabled: true, limitPercentage: 80, sleepUntilLimitAllowed: true)
+        let daemon = BatteryControlConfiguration(
+            enabled: true, limitPercentage: 80,
+            manualDischargeActive: true, manualDischargeTarget: 70,
+            sleepUntilLimitAllowed: false)
+        let merged = BatteryControlBridge.preservingActivity(requested, daemon: daemon)
+        #expect(merged.manualDischargeActive == true)
+        #expect(merged.sleepUntilLimitAllowed == true)
+    }
+
+    @Test func sleepUntilLimitMismatchIsWhatWouldTriggerAReapply() {
+        let daemonConfig = BatteryControlConfiguration(
+            enabled: true,
+            limitPercentage: 85,
+            lowerHysteresisDelta: 2,
+            sleepUntilLimitAllowed: true)
+        let status = BatteryControlServiceStatus(
+            mode: .charging,
+            currentPercentage: 70,
+            isPowerAdapterConnected: true,
+            detail: "충전 제한 85% 대기",
+            updatedAt: 100.0,
+            desiredConfiguration: daemonConfig,
+            capabilities: [.persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1, .sleepUntilLimitV1])
+
+        var preferences = BatteryPreferences.standard
+        preferences.limitEnabled = true
+        preferences.limitPercentage = 85
+        preferences.sleepUntilLimitEnabled = false
+
+        let unwired = preferences.configuration(clamshellDischargeAllowed: false)
+        #expect(BatteryControlPolicy.shouldReapply(configuration: unwired, status: status) == true)
+
+        preferences.sleepUntilLimitEnabled = true
+        let wired = preferences.configuration(clamshellDischargeAllowed: false)
+        #expect(BatteryControlPolicy.shouldReapply(configuration: wired, status: status) == false)
     }
 }
 

@@ -834,5 +834,38 @@ enum BatterySectionPresentation {
             ? String(localized: "클램쉘 방전이 켜져 있어 외장 디스플레이가 연결된 동안은 뚜껑을 닫아도 됩니다.", locale: locale)
             : String(localized: "방전 구간에는 뚜껑을 열고 Mac을 사용 중인 상태로 두어야 합니다.", locale: locale)
     }
+
+    // MARK: - 충전 한도 도달 시까지 잠자기 방지
+
+    /// 충전 한도 도달 시까지 잠자기 방지 토글을 만질 수 있는지.
+    ///
+    /// 충전 한도가 켜져 있어야 하고, 도우미가 `.sleepUntilLimitV1` 캐퍼빌리티를 지원해야 한다.
+    static func isSleepUntilLimitToggleEnabled(
+        limitEnabled: Bool,
+        capabilities: [BatteryControlCapability]?
+    ) -> Bool {
+        sleepUntilLimitToggleDisabledReason(limitEnabled: limitEnabled, capabilities: capabilities) == nil
+    }
+
+    /// 위 게이트가 거짓일 때의 사유. 활성일 때는 `nil`.
+    static func sleepUntilLimitToggleDisabledReason(
+        limitEnabled: Bool,
+        capabilities: [BatteryControlCapability]?,
+        locale: Locale = Locale(identifier: "ko")
+    ) -> String? {
+        if !limitEnabled {
+            return limitPickerDisabledReason(isLimitOn: limitEnabled)
+        }
+        if capabilities?.contains(.sleepUntilLimitV1) != true {
+            return String(localized: "충전 한도 도달 시까지 잠자기 방지를 사용하려면 도우미 업데이트가 필요합니다.", locale: locale)
+        }
+        return nil
+    }
+
+    /// 데몬이 충전 중 `isSystemSleepInhibited == true`를 보고할 때 메뉴바/팝오버 배너에 붙는 줄.
+    static func sleepUntilLimitHoldingText(locale: Locale = Locale(identifier: "ko")) -> String {
+        String(localized: "잠자기 차단 중 (충전 완료 후 자동으로 잠듭니다)", locale: locale)
+    }
 }
+
 

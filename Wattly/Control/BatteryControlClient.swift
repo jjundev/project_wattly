@@ -99,6 +99,7 @@ import AppKit
         manualDischargeTarget: Int = 80,
         calibrationActive: Bool = false,
         calibrationTargetPercentage: Int = BatteryCalibration.floorPercentage,
+        sleepUntilLimitAllowed: Bool = false,
         isCalibrationWrite: Bool = false
     ) async -> BatteryControlServiceStatus? {
         await apply(
@@ -113,7 +114,8 @@ import AppKit
                 manualDischargeActive: manualDischargeActive,
                 manualDischargeTarget: manualDischargeTarget,
                 calibrationActive: calibrationActive,
-                calibrationTargetPercentage: calibrationTargetPercentage),
+                calibrationTargetPercentage: calibrationTargetPercentage,
+                sleepUntilLimitAllowed: sleepUntilLimitAllowed),
             isCalibrationWrite: isCalibrationWrite)
     }
 
@@ -422,7 +424,8 @@ import AppKit
         heatProtectionThresholdCelsius: Int = 35,
         autoDischargeEnabled: Bool = false,
         manualDischargeActive: Bool = false,
-        manualDischargeTarget: Int = 80
+        manualDischargeTarget: Int = 80,
+        sleepUntilLimitAllowed: Bool = false
     ) async {
         await refreshStatus()
         let isTopUp = status.desiredConfiguration?.topUpActive == true
@@ -451,7 +454,8 @@ import AppKit
             manualDischargeTarget: dischargeTarget,
             calibrationActive: isCalibrating,
             calibrationTargetPercentage: calibrationTarget,
-            clamshellDischargeAllowed: clamshellAllowance()
+            clamshellDischargeAllowed: clamshellAllowance(),
+            sleepUntilLimitAllowed: sleepUntilLimitAllowed
         )
         let willReapply = BatteryControlPolicy.shouldReapply(
             configuration: targetConfig, status: status)
@@ -478,6 +482,7 @@ import AppKit
                 manualDischargeTarget: dischargeTarget,
                 calibrationActive: isCalibrating,
                 calibrationTargetPercentage: calibrationTarget,
+                sleepUntilLimitAllowed: sleepUntilLimitAllowed,
                 isCalibrationWrite: true)
         } else {
             _ = await disableAndConfirm(

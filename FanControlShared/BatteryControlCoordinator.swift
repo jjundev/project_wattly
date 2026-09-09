@@ -7,6 +7,7 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         .systemPowerEventsV1,
         .calibrationV1,
         .clamshellDischargeV1,
+        .sleepUntilLimitV1,
     ]
 
     private let ownerUID: UInt32
@@ -22,6 +23,8 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
     private var sleepInhibitedAt: TimeInterval?
     /// 이번 방전 세션에서 12시간을 다 썼는지. 엔진의 방전이 꺼지는 순간 리셋된다.
     private var clamshellExpiredForCurrentDischarge = false
+    /// 이번 충전 세션에서 4시간을 다 썼는지. `shouldHold` 조건이 해제되는 순간 리셋된다.
+    private var holdSleepExpiredForCurrentSession = false
 
     public private(set) var latestStatus: BatteryControlServiceStatus
     public private(set) var isSafeToServe = true
@@ -323,7 +326,7 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
             temperatureCelsius: temperatureCelsius) {
             return expired
         }
-        syncSleepInhibition()
+        syncSleepInhibition(currentSoC: currentSoC, isPluggedIn: isPluggedIn)
         status.isSystemSleepInhibited = sleepInhibitedAt != nil
         status.desiredConfiguration = engine.configuration
         status.lastMaintenance = latestStatus.lastMaintenance
@@ -412,46 +415,100 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         return verification.isSafeToRemove
     }
 
-    /// 클램쉘 잠자기 억제의 유일한 동기화 지점. 모든 상태 갱신(`publish`·`sample`)이 지난다.
+    /// 잠자기 억제(클램쉘 방전 및 충전 한도 대기)의 유일한 동기화 지점. 모든 상태 갱신(`publish`·`sample`)이 지난다.
     ///
     /// 순서가 안전성이다: 켤 때는 **마커를 먼저 저장하고** 플래그를 켠다 — 그 사이에 데몬이
     /// 죽어도 재시작이 마커만 보고 되돌린다. 마커 없는 플래그는 재부팅을 넘어 남는 고아다.
-    private func syncSleepInhibition() {
-        let discharging = engine.isDischargingNow
-        if !discharging { clamshellExpiredForCurrentDischarge = false }
-        switch BatteryClamshellSleepPolicy.decide(
-            allowed: engine.configuration.clamshellDischargeAllowed,
-            isDischarging: discharging,
-            inhibitedAt: sleepInhibitedAt,
-            expiredForCurrentDischarge: clamshellExpiredForCurrentDischarge,
-            now: now()
-        ) {
-        case .none:
-            break
-        case .engage:
-            // 사용자가 직접 켜둔 값(또는 읽기 실패)은 소유하지 않는다.
-            guard sleepInhibitor.readSleepDisabled() == false else { return }
-            sleepInhibitedAt = now()
-            do {
-                try persistPolicy(engine.configuration)
-            } catch {
-                sleepInhibitedAt = nil
-                return
+    private func syncSleepInhibition(
+        currentSoC: Int? = nil,
+        isPluggedIn: Bool? = nil
+    ) {
+        let currentSoC = currentSoC ?? latestStatus.currentPercentage
+        let isPluggedIn = isPluggedIn ?? latestStatus.isPowerAdapterConnected
+        let currentTime = now()
+
+        if engine.isDischargingNow {
+            holdSleepExpiredForCurrentSession = false
+            switch BatteryClamshellSleepPolicy.decide(
+                allowed: engine.configuration.clamshellDischargeAllowed,
+                isDischarging: true,
+                inhibitedAt: sleepInhibitedAt,
+                expiredForCurrentDischarge: clamshellExpiredForCurrentDischarge,
+                now: currentTime
+            ) {
+            case .none:
+                break
+            case .engage:
+                engageSleepInhibition(at: currentTime)
+            case .restamp(let moment):
+                restampSleepInhibition(at: moment)
+            case .disengage:
+                releaseSleepInhibition()
+            case .expire:
+                clamshellExpiredForCurrentDischarge = true
+                releaseSleepInhibition()
             }
-            guard sleepInhibitor.setSleepDisabled(true) else {
-                sleepInhibitedAt = nil
-                try? persistPolicy(engine.configuration)
-                return
+        } else {
+            clamshellExpiredForCurrentDischarge = false
+
+            let shouldHold = engine.configuration.sleepUntilLimitAllowed
+                && isPluggedIn
+                && engine.configuration.enabled
+                && currentSoC < engine.configuration.clampedLimitPercentage
+                && !engine.isChargingInhibited
+                && !engine.isHeatProtectionActive
+
+            if !shouldHold {
+                holdSleepExpiredForCurrentSession = false
             }
-        case .restamp(let moment):
-            sleepInhibitedAt = moment
-            try? persistPolicy(engine.configuration)
-        case .disengage:
-            releaseSleepInhibition()
-        case .expire:
-            clamshellExpiredForCurrentDischarge = true
-            releaseSleepInhibition()
+
+            switch BatteryHoldSleepPolicy.decide(
+                allowed: engine.configuration.sleepUntilLimitAllowed,
+                isPluggedIn: isPluggedIn,
+                limitEnabled: engine.configuration.enabled,
+                currentSoC: currentSoC,
+                targetLimit: engine.configuration.clampedLimitPercentage,
+                isCharging: !engine.isChargingInhibited,
+                isInHeatProtection: engine.isHeatProtectionActive,
+                inhibitedAt: sleepInhibitedAt,
+                expiredForCurrentSession: holdSleepExpiredForCurrentSession,
+                now: currentTime
+            ) {
+            case .none:
+                break
+            case .engage:
+                engageSleepInhibition(at: currentTime)
+            case .restamp(let moment):
+                restampSleepInhibition(at: moment)
+            case .disengage:
+                releaseSleepInhibition()
+            case .expire:
+                holdSleepExpiredForCurrentSession = true
+                releaseSleepInhibition()
+            }
         }
+    }
+
+    private func engageSleepInhibition(at moment: TimeInterval) {
+        // 사용자가 직접 켜둔 값(또는 읽기 실패)은 소유하지 않는다.
+        guard sleepInhibitor.readSleepDisabled() == false else { return }
+        sleepInhibitedAt = moment
+        do {
+            try persistPolicy(engine.configuration)
+        } catch {
+            sleepInhibitedAt = nil
+            return
+        }
+        guard sleepInhibitor.setSleepDisabled(true) else {
+            sleepInhibitedAt = nil
+            try? persistPolicy(engine.configuration)
+            return
+        }
+    }
+
+    private func restampSleepInhibition(at moment: TimeInterval) {
+        sleepInhibitedAt = moment
+        try? persistPolicy(engine.configuration)
     }
 
     /// 마커가 있을 때만 되돌린다. 쓰기가 실패하면 마커를 남겨 다음 샘플·다음 시작이 재시도한다.
@@ -472,9 +529,10 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
     private func persistPolicy(_ configuration: BatteryControlConfiguration) throws {
         var persisted = configuration
         persisted.manualDischargeActive = false
-        // 클램쉘 옵트인도 저장하지 않는다. 앱이 죽은 채 데몬만 재시작하면 잠자기 차단 없이
+        // 클램쉘 및 충전 한도 대기 옵트인도 저장하지 않는다. 앱이 죽은 채 데몬만 재시작하면 잠자기 차단 없이
         // 시작하는 것이 안전한 방향이다 — 앱이 살아 있으면 60초 reconcile이 다시 보낸다.
         persisted.clamshellDischargeAllowed = false
+        persisted.sleepUntilLimitAllowed = false
         // `calibrationActive`는 의도적으로 남긴다. 앱이 죽어도 엔진의 하한 가드가 살아 있어야
         // 최악이 "하한 도달 후 홀드"라는 설계된 안전 상태로 끝난다 (결정 #35).
         let stamp = persisted.topUpActive ? topUpReachedFullAt : nil
@@ -560,7 +618,12 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
             reason: reason)
         // `configure`의 persist-실패 분기(`publish(latestStatus, …)`)도 여기를 지난다. 그때
         // `syncSleepInhibition`은 이전 설정으로 판정하고 자기 persist는 `try?`라 안전하다.
-        syncSleepInhibition()
+        // 단, `.termination`은 방전 여부와 무관하게 `releaseSleepInhibition()`으로 끈 직후이므로 재진입하지 않는다.
+        if trigger != .termination {
+            syncSleepInhibition(
+                currentSoC: engineStatus.currentPercentage,
+                isPluggedIn: engineStatus.isPowerAdapterConnected)
+        }
         status.isSystemSleepInhibited = sleepInhibitedAt != nil
         status.capabilities = Self.capabilities
         latestStatus = status
@@ -588,6 +651,7 @@ public final class BatteryControlCoordinator: @unchecked Sendable {
         var config = stored.configuration
         config.manualDischargeActive = false
         config.clamshellDischargeAllowed = false
+        config.sleepUntilLimitAllowed = false
         // 데몬 재시작 뒤에도 12시간 시계가 이어지도록 파일의 값을 미러링한다.
         topUpReachedFullAt = config.topUpActive ? stored.topUpReachedFullAt : nil
         return (config, nil)

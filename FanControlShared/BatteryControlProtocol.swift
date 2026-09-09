@@ -25,6 +25,9 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
     /// 재시작하면 잠자기 차단 없이 시작하는 것이 안전한 방향이고, 앱이 살아 있으면 60초
     /// reconcile이 다시 보낸다. `isActive`에는 포함하지 않는다: 옵트인은 정책이 아니다.
     public var clamshellDischargeAllowed: Bool
+    /// 충전 한도 도달까지 잠자기 억제 허용 — 사용자가 UI에서 활성화한 옵트인 상태.
+    /// clamshellDischargeAllowed와 마찬가지로 정책 파일에는 저장하지 않으며 isActive에도 포함하지 않는다.
+    public var sleepUntilLimitAllowed: Bool
 
     public init(
         enabled: Bool = false,
@@ -40,7 +43,8 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         manualDischargeTarget: Int = 80,
         calibrationActive: Bool = false,
         calibrationTargetPercentage: Int = 20,
-        clamshellDischargeAllowed: Bool = false
+        clamshellDischargeAllowed: Bool = false,
+        sleepUntilLimitAllowed: Bool = false
     ) {
         self.enabled = enabled
         self.limitPercentage = limitPercentage
@@ -56,6 +60,7 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         self.calibrationActive = calibrationActive
         self.calibrationTargetPercentage = calibrationTargetPercentage
         self.clamshellDischargeAllowed = clamshellDischargeAllowed
+        self.sleepUntilLimitAllowed = sleepUntilLimitAllowed
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -65,6 +70,7 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         case autoDischargeEnabled, manualDischargeActive, manualDischargeTarget
         case calibrationActive, calibrationTargetPercentage
         case clamshellDischargeAllowed
+        case sleepUntilLimitAllowed
     }
 
     public init(from decoder: any Decoder) throws {
@@ -83,6 +89,7 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         calibrationActive = (try? container.decodeIfPresent(Bool.self, forKey: .calibrationActive)) ?? false
         calibrationTargetPercentage = (try? container.decodeIfPresent(Int.self, forKey: .calibrationTargetPercentage)) ?? 20
         clamshellDischargeAllowed = (try? container.decodeIfPresent(Bool.self, forKey: .clamshellDischargeAllowed)) ?? false
+        sleepUntilLimitAllowed = (try? container.decodeIfPresent(Bool.self, forKey: .sleepUntilLimitAllowed)) ?? false
     }
 
     /// Range-clamped copy. Configurations reach the root daemon through the synthesized
@@ -102,6 +109,7 @@ public struct BatteryControlConfiguration: Codable, Equatable, Sendable {
         copy.calibrationActive = calibrationActive
         copy.calibrationTargetPercentage = Self.clampCalibrationTarget(calibrationTargetPercentage)
         copy.clamshellDischargeAllowed = clamshellDischargeAllowed
+        copy.sleepUntilLimitAllowed = sleepUntilLimitAllowed
         // 수동 방전과 자동 방전은 같은 CHIE를 다투는데 목적지가 서로 다르다 — 수동은
         // `manualDischargeTarget`, 자동은 `limitPercentage`. 둘이 함께 켜지면 수동 방전이
         // 끝나는 순간 자동 방전이 이어받아 사용자가 고른 목표를 지나쳐 계속 방전한다.
@@ -167,6 +175,8 @@ public enum BatteryControlCapability: String, Codable, Equatable, Sendable {
     /// 방전 중 뚜껑 닫힘 잠자기 억제. 토글 게이팅에만 쓰고 전역 `requiredCapabilities`에는
     /// 넣지 않는다 — 넣으면 이 기능을 쓰지 않는 전 사용자가 "도우미 업데이트 필요"가 된다.
     case clamshellDischargeV1 = "clamshell-discharge-v1"
+    /// 충전 한도 도달까지 잠자기 억제 기능 지원 여부.
+    case sleepUntilLimitV1 = "sleep-until-limit-v1"
     case unrecognized
 
     public init(from decoder: any Decoder) throws {
