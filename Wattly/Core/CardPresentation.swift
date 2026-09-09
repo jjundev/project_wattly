@@ -207,9 +207,9 @@ enum CardPresentation {
         case .power(let s):
             let parts: [String?] = [
                 processorName.isEmpty ? nil : processorName,
-                "CPU \(f1(s.cpuW))W",
-                "GPU \(f1(s.gpuW))W",
-                "ANE \(f1(s.npuW))W"
+                "CPU \(f1(s.cpuW)) W",
+                "GPU \(f1(s.gpuW)) W",
+                "ANE \(f1(s.npuW)) W"
             ]
             return parts.compactMap { $0 }.joined(separator: " · ")
         case .battery(let s):
