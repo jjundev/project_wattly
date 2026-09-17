@@ -71,3 +71,56 @@ func clusterHistogramCPUWatts(prev: [String: PowerHistogramChannel],
     }
     return matched > 0 ? sum : nil
 }
+
+// MARK: - Energy Model staleness (macOS 27)
+
+/// Detects the macOS 27 behaviour where the `Energy Model` CPU-core counters stop advancing
+/// between 3–5 min refreshes. A LIVE Energy Model advances every poll even at idle (the E
+/// cluster burns ≥ tens of mJ per second), so two consecutive kept polls with a zero core delta
+/// can only mean the counters are stale. Sticky: the periodic refresh (one big positive delta)
+/// is the stale cadence itself, never a recovery, so we never flip back.
+struct EnergyModelStaleness: Sendable, Equatable {
+    enum Verdict: Equatable {
+        case live       // use Energy Model as on macOS ≤ 26
+        case deciding   // one zero poll seen — emit nothing this poll
+        case stale      // use the PMP histograms for CPU (sticky)
+    }
+
+    static let threshold = 2
+
+    private(set) var isStale = false
+    private(set) var zeroRun = 0
+
+    /// Feed one KEPT poll (polls the provider already dropped as anomalies are not observed).
+    mutating func observe(cpuCoreDeltaJ: Double) -> Verdict {
+        if isStale { return .stale }
+        if cpuCoreDeltaJ <= 0 { zeroRun += 1 } else { zeroRun = 0 }
+        if zeroRun >= Self.threshold {
+            isStale = true
+            return .stale
+        }
+        return zeroRun > 0 ? .deciding : .live
+    }
+}
+
+/// ANE watts while the Energy Model is stale: the `ANE` counter still refreshes every 3–5 min
+/// together with the CPU-core counters, so a poll whose core delta is positive IS a refresh and
+/// its ANE delta is the whole energy accrued since the previous refresh. Averaging that over the
+/// refresh interval gives an honest (if slow) figure and kills the 1-second spikes; the value is
+/// held until the next refresh. Idle ANE (0 J) therefore reads 0, never a spike.
+struct StaleANERate: Sendable, Equatable {
+    private(set) var lastRefresh: ContinuousClock.Instant?
+    private(set) var heldW = 0.0
+
+    mutating func observe(aneDeltaJ: Double, cpuCoreDeltaJ: Double,
+                          at instant: ContinuousClock.Instant) -> Double {
+        guard cpuCoreDeltaJ > 0 else { return heldW }          // not a refresh poll → hold
+        if let last = lastRefresh {
+            let d = last.duration(to: instant)
+            let seconds = Double(d.components.seconds) + Double(d.components.attoseconds) * 1e-18
+            if seconds > 0 { heldW = max(0, aneDeltaJ) / seconds }
+        }
+        lastRefresh = instant
+        return heldW
+    }
+}

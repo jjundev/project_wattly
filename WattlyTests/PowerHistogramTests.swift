@@ -100,4 +100,73 @@ struct PowerHistogramTests {
         #expect(clusterHistogramCPUWatts(prev: [:], curr: curr) == nil)         // no prev baseline
         #expect(clusterHistogramCPUWatts(prev: prev, curr: [:]) == nil)         // no cluster channel at all
     }
+
+    // MARK: EnergyModelStaleness — 2 consecutive kept polls with zero CPU-core delta ⇒ stale, sticky
+
+    @Test func liveEnergyModelStaysLive() {
+        var s = EnergyModelStaleness()
+        #expect(s.observe(cpuCoreDeltaJ: 0.15) == .live)
+        #expect(s.observe(cpuCoreDeltaJ: 2.5) == .live)
+        #expect(!s.isStale)
+    }
+
+    @Test func singleZeroPollIsDecidingAndResetsOnActivity() {
+        var s = EnergyModelStaleness()
+        #expect(s.observe(cpuCoreDeltaJ: 0) == .deciding)
+        #expect(s.observe(cpuCoreDeltaJ: 0.3) == .live)       // run broken → back to live
+        #expect(s.zeroRun == 0)
+        #expect(!s.isStale)
+    }
+
+    @Test func twoZeroPollsBecomeStaleAndStick() {
+        var s = EnergyModelStaleness()
+        #expect(s.observe(cpuCoreDeltaJ: 0) == .deciding)
+        #expect(s.observe(cpuCoreDeltaJ: 0) == .stale)
+        #expect(s.isStale)
+        // A later Energy Model refresh (big positive delta) must NOT flip back — the refresh
+        // itself is the 3–5 min stale cadence, not a recovery.
+        #expect(s.observe(cpuCoreDeltaJ: 800) == .stale)
+        #expect(s.observe(cpuCoreDeltaJ: 0) == .stale)
+    }
+
+    @Test func negativeDeltaCountsAsZero() {
+        var s = EnergyModelStaleness()
+        #expect(s.observe(cpuCoreDeltaJ: -1) == .deciding)
+        #expect(s.observe(cpuCoreDeltaJ: -1) == .stale)
+    }
+
+    // MARK: StaleANERate — ANE watts averaged over the Energy Model refresh interval
+
+    @Test func aneRateIsZeroUntilSecondRefresh() {
+        var r = StaleANERate()
+        let t0 = ContinuousClock.now
+        // non-refresh polls (core delta 0) hold the current value
+        #expect(r.observe(aneDeltaJ: 0, cpuCoreDeltaJ: 0, at: t0) == 0)
+        // first refresh: no previous refresh instant → still 0, but the instant is recorded
+        #expect(r.observe(aneDeltaJ: 30, cpuCoreDeltaJ: 500, at: t0.advanced(by: .seconds(1))) == 0)
+        // second refresh 300 s later carrying 60 J of ANE energy → 0.2 W
+        let w = r.observe(aneDeltaJ: 60, cpuCoreDeltaJ: 700, at: t0.advanced(by: .seconds(301)))
+        #expect(abs(w - 0.2) < 1e-9)
+        #expect(abs(r.heldW - 0.2) < 1e-9)
+    }
+
+    @Test func aneRateHoldsBetweenRefreshesAndUpdatesOnNext() {
+        var r = StaleANERate()
+        let t0 = ContinuousClock.now
+        _ = r.observe(aneDeltaJ: 0, cpuCoreDeltaJ: 500, at: t0)
+        _ = r.observe(aneDeltaJ: 100, cpuCoreDeltaJ: 500, at: t0.advanced(by: .seconds(200)))   // 0.5 W
+        #expect(r.observe(aneDeltaJ: 0, cpuCoreDeltaJ: 0, at: t0.advanced(by: .seconds(201))) == 0.5)
+        #expect(r.observe(aneDeltaJ: 0, cpuCoreDeltaJ: 0, at: t0.advanced(by: .seconds(250))) == 0.5)
+        // idle ANE across the next interval → 0
+        #expect(r.observe(aneDeltaJ: 0, cpuCoreDeltaJ: 500, at: t0.advanced(by: .seconds(400))) == 0)
+    }
+
+    @Test func aneRateIgnoresNegativeEnergyAndZeroElapsed() {
+        var r = StaleANERate()
+        let t0 = ContinuousClock.now
+        _ = r.observe(aneDeltaJ: 0, cpuCoreDeltaJ: 1, at: t0)
+        #expect(r.observe(aneDeltaJ: -5, cpuCoreDeltaJ: 1, at: t0.advanced(by: .seconds(10))) == 0)
+        _ = r.observe(aneDeltaJ: 10, cpuCoreDeltaJ: 1, at: t0.advanced(by: .seconds(20)))   // 1 W
+        #expect(r.observe(aneDeltaJ: 10, cpuCoreDeltaJ: 1, at: t0.advanced(by: .seconds(20))) == 1) // dt 0 → hold
+    }
 }
