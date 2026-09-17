@@ -176,4 +176,14 @@ struct PowerEnergyTests {
         #expect(legacy.cpuW == 6.0)
         #expect(legacy.totalW == 7.5)
     }
+
+    // MARK: hasCPUEnergyChannel — "no counter to watch" must not read as "stale"
+
+    @Test func cpuEnergyChannelPresence() {
+        #expect(hasCPUEnergyChannel(["ECPU0": 1.0]))
+        #expect(hasCPUEnergyChannel(["CPU Energy": 1.0]))
+        #expect(hasCPUEnergyChannel(["PCPU3": 0.0, "GPU Energy": 1.0]))
+        #expect(!hasCPUEnergyChannel(["GPU Energy": 1.0, "ANE": 0.0, "PCPU0_SRAM": 2.0]))
+        #expect(!hasCPUEnergyChannel([:]))
+    }
 }

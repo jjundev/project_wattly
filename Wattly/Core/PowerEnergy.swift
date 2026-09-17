@@ -115,6 +115,13 @@ func cpuCoreEnergyDeltaJ(prev: [String: Double], curr: [String: Double]) -> Doub
     return cpuChannels.reduce(0.0) { $0 + energyDeltaJ($1, prev: prev, curr: curr) }
 }
 
+/// True when the snapshot carries any CPU energy counter `cpuCoreEnergyDeltaJ` can watch (a
+/// per-core channel, or the `CPU Energy` roll-up). Without one a zero delta means "nothing to
+/// measure", not "stale".
+func hasCPUEnergyChannel(_ snapshot: [String: Double]) -> Bool {
+    snapshot.keys.contains(where: isCPUCoreEnergyChannel) || snapshot["CPU Energy"] != nil
+}
+
 /// Joules the ANE channel(s) accrued between two snapshots (floored at 0 like every delta).
 func aneEnergyDeltaJ(prev: [String: Double], curr: [String: Double]) -> Double {
     curr.keys.reduce(0.0) { acc, name in

@@ -116,7 +116,12 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
         #endif
 
         var overrides = PowerOverrides()
-        switch staleness.observe(cpuCoreDeltaJ: coreDeltaJ) {
+        // Without a CPU energy channel at all, a zero delta means "nothing to measure", not
+        // "stale" — don't feed the detector, or a topology with no CPU counter would go sticky
+        // `.stale` and (absent PMP) permanently unavailable instead of a normal 0 W CPU reading.
+        let verdict: EnergyModelStaleness.Verdict = hasCPUEnergyChannel(curr)
+            ? staleness.observe(cpuCoreDeltaJ: coreDeltaJ) : .live
+        switch verdict {
         case .live:
             #if DEBUG
             debugSource = "em"
@@ -136,10 +141,15 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
             guard histogram != nil else {
                 return .unavailable(.channelUnreadable(Self.unreadableMessage))
             }
+            // Observed before the histogram guard: if this poll IS an Energy Model refresh
+            // (positive core delta), its ANE joules and `lastRefresh` must be counted even when
+            // the histogram side has nothing this poll — otherwise the next refresh interval
+            // doubles up.
+            let aneW = aneRate.observe(aneDeltaJ: aneEnergyDeltaJ(prev: prev, curr: curr),
+                                       cpuCoreDeltaJ: coreDeltaJ, at: sampleInstant)
             guard let cpuW = histogramCPUW else { return .pending }   // baseline / reset / no samples
             overrides.cpuW = cpuW
-            overrides.npuW = aneRate.observe(aneDeltaJ: aneEnergyDeltaJ(prev: prev, curr: curr),
-                                             cpuCoreDeltaJ: coreDeltaJ, at: sampleInstant)
+            overrides.npuW = aneW
         }
 
         var sample = powerSample(prev: prev, curr: curr, dt: dt, overrides: overrides)
