@@ -91,7 +91,7 @@ public final class BatteryIntentBridge: @unchecked Sendable {
 
     @discardableResult
     public func applySailing(enabled: Bool, delta: Int? = nil) async throws -> BatteryControlServiceStatus {
-        try await push { prefs in
+        try await push(rejectsNativeLimit: true) { prefs in
             prefs.sailingEnabled = enabled
             if let delta { prefs.sailingDelta = delta }
         }
@@ -109,7 +109,7 @@ public final class BatteryIntentBridge: @unchecked Sendable {
 
     @discardableResult
     public func applyHeatProtection(enabled: Bool, thresholdCelsius: Int? = nil) async throws -> BatteryControlServiceStatus {
-        try await push { prefs in
+        try await push(rejectsNativeLimit: true) { prefs in
             prefs.heatProtectionEnabled = enabled
             if let thresholdCelsius { prefs.heatProtectionThresholdCelsius = thresholdCelsius }
         }
@@ -124,12 +124,21 @@ public final class BatteryIntentBridge: @unchecked Sendable {
     /// 관찰하므로 슬라이더가 눈앞에서 튕긴다). 그래서 저장 직전에 저장소를 **다시 읽고** 같은
     /// 변경만 다시 얹는다 — 인텐트가 실제로 건드린 필드만 남고 나머지는 사용자 값을 유지한다.
     /// 그러려면 변경 함수가 순수해야 한다(두 번 실행된다).
+    ///
+    /// `rejectsNativeLimit`는 이 백엔드가 표현할 수 없는 기능(세일링·발열 보호)을 위한 것이다.
+    /// 설정 화면은 `hiddenFeatures(backend:)`로 그 행을 숨기지만 단축어에는 게이트가 없어서,
+    /// 예전에는 환경설정만 조용히 바꾸고 "성공"을 돌려줬다. 저장 **전에** 상태를 읽어 거절한다 —
+    /// 브리지는 호출마다 새 클라이언트를 만들므로 여기서 직접 물어봐야 한다.
     private func push(
+        rejectsNativeLimit: Bool = false,
         _ mutate: (inout BatteryPreferences) -> Void
     ) async throws -> BatteryControlServiceStatus {
         var outgoing = BatteryPreferences(defaults: userDefaults)
         mutate(&outgoing)
         let client = await clientProvider()
+        if rejectsNativeLimit, await client.refreshStatus()?.controlBackend == .nativeLimit {
+            throw BatteryIntentError.hardwareUnsupported
+        }
         let status = try Self.checked(await client.apply(outgoing.configuration(clamshellDischargeAllowed: false)))
         var persisted = BatteryPreferences(defaults: userDefaults)
         mutate(&persisted)
