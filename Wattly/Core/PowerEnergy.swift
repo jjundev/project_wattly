@@ -91,33 +91,62 @@ func hasCounterReset(prev: [String: Double], curr: [String: Double]) -> Bool {
     return false
 }
 
-/// Watts from two absolute-energy snapshots (joules) and the elapsed seconds.
-/// CPU prefers exact per-core channels; `CPU Energy` is a compatibility fallback when
-/// a chip exposes no recognized cores. `GPU`/`GPU Energy` are the same quantity, so one
-/// is counted. DRAM/DCS/SoC fabric/PCIe and hierarchical CPU sub-components are excluded.
-func powerSample(prev: [String: Double], curr: [String: Double], dt: Double) -> PowerSample {
-    func deltaJ(_ name: String) -> Double { max(0, (curr[name] ?? 0) - (prev[name] ?? 0)) }
-    func watts(_ j: Double) -> Double { dt > 0 ? j / dt : 0 }
+/// Per-engine overrides for the macOS 27 stale-Energy-Model path: `PowerProvider` derives CPU
+/// from the PMP histograms and ANE from the refresh-interval average, and hands them in here so
+/// the `totalW == cpuW + gpuW + npuW` invariant is kept in ONE place. nil = use the Energy Model
+/// delta for that engine (macOS ≤ 26 behaviour).
+struct PowerOverrides: Sendable, Equatable {
+    var cpuW: Double? = nil
+    var npuW: Double? = nil
+}
 
-    // Single GPU channel — prefer the precise "GPU Energy", fall back to "GPU".
-    let gpuChannel = curr["GPU Energy"] != nil ? "GPU Energy" : (curr["GPU"] != nil ? "GPU" : nil)
+private func energyDeltaJ(_ name: String, prev: [String: Double], curr: [String: Double]) -> Double {
+    max(0, (curr[name] ?? 0) - (prev[name] ?? 0))
+}
 
+/// Joules the recognised CPU cores accrued between two snapshots — exact per-core channels,
+/// or the `CPU Energy` roll-up only when no core channel exists (same selection `powerSample`
+/// uses). Doubles as the macOS 27 staleness signal: a live Energy Model never yields 0 here.
+func cpuCoreEnergyDeltaJ(prev: [String: Double], curr: [String: Double]) -> Double {
     let coreChannels = curr.keys.filter(isCPUCoreEnergyChannel)
     let cpuChannels = coreChannels.isEmpty
         ? (curr["CPU Energy"] != nil ? ["CPU Energy"] : [])
         : Array(coreChannels)
-    let cpuJ = cpuChannels.reduce(0.0) { $0 + deltaJ($1) }
+    return cpuChannels.reduce(0.0) { $0 + energyDeltaJ($1, prev: prev, curr: curr) }
+}
 
-    var npuJ = 0.0
-    for name in curr.keys {
-        switch classifyEngine(name) {
-        case .cpu: break                  // CPU handled by per-core selection + roll-up fallback
-        case .npu: npuJ += deltaJ(name)
-        case .gpu, .none: break          // GPU handled via gpuChannel (dedup); .none = sub-component
-        }
+/// True when the snapshot carries any CPU energy counter `cpuCoreEnergyDeltaJ` can watch (a
+/// per-core channel, or the `CPU Energy` roll-up). Without one a zero delta means "nothing to
+/// measure", not "stale".
+func hasCPUEnergyChannel(_ snapshot: [String: Double]) -> Bool {
+    snapshot.keys.contains(where: isCPUCoreEnergyChannel) || snapshot["CPU Energy"] != nil
+}
+
+/// Joules the ANE channel(s) accrued between two snapshots (floored at 0 like every delta).
+func aneEnergyDeltaJ(prev: [String: Double], curr: [String: Double]) -> Double {
+    curr.keys.reduce(0.0) { acc, name in
+        classifyEngine(name) == .npu ? acc + energyDeltaJ(name, prev: prev, curr: curr) : acc
     }
-    let gpuJ = gpuChannel.map(deltaJ) ?? 0
-    let totalJ = cpuJ + gpuJ + npuJ      // Combined Power — per-core CPU + GPU + ANE
+}
 
-    return PowerSample(totalW: watts(totalJ), cpuW: watts(cpuJ), gpuW: watts(gpuJ), npuW: watts(npuJ))
+/// Watts from two absolute-energy snapshots (joules) and the elapsed seconds.
+/// CPU prefers exact per-core channels; `CPU Energy` is a compatibility fallback when
+/// a chip exposes no recognized cores. `GPU`/`GPU Energy` are the same quantity, so one
+/// is counted. DRAM/DCS/SoC fabric/PCIe and hierarchical CPU sub-components are excluded.
+/// `overrides` replace the CPU/ANE watts (macOS 27 stale path); the total is always the sum
+/// of the three engine figures actually emitted.
+func powerSample(prev: [String: Double], curr: [String: Double], dt: Double,
+                 overrides: PowerOverrides = PowerOverrides()) -> PowerSample {
+    func watts(_ j: Double) -> Double { dt > 0 ? j / dt : 0 }
+
+    // Single GPU channel — prefer the precise "GPU Energy", fall back to "GPU".
+    let gpuChannel = curr["GPU Energy"] != nil ? "GPU Energy" : (curr["GPU"] != nil ? "GPU" : nil)
+    let gpuJ = gpuChannel.map { energyDeltaJ($0, prev: prev, curr: curr) } ?? 0
+
+    let cpuW = overrides.cpuW ?? watts(cpuCoreEnergyDeltaJ(prev: prev, curr: curr))
+    let npuW = overrides.npuW ?? watts(aneEnergyDeltaJ(prev: prev, curr: curr))
+    let gpuW = watts(gpuJ)
+
+    // Combined Power — per-core CPU + GPU + ANE; the headline is exactly the breakout's sum.
+    return PowerSample(totalW: cpuW + gpuW + npuW, cpuW: cpuW, gpuW: gpuW, npuW: npuW)
 }

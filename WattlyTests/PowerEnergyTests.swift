@@ -125,4 +125,65 @@ struct PowerEnergyTests {
         #expect(hasCounterReset(prev: ["CPU Energy": 5.0], curr: ["CPU Energy": 1.0]))
         #expect(!hasCounterReset(prev: [:], curr: ["CPU Energy": 1.0]))   // new channel is fine
     }
+
+    // MARK: overrides — macOS 27 stale-Energy-Model path swaps CPU/ANE, total stays Combined
+
+    @Test func cpuCoreDeltaSumsRecognisedCoresOnly() {
+        let prev = ["CPU Energy": 10.0, "ECPU0": 1.0, "PCPU0": 2.0, "PCPU0_SRAM": 0.0, "GPU Energy": 0.0]
+        let curr = ["CPU Energy": 20.0, "ECPU0": 2.0, "PCPU0": 4.0, "PCPU0_SRAM": 9.0, "GPU Energy": 1.0]
+        #expect(cpuCoreEnergyDeltaJ(prev: prev, curr: curr) == 3.0)
+    }
+
+    @Test func cpuCoreDeltaFallsBackToRollupWithoutCores() {
+        #expect(cpuCoreEnergyDeltaJ(prev: ["CPU Energy": 1.0], curr: ["CPU Energy": 3.5]) == 2.5)
+        #expect(cpuCoreEnergyDeltaJ(prev: [:], curr: ["GPU Energy": 3.5]) == 0)
+    }
+
+    @Test func aneDeltaSumsNPUChannels() {
+        #expect(aneEnergyDeltaJ(prev: ["ANE": 1.0, "GPU": 0.0], curr: ["ANE": 4.0, "GPU": 9.0]) == 3.0)
+        #expect(aneEnergyDeltaJ(prev: ["ANE": 5.0], curr: ["ANE": 1.0]) == 0)   // floored like powerSample
+    }
+
+    @Test func overridesReplaceCPUAndNPUAndRecomputeTotal() {
+        // Stale Energy Model: cores read 0 J, ANE spikes 300 J in this 1 s poll.
+        let prev = ["ECPU0": 5.0, "PCPU0": 5.0, "GPU Energy": 1.0, "ANE": 0.0]
+        let curr = ["ECPU0": 5.0, "PCPU0": 5.0, "GPU Energy": 1.5, "ANE": 300.0]
+        let s = powerSample(prev: prev, curr: curr, dt: 1.0,
+                            overrides: PowerOverrides(cpuW: 1.625, npuW: 0.2))
+        #expect(s.cpuW == 1.625)
+        #expect(s.gpuW == 0.5)                    // GPU still from the live nJ channel
+        #expect(s.npuW == 0.2)                    // not the 300 W spike
+        #expect(s.totalW == s.cpuW + s.gpuW + s.npuW)
+        #expect(abs(s.totalW - 2.325) < 1e-9)
+    }
+
+    @Test func partialOverrideKeepsOtherEnginesFromEnergyModel() {
+        let prev = ["ECPU0": 0.0, "GPU Energy": 0.0, "ANE": 0.0]
+        let curr = ["ECPU0": 2.0, "GPU Energy": 1.0, "ANE": 0.5]
+        let s = powerSample(prev: prev, curr: curr, dt: 1.0, overrides: PowerOverrides(cpuW: 7.0))
+        #expect(s.cpuW == 7.0)
+        #expect(s.gpuW == 1.0)
+        #expect(s.npuW == 0.5)
+        #expect(s.totalW == 8.5)
+    }
+
+    @Test func noOverridesKeepsEnergyModelFigures() {
+        let prev = ["ECPU0": 1.0, "PCPU0": 2.0, "GPU Energy": 0.5, "ANE": 0.0]
+        let curr = ["ECPU0": 2.0, "PCPU0": 4.0, "GPU Energy": 1.0, "ANE": 0.25]
+        let legacy = powerSample(prev: prev, curr: curr, dt: 0.5)
+        #expect(legacy.cpuW == 6.0)
+        #expect(legacy.gpuW == 1.0)
+        #expect(legacy.npuW == 0.5)
+        #expect(legacy.totalW == 7.5)
+    }
+
+    // MARK: hasCPUEnergyChannel — "no counter to watch" must not read as "stale"
+
+    @Test func cpuEnergyChannelPresence() {
+        #expect(hasCPUEnergyChannel(["ECPU0": 1.0]))
+        #expect(hasCPUEnergyChannel(["CPU Energy": 1.0]))
+        #expect(hasCPUEnergyChannel(["PCPU3": 0.0, "GPU Energy": 1.0]))
+        #expect(!hasCPUEnergyChannel(["GPU Energy": 1.0, "ANE": 0.0, "PCPU0_SRAM": 2.0]))
+        #expect(!hasCPUEnergyChannel([:]))
+    }
 }

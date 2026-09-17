@@ -94,7 +94,7 @@ struct PowerSample: Sendable, Equatable {
     var totalW: Double
     var cpuW: Double
     var gpuW: Double
-    var npuW: Double   // Apple Neural Engine; sourced from the HW "ANE" energy channel
+    var npuW: Double   // Apple Neural Engine; HW "ANE" energy channel (macOS 27: refresh-interval average, see PowerHistogram)
     /// Top power-consuming processes (issue 16 follow-up). Three-state:
     /// `nil` = not measured this poll (card not expanded, OR the first sweep after expand
     /// has no delta yet / a dt anomaly → "측정 중…"); `[]` = measured but no readable

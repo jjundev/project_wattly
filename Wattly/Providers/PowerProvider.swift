@@ -5,7 +5,14 @@ import Foundation
 /// across polls, and divides by elapsed time → watts. Works on battery, AC, and
 /// desktop Macs alike (SoC-level, not battery-derived). Only the Sendable
 /// `PowerSample` crosses the actor boundary; the IOReport handles never leave the
-/// `IOReportEnergySubscription` wrapper. All arithmetic lives in pure `PowerEnergy`.
+/// `IOReportEnergySubscription` / `IOReportPMPEnergySubscription` wrappers. All
+/// arithmetic lives in pure `PowerEnergy` / `PowerHistogram`.
+///
+/// macOS 27: the Energy Model CPU/ANE counters refresh only every 3–5 min. Once
+/// `EnergyModelStaleness` sees two kept polls with zero CPU-core delta it flips (sticky) to
+/// deriving CPU from the `PMP`/`Energy` cluster histograms and ANE from the refresh-interval
+/// average; GPU keeps using the still-live `GPU Energy` (nJ) channel. macOS ≤ 26 never trips
+/// the detector, so its numbers are unchanged.
 actor PowerProvider: MetricProvider, ProcessEnumerating {
     let kind: ProviderKind = .power
 
@@ -17,6 +24,20 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
     /// plain Sendable values — no Core Foundation object lives across polls.
     private var prev: [String: Double]?
     private var prevInstant: ContinuousClock.Instant?
+    /// macOS 27 stale-Energy-Model path (see `PowerHistogram`). `histogram` is nil where the
+    /// `PMP`/`Energy` subgroup is absent (expected on macOS ≤ 26 — unverified, no 26 hardware
+    /// probed) — then only the Energy Model is used.
+    private var histogram: IOReportPMPEnergySubscription?
+    private var prevHistogram: [String: PowerHistogramChannel]?
+    private var staleness = EnergyModelStaleness()
+    private var aneRate = StaleANERate()
+    #if DEBUG
+    /// Probe-only: which CPU source the last kept poll used.
+    private(set) var debugSource = "em"
+    /// Probe-only: the histogram CPU figure of the last poll (computed even while `.live`, so
+    /// the two sources can be compared side by side on-device).
+    private(set) var debugHistogramCPUW: Double?
+    #endif
     /// Actual IOReport capture clock. Injected so provider-level time remains deterministic
     /// in a future hardware seam; the monitor's cycle-start timestamp is not a sample time.
     private let now: @Sendable () -> ContinuousClock.Instant
@@ -59,6 +80,7 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
         if !setupAttempted {
             setupAttempted = true
             subscription = IOReportEnergySubscription()
+            histogram = IOReportPMPEnergySubscription()
         }
         guard let subscription else {
             return .unavailable(.channelUnreadable(Self.unreadableMessage))
@@ -67,10 +89,17 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
         guard let captured = subscription.sample(), !captured.energies.isEmpty else {
             return .unavailable(.channelUnreadable(Self.unreadableMessage))
         }
+        let histSample = histogram?.sample()     // nil: no PMP (macOS ≤ 26) or a sample failure
         let sampleEnd = now()
         let sampleInstant = sampleStart.advanced(by: sampleStart.duration(to: sampleEnd) / 2)
         let curr = captured.energies
-        defer { prev = curr; prevInstant = sampleInstant }       // re-baseline on every kept path
+        // re-baseline on every kept path (both sources share one instant). A nil `histSample`
+        // (one transient histogram sample failure) also clears the histogram baseline — while
+        // stale, a single miss costs TWO `.pending` polls (the miss itself, then the poll that
+        // re-establishes the baseline). Keeping the old baseline instead is not an option: the
+        // histogram interval must equal the Energy Model `dt` for the residency-delta math to
+        // mean anything.
+        defer { prev = curr; prevInstant = sampleInstant; prevHistogram = histSample }
 
         // An engine channel with an unknown unit is unsafe to scale. Drop this interval
         // and keep the remaining known counters only as a new baseline.
@@ -82,7 +111,62 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
             || hasEngineChannelSetChanged(prev: prev, curr: curr) {
             return .pending                                  // anomaly → drop interval, re-baseline
         }
-        var sample = powerSample(prev: prev, curr: curr, dt: dt)
+
+        let coreDeltaJ = cpuCoreEnergyDeltaJ(prev: prev, curr: curr)
+        // Only needed in `case .stale`; computed here anyway in DEBUG so the probe can show it
+        // side by side with the Energy Model figure even while `.live`.
+        func histogramCPUWatts() -> Double? {
+            guard let p = prevHistogram, let c = histSample else { return nil }
+            return clusterHistogramCPUWatts(prev: p, curr: c)
+        }
+        #if DEBUG
+        let debugCPUW = histogramCPUWatts()
+        debugHistogramCPUW = debugCPUW
+        #endif
+
+        var overrides = PowerOverrides()
+        // Without a CPU energy channel at all, a zero delta means "nothing to measure", not
+        // "stale" — don't feed the detector, or a topology with no CPU counter would go sticky
+        // `.stale` and (absent PMP) permanently unavailable instead of a normal 0 W CPU reading.
+        let verdict: EnergyModelStaleness.Verdict = hasCPUEnergyChannel(curr)
+            ? staleness.observe(cpuCoreDeltaJ: coreDeltaJ) : .live
+        switch verdict {
+        case .live:
+            #if DEBUG
+            debugSource = "em"
+            #endif
+            break                                            // Release: keeps the case non-empty
+        case .deciding:
+            #if DEBUG
+            debugSource = "deciding"
+            #endif
+            return .pending                                  // one zero poll: withhold, re-baseline
+        case .stale:
+            #if DEBUG
+            debugSource = "pmp"
+            #endif
+            // Energy Model is frozen between refreshes. Without a histogram source the CPU
+            // figure would be a false 0 W → surface the orange card instead.
+            guard histogram != nil else {
+                return .unavailable(.channelUnreadable(Self.unreadableMessage))
+            }
+            // Observed before the histogram guard: if this poll IS an Energy Model refresh
+            // (positive core delta), its ANE joules and `lastRefresh` must be counted even when
+            // the histogram side has nothing this poll — otherwise the next refresh interval
+            // doubles up.
+            let aneW = aneRate.observe(aneDeltaJ: aneEnergyDeltaJ(prev: prev, curr: curr),
+                                       cpuCoreDeltaJ: coreDeltaJ, at: sampleInstant)
+            #if DEBUG
+            let histogramCPUW = debugCPUW
+            #else
+            let histogramCPUW = histogramCPUWatts()
+            #endif
+            guard let cpuW = histogramCPUW else { return .pending }   // baseline / reset / no samples
+            overrides.cpuW = cpuW
+            overrides.npuW = aneW
+        }
+
+        var sample = powerSample(prev: prev, curr: curr, dt: dt, overrides: overrides)
         guard sample.totalW.isFinite, sample.totalW <= Self.sanityCeilingW else {
             return .pending                                  // implausible → re-baseline
         }
@@ -148,6 +232,48 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
         return rc == 0 ? info.ri_energy_nj : nil
     }
 }
+
+#if DEBUG
+/// DEBUG 실기 프로브. 실제 `PowerProvider`로 10회 읽어 소스(em / deciding / pmp)와 엔진별 W를
+/// 출력하고 종료한다. macOS 27 이관 확인용 — GUI 없이 정체 감지·히스토그램 CPU가 사는지 본다:
+///   `Wattly.app/Contents/MacOS/Wattly -WattlyPowerProbe`
+/// Release에서는 제외. 막힌 메인 스레드 밖에서 돌도록 detached.
+enum PowerProbe {
+    static func runIfRequested() {
+        guard CommandLine.arguments.contains("-WattlyPowerProbe") else { return }
+        let provider = PowerProvider()
+        let done = DispatchSemaphore(value: 0)
+        Task.detached {
+            let clock = ContinuousClock()
+            for i in 0..<10 {
+                let reading = await provider.read(at: clock.now)
+                let source = await provider.debugSource
+                let histCPU = await provider.debugHistogramCPUW
+                print("[power-probe] sample \(i): source=\(source) histCPU=\(f(histCPU)) W · \(describe(reading))")
+                try? await Task.sleep(for: .seconds(1))
+            }
+            done.signal()
+        }
+        done.wait()
+        exit(0)
+    }
+
+    private static func f(_ v: Double?) -> String { v.map { String(format: "%.2f", $0) } ?? "nil" }
+
+    private static func describe(_ r: ProviderReading) -> String {
+        switch r {
+        case .value(.power(let s)):
+            return "total \(f(s.totalW)) W · cpu \(f(s.cpuW)) · gpu \(f(s.gpuW)) · ane \(f(s.npuW))"
+        case .pending:
+            return "pending"
+        case .unavailable(let reason):
+            return "unavailable: \(reason)"
+        case .value(let other):
+            return "non-power: \(other)"
+        }
+    }
+}
+#endif
 
 /// RAII wrapper around the IOReport private API. Owns the dlopen'd symbols and the
 /// subscription; only ever touched from inside `PowerProvider`'s actor isolation, so
