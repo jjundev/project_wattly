@@ -85,6 +85,24 @@ struct BatteryFactsTests {
         #expect(facts == BatteryFacts())
     }
 
+    @Test func registryZeroTopLevelKeyFallsThroughToBatteryData() {
+        // 최상위 키가 존재하지만 0이면 "없는 것"과 같다 — BatteryData가 대신 채운다.
+        let facts = BatteryFactsSource.fromRegistry(
+            topLevel: ["AppleRawMaxCapacity": 0, "DesignCapacity": -1],
+            batteryData: ["NominalChargeCapacity": 6255, "DesignCapacity": 6249])
+        #expect(facts.maxMilliampHours == 6255)
+        #expect(facts.designMilliampHours == 6249)
+    }
+
+    // MARK: fromSMC — smcTemperatureCelsius single-key helper
+
+    @Test func smcTemperatureReadsOnlyB0AT() {
+        var asked: [String] = []
+        let c = BatteryFactsSource.smcTemperatureCelsius { key in asked.append(key); return key == "B0AT" ? ("ui16", [0xfb, 0x0b]) : nil }
+        #expect(c == 30.67)
+        #expect(asked == ["B0AT"])
+    }
+
     // MARK: merged — 필드별 primary ?? fallback
 
     @Test func mergedFillsOnlyTheHolesFromFallback() {
@@ -105,5 +123,14 @@ struct BatteryFactsTests {
         #expect(merged.cycleCount == 112)
         #expect(merged.temperatureCelsius == 30.72)
         #expect(merged.currentMilliamps == 4137)
+    }
+
+    @Test func mergedDoesNotEvaluateFallbackWhenPrimaryIsComplete() {
+        let primary = BatteryFacts(remainingMilliampHours: 1, maxMilliampHours: 2, designMilliampHours: 3,
+                                   cycleCount: 4, temperatureCelsius: 5, currentMilliamps: 6)
+        var evaluated = false
+        let merged = BatteryFactsSource.merged(primary: primary, fallback: { evaluated = true; return BatteryFacts() }())
+        #expect(merged == primary)
+        #expect(evaluated == false)
     }
 }

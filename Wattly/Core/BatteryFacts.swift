@@ -36,9 +36,15 @@ enum BatteryFactsSource {
         facts.maxMilliampHours = positive(int("B0NC"))
         facts.designMilliampHours = positive(int("B0DC"))
         facts.cycleCount = int("B0CT")
-        facts.temperatureCelsius = int("B0AT").flatMap { batteryCelsius(rawCentiCelsius: $0, in: temperatureRange) }
+        facts.temperatureCelsius = smcTemperatureCelsius(read: read)
         facts.currentMilliamps = int("B0AC")
         return facts
+    }
+
+    /// 데몬 열 보호용 단일 키 읽기 — `B0AT`(centi-°C) 하나만 묻는다. 5초 watchdog마다 여섯 키를 읽고 다섯을 버리지 않기 위해서.
+    static func smcTemperatureCelsius(read: (String) -> (type: String, bytes: [UInt8])?) -> Double? {
+        guard let raw = read("B0AT"), let centi = smcInt(raw.bytes, type: raw.type) else { return nil }
+        return batteryCelsius(rawCentiCelsius: centi, in: temperatureRange)
     }
 
     /// 레지스트리 → 사실. `topLevel`은 macOS 26 이하의 최상위 키, `batteryData`는 macOS 27의
@@ -47,17 +53,24 @@ enum BatteryFactsSource {
     static func fromRegistry(topLevel: [String: Int], batteryData: [String: Any]?) -> BatteryFacts {
         func sub(_ key: String) -> Int? { (batteryData?[key] as? NSNumber)?.intValue }
         var facts = BatteryFacts()
-        facts.remainingMilliampHours = positive(topLevel["AppleRawCurrentCapacity"] ?? sub("RemainingCapacity"))
-        facts.maxMilliampHours = positive(topLevel["AppleRawMaxCapacity"] ?? sub("NominalChargeCapacity"))
-        facts.designMilliampHours = positive(topLevel["DesignCapacity"] ?? sub("DesignCapacity"))
+        facts.remainingMilliampHours = positive(topLevel["AppleRawCurrentCapacity"]) ?? positive(sub("RemainingCapacity"))
+        facts.maxMilliampHours = positive(topLevel["AppleRawMaxCapacity"]) ?? positive(sub("NominalChargeCapacity"))
+        facts.designMilliampHours = positive(topLevel["DesignCapacity"]) ?? positive(sub("DesignCapacity"))
+        // 사이클은 macOS 27에서도 최상위 `CycleCount`가 남아 있고 `BatteryData`에는 없다 — 2단(최상위 → SMC `B0CT`)이 전부다.
         facts.cycleCount = topLevel["CycleCount"]
         facts.temperatureCelsius = topLevel["Temperature"].flatMap { batteryCelsius(rawCentiCelsius: $0, in: temperatureRange) }
         return facts
     }
 
     /// 필드별 `primary ?? fallback`. 호출자가 우선순위를 정한다(스펙: 레지스트리 → SMC).
-    static func merged(primary: BatteryFacts, fallback: BatteryFacts) -> BatteryFacts {
-        BatteryFacts(
+    /// `fallback`은 primary에 빈칸이 있을 때만 평가된다 — macOS 26 이하처럼 레지스트리가 완전하면
+    /// 폴링마다 SMC 6키를 읽고 버리는 일이 없다.
+    static func merged(primary: BatteryFacts, fallback: @autoclosure () -> BatteryFacts) -> BatteryFacts {
+        guard primary.remainingMilliampHours == nil || primary.maxMilliampHours == nil
+                || primary.designMilliampHours == nil || primary.cycleCount == nil
+                || primary.temperatureCelsius == nil || primary.currentMilliamps == nil else { return primary }
+        let fallback = fallback()
+        return BatteryFacts(
             remainingMilliampHours: primary.remainingMilliampHours ?? fallback.remainingMilliampHours,
             maxMilliampHours: primary.maxMilliampHours ?? fallback.maxMilliampHours,
             designMilliampHours: primary.designMilliampHours ?? fallback.designMilliampHours,
