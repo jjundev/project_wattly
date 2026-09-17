@@ -495,6 +495,13 @@ enum StorageKey {
     static let batteryScheduleNotificationsEnabled = "batteryScheduleNotificationsEnabled"
     static let batteryCalibrationState = "batteryCalibrationState"
     static let batteryCalibrationHistory = "batteryCalibrationHistory"
+    // 네이티브 충전 제한 백엔드(macOS 27)의 서비스 상태. 환경설정이 아니므로 `Defaults`에도
+    // `SettingsReset`에도 넣지 않는다 — 초기화가 `batteryLimitEnabled`를 끄면 브리지가 disable을
+    // 밀어 서비스가 스스로 푼다.
+    static let nativeLimitDesiredConfiguration = "nativeLimitDesiredConfiguration"
+    static let nativeLimitTopUpReachedFullAt = "nativeLimitTopUpReachedFullAt"
+    static let nativeLimitOwned = "nativeLimitOwned"
+    static let nativeLimitSuspendedLimit = "nativeLimitSuspendedLimit"
     static let menuBatteryTemp = "menu.batteryTemp"
     static let menuMemPressure = "menu.memPressure"
     static let expandedCards = "expandedCards"   // CSV of expanded card raw values (issue 04)

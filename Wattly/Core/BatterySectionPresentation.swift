@@ -1,5 +1,12 @@
 import Foundation
 
+/// 백엔드에 따라 설정 화면에서 빠질 수 있는 옵션.
+enum BatteryFeature: Hashable, Sendable {
+    case sailing
+    case heatProtection
+    case sleepUntilLimit
+}
+
 /// 설정 › 배터리 섹션들의 순수 표시 판단. SwiftUI도 I/O도 없다 —
 /// `CardPresentation` / `Accessibility` / `BatteryControlPolicy`와 같은 방식으로,
 /// 뷰가 내리던 결정을 테이블 테스트가 가능한 함수로 옮겨둔 것이다.
@@ -240,6 +247,25 @@ enum BatterySectionPresentation {
     /// 구버전 도우미가 activity와 인식 가능한 reason을 모두 보내지 않은 경우에만 쓰는 꺼짐 문구.
     static func disabledStatusText(locale: Locale) -> String {
         BatteryStatusText.text(reason: .init(kind: .limitDisabled), detail: "", locale: locale)
+    }
+
+    /// 이 백엔드가 표현할 수 없어 숨기는 옵션.
+    ///
+    /// 네이티브 제한(macOS 27)은 "상한 하나"가 전부다. 세일링은 재충전 하한을, 발열 보호는 임의
+    /// 잔량에서의 즉시 충전 중단을 요구하는데 둘 다 원시 명령이 없다. "한도 도달 시까지 잠자기
+    /// 방지"는 도우미가 깨어 있어야 제한에서 멈출 수 있던 시절의 기능이고, 네이티브에서는
+    /// 펌웨어가 잠든 동안에도 집행하므로 필요가 없다.
+    ///
+    /// 숨길 뿐 저장값은 지우지 않는다 — 같은 환경설정이 레지스터가 있는 Mac에 도달하면 그 값은
+    /// 다시 유효하다(`isToggleEnabled`의 주석과 같은 규칙).
+    static func hiddenFeatures(backend: BatteryControlBackend?) -> Set<BatteryFeature> {
+        backend == .nativeLimit ? [.sailing, .heatProtection, .sleepUntilLimit] : []
+    }
+
+    /// 옵션이 왜 줄었는지 한 줄. 네이티브 백엔드가 아니면 `nil`.
+    static func nativeLimitNotice(backend: BatteryControlBackend?, locale: Locale) -> String? {
+        guard backend == .nativeLimit else { return nil }
+        return String(localized: "이 macOS에서는 시스템 충전 제한을 사용합니다. 일부 옵션은 사용할 수 없습니다.", locale: locale)
     }
 
     /// 한도 선택기와 안내 배너를 그릴지 여부. 상태 줄은 항상 보인다.

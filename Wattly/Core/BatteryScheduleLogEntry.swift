@@ -24,6 +24,8 @@ public struct BatteryScheduleLogEntry: Identifiable, Codable, Equatable, Sendabl
         case overriddenByHigherPriority = "동일 시각 상위 작업 우선"
         case heatProtectionActive = "발열 보호 작동 중"
         case calibrationRunning = "배터리 캘리브레이션 진행 중"
+        /// 네이티브 충전 제한 백엔드(macOS 27)는 상한 하나가 전부라 "충전 일시 정지"를 표현할 수 없다.
+        case unsupportedOnNativeLimit = "이 macOS에서는 충전 일시 중지를 사용할 수 없음"
 
         public var localizedDescription: String {
             switch self {
@@ -37,6 +39,8 @@ public struct BatteryScheduleLogEntry: Identifiable, Codable, Equatable, Sendabl
                 return String(localized: "발열 보호 작동 중")
             case .calibrationRunning:
                 return String(localized: "배터리 캘리브레이션 진행 중")
+            case .unsupportedOnNativeLimit:
+                return String(localized: "이 macOS에서는 충전 일시 중지를 사용할 수 없음")
             }
         }
     }

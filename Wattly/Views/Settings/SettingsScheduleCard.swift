@@ -5,6 +5,9 @@ struct SettingsScheduleCard: View {
     @Environment(\.locale) private var locale
 
     @Bindable var coordinator: BatteryScheduleCoordinator
+    /// 네이티브 충전 제한 백엔드에서는 "충전 일시 정지"를 표현할 수 없다. 이 카드는 상태를
+    /// 보지 않으므로 상위에서 내려 준다.
+    var isPauseChargingAvailable: Bool = true
     @AppStorage(StorageKey.batteryScheduleNotificationsEnabled) private var notificationsEnabled = Defaults.batteryScheduleNotificationsEnabled
 
     @State private var isEditorPresented = false
@@ -86,7 +89,8 @@ struct SettingsScheduleCard: View {
             .padding(12)
         }
         .sheet(isPresented: $isEditorPresented) {
-            ScheduleEditorSheet(initialSchedule: editingSchedule) { saved in
+            ScheduleEditorSheet(initialSchedule: editingSchedule,
+                                isPauseChargingAvailable: isPauseChargingAvailable) { saved in
                 if editingSchedule != nil {
                     coordinator.updateSchedule(saved)
                 } else {

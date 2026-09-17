@@ -190,6 +190,32 @@ public enum BatteryControlCapability: String, Codable, Equatable, Sendable {
     }
 }
 
+/// Which mechanism is enforcing the charge limit on this Mac.
+///
+/// `smc` is the root helper writing charge-control registers. `nativeLimit` is the app driving
+/// Apple's own charge limit, which is all that is left on macOS 27 firmware — the registers are
+/// gone and the firmware-managed keys are refused even to root. The settings screen reads this to
+/// hide the options that mechanism cannot express (sailing, heat protection, sleep-until-limit).
+///
+/// Optional on the status and lenient on decode for the same reason every other token here is: a
+/// helper that predates the field, or an app that predates a future case, must still decode the
+/// rest of the status.
+public enum BatteryControlBackend: String, Codable, Equatable, Sendable {
+    case smc
+    case nativeLimit = "native-limit"
+    case unrecognized
+
+    public init(from decoder: any Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = Self(rawValue: raw) ?? .unrecognized
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
 public struct BatteryHardwareGate: Codable, Equatable, Sendable {
     public enum State: String, Codable, Equatable, Sendable {
         case allowed
@@ -380,6 +406,9 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
     /// 데몬이 지금 클램쉘 방전을 위해 시스템 잠자기를 억제 중인지. `nil`은 이 필드를 모르는
     /// 구버전 헬퍼. 앱은 이걸로 "잠자기 차단 중" 표시를 켠다.
     public var isSystemSleepInhibited: Bool?
+    /// Which backend produced this status. `nil` from the root helper, which predates the field and
+    /// is by construction the SMC backend.
+    public var controlBackend: BatteryControlBackend?
 
     public init(
         mode: BatteryControlServiceMode,
@@ -399,7 +428,8 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
         lastMaintenance: BatteryMaintenanceRecord? = nil,
         capabilities: [BatteryControlCapability]? = nil,
         batteryTemperatureCelsius: Double? = nil,
-        isSystemSleepInhibited: Bool? = nil
+        isSystemSleepInhibited: Bool? = nil,
+        controlBackend: BatteryControlBackend? = nil
     ) {
         self.mode = mode
         self.currentPercentage = currentPercentage
@@ -419,6 +449,7 @@ public struct BatteryControlServiceStatus: Codable, Equatable, Sendable {
         self.capabilities = capabilities
         self.batteryTemperatureCelsius = batteryTemperatureCelsius
         self.isSystemSleepInhibited = isSystemSleepInhibited
+        self.controlBackend = controlBackend
     }
 }
 

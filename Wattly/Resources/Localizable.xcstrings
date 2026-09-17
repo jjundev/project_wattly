@@ -124136,6 +124136,376 @@
           }
         }
       }
+    },
+    "이 macOS에서는 시스템 충전 제한을 사용합니다. 일부 옵션은 사용할 수 없습니다.": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يستخدم macOS هذا حد الشحن الخاص بالنظام. بعض الخيارات غير متاحة."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tento macOS používá systémový limit nabíjení. Některé možnosti nejsou dostupné."
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Denne macOS bruger systemets opladningsgrænse. Nogle indstillinger er ikke tilgængelige."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses macOS verwendet das Ladelimit des Systems. Einige Optionen sind nicht verfügbar."
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Αυτό το macOS χρησιμοποιεί το όριο φόρτισης του συστήματος. Ορισμένες επιλογές δεν είναι διαθέσιμες."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This macOS uses the system charge limit. Some options are unavailable."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este macOS usa el límite de carga del sistema. Algunas opciones no están disponibles."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämä macOS käyttää järjestelmän latausrajaa. Jotkin asetukset eivät ole käytettävissä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce macOS utilise la limite de charge du système. Certaines options ne sont pas disponibles."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS זה משתמש במגבלת הטעינה של המערכת. חלק מהאפשרויות אינן זמינות."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह macOS सिस्टम की चार्ज सीमा का उपयोग करता है। कुछ विकल्प उपलब्ध नहीं हैं।"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ez a macOS a rendszer töltési korlátját használja. Néhány beállítás nem érhető el."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS ini menggunakan batas pengisian daya sistem. Beberapa opsi tidak tersedia."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo macOS utilizza il limite di carica di sistema. Alcune opzioni non sono disponibili."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このmacOSではシステムの充電上限を使用します。一部のオプションは利用できません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 macOS에서는 시스템 충전 제한을 사용합니다. 일부 옵션은 사용할 수 없습니다."
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Denne macOS bruker systemets ladegrense. Noen alternativer er ikke tilgjengelige."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deze macOS gebruikt de oplaadlimiet van het systeem. Sommige opties zijn niet beschikbaar."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ten system macOS używa systemowego limitu ładowania. Niektóre opcje są niedostępne."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este macOS usa o limite de carga do sistema. Algumas opções não estão disponíveis."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este macOS utiliza o limite de carga do sistema. Algumas opções não estão disponíveis."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acest macOS folosește limita de încărcare a sistemului. Unele opțiuni nu sunt disponibile."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Эта версия macOS использует системное ограничение зарядки. Некоторые параметры недоступны."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Denna macOS använder systemets laddningsgräns. Vissa alternativ är inte tillgängliga."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS นี้ใช้ขีดจำกัดการชาร์จของระบบ ตัวเลือกบางอย่างไม่พร้อมใช้งาน"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu macOS, sistemin şarj sınırını kullanır. Bazı seçenekler kullanılamaz."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ця версія macOS використовує системне обмеження заряджання. Деякі параметри недоступні."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS này sử dụng giới hạn sạc của hệ thống. Một số tùy chọn không khả dụng."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此 macOS 使用系统充电上限。部分选项不可用。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此 macOS 使用系統充電上限。部分選項無法使用。"
+          }
+        }
+      }
+    },
+    "이 macOS에서는 충전 일시 중지를 사용할 수 없음": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إيقاف الشحن مؤقتًا غير متاح على إصدار macOS هذا"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pozastavení nabíjení není v tomto systému macOS dostupné"
+          }
+        },
+        "da": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause i opladning er ikke tilgængelig i denne macOS"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laden pausieren ist unter diesem macOS nicht verfügbar"
+          }
+        },
+        "el": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Η προσωρινή παύση φόρτισης δεν είναι διαθέσιμη σε αυτό το macOS"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausing charging isn’t available on this macOS"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausar la carga no está disponible en este macOS"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Latauksen keskeytys ei ole käytettävissä tässä macOS-versiossa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La suspension de la charge n’est pas disponible sur ce macOS"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "השהיית הטעינה אינה זמינה ב-macOS זה"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस macOS पर चार्जिंग रोकना उपलब्ध नहीं है"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A töltés szüneteltetése nem érhető el ezen a macOS-en"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menjeda pengisian daya tidak tersedia di macOS ini"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sospensione della ricarica non è disponibile su questo macOS"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このmacOSでは充電の一時停止は利用できません"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 macOS에서는 충전 일시 중지를 사용할 수 없음"
+          }
+        },
+        "nb": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause av lading er ikke tilgjengelig i denne macOS-versjonen"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opladen pauzeren is niet beschikbaar in deze macOS"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wstrzymanie ładowania nie jest dostępne w tym systemie macOS"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausar o carregamento não está disponível neste macOS"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausar o carregamento não está disponível neste macOS"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Întreruperea încărcării nu este disponibilă pe acest macOS"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приостановка зарядки недоступна в этой версии macOS"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det går inte att pausa laddningen i den här macOS-versionen"
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "การหยุดชาร์จชั่วคราวใช้ไม่ได้บน macOS นี้"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu macOS sürümünde şarjı duraklatma kullanılamıyor"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Призупинення заряджання недоступне в цій версії macOS"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể tạm dừng sạc trên phiên bản macOS này"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此 macOS 不支持暂停充电"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此 macOS 不支援暫停充電"
+          }
+        }
+      }
     }
   }
 }

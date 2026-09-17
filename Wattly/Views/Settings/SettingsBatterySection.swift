@@ -112,91 +112,104 @@ struct SettingsBatterySection: View {
                     // icon-and-text status interface instead of making the entire status row vanish.
                     batteryStatusIndicator
 
+                    if let notice = BatterySectionPresentation.nativeLimitNotice(
+                        backend: batteryControl.status.controlBackend, locale: locale) {
+                        Text(verbatim: notice)
+                            .font(WattlyFont.at(10.5, weight: .regular))
+                            .foregroundStyle(t.faint)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 .padding(EdgeInsets(top: 0, leading: 14, bottom: 14, trailing: 14))
 
                 if showsConfigurationControls {
-                    Rectangle().fill(t.line).frame(height: 1)
+                    if !hiddenFeatures.contains(.sleepUntilLimit) {
+                        Rectangle().fill(t.line).frame(height: 1)
 
-                    SettingsToggleRow(isOn: $batterySleepUntilLimitEnabled,
-                                      divider: false,
-                                      isEnabled: isSleepUntilLimitToggleEnabled,
-                                      disabledReason: BatterySectionPresentation.sleepUntilLimitToggleDisabledReason(
-                                          limitEnabled: batteryLimitEnabled,
-                                          capabilities: batteryControl.status.capabilities,
-                                          locale: locale)) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            SettingsRowTitle("충전 한도 도달 시까지 잠자기 방지")
-                            Text("충전 중 덮개를 닫아도 목표 한도에 도달할 때까지 잠들지 않고 충전을 마칩니다. 도달 시 자동으로 잠자기에 들어갑니다.")
-                                .font(WattlyFont.at(10.5, weight: .regular))
-                                .foregroundStyle(t.faint)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-
-                    Rectangle().fill(t.line).frame(height: 1)
-
-                    SettingsToggleRow(isOn: $batterySailingEnabled,
-                                      divider: false,
-                                      isEnabled: isLimitPickerEnabled,
-                                      disabledReason: BatterySectionPresentation
-                                          .limitPickerDisabledReason(isLimitOn: batteryLimitEnabled)) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            SettingsRowTitle("Sailing 모드")
-                            Text("충전 상한에 도달한 후 배터리가 하한까지 자연 방전될 때까지 충전을 재개하지 않습니다.")
-                                .font(WattlyFont.at(10.5, weight: .regular))
-                                .foregroundStyle(t.faint)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-
-                    if batterySailingEnabled {
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text("Sailing 범위")
-                                    .font(WattlyFont.at(12, weight: .medium))
-                                    .foregroundStyle(t.text)
-                                Spacer()
-                                Text(BatterySectionPresentation.sailingRangeDescription(
-                                    limit: batteryLimitPercentage,
-                                    delta: batterySailingDelta,
-                                    locale: locale))
-                                    .font(WattlyFont.at(10.5, weight: .medium))
-                                    .foregroundStyle(t.sub)
+                        SettingsToggleRow(isOn: $batterySleepUntilLimitEnabled,
+                                          divider: false,
+                                          isEnabled: isSleepUntilLimitToggleEnabled,
+                                          disabledReason: BatterySectionPresentation.sleepUntilLimitToggleDisabledReason(
+                                              limitEnabled: batteryLimitEnabled,
+                                              capabilities: batteryControl.status.capabilities,
+                                              locale: locale)) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                SettingsRowTitle("충전 한도 도달 시까지 잠자기 방지")
+                                Text("충전 중 덮개를 닫아도 목표 한도에 도달할 때까지 잠들지 않고 충전을 마칩니다. 도달 시 자동으로 잠자기에 들어갑니다.")
+                                    .font(WattlyFont.at(10.5, weight: .regular))
+                                    .foregroundStyle(t.faint)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
-                            .opacity(isLimitPickerEnabled ? 1 : 0.5)
-
-                            WattlySegment(
-                                selection: $batterySailingDelta,
-                                options: sailingPresets.map { ($0, "\($0)%") },
-                                pillVPadding: 6,
-                                isEnabled: isLimitPickerEnabled,
-                                disabledReason: BatterySectionPresentation
-                                    .limitPickerDisabledReason(isLimitOn: batteryLimitEnabled)
-                            )
                         }
-                        .padding(EdgeInsets(top: 0, leading: 14, bottom: 14, trailing: 14))
                     }
 
-                    Rectangle().fill(t.line).frame(height: 1)
+                    if !hiddenFeatures.contains(.sailing) {
+                        Rectangle().fill(t.line).frame(height: 1)
 
-                    SettingsToggleRow(isOn: $batteryHeatProtectionEnabled,
-                                      divider: false,
-                                      isEnabled: isToggleEnabled,
-                                      // 충전 제한 토글에는 있는데 여기만 빠져 있었다 —
-                                      // 미지원 기기에서 이유 없이 흐려진 행이 된다.
-                                      disabledReason: isToggleEnabled ? nil : "이 Mac은 충전 제어를 지원하지 않습니다") {
-                        VStack(alignment: .leading, spacing: 2) {
-                            SettingsRowTitle("발열 보호")
-                            Text(verbatim: String(
-                                format: String(localized: "배터리 온도가 %lld°C를 초과하면 충전을 일시 중단하고, %lld°C 이하로 냉각되면 재개합니다.", locale: locale),
-                                locale: locale,
-                                Int64(heatProtectionThreshold),
-                                Int64(BatterySectionPresentation.heatProtectionResumeCelsius(
-                                    threshold: heatProtectionThreshold))))
-                                .font(WattlyFont.at(10.5, weight: .regular))
-                                .foregroundStyle(t.faint)
-                                .fixedSize(horizontal: false, vertical: true)
+                        SettingsToggleRow(isOn: $batterySailingEnabled,
+                                          divider: false,
+                                          isEnabled: isLimitPickerEnabled,
+                                          disabledReason: BatterySectionPresentation
+                                              .limitPickerDisabledReason(isLimitOn: batteryLimitEnabled)) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                SettingsRowTitle("Sailing 모드")
+                                Text("충전 상한에 도달한 후 배터리가 하한까지 자연 방전될 때까지 충전을 재개하지 않습니다.")
+                                    .font(WattlyFont.at(10.5, weight: .regular))
+                                    .foregroundStyle(t.faint)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+
+                        if batterySailingEnabled {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text("Sailing 범위")
+                                        .font(WattlyFont.at(12, weight: .medium))
+                                        .foregroundStyle(t.text)
+                                    Spacer()
+                                    Text(BatterySectionPresentation.sailingRangeDescription(
+                                        limit: batteryLimitPercentage,
+                                        delta: batterySailingDelta,
+                                        locale: locale))
+                                        .font(WattlyFont.at(10.5, weight: .medium))
+                                        .foregroundStyle(t.sub)
+                                }
+                                .opacity(isLimitPickerEnabled ? 1 : 0.5)
+
+                                WattlySegment(
+                                    selection: $batterySailingDelta,
+                                    options: sailingPresets.map { ($0, "\($0)%") },
+                                    pillVPadding: 6,
+                                    isEnabled: isLimitPickerEnabled,
+                                    disabledReason: BatterySectionPresentation
+                                        .limitPickerDisabledReason(isLimitOn: batteryLimitEnabled)
+                                )
+                            }
+                            .padding(EdgeInsets(top: 0, leading: 14, bottom: 14, trailing: 14))
+                        }
+                    }
+
+                    if !hiddenFeatures.contains(.heatProtection) {
+                        Rectangle().fill(t.line).frame(height: 1)
+
+                        SettingsToggleRow(isOn: $batteryHeatProtectionEnabled,
+                                          divider: false,
+                                          isEnabled: isToggleEnabled,
+                                          // 충전 제한 토글에는 있는데 여기만 빠져 있었다 —
+                                          // 미지원 기기에서 이유 없이 흐려진 행이 된다.
+                                          disabledReason: isToggleEnabled ? nil : "이 Mac은 충전 제어를 지원하지 않습니다") {
+                            VStack(alignment: .leading, spacing: 2) {
+                                SettingsRowTitle("발열 보호")
+                                Text(verbatim: String(
+                                    format: String(localized: "배터리 온도가 %lld°C를 초과하면 충전을 일시 중단하고, %lld°C 이하로 냉각되면 재개합니다.", locale: locale),
+                                    locale: locale,
+                                    Int64(heatProtectionThreshold),
+                                    Int64(BatterySectionPresentation.heatProtectionResumeCelsius(
+                                        threshold: heatProtectionThreshold))))
+                                    .font(WattlyFont.at(10.5, weight: .regular))
+                                    .foregroundStyle(t.faint)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
                         }
                     }
 
@@ -273,7 +286,9 @@ struct SettingsBatterySection: View {
 
             if showsConfigurationControls, let scheduleCoordinator {
                 SettingsSection("예약 충전") {
-                    SettingsScheduleCard(coordinator: scheduleCoordinator)
+                    SettingsScheduleCard(
+                        coordinator: scheduleCoordinator,
+                        isPauseChargingAvailable: batteryControl.status.controlBackend != .nativeLimit)
                 }
             }
         }
@@ -598,6 +613,11 @@ struct SettingsBatterySection: View {
                 }
             }
         )
+    }
+
+    /// 백엔드가 표현할 수 없어 숨기는 행. 판단은 `BatterySectionPresentation`이 갖는다.
+    private var hiddenFeatures: Set<BatteryFeature> {
+        BatterySectionPresentation.hiddenFeatures(backend: batteryControl.status.controlBackend)
     }
 
     private var isHardwareUnsupported: Bool {

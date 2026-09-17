@@ -6,6 +6,9 @@ struct ScheduleEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     let initialSchedule: BatteryChargingSchedule?
+    /// 네이티브 충전 제한 백엔드(macOS 27)는 "충전 일시 정지"를 표현할 수 없다. 이 뷰는
+    /// `BatteryControlClient`를 보지 않으므로 상위(설정 배터리 섹션)에서 내려 준다.
+    let isPauseChargingAvailable: Bool
     let onSave: (BatteryChargingSchedule) -> Void
 
     @State private var name: String = ""
@@ -20,10 +23,22 @@ struct ScheduleEditorSheet: View {
 
     init(
         initialSchedule: BatteryChargingSchedule? = nil,
+        isPauseChargingAvailable: Bool = true,
         onSave: @escaping (BatteryChargingSchedule) -> Void
     ) {
         self.initialSchedule = initialSchedule
+        self.isPauseChargingAvailable = isPauseChargingAvailable
         self.onSave = onSave
+    }
+
+    /// 동작 선택기에 올릴 항목. 백엔드가 표현할 수 없는 동작은 아예 제안하지 않는다.
+    static func actionOptions(isPauseChargingAvailable: Bool) -> [(value: Int, label: String)] {
+        var options: [(value: Int, label: String)] = [
+            (0, "충전 한도 설정"),
+            (1, "100% 완충")
+        ]
+        if isPauseChargingAvailable { options.append((2, "충전 일시 정지")) }
+        return options
     }
 
     private var isSaveDisabled: Bool {
@@ -83,11 +98,7 @@ struct ScheduleEditorSheet: View {
 
                 WattlySegment(
                     selection: $actionType,
-                    options: [
-                        (0, "충전 한도 설정"),
-                        (1, "100% 완충"),
-                        (2, "충전 일시 정지")
-                    ],
+                    options: Self.actionOptions(isPauseChargingAvailable: isPauseChargingAvailable),
                     fontSize: 11.5,
                     pillVPadding: 5
                 )
@@ -252,7 +263,9 @@ struct ScheduleEditorSheet: View {
                 case .startTopUp:
                     actionType = 1
                 case .pauseCharging:
-                    actionType = 2
+                    // 이 백엔드가 표현할 수 없는 동작으로 저장된 기존 일정을 열면, 선택기에
+                    // 없는 값이 선택된 채로 남지 않도록 기본 동작으로 떨어뜨린다.
+                    actionType = isPauseChargingAvailable ? 2 : 0
                 }
                 if case .executeIfWithin(let mins) = initial.catchUpPolicy {
                     catchUpMinutes = mins
