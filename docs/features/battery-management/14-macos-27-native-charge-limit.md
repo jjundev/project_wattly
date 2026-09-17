@@ -39,16 +39,16 @@ PowerUI 프레임워크·클래스·셀렉터 중 하나라도 없으면 네이�
 
 ## 실기 체크리스트 (릴리스 전)
 
-- [ ] `Wattly -WattlyNativeLimitProbe` → `selected backend: native-limit`
-- [ ] 도우미 미설치 상태에서 제한 토글 on → 설치 창 없이 적용, `pmset -g battlimit`에 `chargeSocLimitSoc = 80`
-- [ ] 80% 미만에서 충전 → 80% 도달 1~2분 내 0 mA, 20분 유지
+- [x] `Wattly -WattlyNativeLimitProbe` → `selected backend: native-limit` — 2026-09-17 통과
+- [~] 도우미 미설치 상태에서 제한 토글 on → 설치 창 없이 적용, `pmset -g battlimit`에 `chargeSocLimitSoc = 80` — 2026-09-18 부분 통과: 토글 on → `native limit: 80 state: on`·`owned=true`, 어댑터 연결 시 `chargeSocLimitSoc = 80`. 설치 창 미표시는 육안 확인 남음
+- [x] 80% 미만에서 충전 → 80% 도달 1~2분 내 0 mA, 20분 유지 — 2026-09-18 통과: 69→80%, 도달 1분 내 0 mA, 8분 유지(20분 관찰은 PowerUI 직접 호출 실측으로 별도 확인)
 - [ ] 제한 초과 상태에서 제한 on → 어댑터 연결인 채 음(−) 전류, 상태 줄 "방전 중", 제한 도달 후 0 mA
-- [ ] Top Up on → 1분 내 충전 재개 · Top Up 취소 → 제한 복귀
-- [ ] Top Up 중 어댑터 분리 → 재연결 후 제한이 걸려 있음
+- [~] Top Up on → 1분 내 충전 재개 · Top Up 취소 → 제한 복귀 — 2026-09-18 부분 통과: Top Up on → 일시 해제, 1분 내 +4.7 A. 앱에서 직접 취소하는 쪽은 남음
+- [x] Top Up 중 어댑터 분리 → 재연결 후 제한이 걸려 있음 — 2026-09-18 통과: 2분 30초 분리 후 `native limit: 80 state: on`, 저장 정책 topUp=false
 - [ ] 시스템 설정에서 제한을 95로 변경 → 60초 안에 Wattly 값으로 복귀
-- [ ] Wattly 제한 off → 시스템 설정에서 제한이 꺼짐 / 시스템 설정에서 직접 건 제한은 Wattly off로 안 꺼짐
+- [~] Wattly 제한 off → 시스템 설정에서 제한이 꺼짐 / 시스템 설정에서 직접 건 제한은 Wattly off로 안 꺼짐 — 2026-09-18 부분 통과: Wattly가 건 제한은 off로 `native limit: 100 state: off`·`owned=false`(저장값 `heatProtectionEnabled=true`가 남아 있어도 해제됨). 직접 건 제한 쪽은 남음
 - [ ] 사용자가 시스템 설정에서 직접 건 제한 + Top Up 중 Wattly 제한 off → 시스템 제한이 원래 값으로 복귀
-- [ ] 배터리 구동 중 `-WattlyNativeLimitProbe`의 state 값 기록
+- [x] 배터리 구동 중 `-WattlyNativeLimitProbe`의 state 값 기록 — 2026-09-18: 배터리 구동 중에도 `state: on`(제한 80 유지) — 불필요한 재기록 없음
 - [ ] 뚜껑 닫고 10분 → 열었을 때 제한 유지
 - [ ] 재부팅 → `pmset -g battlimit`에 제한 유지, Wattly 실행 후 상태 줄 정상
 - [ ] 단축어 "충전 제한 70%" → 80 적용
