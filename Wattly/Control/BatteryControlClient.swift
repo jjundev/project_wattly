@@ -583,7 +583,8 @@ import AppKit
             // these fields would flicker the settings toggles back to enabled on every transient failure.
             isHardwareSupported: status.isHardwareSupported,
             isDischargeHardwareSupported: status.isDischargeHardwareSupported,
-            capabilities: status.capabilities
+            capabilities: status.capabilities,
+            controlBackend: status.controlBackend
         )
     }
 

@@ -195,6 +195,7 @@
 		A69BDDADEECCD817F22E0380 /* SettingsMenuBarIconSectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DABD59B5D69709138741DA7F /* SettingsMenuBarIconSectionTests.swift */; };
 		A809AC3CCBF5B3100EBFB1EF /* BatteryIntentBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DC2C1E1E0FCBBF799137BAC /* BatteryIntentBridge.swift */; };
 		A840B3E848AC196CD08DE027 /* BatteryControlEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAB360226502B24172B9CECC /* BatteryControlEngine.swift */; };
+		A851203681FF09E9243D3E4B /* BatteryControlBackendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B7792BD0307B23A679183D /* BatteryControlBackendTests.swift */; };
 		AA5F16A6EDFD5217C14C02B6 /* PowerSmoothingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F5BBBFEC7E20B1DBE033A22 /* PowerSmoothingTests.swift */; };
 		AA814551648BF22576D849A0 /* UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53C2CCC20EA0CA992A5A74DE /* UpdateChecker.swift */; };
 		AB501C8FD423C41AF297476F /* WattlyFont.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B5E285FF8EA4DDD90B3B03 /* WattlyFont.swift */; };
@@ -452,6 +453,7 @@
 		8DD774FC3E00ADA33D430BCC /* UpdateSigningKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateSigningKey.swift; sourceTree = "<group>"; };
 		8FEC263D11C622505462AF34 /* SnapshotGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotGeneratorTests.swift; sourceTree = "<group>"; };
 		9044978DE889FEBEC87F3486 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		90B7792BD0307B23A679183D /* BatteryControlBackendTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryControlBackendTests.swift; sourceTree = "<group>"; };
 		9174C12241D59747340FB7CC /* WattlyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WattlyApp.swift; sourceTree = "<group>"; };
 		91C76F1ADD8A1D0EC7C3CCCC /* MetricCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricCardView.swift; sourceTree = "<group>"; };
 		9283A6B09366E0872997BDFF /* GetBatteryStatusIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetBatteryStatusIntent.swift; sourceTree = "<group>"; };
@@ -779,6 +781,7 @@
 				278F79832BC9B1FE22502E03 /* BatteryChargingScheduleTests.swift */,
 				EDF62544152400A67C6C5268 /* BatteryClamshellSleepPolicyTests.swift */,
 				05A2D2667DA9A3152F526BFF /* BatteryControlActivityTests.swift */,
+				90B7792BD0307B23A679183D /* BatteryControlBackendTests.swift */,
 				3D91CA6301C596E307E06B66 /* BatteryControlBridgeTests.swift */,
 				EC8C18034B5461609C27D17F /* BatteryControlClientTests.swift */,
 				6C21284028BECED9EE15C7F1 /* BatteryControlCoordinatorTests.swift */,
@@ -1156,6 +1159,7 @@
 				B37CD5254AC035619257393F /* BatteryChargingScheduleTests.swift in Sources */,
 				FE1FDC9CDD6D309D9E09090C /* BatteryClamshellSleepPolicyTests.swift in Sources */,
 				ECF0D7AB16AF05D3FCE25EFB /* BatteryControlActivityTests.swift in Sources */,
+				A851203681FF09E9243D3E4B /* BatteryControlBackendTests.swift in Sources */,
 				A1BA0CE5B0E21A8C2ED741DF /* BatteryControlBridgeTests.swift in Sources */,
 				2139581318B3DA81262E21EE /* BatteryControlClientTests.swift in Sources */,
 				B50DB3B0B1B52010CEBA3AB9 /* BatteryControlCoordinatorTests.swift in Sources */,
