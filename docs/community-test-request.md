@@ -61,7 +61,7 @@ swift probe-charge-registers.swift
 ### 제 M5에서는 이렇게 나옵니다
 
 ```
---- Wattly charge-register probe v1 (read-only) ---
+--- Wattly charge-register probe v2 (read-only) ---
 model:  Mac17,2
 chip:   Apple M5
 macOS:  26.6.2 (25G83)
@@ -186,6 +186,26 @@ private final class SMCReader {
         return (string(reply.output.keyInfo.dataType), size, reply.output.keyInfo.dataAttributes)
     }
 
+    /// Why `keyInfo` said nothing, or `nil` when it answered. `keyInfo` alone folds a refused call
+    /// into "absent", and that is wrong on macOS 27 firmware (`20457.1.29`): `bfF0`/`bfD0`/`bfE0`
+    /// exist there but the kernel refuses even the key-info command with `kIOReturnNotPrivileged`
+    /// — for root too — while a key that truly does not exist returns SMC result 132. A report that
+    /// prints both as "absent" hides the one fact a macOS 27 paste is collected for.
+    func failure(_ key: String) -> String? {
+        var probe = Param(); probe.key = fourCC(key); probe.data8 = cmdKeyInfo
+        let reply = call(&probe)
+        let kernel = "kern=0x" + String(UInt32(bitPattern: reply.kernel), radix: 16)
+        guard reply.kernel == KERN_SUCCESS else {
+            return reply.kernel == kIOReturnNotPrivileged ? "DENIED (\(kernel), not privileged)" : "ERROR (\(kernel))"
+        }
+        if reply.output.result == 132 { return "absent" }
+        let size = Int(reply.output.keyInfo.dataSize)
+        guard reply.output.result == 0, (1...32).contains(size) else {
+            return "UNCERTAIN (smc=\(reply.output.result) size=\(size))"
+        }
+        return nil
+    }
+
     func read(_ key: String) -> [UInt8]? {
         let k = fourCC(key)
         var probe = Param(); probe.key = k; probe.data8 = cmdKeyInfo
@@ -258,7 +278,7 @@ func shell(_ launchPath: String, _ arguments: [String]) -> String {
 }
 
 var lines: [String] = []
-lines.append("--- Wattly charge-register probe v1 (read-only) ---")
+lines.append("--- Wattly charge-register probe v2 (read-only) ---")
 // Deliberately no serial number and no user or host name: the register table only needs the model,
 // the chip and the OS, and a paste headed for a public forum should carry nothing else.
 lines.append("model:  \(sysctlString("hw.model"))")
@@ -291,7 +311,7 @@ guard let smc = SMCReader() else {
 
 func describe(_ key: String, expectedSize: Int?) -> String {
     guard let info = smc.keyInfo(key) else {
-        return "  \(key)  absent"
+        return "  \(key)  \(smc.failure(key) ?? "absent")"
     }
     let hex = smc.read(key).map { $0.map { String(format: "%02x", $0) }.joined(separator: " ") } ?? "??"
     let writable = (info.attributes & 0x40) != 0 ? "writable" : "read-only"
@@ -330,6 +350,13 @@ let verdict = isFirmwareManaged
         return info.size == $0.expectedSize
     }?.generation ?? "unsupported"
 lines.append("verdict: \(verdict)")
+// The verdict above mirrors the app, which — like `keyInfo` — cannot tell a refused key from a
+// missing one. Say so when it matters, so "unsupported" is not read as "this firmware has no
+// firmware-managed keys".
+let deniedKeys = firmwareManagedKeys.filter { smc.failure($0)?.hasPrefix("DENIED") == true }
+if !deniedKeys.isEmpty {
+    lines.append("note:    \(deniedKeys.joined(separator: "/")) exist but the kernel refuses them (macOS 27 release firmware); the app sees them as absent")
+}
 if isFirmwareManaged {
     lines.append("note:    firmware-managed charge limit present (bfF0+bfE0 decide; bfD0 shown above but never votes)")
 }
