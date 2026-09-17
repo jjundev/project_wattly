@@ -80,6 +80,16 @@ macOS 27 릴리스 펌웨어에서 Wattly가 충전을 멈추는 데 쓰던 SMC 
 | N5 | 빠진 설정 안내 | 설정에 안내 한 줄 추가, 30개 언어 번역 포함 |
 | N6 | 도우미 상태 UI | 이번 라운드에서 손대지 않는다. 합성 상태가 `.unavailable`을 내지 않으므로 배터리 섹션의 설치 유도는 자연히 뜨지 않고, 팬 쪽은 그대로다 |
 
+### 3-4. 외부 진입점(예약 충전 · 단축어)
+
+설정 화면은 `hiddenFeatures(backend:)`로 표현 불가능한 옵션을 숨기지만, 예약 충전과 단축어는 그 게이트를 타지 않아 "성공했는데 아무 일도 안 일어나는" 자리가 남았다. 둘 다 백엔드를 직접 확인해 거절한다.
+
+| 진입점 | 네이티브에서의 동작 |
+|---|---|
+| 예약 충전 `.pauseCharging` | `BatteryScheduleCoordinator`가 실행하지 않는다. 환경설정도 바꾸지 않고 `SkipReason.unsupportedOnNativeLimit`으로 이력에 남긴다. `ScheduleEditorSheet`은 이 동작을 선택지에서 뺀다(상위가 `Bool` 하나를 내려 준다) |
+| 단축어 `applySailing` · `applyHeatProtection` | 저장 **전에** `refreshStatus`로 백엔드를 확인하고 `BatteryIntentError.hardwareUnsupported`를 던진다. 환경설정은 그대로 |
+| 단축어 `applyLimit` · `applyTopUp` | 그대로 동작한다(§3-2 #0의 요청 계약 위) |
+
 ## 4. 구성
 
 ```
@@ -110,7 +120,7 @@ macOS 27 릴리스 펌웨어에서 Wattly가 충전을 멈추는 데 쓰던 SMC 
 | `Wattly/Settings/Settings.swift` (수정) | `StorageKey` 3개 |
 | `Wattly/App/WattlyApp.swift` (수정) | `-WattlyNativeLimitProbe` |
 
-영속 키(`UserDefaults.standard`): `nativeLimitDesiredConfiguration`(JSON `Data`), `nativeLimitTopUpReachedFullAt`(`Double`), `nativeLimitOwned`(`Bool`). 설정 초기화(`SettingsReset`)는 이 키를 건드리지 않는다 — 환경설정이 아니라 서비스 상태이고, 초기화가 `batteryLimitEnabled = false`를 쓰면 브리지가 disable을 밀어 서비스가 스스로 푼다.
+영속 키(`UserDefaults.standard`): `nativeLimitDesiredConfiguration`(JSON `Data`), `nativeLimitTopUpReachedFullAt`(`Double`), `nativeLimitOwned`(`Bool`), `nativeLimitSuspendedLimit`(`Int`, Top Up이 일시 해제하기 직전의 **남의 제한** 값 — 이 값이 있으면 Wattly가 꺼질 때 그 제한을 소유권 없이 다시 걸어 준다). 설정 초기화(`SettingsReset`)는 이 키를 건드리지 않는다 — 환경설정이 아니라 서비스 상태이고, 초기화가 `batteryLimitEnabled = false`를 쓰면 브리지가 disable을 밀어 서비스가 스스로 푼다.
 
 ## 5. 비범위
 
