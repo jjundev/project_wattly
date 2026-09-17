@@ -65,6 +65,12 @@ import AppKit
     ) {
         self.clamshellAllowance = clamshellAllowance
         self.requestHandler = requestHandler ?? { req in
+            // macOS 27: 충전 레지스터가 없으면 루트 도우미는 "미지원"밖에 답할 수 없다. 그때는 앱
+            // 안 서비스가 같은 계약으로 답한다 — `BatteryControlBackendSelector` 참고. 핸들러를
+            // 주입하는 테스트는 이 클로저 자체를 쓰지 않으므로 영향이 없다.
+            if BatteryControlBackendSelector.current == .nativeLimit {
+                return await NativeChargeLimitService.shared.handle(req)
+            }
             switch req {
             case .configure(let data):
                 return await Self.sendXPC { svc, reply in svc.configureBattery(data, withReply: reply) }

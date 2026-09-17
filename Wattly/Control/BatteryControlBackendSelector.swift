@@ -1,0 +1,57 @@
+import Foundation
+
+/// 이 프로세스가 충전 제한 요청을 어디로 보낼지 정한다.
+///
+/// 네이티브 백엔드는 **다른 길이 없다고 증명된 Mac에서만** 고른다: 구동 가능한 레지스터
+/// (`CHTE`/`CH0B`/`BCLM`)가 전부 SMC result 132로 부재가 확인됐고(`uncertain`은 증명이 아니다),
+/// PowerUI가 지원한다고 답할 때. 레지스터가 하나라도 남아 있는 Mac — macOS 26.x 전부 — 은
+/// 예전 그대로 루트 도우미를 쓴다. 도우미 경로는 세일링·열 보호·80% 미만 목표를 표현할 수
+/// 있고 네이티브는 못 하므로, 둘 다 가능할 때 네이티브를 고를 이유가 없다.
+enum BatteryControlBackendSelector {
+    static func select(
+        isRunningTests: Bool,
+        smcProbe: (String) -> BatteryControlKeyProbeResult,
+        isNativeSupported: () -> Bool
+    ) -> BatteryControlBackend {
+        guard !isRunningTests else { return .smc }
+        guard BatteryControlKeys.runtimeDrivableRegisterProbe(probing: smcProbe) == .noDrivableRegisterAtRuntime else {
+            return .smc
+        }
+        return isNativeSupported() ? .nativeLimit : .smc
+    }
+
+    /// 테스트 호스트는 실제 Wattly.app이다. 여기서 네이티브 백엔드가 선택되면 핸들러를 주입하지
+    /// 않은 `BatteryControlClient()`를 만드는 기존 테스트가 개발자의 시스템 충전 제한을 바꾼다.
+    static var isRunningTests: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+            || NSClassFromString("XCTestCase") != nil
+    }
+
+    /// 프로세스당 한 번. 레지스터 세대는 펌웨어의 사실이라 실행 중에 바뀌지 않는다.
+    static let current: BatteryControlBackend = {
+        guard let smc = SMCConnection() else { return .smc }
+        return select(
+            isRunningTests: isRunningTests,
+            smcProbe: { key in
+                let reply = smc.probeKeyInfo(key)
+                return .fromSMCKeyInfo(
+                    kernelSucceeded: reply.kernel == KERN_SUCCESS,
+                    smcResult: reply.output.result,
+                    type: SMCConnection.string(reply.output.keyInfo.dataType),
+                    size: Int(reply.output.keyInfo.dataSize))
+            },
+            isNativeSupported: { NativeChargeLimitService.sharedDriver.isSupported })
+    }()
+}
+
+extension NativeChargeLimitService {
+    /// 실제 PowerUI 드라이버. `static let`이라 처음 읽힐 때 — 즉 선택기가 "레지스터가 없다"고
+    /// 판정한 뒤에만 — 프레임워크를 올린다.
+    static let sharedDriver = PowerUIChargeLimitDriver()
+
+    static let shared = NativeChargeLimitService(
+        driver: sharedDriver,
+        reader: { NativeLimitBatteryReader.read() },
+        defaults: .standard,
+        now: { Date().timeIntervalSince1970 })
+}
