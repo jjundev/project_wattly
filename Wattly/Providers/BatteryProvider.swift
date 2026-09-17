@@ -30,12 +30,10 @@ actor BatteryProvider: MetricProvider {
         var volts: Double?
         var externalConnected: Bool
         var batteryMilliwatts: Int?
-        var rawCurrentCapacityMilliampHours: Int?
         var timeRemainingMinutes: Int?
-        var rawMaxCapacityMilliampHours: Int?
-        var designCapacityMilliampHours: Int?
-        var cycleCount: Int?
-        var temperatureCelsius: Double?
+        /// 레지스트리에서 읽은 용량·사이클·온도(macOS 26 이하 최상위 키 → 27의 `BatteryData`).
+        /// SMC 폴백과의 병합은 `smcSample`이 한다.
+        var facts: BatteryFacts
         var systemPowerInWatts: Double? = nil
         var systemLoadWatts: Double? = nil
     }
@@ -61,6 +59,11 @@ actor BatteryProvider: MetricProvider {
         let adapterW = smc.read("PDTR").map { smcDouble($0.bytes, type: $0.type) } ?? registry?.systemPowerInWatts ?? 0.0
         let measuredSystemW = smc.read("PSTR").map { smcDouble($0.bytes, type: $0.type) } ?? registry?.systemLoadWatts
         let externalConnected = adapterW > 0.5 || (registry?.externalConnected == true)
+        // 레지스트리가 이기고 SMC가 빈칸을 채운다 — macOS 26 이하는 오늘과 같은 값, 27은
+        // 사라진 최상위 키를 B0RM/B0NC/B0DC/B0CT/B0AT가 메운다(스펙 §3-2).
+        let facts = BatteryFactsSource.merged(
+            primary: registry?.facts ?? BatteryFacts(),
+            fallback: BatteryFactsSource.fromSMC(read: smc.read))
 
         let systemWatts = calculateSystemWatts(
             adapterWatts: adapterW,
@@ -87,15 +90,15 @@ actor BatteryProvider: MetricProvider {
             charging: isCharging(netW: netW),
             externalConnected: externalConnected,
             remainingWh: remainingWattHours(
-                rawCapacityMilliampHours: registry?.rawCurrentCapacityMilliampHours ?? 0),
+                rawCapacityMilliampHours: facts.remainingMilliampHours ?? 0),
             maxWh: remainingWattHours(
-                rawCapacityMilliampHours: registry?.rawMaxCapacityMilliampHours ?? 0),
+                rawCapacityMilliampHours: facts.maxMilliampHours ?? 0),
             timeRemainingMinutes: validatedTimeRemainingMinutes(registry?.timeRemainingMinutes),
             efficiencyPercent: batteryEfficiencyPercent(
-                maxCapacityMilliampHours: registry?.rawMaxCapacityMilliampHours ?? 0,
-                designCapacityMilliampHours: registry?.designCapacityMilliampHours ?? 0),
-            cycleCount: validatedBatteryCycleCount(registry?.cycleCount),
-            temperatureCelsius: registry?.temperatureCelsius,
+                maxCapacityMilliampHours: facts.maxMilliampHours ?? 0,
+                designCapacityMilliampHours: facts.designMilliampHours ?? 0),
+            cycleCount: validatedBatteryCycleCount(facts.cycleCount),
+            temperatureCelsius: facts.temperatureCelsius,
             powerFlow: powerFlow)
     }
 
@@ -118,8 +121,12 @@ actor BatteryProvider: MetricProvider {
             batteryMilliwatts = nil
         }
 
-        let tempCenti = number(service, "Temperature")?.intValue
-        let tempC = tempCenti.flatMap { batteryCelsius(rawCentiCelsius: $0, in: 0.0...80.0) }
+        // macOS 26 이하 최상위 키(있는 것만 담는다) + macOS 27 `BatteryData` 서브딕셔너리.
+        var topLevel: [String: Int] = [:]
+        for key in ["AppleRawCurrentCapacity", "AppleRawMaxCapacity", "DesignCapacity", "CycleCount", "Temperature"] {
+            if let value = number(service, key)?.intValue { topLevel[key] = value }
+        }
+        let facts = BatteryFactsSource.fromRegistry(topLevel: topLevel, batteryData: dict(service, "BatteryData"))
 
         var systemPowerInW: Double? = nil
         var systemLoadW: Double? = nil
@@ -136,12 +143,8 @@ actor BatteryProvider: MetricProvider {
             volts: volts,
             externalConnected: externalConnected,
             batteryMilliwatts: batteryMilliwatts,
-            rawCurrentCapacityMilliampHours: number(service, "AppleRawCurrentCapacity")?.intValue,
             timeRemainingMinutes: number(service, "TimeRemaining")?.intValue ?? number(service, "AvgTimeToFull")?.intValue ?? number(service, "TimeToFull")?.intValue,
-            rawMaxCapacityMilliampHours: number(service, "AppleRawMaxCapacity")?.intValue,
-            designCapacityMilliampHours: number(service, "DesignCapacity")?.intValue,
-            cycleCount: number(service, "CycleCount")?.intValue,
-            temperatureCelsius: tempC,
+            facts: facts,
             systemPowerInWatts: systemPowerInW,
             systemLoadWatts: systemLoadW)
     }
@@ -180,15 +183,15 @@ actor BatteryProvider: MetricProvider {
             netW: netW, milliamps: abs(batteryMilliamps(batteryMilliwatts: milliwatts, volts: volts)),
             volts: volts, charging: isCharging(netW: netW), externalConnected: registry.externalConnected,
             remainingWh: remainingWattHours(
-                rawCapacityMilliampHours: registry.rawCurrentCapacityMilliampHours ?? 0),
+                rawCapacityMilliampHours: registry.facts.remainingMilliampHours ?? 0),
             maxWh: remainingWattHours(
-                rawCapacityMilliampHours: registry.rawMaxCapacityMilliampHours ?? 0),
+                rawCapacityMilliampHours: registry.facts.maxMilliampHours ?? 0),
             timeRemainingMinutes: validatedTimeRemainingMinutes(registry.timeRemainingMinutes),
             efficiencyPercent: batteryEfficiencyPercent(
-                maxCapacityMilliampHours: registry.rawMaxCapacityMilliampHours ?? 0,
-                designCapacityMilliampHours: registry.designCapacityMilliampHours ?? 0),
-            cycleCount: validatedBatteryCycleCount(registry.cycleCount),
-            temperatureCelsius: registry.temperatureCelsius,
+                maxCapacityMilliampHours: registry.facts.maxMilliampHours ?? 0,
+                designCapacityMilliampHours: registry.facts.designMilliampHours ?? 0),
+            cycleCount: validatedBatteryCycleCount(registry.facts.cycleCount),
+            temperatureCelsius: registry.facts.temperatureCelsius,
             powerFlow: powerFlow)))
     }
 
@@ -202,3 +205,37 @@ actor BatteryProvider: MetricProvider {
         IORegistryEntryCreateCFProperty(service, key as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue() as? [String: Any]
     }
 }
+
+#if DEBUG
+/// DEBUG 실기 프로브. 실제 `BatteryProvider`(SMC 우선 + 레지스트리)로 3회 읽어 출력하고 종료한다.
+/// OS 업데이트 뒤 배터리 사실(효율·Wh·온도·사이클)이 살아 있는지 GUI 없이 확인하는 용도:
+///   `Wattly.app/Contents/MacOS/Wattly -WattlyBatteryProbe`
+/// Release에서는 제외. 막힌 메인 스레드 밖에서 돌도록 detached.
+enum BatteryProbe {
+    static func runIfRequested() {
+        guard CommandLine.arguments.contains("-WattlyBatteryProbe") else { return }
+        let provider = BatteryProvider()
+        let done = DispatchSemaphore(value: 0)
+        Task.detached {
+            let clock = ContinuousClock()
+            for i in 0..<3 {
+                let reading = await provider.read(at: clock.now)
+                print("[battery-probe] sample \(i): \(describe(reading))")
+                try? await Task.sleep(for: .seconds(1))
+            }
+            done.signal()
+        }
+        done.wait()
+        exit(0)
+    }
+
+    private static func describe(_ r: ProviderReading) -> String {
+        guard case .value(.battery(let s)) = r else { return "non-battery: \(r)" }
+        func f(_ v: Double?) -> String { v.map { String(format: "%.2f", $0) } ?? "nil" }
+        return "net \(f(s.netW)) W · \(s.milliamps) mA · \(f(s.volts)) V · charging=\(s.charging) ext=\(s.externalConnected)"
+            + " · remaining \(f(s.remainingWh)) Wh / max \(f(s.maxWh)) Wh · pct \(s.percentage.map(String.init) ?? "nil")"
+            + " · efficiency \(f(s.efficiencyPercent)) % · cycles \(s.cycleCount.map(String.init) ?? "nil")"
+            + " · temp \(f(s.temperatureCelsius)) °C · timeRemaining \(s.timeRemainingMinutes.map(String.init) ?? "nil") min"
+    }
+}
+#endif
