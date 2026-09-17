@@ -71,7 +71,7 @@ macOS 27에서 IOReport `Energy Model` 그룹의 mJ 누적 채널(`CPU Energy`, 
   [power-probe] sample 2: source=pmp histCPU=2.51 W · total 2.57 W · cpu 2.51 · gpu 0.06 · ane 0.00
   [power-probe] sample 3: source=pmp histCPU=7.12 W · total 7.12 W · cpu 7.12 · gpu 0.00 · ane 0.00
   ```
-  이 유휴 런은 기계가 실제로 놀고 있지 않았다(같은 머신에서 이 에이전트 세션과 직전 xcodebuild가 동시에 돌고 있었음) — 그래서 CPU가 조용한 기계의 1~2 W가 아니라 **0.7~7.5 W** 범위에서 흔들렸다. `total ≈ cpu + gpu`는 매 샘플 성립, `ane`는 0.00으로 유지.
+  이 유휴 런은 기계가 실제로 놀고 있지 않았다(같은 머신에서 이 에이전트 세션과 직전 xcodebuild가 동시에 돌고 있었음) — 그래서 CPU가 조용한 기계의 1~2 W가 아니라 **0.8~7.5 W**(sample 6 0.82 W ~ sample 7 7.46 W) 범위에서 흔들렸다. `total ≈ cpu + gpu`는 매 샘플 성립, `ane`는 0.00으로 유지.
 - `yes` ×4 부하: `deciding` 폴부터 이미 16.9 W로 튀고, `pmp` 전환 후 다음 샘플들에서 **약 17 W대(16.77~17.14 W)로 안정**. 관측값:
   ```
   [power-probe] sample 1: source=deciding histCPU=16.91 W · pending
