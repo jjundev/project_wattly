@@ -13,19 +13,24 @@ import Testing
         let service: NativeChargeLimitService
         let driver: FakeNativeChargeLimitDriver
         let world: World
-        let defaults: UserDefaults
+        let suiteName: String
+        // `UserDefaults` isn't `Sendable` on this SDK, so the same instance can't cross into the
+        // actor's isolated init and also stay alive here for the test's own reads without Swift 6
+        // flagging a data race. A fresh instance per read shares the same suite storage in-process
+        // (CFPreferences caches per-domain), so this reads back whatever the actor last wrote.
+        var defaults: UserDefaults { UserDefaults(suiteName: suiteName)! }
     }
 
-    private func rig(defaults: UserDefaults? = nil, driver: FakeNativeChargeLimitDriver? = nil) -> Rig {
-        let defaults = defaults ?? UserDefaults(suiteName: "native-limit-\(UUID().uuidString)")!
+    private func rig(suiteName: String? = nil, driver: FakeNativeChargeLimitDriver? = nil) -> Rig {
+        let suiteName = suiteName ?? "native-limit-\(UUID().uuidString)"
         let driver = driver ?? FakeNativeChargeLimitDriver()
         let world = World()
         let service = NativeChargeLimitService(
             driver: driver,
             reader: { world.reading },
-            defaults: defaults,
+            defaults: UserDefaults(suiteName: suiteName)!,
             now: { world.now })
-        return Rig(service: service, driver: driver, world: world, defaults: defaults)
+        return Rig(service: service, driver: driver, world: world, suiteName: suiteName)
     }
 
     private func configure(_ configuration: BatteryControlConfiguration) throws -> BatteryControlClient.BatteryControlClientRequest {
@@ -70,6 +75,7 @@ import Testing
         let status = await r.service.process(.status)
         #expect(r.driver.writes == ["set:80", "set:80"])
         #expect(status.appliedLimitPercentage == 80)
+        #expect(status.lastMaintenance?.trigger == .startup)
     }
 
     @Test func offListRequestIsRoundedUpAndReported() async throws {
@@ -143,14 +149,14 @@ import Testing
     }
 
     @Test func aRelaunchedServiceRemembersThePolicyAndFinishesAnExpiredTopUp() async throws {
-        let defaults = UserDefaults(suiteName: "native-limit-\(UUID().uuidString)")!
+        let suiteName = "native-limit-\(UUID().uuidString)"
         let driver = FakeNativeChargeLimitDriver()
-        let first = rig(defaults: defaults, driver: driver)
+        let first = rig(suiteName: suiteName, driver: driver)
         _ = await first.service.process(try configure(.init(enabled: true, limitPercentage: 85, topUpActive: true)))
         first.world.reading = .init(percentage: 100, isPluggedIn: true, batteryMilliamps: 0)
         _ = await first.service.process(.status)
 
-        let second = rig(defaults: defaults, driver: driver)   // 앱 재실행
+        let second = rig(suiteName: suiteName, driver: driver)   // 앱 재실행
         second.world.reading = .init(percentage: 100, isPluggedIn: true, batteryMilliamps: 0)
         second.world.now = 1_000_000 + BatteryTopUpExpiry.duration
         let status = await second.service.process(.status)

@@ -1,13 +1,5 @@
 import Foundation
 
-/// 이 SDK(macOS 27)의 Foundation 오버레이는 `UserDefaults`의 `Sendable` 준수를 명시적으로
-/// `unavailable`로 막아 놨다 — 구현은 내부적으로 스레드-세이프임에도 그렇다. 이 서비스의 init은
-/// 액터 격리 경계를 넘어 `UserDefaults`를 받고, 호출자(테스트 rig 등)도 같은 참조를 계속 들고
-/// 있어야 하므로 `nonisolated(unsafe)` 저장 프로퍼티만으로는 부족하다(파라미터가 액터로
-/// "송신"되는 시점에 이미 막힌다). 대신 여기서만 `@unchecked Sendable`로 재선언해 이 파일이
-/// 만드는 경계에서만 위험을 떠안는다.
-extension UserDefaults: @unchecked @retroactive Sendable {}
-
 /// macOS 27에서 루트 도우미 대신 충전 제한 요청에 답하는 앱 안 서비스.
 ///
 /// `BatteryControlClient`의 요청 계약을 그대로 말한다(`.configure(Data)` / `.status` → 인코딩된
