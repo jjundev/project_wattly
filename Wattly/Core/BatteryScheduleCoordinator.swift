@@ -226,6 +226,13 @@ import AppKit
                 recordOutcome(schedule: schedule, status: status, at: date)
             }
 
+        case .pauseCharging where batteryControl.status.controlBackend == .nativeLimit:
+            // 네이티브 제한은 상한 하나가 전부라 50%가 80%로 스냅된다. 그대로 두면 배터리가
+            // 80%까지 **충전되는 동안** "충전 일시 정지 성공" 알림이 뜬다. 환경설정도 건드리지
+            // 않고 — 한도를 50으로 내려 두면 레지스터가 있는 Mac으로 돌아갔을 때 그 값이
+            // 살아난다 — 사유만 남긴다.
+            recordLog(schedule: schedule, status: .skipped(reason: .unsupportedOnNativeLimit), timestamp: date)
+
         case .pauseCharging:
             prefs.limitEnabled = true
             prefs.limitPercentage = Self.pauseChargingLimitPercentage

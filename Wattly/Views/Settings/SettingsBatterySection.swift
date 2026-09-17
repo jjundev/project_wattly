@@ -286,7 +286,9 @@ struct SettingsBatterySection: View {
 
             if showsConfigurationControls, let scheduleCoordinator {
                 SettingsSection("예약 충전") {
-                    SettingsScheduleCard(coordinator: scheduleCoordinator)
+                    SettingsScheduleCard(
+                        coordinator: scheduleCoordinator,
+                        isPauseChargingAvailable: batteryControl.status.controlBackend != .nativeLimit)
                 }
             }
         }
