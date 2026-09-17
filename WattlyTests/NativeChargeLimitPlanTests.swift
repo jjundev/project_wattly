@@ -8,14 +8,16 @@ import Testing
         _ configuration: BatteryControlConfiguration,
         plugged: Bool = true,
         native: NativeLimitSnapshot,
-        owns: Bool = false
+        owns: Bool = false,
+        suspendedForeignLimit: Int? = nil
     ) -> NativeLimitCommand {
         NativeChargeLimitPlan.command(
             configuration: configuration,
             isPluggedIn: plugged,
             native: native,
             ownsNativeLimit: owns,
-            availableLimits: limits)
+            availableLimits: limits,
+            suspendedForeignLimit: suspendedForeignLimit)
     }
 
     // MARK: enabledState
@@ -119,5 +121,24 @@ import Testing
     @Test func disablingWithNothingArmedStillClearsOwnershipThroughRelease() {
         // 소유 플래그가 남아 있으면 release가 한 번 나가고, 서비스가 그때 플래그를 내린다.
         #expect(command(.init(enabled: false), native: .init(limit: 100, state: .off), owns: true) == .release)
+    }
+
+    @Test func disablingRestoresAForeignLimitThisAppLeftTemporarilyDisabled() {
+        // 사용자가 직접 건 제한을 Top Up이 일시 해제해 둔 채로 Wattly가 꺼졌다. 일시 해제는
+        // 완충으로도 어댑터 분리로도 풀리지 않으므로(실측) 여기서 원래 값을 다시 걸어 준다.
+        let suspended = NativeLimitSnapshot(limit: 100, state: .temporarilyDisabled)
+        #expect(command(.init(enabled: false), native: suspended, suspendedForeignLimit: 85)
+                == .restoreForeign(85))
+    }
+
+    @Test func disablingWithNoRememberedForeignLimitStillKeepsHandsOff() {
+        let suspended = NativeLimitSnapshot(limit: 100, state: .temporarilyDisabled)
+        #expect(command(.init(enabled: false), native: suspended, suspendedForeignLimit: nil) == .none)
+    }
+
+    @Test func disablingAnOwnedLimitStillReleasesEvenWithASuspendedValue() {
+        let suspended = NativeLimitSnapshot(limit: 100, state: .temporarilyDisabled)
+        #expect(command(.init(enabled: false), native: suspended, owns: true, suspendedForeignLimit: 85)
+                == .release)
     }
 }

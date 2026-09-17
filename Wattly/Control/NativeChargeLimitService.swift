@@ -101,26 +101,46 @@ actor NativeChargeLimitService {
         var outcome = NativeLimitWriteOutcome.none
 
         if let current = snapshot {
+            let owns = defaults.bool(forKey: StorageKey.nativeLimitOwned)
+            let suspended = suspendedForeignLimit()
             let command = NativeChargeLimitPlan.command(
                 configuration: configuration,
                 isPluggedIn: reading.isPluggedIn,
                 native: current,
-                ownsNativeLimit: defaults.bool(forKey: StorageKey.nativeLimitOwned),
-                availableLimits: availableLimits)
+                ownsNativeLimit: owns,
+                availableLimits: availableLimits,
+                suspendedForeignLimit: suspended)
             do {
                 switch command {
                 case .none:
                     break
                 case .setLimit(let percentage):
                     try driver.setLimit(percentage)
-                    defaults.set(percentage < NativeChargeLimitPlan.releaseLimit, forKey: StorageKey.nativeLimitOwned)
+                    // 기억해 둔 값과 **같은 값**을 다시 거는 것은 사용자의 제한을 원상복구하는
+                    // 것이지 우리 제한을 거는 것이 아니다 — 소유권을 가져가지 않는다.
+                    let takesOwnership = percentage < NativeChargeLimitPlan.releaseLimit
+                        && suspended != percentage
+                    defaults.set(takesOwnership, forKey: StorageKey.nativeLimitOwned)
+                    setSuspendedForeignLimit(nil)
                     outcome = .applied
                 case .temporarilyDisable:
+                    // 우리 것이 아닌 제한을 해제하기 전에 원래 값을 적어 둔다. 해제 중에는
+                    // `getMCLLimitWithError:`가 100으로 가려 주므로 지금이 아니면 읽을 수 없다.
+                    if !owns, current.state == .on {
+                        setSuspendedForeignLimit(current.limit)
+                    } else if owns {
+                        setSuspendedForeignLimit(nil)
+                    }
                     try driver.temporarilyDisable()
                     outcome = .applied
                 case .release:
                     try driver.setLimit(NativeChargeLimitPlan.releaseLimit)
                     defaults.set(false, forKey: StorageKey.nativeLimitOwned)
+                    setSuspendedForeignLimit(nil)
+                    outcome = .applied
+                case .restoreForeign(let percentage):
+                    try driver.setLimit(percentage)
+                    setSuspendedForeignLimit(nil)
                     outcome = .applied
                 }
             } catch {
@@ -167,6 +187,19 @@ actor NativeChargeLimitService {
 
     private func reachedFullAt() -> TimeInterval? {
         defaults.object(forKey: StorageKey.nativeLimitTopUpReachedFullAt) as? TimeInterval
+    }
+
+    /// Top Up이 일시 해제한, 이 앱이 소유하지 않은 제한의 원래 값.
+    private func suspendedForeignLimit() -> Int? {
+        defaults.object(forKey: StorageKey.nativeLimitSuspendedLimit) as? Int
+    }
+
+    private func setSuspendedForeignLimit(_ percentage: Int?) {
+        if let percentage {
+            defaults.set(percentage, forKey: StorageKey.nativeLimitSuspendedLimit)
+        } else {
+            defaults.removeObject(forKey: StorageKey.nativeLimitSuspendedLimit)
+        }
     }
 
     private func setReachedFullAt(_ moment: TimeInterval?) {

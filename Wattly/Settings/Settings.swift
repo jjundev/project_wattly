@@ -501,6 +501,7 @@ enum StorageKey {
     static let nativeLimitDesiredConfiguration = "nativeLimitDesiredConfiguration"
     static let nativeLimitTopUpReachedFullAt = "nativeLimitTopUpReachedFullAt"
     static let nativeLimitOwned = "nativeLimitOwned"
+    static let nativeLimitSuspendedLimit = "nativeLimitSuspendedLimit"
     static let menuBatteryTemp = "menu.batteryTemp"
     static let menuMemPressure = "menu.memPressure"
     static let expandedCards = "expandedCards"   // CSV of expanded card raw values (issue 04)

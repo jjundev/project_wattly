@@ -33,6 +33,10 @@ enum NativeLimitCommand: Equatable, Sendable {
     /// Wattly가 건 제한을 푼다. 실행은 `setLimit(releaseLimit)`이지만 소유 플래그를 내리는
     /// 부수 효과가 달라 별도 케이스다.
     case release
+    /// 이 앱이 소유하지 않은 제한 — 사용자가 시스템 설정에서 직접 건 값 — 을 Top Up이 일시
+    /// 해제해 둔 채로 Wattly가 꺼졌을 때, 원래 값을 다시 건다. 실행은 `setLimit`이지만 소유권을
+    /// 가져가지 않는다는 점이 달라 별도 케이스다.
+    case restoreForeign(Int)
 }
 
 /// 설정과 네이티브 상태를 보고 다음에 쓸 명령 하나를 고른다. 순수 함수 — I/O도 시계도 없다.
@@ -55,7 +59,9 @@ enum NativeChargeLimitPlan {
         isPluggedIn: Bool,
         native: NativeLimitSnapshot,
         ownsNativeLimit: Bool,
-        availableLimits: [Int]
+        availableLimits: [Int],
+        /// Top Up이 일시 해제하기 직전에 기억해 둔, 이 앱이 소유하지 않은 제한 값.
+        suspendedForeignLimit: Int?
     ) -> NativeLimitCommand {
         // Top Up은 어댑터가 있어야 의미가 있다. 없으면 평소 제한 경로로 떨어져 제한을 다시 건다 —
         // 일시 해제는 어댑터 분리로도 스스로 풀리지 않기 때문에(실측) 여기서 풀어 줘야 한다.
@@ -63,7 +69,14 @@ enum NativeChargeLimitPlan {
             return native.state == .on ? .temporarilyDisable : .none
         }
         guard configuration.enabled else {
-            return ownsNativeLimit ? .release : .none
+            if ownsNativeLimit { return .release }
+            // 우리 것이 아닌 제한을 Top Up이 일시 해제해 둔 채로 꺼지면, 그 제한은 영원히
+            // 해제 상태로 남는다(완충으로도 어댑터 분리로도 안 풀린다 — 실측). 기억해 둔
+            // 값이 있으면 사용자의 제한을 원래대로 돌려놓고 손을 뗀다.
+            if native.state == .temporarilyDisabled, let saved = suspendedForeignLimit {
+                return .restoreForeign(saved)
+            }
+            return .none
         }
         let target = snapped(configuration.clampedLimitPercentage, to: availableLimits)
         if target >= releaseLimit {

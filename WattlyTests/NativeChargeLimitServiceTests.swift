@@ -193,6 +193,58 @@ import Testing
         #expect(status.desiredConfiguration?.enabled == true)
     }
 
+    // MARK: - 사용자가 직접 건 제한(소유하지 않은 제한)
+
+    @Test func topUpOnAForeignLimitRestoresItWhenWattlyIsSwitchedOff() async throws {
+        let driver = FakeNativeChargeLimitDriver()
+        driver.current = .init(limit: 80, state: .on)   // 사용자가 시스템 설정에서 직접 건 제한
+        let r = rig(driver: driver)
+
+        _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80)))
+        #expect(driver.writes.isEmpty)
+        #expect(r.defaults.bool(forKey: StorageKey.nativeLimitOwned) == false)
+
+        _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80, topUpActive: true)))
+        #expect(driver.writes == ["tempDisable"])
+        #expect(r.defaults.object(forKey: StorageKey.nativeLimitSuspendedLimit) as? Int == 80)
+
+        _ = await r.service.process(try configure(.init(enabled: false)))
+        #expect(driver.writes == ["tempDisable", "set:80"])
+        #expect(driver.current == .init(limit: 80, state: .on))
+        #expect(r.defaults.bool(forKey: StorageKey.nativeLimitOwned) == false)
+        #expect(r.defaults.object(forKey: StorageKey.nativeLimitSuspendedLimit) == nil)
+    }
+
+    @Test func rearmingAForeignLimitAtTheSameValueDoesNotTakeOwnership() async throws {
+        let driver = FakeNativeChargeLimitDriver()
+        driver.current = .init(limit: 80, state: .on)
+        let r = rig(driver: driver)
+
+        _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80)))
+        _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80, topUpActive: true)))
+        #expect(r.defaults.object(forKey: StorageKey.nativeLimitSuspendedLimit) as? Int == 80)
+
+        // 어댑터를 뽑아 Top Up이 끝나면 서비스가 같은 값을 다시 건다 — 사용자의 제한이지 우리 것이 아니다.
+        r.world.reading = .init(percentage: 92, isPluggedIn: false, batteryMilliamps: -600)
+        _ = await r.service.process(.status)
+        #expect(driver.writes == ["tempDisable", "set:80"])
+        #expect(r.defaults.bool(forKey: StorageKey.nativeLimitOwned) == false)
+        #expect(r.defaults.object(forKey: StorageKey.nativeLimitSuspendedLimit) == nil)
+
+        r.world.reading = .init(percentage: 92, isPluggedIn: true, batteryMilliamps: 0)
+        _ = await r.service.process(try configure(.init(enabled: false)))
+        #expect(driver.writes == ["tempDisable", "set:80"])
+    }
+
+    @Test func topUpOnAnOwnedLimitNeverRemembersASuspendedValue() async throws {
+        let r = rig()
+        _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80)))
+        #expect(r.defaults.bool(forKey: StorageKey.nativeLimitOwned))
+        _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80, topUpActive: true)))
+        #expect(r.driver.writes == ["set:80", "tempDisable"])
+        #expect(r.defaults.object(forKey: StorageKey.nativeLimitSuspendedLimit) == nil)
+    }
+
     @Test func anUndecodableConfigureIsAFailedMaintenanceAndKeepsThePreviousPolicy() async throws {
         let r = rig()
         _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80)))
