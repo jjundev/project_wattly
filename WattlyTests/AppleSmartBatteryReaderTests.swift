@@ -32,6 +32,17 @@ struct AppleSmartBatteryReaderTests {
         #expect(reading.isChargeStalled == false)
     }
 
+    @Test func chargingCurrentPrefersRegistryThenClampsSMCCurrent() {
+        // macOS 26 이하: 레지스트리 `ChargingCurrent`(설정 전류)가 그대로 이긴다.
+        #expect(CalibrationBatteryReading.chargingCurrent(registry: 100, smcBatteryCurrent: 3265) == 100)
+        // macOS 27: 레지스트리가 없으면 SMC `B0AC` 실전류. 충전 중 양수는 그대로.
+        #expect(CalibrationBatteryReading.chargingCurrent(registry: nil, smcBatteryCurrent: 3265) == 3265)
+        // 방전 중(음수)은 "충전 전류 0" — 게이트가 열렸는데 안 들어오면 정체로 보여야 한다.
+        #expect(CalibrationBatteryReading.chargingCurrent(registry: nil, smcBatteryCurrent: -2030) == 0)
+        // 둘 다 없으면 nil — 판독 실패를 정체로 단정하지 않는다(isChargeStalled == false).
+        #expect(CalibrationBatteryReading.chargingCurrent(registry: nil, smcBatteryCurrent: nil) == nil)
+    }
+
     @Test func liveReadEitherAnswersOrDegradesToNils() async {
         // 실제 하드웨어 판독은 CI 환경(배터리 없는 Mac 포함)에서 값이 달라진다. 검증할 수 있는
         // 계약은 "크래시하지 않고, 못 읽은 항목은 nil로 남는다" 하나다.
