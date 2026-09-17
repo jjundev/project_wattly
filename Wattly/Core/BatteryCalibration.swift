@@ -141,7 +141,8 @@ public enum BatteryCalibration {
 
     /// 충전 정체 판정: 어댑터가 붙고 게이트도 열렸는데 충전 전류가 이 값 아래로 이만큼
     /// 지속되면 외부 요인이 막고 있는 것이다. 실기에서 "최적화된 배터리 충전"이 켜져 있을 때
-    /// `ChargingCurrent`가 100 mA에 머물렀다.
+    /// `ChargingCurrent`가 100 mA에 머물렀다. macOS 27부터 그 키가 없어 SMC `B0AC` 실전류를
+    /// 쓴다(`CalibrationBatteryReading.chargingCurrent`) — 실전류도 같은 상황에서 0에 붙는다.
     public static let chargeStallMilliamps = 300
     public static let chargeStallSeconds: TimeInterval = 600
 

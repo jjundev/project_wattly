@@ -150,15 +150,16 @@ struct BatterySample: Sendable, Equatable {
     /// Monitor-owned display value projected between telemetry updates. The provider never
     /// assigns it; nil means runtime is unavailable or intentionally hidden.
     var projectedTimeRemainingMinutes: Int? = nil
-    /// Health/efficiency: AppleRawMaxCapacity ÷ DesignCapacity × 100. nil when the
-    /// registry capacity pair is absent or invalid.
+    /// Health/efficiency: Nominal max capacity ÷ DesignCapacity × 100 (`BatteryFacts`:
+    /// registry `AppleRawMaxCapacity` → `BatteryData.NominalChargeCapacity` → SMC `B0NC`).
+    /// nil when no source yields a valid capacity pair.
     var efficiencyPercent: Double? = nil
     /// AppleSmartBattery cycle count. nil when absent or outside the plausible range.
     var cycleCount: Int? = nil
     /// Display-only one-minute EMA of signed net power. Providers leave this nil;
     /// `SystemMonitor` attaches it so the battery sub-line can show sustained draw.
     var average1mW: Double? = nil
-    /// Battery pack temperature, °C (from AppleSmartBattery centi-°C). nil on desktop or unreadable.
+    /// Battery pack temperature, °C (registry `Temperature` centi-°C, or SMC `B0AT` on macOS 27+). nil on desktop or unreadable.
     var temperatureCelsius: Double? = nil
     /// Active target charge percentage (50...100, default 100).
     var targetPercentage: Int = 100

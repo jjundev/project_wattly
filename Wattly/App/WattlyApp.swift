@@ -15,6 +15,7 @@ struct WattlyApp: App {
         #if DEBUG
         ThermalProbe.runIfRequested()  // -WattlyThermalProbe: dump live temps and exit (plan 08 Phase 0)
         FanProbe.runIfRequested()      // -WattlyFanProbe: dump live fan RPM and exit (Phase A Phase 0)
+        BatteryProbe.runIfRequested()  // -WattlyBatteryProbe: dump live battery facts and exit (macOS 27 migration)
         #endif
         // CPU/memory/power/battery/temperature are all real providers now; the dev
         // `-WattlyScenario` harness shapes only the remaining fault/desktop-demo fakes.

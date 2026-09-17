@@ -8,6 +8,9 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
     private let allowedUID: uid_t
     private let engine: FanControlEngine
     private let batteryCoordinator: BatteryControlCoordinator
+    /// 레지스트리 `Temperature`가 없을 때(macOS 27+) 쓰는 배터리 온도. `main.swift`가 SMC
+    /// `B0AT`를 읽는 클로저를 넣는다. 데몬 `queue` 위에서만 호출된다 — SMC 연결도 그 큐에서만 쓴다.
+    private let batteryTemperatureFallback: @Sendable () -> Double?
     private let batteryControlService: BatteryDaemonControlService
     private var latestBatteryStatus: BatteryControlServiceStatus {
         batteryCoordinator.latestStatus
@@ -35,11 +38,13 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
     init(
         allowedUID: uid_t,
         hardware: any FanControlHardware,
-        batteryCoordinator: BatteryControlCoordinator
+        batteryCoordinator: BatteryControlCoordinator,
+        batteryTemperatureFallback: @escaping @Sendable () -> Double? = { nil }
     ) {
         self.allowedUID = allowedUID
         self.engine = FanControlEngine(hardware: hardware)
         self.batteryCoordinator = batteryCoordinator
+        self.batteryTemperatureFallback = batteryTemperatureFallback
         self.batteryControlService = BatteryDaemonControlService(
             coordinator: batteryCoordinator)
         self.listener = NSXPCListener(machServiceName: FanControlXPC.machService)
@@ -204,6 +209,9 @@ final class FanControlDaemon: NSObject, NSXPCListenerDelegate, FanControlXPCServ
                 tempC = Double(centiCelsius) / 100.0
             }
         }
+        // macOS 27부터 `Temperature` 키가 없다 — 없으면 SMC `B0AT`(같은 centi-°C 단위)로 채운다.
+        // 이게 없으면 열 보호가 영원히 `batterySensorUnreadable`이다.
+        if tempC == nil { tempC = batteryTemperatureFallback() }
 
         var extConnected: Bool? = nil
         if let rawExt = IORegistryEntryCreateCFProperty(service, "ExternalConnected" as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue() {

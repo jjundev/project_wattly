@@ -59,7 +59,9 @@ let batteryCoordinator = BatteryControlCoordinator(
 let daemon = FanControlDaemon(
     allowedUID: uid_t(uid),
     hardware: hardware,
-    batteryCoordinator: batteryCoordinator
+    batteryCoordinator: batteryCoordinator,
+    // 레지스트리 `Temperature`가 사라진 macOS 27용 폴백. `smc`는 데몬 큐에서만 쓰인다.
+    batteryTemperatureFallback: { BatteryFactsSource.smcTemperatureCelsius(read: smc.read) }
 )
 daemon.run()
 do {

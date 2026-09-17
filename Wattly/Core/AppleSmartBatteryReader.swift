@@ -42,6 +42,15 @@ public struct CalibrationBatteryReading: Equatable, Sendable {
         guard isAdapterPresent, let current = chargingCurrentMilliamps else { return false }
         return current < BatteryCalibration.chargeStallMilliamps
     }
+
+    /// 정체 판정에 쓸 충전 전류. 레지스트리 `ChargingCurrent`(macOS 26 이하, 충전기에 *설정된*
+    /// 전류 — 최적화된 배터리 충전이 막으면 100 mA)가 있으면 그대로, 없으면(macOS 27) SMC
+    /// `B0AC` 실전류를 쓴다. 실전류는 방전이면 음수라 0으로 접는다 — 게이트를 열었는데 전류가
+    /// 안 들어오는 상황이 정확히 "정체"다.
+    static func chargingCurrent(registry: Int?, smcBatteryCurrent: Int?) -> Int? {
+        if let registry { return registry }
+        return smcBatteryCurrent.map { max(0, $0) }
+    }
 }
 
 /// 폴링 정책과 무관하게 배터리를 직접 읽는다.
@@ -56,19 +65,34 @@ actor AppleSmartBatteryReader {
     func read() -> CalibrationBatteryReading {
         var reading = CalibrationBatteryReading()
 
+        if !smcAttempted { smcAttempted = true; smc = SMCConnection() }
+        let smcFacts = smc.map { BatteryFactsSource.fromSMC(read: $0.read) } ?? BatteryFacts()
+
+        var registryFacts = BatteryFacts()
+        var registryChargingCurrent: Int?
         let service = IOServiceGetMatchingService(
             kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"))
         if service != 0 {
             defer { IOObjectRelease(service) }
             reading.isCharging = bool(service, "IsCharging")
             reading.adapterWatts = (dict(service, "AdapterDetails")?["Watts"] as? NSNumber)?.intValue
-            reading.chargingCurrentMilliamps = number(service, "ChargingCurrent")?.intValue
-            reading.maxCapacityMilliampHours = number(service, "AppleRawMaxCapacity")?.intValue
-            reading.designCapacityMilliampHours = number(service, "DesignCapacity")?.intValue
-            reading.cycleCount = number(service, "CycleCount")?.intValue
+            registryChargingCurrent = number(service, "ChargingCurrent")?.intValue
+            var topLevel: [String: Int] = [:]
+            for key in ["AppleRawMaxCapacity", "DesignCapacity", "CycleCount"] {
+                if let value = number(service, key)?.intValue { topLevel[key] = value }
+            }
+            registryFacts = BatteryFactsSource.fromRegistry(topLevel: topLevel, batteryData: dict(service, "BatteryData"))
         }
 
-        if !smcAttempted { smcAttempted = true; smc = SMCConnection() }
+        // 레지스트리 → SMC 폴백 — `BatteryProvider`와 같은 우선순위라 앱 카드와 캘리브레이션
+        // 리포트가 같은 mAh를 말한다(스펙 §3-2).
+        let facts = BatteryFactsSource.merged(primary: registryFacts, fallback: smcFacts)
+        reading.chargingCurrentMilliamps = CalibrationBatteryReading.chargingCurrent(
+            registry: registryChargingCurrent, smcBatteryCurrent: smcFacts.currentMilliamps)
+        reading.maxCapacityMilliampHours = facts.maxMilliampHours
+        reading.designCapacityMilliampHours = facts.designMilliampHours
+        reading.cycleCount = facts.cycleCount
+
         if let smc, let power = smc.read("B0AP"),
            let milliwatts = smcInt(power.bytes, type: power.type) {
             reading.netWatts = netWatts(batteryMilliwatts: milliwatts)
