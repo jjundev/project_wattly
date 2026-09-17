@@ -1,12 +1,5 @@
 import Foundation
 
-/// 설정 › 배터리 섹션들의 순수 표시 판단. SwiftUI도 I/O도 없다 —
-/// `CardPresentation` / `Accessibility` / `BatteryControlPolicy`와 같은 방식으로,
-/// 뷰가 내리던 결정을 테이블 테스트가 가능한 함수로 옮겨둔 것이다.
-///
-/// 배경: 예전에는 하위 항목 전체가 `batteryLimitEnabled` 뒤에 숨어 있어서, 토글을 켜기 전에는
-/// 이 기능이 무엇을 하는지 볼 수 없었다. 이제 하위 항목은 항상 보이고, **조작할 수 없는 부분만**
-/// 비활성으로 표시한다.
 /// 백엔드에 따라 설정 화면에서 빠질 수 있는 옵션.
 enum BatteryFeature: Hashable, Sendable {
     case sailing
@@ -14,6 +7,13 @@ enum BatteryFeature: Hashable, Sendable {
     case sleepUntilLimit
 }
 
+/// 설정 › 배터리 섹션들의 순수 표시 판단. SwiftUI도 I/O도 없다 —
+/// `CardPresentation` / `Accessibility` / `BatteryControlPolicy`와 같은 방식으로,
+/// 뷰가 내리던 결정을 테이블 테스트가 가능한 함수로 옮겨둔 것이다.
+///
+/// 배경: 예전에는 하위 항목 전체가 `batteryLimitEnabled` 뒤에 숨어 있어서, 토글을 켜기 전에는
+/// 이 기능이 무엇을 하는지 볼 수 없었다. 이제 하위 항목은 항상 보이고, **조작할 수 없는 부분만**
+/// 비활성으로 표시한다.
 enum BatterySectionPresentation {
 
     enum Tone: String, Equatable {
