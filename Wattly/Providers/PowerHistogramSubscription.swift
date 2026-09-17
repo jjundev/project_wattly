@@ -34,9 +34,6 @@ final class IOReportPMPEnergySubscription: @unchecked Sendable {
     /// Cluster channel → bin width (W), resolved once at init.
     private let binWidths: [String: Double]
 
-    /// Cluster channels this subscription decodes (e.g. `["EACC0", "PACC0"]`), sorted.
-    var channelNames: [String] { binWidths.keys.sorted() }
-
     /// nil if the library, any symbol, the `PMP`/`Energy` subgroup, or every cluster channel is
     /// unavailable (macOS ≤ 26 or non-Apple silicon) — the provider then runs Energy-Model-only,
     /// exactly as before this migration.

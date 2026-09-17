@@ -10,7 +10,8 @@ import Foundation
 /// (+ each ` SRAM`), 32 bins each, ~4.4k samples/s. Bin names are padded UPPER bounds of
 /// uniform-width bins (`" 0.250W"`, `" 0.500W"`, … / `"   1W"`, `"   2W"`, …), so bin i spans
 /// `(i·w, (i+1)·w]` and its midpoint is `(i+0.5)·w`. The last bin is open-ended (its midpoint
-/// under-reads a cluster saturating above `32·w`; Mac17,2 never gets there).
+/// under-reads a cluster saturating above `32·w`; the tested Mac17,2 never gets there — unverified
+/// on higher-power parts).
 
 /// One histogram channel: bin width (parsed once from the first bin's name) + cumulative
 /// residency (sample counts) per bin.
@@ -107,9 +108,12 @@ struct EnergyModelStaleness: Sendable, Equatable {
 /// together with the CPU-core counters, so a poll whose core delta is positive IS a refresh and
 /// its ANE delta is the whole energy accrued since the previous refresh. Averaging that over the
 /// refresh interval gives an honest (if slow) figure and kills the 1-second spikes; the value is
-/// held until the next refresh. Idle ANE (0 J) therefore reads 0, never a spike.
+/// held until the next refresh. Idle ANE (0 J) therefore reads 0, never a spike. A refresh poll
+/// dropped upstream (before `observe` is called) does not advance `lastRefresh`, so the next
+/// refresh averages its energy over roughly two periods instead of one — an under-read of about 2×
+/// for that following refresh.
 struct StaleANERate: Sendable, Equatable {
-    private(set) var lastRefresh: ContinuousClock.Instant?
+    private var lastRefresh: ContinuousClock.Instant?
     private(set) var heldW = 0.0
 
     mutating func observe(aneDeltaJ: Double, cpuCoreDeltaJ: Double,

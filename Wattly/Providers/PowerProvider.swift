@@ -25,7 +25,8 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
     private var prev: [String: Double]?
     private var prevInstant: ContinuousClock.Instant?
     /// macOS 27 stale-Energy-Model path (see `PowerHistogram`). `histogram` is nil where the
-    /// `PMP`/`Energy` subgroup is absent (macOS ≤ 26) — then only the Energy Model is used.
+    /// `PMP`/`Energy` subgroup is absent (expected on macOS ≤ 26 — unverified, no 26 hardware
+    /// probed) — then only the Energy Model is used.
     private var histogram: IOReportPMPEnergySubscription?
     private var prevHistogram: [String: PowerHistogramChannel]?
     private var staleness = EnergyModelStaleness()
@@ -92,7 +93,12 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
         let sampleEnd = now()
         let sampleInstant = sampleStart.advanced(by: sampleStart.duration(to: sampleEnd) / 2)
         let curr = captured.energies
-        // re-baseline on every kept path (both sources share one instant)
+        // re-baseline on every kept path (both sources share one instant). A nil `histSample`
+        // (one transient histogram sample failure) also clears the histogram baseline — while
+        // stale, a single miss costs TWO `.pending` polls (the miss itself, then the poll that
+        // re-establishes the baseline). Keeping the old baseline instead is not an option: the
+        // histogram interval must equal the Energy Model `dt` for the residency-delta math to
+        // mean anything.
         defer { prev = curr; prevInstant = sampleInstant; prevHistogram = histSample }
 
         // An engine channel with an unknown unit is unsafe to scale. Drop this interval
@@ -107,12 +113,15 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
         }
 
         let coreDeltaJ = cpuCoreEnergyDeltaJ(prev: prev, curr: curr)
-        let histogramCPUW: Double? = {
+        // Only needed in `case .stale`; computed here anyway in DEBUG so the probe can show it
+        // side by side with the Energy Model figure even while `.live`.
+        func histogramCPUWatts() -> Double? {
             guard let p = prevHistogram, let c = histSample else { return nil }
             return clusterHistogramCPUWatts(prev: p, curr: c)
-        }()
+        }
         #if DEBUG
-        debugHistogramCPUW = histogramCPUW
+        let debugCPUW = histogramCPUWatts()
+        debugHistogramCPUW = debugCPUW
         #endif
 
         var overrides = PowerOverrides()
@@ -147,6 +156,11 @@ actor PowerProvider: MetricProvider, ProcessEnumerating {
             // doubles up.
             let aneW = aneRate.observe(aneDeltaJ: aneEnergyDeltaJ(prev: prev, curr: curr),
                                        cpuCoreDeltaJ: coreDeltaJ, at: sampleInstant)
+            #if DEBUG
+            let histogramCPUW = debugCPUW
+            #else
+            let histogramCPUW = histogramCPUWatts()
+            #endif
             guard let cpuW = histogramCPUW else { return .pending }   // baseline / reset / no samples
             overrides.cpuW = cpuW
             overrides.npuW = aneW

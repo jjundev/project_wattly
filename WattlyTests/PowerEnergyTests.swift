@@ -167,13 +167,13 @@ struct PowerEnergyTests {
         #expect(s.totalW == 8.5)
     }
 
-    @Test func emptyOverridesMatchLegacyBehaviour() {
+    @Test func noOverridesKeepsEnergyModelFigures() {
         let prev = ["ECPU0": 1.0, "PCPU0": 2.0, "GPU Energy": 0.5, "ANE": 0.0]
         let curr = ["ECPU0": 2.0, "PCPU0": 4.0, "GPU Energy": 1.0, "ANE": 0.25]
         let legacy = powerSample(prev: prev, curr: curr, dt: 0.5)
-        let explicit = powerSample(prev: prev, curr: curr, dt: 0.5, overrides: PowerOverrides())
-        #expect(legacy == explicit)
         #expect(legacy.cpuW == 6.0)
+        #expect(legacy.gpuW == 1.0)
+        #expect(legacy.npuW == 0.5)
         #expect(legacy.totalW == 7.5)
     }
 
