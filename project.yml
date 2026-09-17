@@ -76,6 +76,7 @@ targets:
       - path: FanControlShared
       - path: Wattly/Core/SMC.swift
       - path: Wattly/Core/BatteryPower.swift
+      - path: Wattly/Core/BatteryFacts.swift
       - path: Wattly/Core/Temperature.swift
       - path: Wattly/Core/HardwareModel.swift
     settings:
