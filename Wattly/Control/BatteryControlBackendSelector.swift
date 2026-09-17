@@ -55,3 +55,33 @@ extension NativeChargeLimitService {
         defaults: .standard,
         now: { Date().timeIntervalSince1970 })
 }
+
+#if DEBUG
+/// DEBUG 실기 프로브. 이 Mac에서 어느 백엔드가 선택되는지와 네이티브 제한의 현재 상태를 출력하고
+/// 종료한다. **읽기만 한다** — `setLimit`/`temporarilyDisable`은 부르지 않는다.
+///   `Wattly.app/Contents/MacOS/Wattly -WattlyNativeLimitProbe`
+/// Release에서는 제외.
+enum NativeLimitProbe {
+    static func runIfRequested() {
+        guard CommandLine.arguments.contains("-WattlyNativeLimitProbe") else { return }
+        print("[native-limit-probe] selected backend: \(BatteryControlBackendSelector.current.rawValue)")
+        let driver = NativeChargeLimitService.sharedDriver
+        print("[native-limit-probe] PowerUI supported: \(driver.isSupported)")
+        do {
+            print("[native-limit-probe] available limits: \(try driver.availableLimits())")
+            let snapshot = try driver.snapshot()
+            print("[native-limit-probe] native limit: \(snapshot.limit) state: \(snapshot.state)")
+        } catch {
+            print("[native-limit-probe] PowerUI read failed: \(error)")
+        }
+        if let reading = NativeLimitBatteryReader.read() {
+            print("[native-limit-probe] battery: \(reading.percentage)% plugged=\(reading.isPluggedIn) mA=\(reading.batteryMilliamps.map(String.init) ?? "nil")")
+        } else {
+            print("[native-limit-probe] battery: unreadable")
+        }
+        let defaults = UserDefaults.standard
+        print("[native-limit-probe] owned=\(defaults.bool(forKey: StorageKey.nativeLimitOwned)) topUpReachedFullAt=\(defaults.object(forKey: StorageKey.nativeLimitTopUpReachedFullAt) ?? "nil")")
+        exit(0)
+    }
+}
+#endif
