@@ -19,6 +19,10 @@ import Testing
         // flagging a data race. A fresh instance per read shares the same suite storage in-process
         // (CFPreferences caches per-domain), so this reads back whatever the actor last wrote.
         var defaults: UserDefaults { UserDefaults(suiteName: suiteName)! }
+
+        /// 테스트마다 새 스위트를 만들면 `~/Library/Preferences`에 plist가 하나씩 쌓인다.
+        /// 끝나면 지운다.
+        func cleanup() { defaults.removePersistentDomain(forName: suiteName) }
     }
 
     private func rig(suiteName: String? = nil, driver: FakeNativeChargeLimitDriver? = nil) -> Rig {
@@ -40,6 +44,7 @@ import Testing
 
     @Test func enablingArmsTheNativeLimitAndIsAcceptedByTheExistingPolicy() async throws {
         let r = rig()
+        defer { r.cleanup() }
         let config = BatteryControlConfiguration(enabled: true, limitPercentage: 80).normalized
         let status = await r.service.process(try configure(config))
         #expect(r.driver.writes == ["set:80"])
@@ -52,6 +57,7 @@ import Testing
 
     @Test func handleReturnsADecodableStatus() async throws {
         let r = rig()
+        defer { r.cleanup() }
         let (data, error) = await r.service.handle(.status)
         #expect(error == nil)
         let decoded = try BatteryControlCodec.decode(BatteryControlServiceStatus.self, from: try #require(data))
@@ -60,6 +66,7 @@ import Testing
 
     @Test func aSecondIdenticalConfigureWritesNothingAndReportsVerified() async throws {
         let r = rig()
+        defer { r.cleanup() }
         let config = BatteryControlConfiguration(enabled: true, limitPercentage: 80)
         _ = await r.service.process(try configure(config))
         let status = await r.service.process(try configure(config))
@@ -70,6 +77,7 @@ import Testing
 
     @Test func aStatusTickRearmsAfterSomeoneElseChangedTheLimit() async throws {
         let r = rig()
+        defer { r.cleanup() }
         _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80)))
         r.driver.current = .init(limit: 95, state: .on)   // 시스템 설정에서 바꿨다
         let status = await r.service.process(.status)
@@ -80,6 +88,7 @@ import Testing
 
     @Test func offListRequestIsRoundedUpAndReported() async throws {
         let r = rig()
+        defer { r.cleanup() }
         let status = await r.service.process(try configure(.init(enabled: true, limitPercentage: 70)))
         #expect(r.driver.writes == ["set:80"])
         #expect(status.appliedLimitPercentage == 80)
@@ -87,6 +96,7 @@ import Testing
 
     @Test func disablingReleasesOnlyWhatThisAppArmed() async throws {
         let owned = rig()
+        defer { owned.cleanup() }
         _ = await owned.service.process(try configure(.init(enabled: true, limitPercentage: 80)))
         let released = await owned.service.process(try configure(.init(enabled: false)))
         #expect(owned.driver.writes == ["set:80", "set:100"])
@@ -96,6 +106,7 @@ import Testing
         let foreignDriver = FakeNativeChargeLimitDriver()
         foreignDriver.current = .init(limit: 90, state: .on)   // 사용자가 시스템 설정에서 직접 건 제한
         let foreign = rig(driver: foreignDriver)
+        defer { foreign.cleanup() }
         _ = await foreign.service.process(try configure(.init(enabled: false)))
         #expect(foreignDriver.writes.isEmpty)
         #expect(foreignDriver.current == .init(limit: 90, state: .on))
@@ -103,6 +114,7 @@ import Testing
 
     @Test func topUpDisablesTemporarilyAndUnpluggingEndsItAndRearms() async throws {
         let r = rig()
+        defer { r.cleanup() }
         _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80)))
         let topUp = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80, topUpActive: true)))
         #expect(r.driver.writes == ["set:80", "tempDisable"])
@@ -118,6 +130,7 @@ import Testing
 
     @Test func topUpExpiresTwelveHoursAfterReachingFull() async throws {
         let r = rig()
+        defer { r.cleanup() }
         _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80)))
         _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80, topUpActive: true)))
 
@@ -140,6 +153,7 @@ import Testing
 
     @Test func cancellingTopUpDropsTheClockAndRearms() async throws {
         let r = rig()
+        defer { r.cleanup() }
         _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80, topUpActive: true)))
         r.world.reading = .init(percentage: 100, isPluggedIn: true, batteryMilliamps: 0)
         _ = await r.service.process(.status)
@@ -152,6 +166,7 @@ import Testing
         let suiteName = "native-limit-\(UUID().uuidString)"
         let driver = FakeNativeChargeLimitDriver()
         let first = rig(suiteName: suiteName, driver: driver)
+        defer { first.cleanup() }
         _ = await first.service.process(try configure(.init(enabled: true, limitPercentage: 85, topUpActive: true)))
         first.world.reading = .init(percentage: 100, isPluggedIn: true, batteryMilliamps: 0)
         _ = await first.service.process(.status)
@@ -167,6 +182,7 @@ import Testing
 
     @Test func aFailedWriteIsReportedAndNotAccepted() async throws {
         let r = rig()
+        defer { r.cleanup() }
         r.driver.failWrites = true
         let config = BatteryControlConfiguration(enabled: true, limitPercentage: 80).normalized
         let status = await r.service.process(try configure(config))
@@ -178,6 +194,7 @@ import Testing
 
     @Test func unreadableNativeStateWritesNothing() async throws {
         let r = rig()
+        defer { r.cleanup() }
         r.driver.failReads = true
         let status = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80)))
         #expect(r.driver.writes.isEmpty)
@@ -186,11 +203,14 @@ import Testing
 
     @Test func unreadablePowerSourceWritesNothing() async throws {
         let r = rig()
+        defer { r.cleanup() }
         r.world.reading = nil
         let status = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80)))
         #expect(r.driver.writes.isEmpty)
         #expect(status.detailReason == .init(kind: .powerSourceUnreadable))
         #expect(status.desiredConfiguration?.enabled == true)
+        // 아무것도 하지 못했으니 유지보수 기록도 남기지 않는다.
+        #expect(status.lastMaintenance == nil)
     }
 
     // MARK: - 사용자가 직접 건 제한(소유하지 않은 제한)
@@ -199,6 +219,7 @@ import Testing
         let driver = FakeNativeChargeLimitDriver()
         driver.current = .init(limit: 80, state: .on)   // 사용자가 시스템 설정에서 직접 건 제한
         let r = rig(driver: driver)
+        defer { r.cleanup() }
 
         _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80)))
         #expect(driver.writes.isEmpty)
@@ -219,6 +240,7 @@ import Testing
         let driver = FakeNativeChargeLimitDriver()
         driver.current = .init(limit: 80, state: .on)
         let r = rig(driver: driver)
+        defer { r.cleanup() }
 
         _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80)))
         _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80, topUpActive: true)))
@@ -238,6 +260,7 @@ import Testing
 
     @Test func topUpOnAnOwnedLimitNeverRemembersASuspendedValue() async throws {
         let r = rig()
+        defer { r.cleanup() }
         _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80)))
         #expect(r.defaults.bool(forKey: StorageKey.nativeLimitOwned))
         _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80, topUpActive: true)))
@@ -245,8 +268,18 @@ import Testing
         #expect(r.defaults.object(forKey: StorageKey.nativeLimitSuspendedLimit) == nil)
     }
 
+    @Test func activitiesThisBackendCannotRunAreDroppedOnIngest() async throws {
+        let r = rig()
+        defer { r.cleanup() }
+        let status = await r.service.process(try configure(
+            .init(enabled: true, limitPercentage: 80, manualDischargeActive: true, calibrationActive: true)))
+        #expect(status.desiredConfiguration?.manualDischargeActive == false)
+        #expect(status.desiredConfiguration?.calibrationActive == false)
+    }
+
     @Test func anUndecodableConfigureIsAFailedMaintenanceAndKeepsThePreviousPolicy() async throws {
         let r = rig()
+        defer { r.cleanup() }
         _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80)))
         let status = await r.service.process(.configure(Data("not json".utf8)))
         #expect(status.lastMaintenance?.result == .failed)

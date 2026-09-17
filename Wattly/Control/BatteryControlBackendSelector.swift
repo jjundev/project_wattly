@@ -29,6 +29,8 @@ enum BatteryControlBackendSelector {
 
     /// 프로세스당 한 번. 레지스터 세대는 펌웨어의 사실이라 실행 중에 바뀌지 않는다.
     static let current: BatteryControlBackend = {
+        // SMC에 붙지 못하면 레지스터의 부재를 **증명할 수 없다**. 증명 없이 네이티브로 가면
+        // 레지스터가 멀쩡한 Mac에서 기능이 조용히 줄어들므로, 모르는 쪽은 기존 경로로 둔다.
         guard let smc = SMCConnection() else { return .smc }
         return select(
             isRunningTests: isRunningTests,

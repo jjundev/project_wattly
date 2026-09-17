@@ -53,7 +53,13 @@ actor NativeChargeLimitService {
         if case .configure(let data) = request {
             trigger = .clientConfiguration
             if let decoded = try? BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data) {
-                let incoming = decoded.configuration.normalized
+                var incoming = decoded.configuration.normalized
+                // 이 백엔드는 방전도 캘리브레이션도 집행할 수 없다(CHIE 계열은 다음 라운드).
+                // 들어온 `true`를 그대로 보관하면 상태로 되돌려 보내게 되고, 정책의
+                // `preservingActivity`/`revivedConfiguration`이 그 값을 매 요청마다 되살려
+                // 영원히 "진행 중"인 활동이 생긴다. 들어오는 자리에서 한 번 눌러 둔다.
+                incoming.manualDischargeActive = false
+                incoming.calibrationActive = false
                 // 새로 시작하는 Top Up은 새 시계를 갖고, 끝난 Top Up은 시계를 버린다. 진행 중인
                 // Top Up 위로 같은 설정이 다시 오면(60초 reconcile) 시계를 건드리지 않는다.
                 if !incoming.topUpActive || !configuration.topUpActive { setReachedFullAt(nil) }

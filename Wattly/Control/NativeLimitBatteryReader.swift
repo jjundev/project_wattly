@@ -4,11 +4,20 @@ import IOKit.ps
 
 /// 네이티브 백엔드가 한 요청에 필요한 세 가지 — 잔량 %, 어댑터 연결, 배터리 전류 — 를 읽는다.
 ///
-/// 어댑터 판정은 도우미(`WattlyFanDaemon/FanControlDaemon.swift`의 `readPowerSourceState`)와
-/// 같은 OR 규칙이다: IOPS가 AC라고 하거나, 레지스트리가 `ExternalConnected`라고 하거나,
-/// `AdapterDetails.Watts > 0`이면 연결이다. 전류는 레지스트리 `InstantAmperage`(macOS 27에도
-/// 남아 있음, +충전/−방전)를 쓴다 — 음수는 부호 없는 64비트로 인코딩돼 오므로 `int64Value`로
-/// 되돌린다.
+/// 어댑터 판정의 **OR 규칙 자체**는 도우미(`WattlyFanDaemon/FanControlDaemon.swift`의
+/// `readPowerSourceState`)와 같다: IOPS가 AC라고 하거나, 레지스트리가 `ExternalConnected`라고
+/// 하거나, `AdapterDetails.Watts > 0`이면 연결이다.
+///
+/// 다만 **전원 소스를 고르는 방식은 일부러 다르다.** 도우미는 태그된 내장 배터리가 없으면
+/// 태그 없는 소스로 떨어지는 폴백이 있지만, 이 판독기는 `kIOPSInternalBatteryType`으로 태그된
+/// 내장 배터리를 요구하고 없으면 `nil`을 돌린다 — 데스크톱 Mac에서 UPS 같은 소스를 배터리로
+/// 착각해 충전 제한을 걸지 않기 위한 가드다.
+///
+/// 전류는 레지스트리 `InstantAmperage`(macOS 27에도 남아 있음, +충전/−방전)를 쓴다 — 음수는
+/// 부호 없는 64비트로 인코딩돼 오므로 `int64Value`로 되돌린다.
+///
+/// OR 규칙을 고칠 일이 생기면 `WattlyFanDaemon/FanControlDaemon.swift`의 `readPowerSourceState`와
+/// 함께 고쳐야 한다(keep in sync).
 enum NativeLimitBatteryReader {
     static func read() -> NativeLimitBatteryReading? {
         guard let snapshot = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
