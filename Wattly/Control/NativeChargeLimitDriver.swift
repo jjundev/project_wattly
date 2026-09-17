@@ -20,25 +20,50 @@ protocol NativeChargeLimitDriving: Sendable {
 /// 비공개 `PowerUI.framework`의 `PowerUISmartChargeClient`를 ObjC 런타임으로 부른다.
 ///
 /// 헤더도 링크도 없다. `dlopen`으로 올리고 `NSClassFromString`으로 찾은 뒤, 필요한 셀렉터
-/// 여섯 개가 **전부** 응답할 때만 `client`를 갖는다. 하나라도 빠지면 `client == nil`이고 모든
-/// 호출이 `.unavailable`을 던진다 — 애플이 이 비공개 API를 바꾸는 날, 앱은 크래시가 아니라
-/// "이 Mac은 지원되지 않음"으로 떨어져야 한다.
+/// 여섯 개가 **전부 존재하고 서명까지 같을 때만** `client`를 갖는다. 하나라도 빠지거나 타입
+/// 인코딩이 다르면 `client == nil`이고 모든 호출이 `.unavailable`을 던진다 — 애플이 이 비공개
+/// API를 바꾸는 날, 앱은 크래시가 아니라 "이 Mac은 지원되지 않음"으로 떨어져야 한다.
 ///
-/// 타입 인코딩은 macOS 27.0(26A428)에서 `method_getTypeEncoding`으로 읽은 값이다:
-/// `getMCLLimitWithError:` = `C24@0:8^@16`(UInt8), `isMCLCurrentlyEnabled:` = `Q24@0:8^@16`(UInt64),
-/// `setMCLLimit:error:` = `B28@0:8C16^@20`, `temporarilyDisableMCL:` = `B24@0:8^@16`,
-/// `availableChargeLimitsWithError:` = `@24@0:8^@16`, `isMCLSupported` = `B16@0:8`.
+/// **이름이 아니라 서명을 본다.** `responds(to:)`만 통과시키면, 애플이 같은 이름으로 인자
+/// 폭이나 반환형을 바꿨을 때 `@convention(c)` 캐스트가 쓰레기 값을 들고 사용자의 시스템 충전
+/// 제한을 건드린다. 대조표(`requiredSelectorEncodings`)는 macOS 27.0(26A428) arm64에서
+/// `method_getTypeEncoding`으로 읽은 실측값이다 — 앱은 arm64 전용이라 인코딩이 고정이다.
 ///
-/// `@unchecked Sendable`: `client`는 불변이고 호출은 전부 `NativeChargeLimitService` actor 안에서
-/// 직렬로 일어난다. 각 호출은 `PowerUIAgent`로 가는 동기 XPC 왕복이므로 메인 스레드에서 부르지 않는다.
+/// `@unchecked Sendable`: `client`는 불변이고, 호출은 한 곳(`BatteryControlBackendSelector.current`가
+/// 백엔드를 정하며 `isSupported`를 한 번 읽는다 — actor를 쓰기 전, 프로세스당 한 번)을 빼면 전부
+/// `NativeChargeLimitService` actor 안에서 직렬로 일어난다. 각 호출은 `PowerUIAgent`로 가는 동기
+/// XPC 왕복이므로 메인 스레드에서 부르지 않는다.
 final class PowerUIChargeLimitDriver: NativeChargeLimitDriving, @unchecked Sendable {
     static let defaultFrameworkPath = "/System/Library/PrivateFrameworks/PowerUI.framework/PowerUI"
 
     private typealias ErrorPointer = AutoreleasingUnsafeMutablePointer<NSError?>?
-    private static let requiredSelectors = [
-        "isMCLSupported", "availableChargeLimitsWithError:", "getMCLLimitWithError:",
-        "isMCLCurrentlyEnabled:", "setMCLLimit:error:", "temporarilyDisableMCL:"
+
+    /// 셀렉터 → 기대 타입 인코딩. macOS 27.0(26A428) arm64 실측.
+    static let requiredSelectorEncodings: [String: String] = [
+        "isMCLSupported": "B16@0:8",
+        "availableChargeLimitsWithError:": "@24@0:8^@16",
+        "getMCLLimitWithError:": "C24@0:8^@16",
+        "isMCLCurrentlyEnabled:": "Q24@0:8^@16",
+        "setMCLLimit:error:": "B28@0:8C16^@20",
+        "temporarilyDisableMCL:": "B24@0:8^@16"
     ]
+
+    /// 순수 대조. `actual`의 값이 `nil`이면 "셀렉터가 없다"는 뜻이고, 그것도 불일치다.
+    /// PowerUI 없이 테스트할 수 있도록 런타임 조회와 분리해 둔다.
+    static func encodingsMatch(_ actual: [String: String?]) -> Bool {
+        requiredSelectorEncodings.allSatisfy { name, expected in
+            (actual[name] ?? nil) == expected
+        }
+    }
+
+    /// 실제 클래스에서 읽은 인코딩. 없는 셀렉터는 `nil`로 남는다.
+    private static func encodings(of instance: NSObject) -> [String: String?] {
+        let cls: AnyClass = type(of: instance)
+        return requiredSelectorEncodings.keys.reduce(into: [String: String?]()) { table, name in
+            let method = class_getInstanceMethod(cls, NSSelectorFromString(name))
+            table[name] = method.flatMap(method_getTypeEncoding).map { String(cString: $0) }
+        }
+    }
 
     private let client: NSObject?
 
@@ -49,7 +74,7 @@ final class PowerUIChargeLimitDriver: NativeChargeLimitDriving, @unchecked Senda
               let allocated = cls.perform(NSSelectorFromString("alloc"))?.takeUnretainedValue() as? NSObject,
               let instance = allocated.perform(NSSelectorFromString("initWithClientName:"), with: clientName)?
                   .takeRetainedValue() as? NSObject,
-              Self.requiredSelectors.allSatisfy({ instance.responds(to: NSSelectorFromString($0)) })
+              Self.encodingsMatch(Self.encodings(of: instance))
         else {
             client = nil
             return
