@@ -41,8 +41,8 @@ macOS 27에서 IOReport `Energy Model` 그룹의 mJ 누적 채널(`CPU Energy`, 
 
 1. **소스 선택은 런타임 정체 감지, 스티키.** `Energy Model` 코어 채널(`isCPUCoreEnergyChannel` 집합)의 델타 합이 **연속 2회의 유지된 폴**(`.pending`으로 버린 폴은 세지 않음)에서 0이면 EM을 정체로 판정하고 프로세스 수명 동안 되돌리지 않는다. 판정 중(0이 1회)인 폴은 `.pending`. 근거: 살아 있는 EM은 유휴에서도 E 코어가 매초 수십~수백 mJ 증가하므로 연속 0은 나오지 않고, OS 버전 가정을 두지 않아 26.x/27.x 점 릴리스에 흔들리지 않는다. macOS 26 이하는 오늘과 바이트 단위로 같은 값을 낸다. 정확히는 `cpuW`/`gpuW`/`npuW` 세 엔진 값이 바이트 단위로 동일하고, `totalW`만 mJ 합을 나눈 값 대신 이 세 W 값의 합으로 계산이 바뀌어 이전 출력과 1 ULP 미만 차이가 날 수 있다(사용자에게 보이지 않음).
 2. **엔진별 소스(정체 시):** CPU = PMP 클러스터 히스토그램 `^[EP]ACC\d+$` 합(**SRAM 제외**, 다이가 여럿이면 `EACC1`/`PACC1`… 도 합산); GPU = EM `GPU Energy`(nJ, 기존 경로 그대로); ANE = EM `ANE`의 **장주기 평균**(아래 4). SRAM 제외 근거: 26 "코어별 합" 정의에 가장 가깝고 교차검증이 이 조합. 27 유휴 CPU 표시는 26보다 ~0.25 W 높아질 수 있다(`EACC0` 공유분) — 수용.
-3. **히스토그램 → W:** 균등 빈, 폭은 구독 init 때 첫 빈 이름에서 1회 파싱, 폴마다 residency만 읽음. 평균 W = Σ Δᵢ·(i+0.5)·w / Σ Δᵢ. 개수 불일치·어떤 Δ<0(리셋)·ΣΔ=0 → nil(그 폴 `.pending` + 재기준). 32번째 빈 개방 구간은 중앙값 31.5 W로 과소 — `Mac17,2`는 도달하지 않으며 한계로만 명시.
-4. **ANE 장주기 평균:** 정체 모드에서 EM 코어 채널 델타 > 0 인 폴 = EM 갱신 폴. 직전 갱신 인스턴트가 있으면 `ANE W = ΔJ_ANE / (지금 − 직전 갱신)`을 계산해 다음 갱신까지 유지 표시. 첫 갱신 전은 0. 유휴 ANE는 0 J라 0이 유지된다(스파이크 없음). 갱신 폴이 다른 이유로 `.pending`이면 그 구간의 ANE 에너지는 유실된다 — 드물고 수용.
+3. **히스토그램 → W:** 균등 빈, 폭은 구독 init 때 첫 빈 이름에서 1회 파싱, 폴마다 residency만 읽음. 평균 W = Σ Δᵢ·(i+0.5)·w / Σ Δᵢ. 개수 불일치·어떤 Δ<0(리셋)·ΣΔ=0 → nil(그 폴 `.pending` + 재기준). 32번째 빈은 개방 구간이라 중앙값이 과소 추정된다 — 실측한 `Mac17,2`는 도달하지 않는다. 클러스터 전력이 더 높은 상위 파트(P 클러스터가 `32·w`를 넘을 수 있는 M-Max/Ultra급)에서는 **미확인**이며, 그런 기기에서 클러스터가 포화되면 클러스터당 ≈`31.5·w`에서 조용히 과소 추정될 것이다 — 감지는 후속 과제(§4).
+4. **ANE 장주기 평균:** 정체 모드에서 EM 코어 채널 델타 > 0 인 폴 = EM 갱신 폴. 직전 갱신 인스턴트가 있으면 `ANE W = ΔJ_ANE / (지금 − 직전 갱신)`을 계산해 다음 갱신까지 유지 표시. 첫 갱신 전은 0. 유휴 ANE는 0 J라 0이 유지된다(스파이크 없음). 갱신 폴이 dt·리셋·미지 단위 방어(감지기가 돌기 전 단계)에 걸려 `.pending`으로 버려지면 그 폴의 줄(J)이 유실될 뿐 아니라 `lastRefresh`도 전진하지 않는다 — 그 결과 **다음** 갱신은 한 주기치 줄을 약 두 주기치 시간으로 나누게 되어, 그다음 3~5분 구간의 ANE가 대략 절반으로 표시된다. (갱신 폴이 단순히 히스토그램 미스에 걸리는 경우는 영향 없음 — ANE율은 히스토그램 방어보다 먼저 관측된다.) 여전히 드물고 수용.
 5. **정체인데 PMP 클러스터 채널이 없으면** 기존 주황 `.channelUnreadable` 카드(문구 `PowerProvider.unreadableMessage` 그대로). 0 W를 사실처럼 보여 주지 않는다.
 6. **순수/IO 분리 유지:** 히스토그램 수식·정체 상태기계·ANE 장주기는 `Wattly/Core/PowerHistogram.swift`(순수), IOReport I/O는 `Wattly/Providers/PowerHistogramSubscription.swift`(`RealCPUClock` 패턴). `powerSample`은 `PowerOverrides{cpuW, npuW}`를 받아 `totalW = cpuW + gpuW + npuW` 불변식을 유지한다.
 7. **EM·PMP 샘플은 같은 `read()` 안에서 연속으로 뜨고 중점 인스턴트 하나를 공유**한다. 기존 이상 판정(dt, EM 리셋, 채널 집합 변화, 미지 단위, 200 W 상한)은 그대로. 정체 모드의 EM 갱신 폴은 CPU가 오버라이드로 가려져 상한에 걸리지 않는다.
@@ -52,7 +52,7 @@ macOS 27에서 IOReport `Energy Model` 그룹의 mJ 누적 채널(`CPU Energy`, 
 
 - GPU를 `AGX` 히스토그램으로 바꾸기(`GPU Energy` nJ가 살아 있고 AGX는 저전력 편향).
 - ANE 대체 채널 탐색(없음).
-- 32 W 초과 클러스터 포화 보정.
+- 32 W 초과 클러스터 포화 보정(상위 파트 미확인, 후속 과제).
 - 스무딩 τ·UI 문구·설정 항목 변경.
 - 3축 충전 제한, 1축 잔여 확인 2건.
 
@@ -65,7 +65,7 @@ macOS 27에서 IOReport `Energy Model` 그룹의 mJ 누적 채널(`CPU Energy`, 
 
 ## 6. 실기 결과 (2026-09-17, macOS 27.0 26A428, Mac17,2)
 
-- `-WattlyPowerProbe` 유휴: sample 0 `source=em`(baseline, `pending`) → sample 1 `source=deciding`(`pending`) → sample 2부터 `source=pmp`, 이후 `pending` 재발 없음. 관측값:
+- `-WattlyPowerProbe` 유휴: sample 0 `source=em`(baseline, `pending` — sample 0에서는 감지기가 아직 호출되지 않으므로 이 `em`은 판정이 아니라 DEBUG 필드의 초깃값일 뿐이고, 이 폴 자체는 첫 샘플이라 재기준만 하는 baseline `.pending`이다) → sample 1 `source=deciding`(`pending`) → sample 2부터 `source=pmp`, 이후 `pending` 재발 없음. 관측값:
   ```
   [power-probe] sample 1: source=deciding histCPU=1.62 W · pending
   [power-probe] sample 2: source=pmp histCPU=2.51 W · total 2.57 W · cpu 2.51 · gpu 0.06 · ane 0.00
@@ -86,3 +86,4 @@ macOS 27에서 IOReport `Energy Model` 그룹의 mJ 누적 채널(`CPU Energy`, 
 - 프로브가 실기로 검증하지 못한 부분: 10초짜리 프로브 창 안에서는 Energy Model 갱신(3~5분 주기)이 한 번도 일어나지 않았다. 따라서 ANE 장주기 평균(`StaleANERate`, §3-4)과 그 갱신-폴 경로는 유닛 테스트로만 검증되었고 실기에서는 검증되지 않았다. 정체 상태에서 잠들었다 깨어나는 경로(sleep/wake)도 마찬가지로 실기 미검증.
 - 한계 확인: 32 W 상한 빈 미도달(유휴·부하 모두 20 W 미만).
 - 리뷰가 잡은 보강: CPU 에너지 채널 자체가 없는 스냅샷은 정체로 판정하지 않는다(`hasCPUEnergyChannel`) — 그런 토폴로지에서는 히스토그램 구독 없이도 기존 Energy-Model-only 경로가 그대로 동작한다. 이 머신은 CPU 에너지 채널이 있어 이 분기는 실기에서 타지 않았고, 회귀 커버리지는 새 유닛 테스트(`cpuEnergyChannelPresence`)가 담당한다.
+- 최종 리뷰가 남긴 후속 과제: (a) IOReport 심볼 로더가 4곳(`PowerProvider`, `PowerHistogramSubscription`, `CPUClock`, `GPUClock`)에 중복돼 있음 — 공유 로더로 통합; (b) 정체 상태에서 히스토그램 미스가 반복되는 동안 무한정 `.pending`만 내는 대신 주황 카드로 넘어가는 상한 도입; (c) 상위 파트를 위한 마지막 빈 포화 감지(§3-3/§4).
