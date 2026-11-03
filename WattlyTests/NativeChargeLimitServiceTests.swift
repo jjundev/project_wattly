@@ -345,6 +345,39 @@ import Testing
         #expect(r.defaults.bool(forKey: StorageKey.nativeLimitOwned) == false)
     }
 
+    /// Top Up 중 사용자가 시스템 설정 제한을 끄면 기억해 둔 값은 더 이상 사용자의 것이 아니다.
+    /// 남겨 두면 나중에 macOS 자체 "이번만 완충"을 Wattly가 그 값으로 되돌려 취소한다.
+    @Test func aForeignLimitSwitchedOffDuringTopUpIsNotRestoredOverMacOSOwnOneTimeCharge() async throws {
+        let driver = FakeNativeChargeLimitDriver()
+        driver.current = .init(limit: 90, state: .on)
+        let r = rig(driver: driver)
+        defer { r.cleanup() }
+        _ = await r.service.process(try configure(.init(enabled: false, limitPercentage: 80)))
+        _ = await r.service.process(try configure(.init(enabled: false, limitPercentage: 80, topUpActive: true)))
+        driver.current = .init(limit: 100, state: .off)   // 시스템 설정에서 제한을 끔
+        _ = await r.service.process(try configure(.init(enabled: false, limitPercentage: 80)))
+
+        driver.current = .init(limit: 100, state: .temporarilyDisabled)   // 나중에 macOS 자체 이번만 완충
+        _ = await r.service.process(.status)
+
+        #expect(driver.writes == ["tempDisable"])
+        #expect(r.defaults.object(forKey: StorageKey.nativeLimitSuspendedLimit) == nil)
+    }
+
+    @Test func aStaleSuspendedLimitDoesNotStopWattlyFromOwningTheSameValue() async throws {
+        let driver = FakeNativeChargeLimitDriver()
+        driver.current = .init(limit: 90, state: .on)
+        let r = rig(driver: driver)
+        defer { r.cleanup() }
+        _ = await r.service.process(try configure(.init(enabled: false, limitPercentage: 80)))
+        _ = await r.service.process(try configure(.init(enabled: false, limitPercentage: 80, topUpActive: true)))
+        driver.current = .init(limit: 100, state: .off)
+        _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 90)))
+
+        #expect(driver.writes == ["tempDisable", "set:90"])
+        #expect(r.defaults.bool(forKey: StorageKey.nativeLimitOwned) == true)
+    }
+
     @Test func activitiesThisBackendCannotRunAreDroppedOnIngest() async throws {
         let r = rig()
         defer { r.cleanup() }
