@@ -268,6 +268,83 @@ import Testing
         #expect(r.defaults.object(forKey: StorageKey.nativeLimitSuspendedLimit) == nil)
     }
 
+    enum TopUpEnding: CaseIterable { case cancel, expire, unplug }
+
+    /// Wattly 제한을 꺼 둔 채 시스템 설정 제한 위에서 Top Up을 하면, 어떻게 끝나든 그 제한이
+    /// 돌아오고 Wattly는 소유권을 가져가지 않는다.
+    @Test(arguments: TopUpEnding.allCases)
+    func topUpWithWattlyOffRestoresAForeignLimitHoweverItEnds(_ ending: TopUpEnding) async throws {
+        let driver = FakeNativeChargeLimitDriver()
+        driver.current = .init(limit: 90, state: .on)   // 시스템 설정에서 직접 건 90%
+        let r = rig(driver: driver)
+        defer { r.cleanup() }
+        _ = await r.service.process(try configure(.init(enabled: false, limitPercentage: 80)))
+        _ = await r.service.process(try configure(.init(enabled: false, limitPercentage: 80, topUpActive: true)))
+        #expect(driver.writes == ["tempDisable"])
+
+        switch ending {
+        case .cancel:
+            _ = await r.service.process(try configure(.init(enabled: false, limitPercentage: 80)))
+        case .expire:
+            r.world.reading = .init(percentage: 100, isPluggedIn: true, batteryMilliamps: 0)
+            _ = await r.service.process(.status)
+            r.world.now += BatteryTopUpExpiry.duration
+            _ = await r.service.process(.status)
+        case .unplug:
+            r.world.reading = .init(percentage: 92, isPluggedIn: false, batteryMilliamps: -600)
+            _ = await r.service.process(.status)
+        }
+
+        #expect(driver.writes == ["tempDisable", "set:90"])
+        #expect(driver.current == .init(limit: 90, state: .on))
+        #expect(r.defaults.bool(forKey: StorageKey.nativeLimitOwned) == false)
+        #expect(r.defaults.object(forKey: StorageKey.nativeLimitSuspendedLimit) == nil)
+    }
+
+    @Test func topUpWithWattlyOffAndNoSystemLimitNeverWritesALimit() async throws {
+        let r = rig()
+        defer { r.cleanup() }
+        _ = await r.service.process(try configure(.init(enabled: false, limitPercentage: 80)))
+        _ = await r.service.process(try configure(.init(enabled: false, limitPercentage: 80, topUpActive: true)))
+        r.world.reading = .init(percentage: 100, isPluggedIn: true, batteryMilliamps: 0)
+        _ = await r.service.process(.status)
+        r.world.now += BatteryTopUpExpiry.duration
+        let expired = await r.service.process(.status)
+
+        #expect(r.driver.writes.isEmpty)
+        #expect(expired.desiredConfiguration?.topUpActive == false)
+        #expect(expired.detailReason == .init(kind: .limitDisabled))
+        #expect(expired.lastMaintenance?.trigger == .topUpExpired)
+    }
+
+    @Test func turningWattlyOnDuringTopUpHandsTheLimitToWattlyWhenItEnds() async throws {
+        let driver = FakeNativeChargeLimitDriver()
+        driver.current = .init(limit: 90, state: .on)
+        let r = rig(driver: driver)
+        defer { r.cleanup() }
+        _ = await r.service.process(try configure(.init(enabled: false, limitPercentage: 80)))
+        _ = await r.service.process(try configure(.init(enabled: false, limitPercentage: 80, topUpActive: true)))
+        _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80, topUpActive: true)))
+        _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80)))
+
+        #expect(driver.writes == ["tempDisable", "set:80"])
+        #expect(r.defaults.bool(forKey: StorageKey.nativeLimitOwned) == true)
+        #expect(r.defaults.object(forKey: StorageKey.nativeLimitSuspendedLimit) == nil)
+    }
+
+    @Test func turningWattlyOffDuringTopUpReleasesItsOwnLimitWhenItEnds() async throws {
+        let r = rig()
+        defer { r.cleanup() }
+        _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80)))
+        _ = await r.service.process(try configure(.init(enabled: true, limitPercentage: 80, topUpActive: true)))
+        _ = await r.service.process(try configure(.init(enabled: false, limitPercentage: 80, topUpActive: true)))
+        _ = await r.service.process(try configure(.init(enabled: false, limitPercentage: 80)))
+
+        #expect(r.driver.writes == ["set:80", "tempDisable", "set:100"])
+        #expect(r.driver.current == .init(limit: 100, state: .off))
+        #expect(r.defaults.bool(forKey: StorageKey.nativeLimitOwned) == false)
+    }
+
     @Test func activitiesThisBackendCannotRunAreDroppedOnIngest() async throws {
         let r = rig()
         defer { r.cleanup() }
