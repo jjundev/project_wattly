@@ -1178,7 +1178,82 @@ struct BatteryControlClientTests {
         _ = await client.startTopUp(preferences: prefs)
         guard case .configure(let data) = await receiver.request else { Issue.record("expected configure"); return }
         let sent = try BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data).configuration
-        #expect(sent.topUpActive == true && sent.enabled == true && sent.lowerHysteresisDelta == 4)
+        // `.standard`는 제한이 꺼져 있다. Top Up이 그 스위치를 켜면 끝날 때 원치 않는 제한이 걸린다.
+        #expect(sent.topUpActive == true && sent.enabled == false && sent.lowerHysteresisDelta == 4)
+    }
+
+    @MainActor @Test func startTopUpFromPreferencesKeepsTheLimitOnWhenItWasOn() async throws {
+        let receiver = RequestReceiver()
+        let client = BatteryControlClient(requestHandler: { request in
+            await receiver.set(request)
+            let status = BatteryControlServiceStatus(mode: .charging, currentPercentage: 50,
+                                                     isPowerAdapterConnected: true, detail: "OK", updatedAt: 1)
+            return (try? BatteryControlCodec.encode(status), nil)
+        }, clamshellAllowance: { false })
+        var prefs = BatteryPreferences.standard
+        prefs.limitEnabled = true
+        _ = await client.startTopUp(preferences: prefs)
+        guard case .configure(let data) = await receiver.request else { Issue.record("expected configure"); return }
+        let sent = try BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data).configuration
+        #expect(sent.enabled == true && sent.topUpActive == true)
+    }
+
+    @MainActor @Test func cancelTopUpFromPreferencesSendsTheStoredLimitSwitch() async throws {
+        let receiver = RequestReceiver()
+        let client = BatteryControlClient(requestHandler: { request in
+            await receiver.set(request)
+            let status = BatteryControlServiceStatus(mode: .charging, currentPercentage: 50,
+                                                     isPowerAdapterConnected: true, detail: "OK", updatedAt: 1)
+            return (try? BatteryControlCodec.encode(status), nil)
+        }, clamshellAllowance: { false })
+        _ = await client.cancelTopUp(preferences: .standard)
+        guard case .configure(let data) = await receiver.request else { Issue.record("expected configure"); return }
+        let sent = try BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data).configuration
+        #expect(sent.enabled == false && sent.topUpActive == false)
+    }
+
+    /// 제한이 꺼진 채 Top Up이 도는 동안 60초 reconcile은 아무것도 다시 쓰지 않는다.
+    @MainActor @Test func reconcileLeavesATopUpWithTheLimitOffAlone() async throws {
+        final class Counter: @unchecked Sendable { var configures = 0 }
+        let counter = Counter()
+        let status = BatteryControlServiceStatus(
+            mode: .charging, currentPercentage: 90, isPowerAdapterConnected: true,
+            detail: "OK", updatedAt: 1,
+            desiredConfiguration: .init(enabled: false, limitPercentage: 80, topUpActive: true),
+            capabilities: [.persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1])
+        let client = BatteryControlClient(
+            requestHandler: { request in
+                if case .configure = request { counter.configures += 1 }
+                return (try? BatteryControlCodec.encode(status), nil)
+            },
+            clamshellAllowance: { false })
+
+        await client.reconcile(enabled: false, limitPercentage: 80)
+
+        #expect(counter.configures == 0)
+    }
+
+    /// 업데이트 직전에 시작된 Top Up은 `enabled=true`로 저장돼 있다. reconcile이 스위치만
+    /// 바로잡고 Top Up은 살려 둔다.
+    @MainActor @Test func reconcileRewritesALegacyTopUpThatForcedEnabledWithoutCancellingIt() async throws {
+        final class LastConfigure: @unchecked Sendable { var data: Data? }
+        let last = LastConfigure()
+        let status = BatteryControlServiceStatus(
+            mode: .charging, currentPercentage: 90, isPowerAdapterConnected: true,
+            detail: "OK", updatedAt: 1,
+            desiredConfiguration: .init(enabled: true, limitPercentage: 80, topUpActive: true),
+            capabilities: [.persistedPolicyV1, .hardwareGateReadbackV1, .systemPowerEventsV1])
+        let client = BatteryControlClient(
+            requestHandler: { request in
+                if case .configure(let data) = request { last.data = data }
+                return (try? BatteryControlCodec.encode(status), nil)
+            },
+            clamshellAllowance: { false })
+
+        await client.reconcile(enabled: false, limitPercentage: 80)
+
+        guard let data = last.data else { Issue.record("expected configure"); return }
+        let sent = try BatteryControlCodec.decode(BatteryControlConfigurationRequest.self, from: data).configuration
+        #expect(sent.enabled == false && sent.topUpActive == true)
     }
 }
-

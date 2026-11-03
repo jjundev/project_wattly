@@ -122,11 +122,12 @@ struct BatteryControlBridge: View {
     /// helper has not answered, and then the request stands exactly as built.
     ///
     /// Unlike `BatteryControlClient.reconcile`, this does NOT compute
-    /// `effectiveEnabled = enabled || isTopUp || isManualDischarge` — a caller here forwards
-    /// `requested.enabled` as-is. If a Top Up or manual discharge is running while the user's
-    /// stored `enabled` preference is off, the two diverge for at most one `reconcileInterval`
-    /// tick, which self-corrects through `reconcile`'s own `effectiveEnabled` the next time the
-    /// loop runs. Don't re-import that coupling here without re-checking why it was left out.
+    /// `effectiveEnabled = enabled || isManualDischarge` — a caller here forwards
+    /// `requested.enabled` as-is. If a manual discharge is running while the user's stored
+    /// `enabled` preference is off, the two diverge for at most one `reconcileInterval` tick,
+    /// which self-corrects through `reconcile`'s own `effectiveEnabled` the next time the loop
+    /// runs. A Top Up no longer forces `enabled`, so it never diverges. Don't re-import that
+    /// coupling here without re-checking why it was left out.
     static func preservingActivity(
         _ requested: BatteryControlConfiguration,
         daemon desired: BatteryControlConfiguration?

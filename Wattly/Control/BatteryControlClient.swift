@@ -309,11 +309,12 @@ import AppKit
 
     // MARK: - BatteryPreferences 진입점
 
+    // Top Up은 두 백엔드 모두 `enabled`보다 먼저 판정하므로 사용자의 스위치를 그대로 싣는다.
+    // 강제로 켜면 Top Up이 끝날 때 사용자가 끈 제한이 걸리고 시스템 설정에서 건 제한을 덮어쓴다.
     @discardableResult
     func startTopUp(preferences p: BatteryPreferences) async -> BatteryControlServiceStatus? {
         BatteryNotificationManager.requestAuthorization()
         var config = p.configuration(clamshellDischargeAllowed: false)
-        config.enabled = true
         config.topUpActive = true
         return await apply(config)
     }
@@ -321,7 +322,6 @@ import AppKit
     @discardableResult
     func cancelTopUp(preferences p: BatteryPreferences) async -> BatteryControlServiceStatus? {
         var config = p.configuration(clamshellDischargeAllowed: false)
-        config.enabled = true
         config.topUpActive = false
         return await apply(config)
     }
@@ -447,7 +447,7 @@ import AppKit
         // is a WRITE — unlike the fan heartbeat this loop is modelled on. Without this check a
         // straggler iteration would re-enable a limit the user just switched off, carrying a higher
         // generation than the disable that raced it, and nothing would ever repair it.
-        let effectiveEnabled = enabled || isTopUp || isManualDischarge || isCalibrating
+        let effectiveEnabled = enabled || isManualDischarge || isCalibrating
         let targetConfig = BatteryControlConfiguration(
             enabled: effectiveEnabled,
             limitPercentage: limitPercentage,
@@ -475,6 +475,7 @@ import AppKit
             desiredAutoDischarge=\(String(describing: self.status.desiredConfiguration?.autoDischargeEnabled), privacy: .public)
             """)
         guard !Task.isCancelled, willReapply else { return }
+        // `isTopUp`은 여기 남아야 한다. `disableAndConfirm`은 `topUpActive: false`를 보내 Top Up을 취소한다.
         if enabled || heatProtectionEnabled || isTopUp || isManualDischarge || isCalibrating {
             await apply(
                 enabled: effectiveEnabled,
