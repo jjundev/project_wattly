@@ -108,6 +108,12 @@ actor NativeChargeLimitService {
 
         if let current = snapshot {
             let owns = defaults.bool(forKey: StorageKey.nativeLimitOwned)
+            // 기억해 둔 값은 Top Up이 걸어 둔 일시 해제가 남아 있을 때만 사용자의 제한이다.
+            // 그 사이 사용자가 시스템 설정에서 제한을 끄거나 바꿨다면 버린다 — 남겨 두면 나중에
+            // macOS 자체 "이번만 완충"을 그 값으로 되돌리고, 같은 값의 Wattly 제한을 소유하지 못한다.
+            if current.state != .temporarilyDisabled, suspendedForeignLimit() != nil {
+                setSuspendedForeignLimit(nil)
+            }
             let suspended = suspendedForeignLimit()
             let command = NativeChargeLimitPlan.command(
                 configuration: configuration,

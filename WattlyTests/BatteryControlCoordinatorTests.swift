@@ -1196,6 +1196,29 @@ struct BatteryControlCoordinatorTests {
         #expect(store.stored?.configuration.limitPercentage == 80)
     }
 
+    /// Wattly 제한이 꺼진 Top Up이 만료되면 억제가 바로 풀린다. 한도를 다시 걸지 않는다.
+    @Test func topUpWithTheLimitOffReleasesTheGateWhenItExpires() {
+        let clock = MutableClock(1_000)
+        let hardware = MockBatteryHardware()
+        let coordinator = BatteryControlCoordinator(
+            ownerUID: 501, store: PolicyStoreSpy(),
+            engine: BatteryControlEngine(hardware: hardware),
+            now: { clock.now })
+        _ = coordinator.configure(
+            .init(enabled: false, limitPercentage: 80, topUpActive: true),
+            trigger: .clientConfiguration, currentSoC: 100, isPluggedIn: true)
+        _ = coordinator.sample(currentSoC: 100, isPluggedIn: true)
+
+        clock.advance(by: 12 * 3_600)
+        let status = coordinator.sample(currentSoC: 100, isPluggedIn: true)
+
+        #expect(status.desiredConfiguration?.topUpActive == false)
+        #expect(status.desiredConfiguration?.enabled == false)
+        #expect(status.lastMaintenance?.trigger == .topUpExpired)
+        #expect(status.detailReason?.kind == .limitDisabled)
+        #expect(hardware.chargingInhibited == false)
+    }
+
     /// 12시간짜리 잠자기 뒤 깨어난 경우. 타이머는 잠자기 중 돌지 않으므로 wake reconcile이
     /// 같은 판정에 도달해야 한다.
     @Test func expiresOnWakeAfterASleepThatOutlastedTheWindow() {

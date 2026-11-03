@@ -48,6 +48,7 @@ PowerUI 프레임워크·클래스·셀렉터 중 하나라도 없으면 네이�
 - [ ] 시스템 설정에서 제한을 95로 변경 → 60초 안에 Wattly 값으로 복귀
 - [~] Wattly 제한 off → 시스템 설정에서 제한이 꺼짐 / 시스템 설정에서 직접 건 제한은 Wattly off로 안 꺼짐 — 2026-09-18 부분 통과: Wattly가 건 제한은 off로 `native limit: 100 state: off`·`owned=false`(저장값 `heatProtectionEnabled=true`가 남아 있어도 해제됨). 직접 건 제한 쪽은 남음
 - [ ] 사용자가 시스템 설정에서 직접 건 제한 + Top Up 중 Wattly 제한 off → 시스템 제한이 원래 값으로 복귀
+- [x] Wattly 제한 off + 시스템 설정 90% → Top Up on → 취소 → 시스템 제한 그대로, Wattly가 소유하지 않음 — 2026-11-03 통과: `native limit: 90 state: on`·`owned=false`, `batteryLimitEnabled=0`(수정 전에는 `100 state: off`로 사라졌다)
 - [x] 배터리 구동 중 `-WattlyNativeLimitProbe`의 state 값 기록 — 2026-09-18: 배터리 구동 중에도 `state: on`(제한 80 유지) — 불필요한 재기록 없음
 - [ ] 뚜껑 닫고 10분 → 열었을 때 제한 유지
 - [ ] 재부팅 → `pmset -g battlimit`에 제한 유지, Wattly 실행 후 상태 줄 정상
